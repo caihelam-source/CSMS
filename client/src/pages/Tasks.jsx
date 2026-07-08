@@ -1,12 +1,12 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   CheckSquare, Plus, Filter, Calendar,
   AlertTriangle, Clock, CheckCircle2, Circle,
   Pencil, Trash2, MessageSquare
 } from 'lucide-react'
-import { taskService } from '../services/index.js'
+import { taskService, documentService } from '../services/index.js'
 import { fmtDateShort } from '../utils/helpers'
-import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, taskPriorityColor, taskStatusColor } from '../components/UIHelpers'
+import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -97,6 +97,8 @@ const Tasks = () => {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [noteTarget, setNoteTarget] = useState(null)
   const [noteText, setNoteText] = useState('')
+  const [uploadFile, setUploadFile] = useState(null)
+  const fileInputRef = useRef(null)
   const [error, setError] = useState('')
 
   const { search: searchTerm, setSearch: setSearchTerm, filters, setFilter, filtered } = useSearchFilter(
@@ -159,34 +161,49 @@ const Tasks = () => {
       setTasks(ts => ts.map(t => t._id === task._id ? { ...t, status: 'pending' } : t))
       return
     }
-    // Require remark before marking as complete
-    if (!task.notes || task.notes.length === 0) {
-      // Open note modal instead
-      setNoteTarget(task)
-      setNoteText('')
-      return
-    }
-    try { await taskService.update(task._id, { status: 'completed' }) } catch {}
-    setTasks(ts => ts.map(t => t._id === task._id ? { ...t, status: 'completed' } : t))
+    // 打开完成弹窗（备注或附件二选一）
+    setNoteTarget(task)
+    setNoteText('')
+    setUploadFile(null)
   }
 
   const handleAddNote = async () => {
-    if (!noteTarget || !noteText.trim()) return
+    if (!noteTarget || (!noteText.trim() && !uploadFile)) return
     try {
-      await taskService.addNote(noteTarget._id, { content: noteText })
+      // 1. 如果有附件，上传归档到文档
+      if (uploadFile) {
+        const formData = new FormData()
+        formData.append('file', uploadFile)
+        formData.append('name', `[完成] ${noteTarget.title} - ${uploadFile.name}`)
+        formData.append('type', 'other')
+        formData.append('category', '任务归档')
+        formData.append('description', noteText.trim() || `${noteTarget.title} 完成归档`)
+        try {
+          await documentService.upload(formData)
+        } catch (uploadErr) {
+          console.error('文件上传失败:', uploadErr)
+        }
+      }
+
+      // 2. 添加备注
       const newNote = { content: noteText, createdAt: new Date().toISOString() }
-      setTasks(ts => ts.map(t => t._id === noteTarget._id
-        ? { ...t, notes: [...(t.notes || []), newNote] }
-        : t
-      ))
-      // Auto-complete after adding note
+      if (noteText.trim()) {
+        await taskService.addNote(noteTarget._id, { content: noteText })
+        setTasks(ts => ts.map(t => t._id === noteTarget._id
+          ? { ...t, notes: [...(t.notes || []), newNote] }
+          : t
+        ))
+      }
+
+      // 3. 自动标记完成
       try { await taskService.update(noteTarget._id, { status: 'completed' }) } catch {}
       setTasks(ts => ts.map(t => t._id === noteTarget._id
-        ? { ...t, notes: [...(t.notes || []), newNote], status: 'completed' }
+        ? { ...t, notes: noteText.trim() ? [...(t.notes || []), newNote] : (t.notes || []), status: 'completed' }
         : t
       ))
     } catch {}
     setNoteText('')
+    setUploadFile(null)
     setNoteTarget(null)
   }
 
@@ -307,35 +324,21 @@ const Tasks = () => {
         loading={false}
       />
 
-      {/* 添加备注 Modal */}
-      <Modal isOpen={!!noteTarget} onClose={() => setNoteTarget(null)} title={`添加备注：${noteTarget?.title}`} size="sm">
-        <div className="space-y-4">
-          {/* 已有备注 */}
-          {noteTarget?.notes?.length > 0 && (
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {noteTarget.notes.map((n, i) => (
-                <div key={i} className="bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-700">
-                  <p>{n.content}</p>
-                  {n.createdAt && <p className="text-xs text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>}
-                </div>
-              ))}
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">新备注</label>
-            <textarea rows={3}
-              className={inputClass}
-              value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="输入备注内容..." />
-          </div>
-          <div className="flex justify-end gap-3">
-            <button onClick={() => setNoteTarget(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
-            <button onClick={handleAddNote} disabled={!noteText.trim()}
-              className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
-              添加备注
-            </button>
-          </div>
-        </div>
-      </Modal>
+      {/* 标记完成 Modal — 备注或附件二选一 */}
+      <CompleteWithAttachmentModal
+        isOpen={!!noteTarget}
+        onClose={() => { setNoteTarget(null); setUploadFile(null) }}
+        title={`标记完成：${noteTarget?.title || ''}`}
+        warningText="任务必须填写备注或上传附件才能标记完成"
+        noteText={noteText}
+        onNoteChange={setNoteText}
+        uploadFile={uploadFile}
+        onFileChange={(f) => setUploadFile(f)}
+        onFileRemove={() => setUploadFile(null)}
+        onConfirm={handleAddNote}
+        saving={false}
+        fileInputRef={fileInputRef}
+      />
     </div>
   )
 }

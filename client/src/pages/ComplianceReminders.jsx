@@ -1,13 +1,13 @@
-import { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import {
   Bell, Plus, RefreshCw,
   CheckCircle2, Clock,
   Pencil, Trash2
 } from 'lucide-react'
-import { complianceReminderService, companyService } from '../services/index.js'
+import { complianceReminderService, companyService, documentService } from '../services/index.js'
 import { fmtDateShort } from '../utils/helpers'
-import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, compliancePriorityColor, complianceStatusColor } from '../components/UIHelpers'
+import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, compliancePriorityColor, complianceStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
 import Modal from '../components/Modal'
@@ -135,6 +135,8 @@ const ComplianceReminders = () => {
   const [editTarget, setEditTarget] = useState(null)
   const [noteText, setNoteText] = useState('')
   const [completeModal, setCompleteModal] = useState(false)
+  const [uploadFile, setUploadFile] = useState(null)
+  const fileInputRef = React.useRef(null)
   const [error, setError] = useState('')
 
   const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
@@ -206,16 +208,38 @@ const ComplianceReminders = () => {
     if (!editTarget) return
     setSaving(true)
     try {
+      // 1. 如果有附件，先上传归档到公司文档
+      if (uploadFile) {
+        const companyId = editTarget.company?._id || editTarget.company || ''
+        const formData = new FormData()
+        formData.append('file', uploadFile)
+        formData.append('name', `[完成] ${editTarget.title} - ${uploadFile.name}`)
+        formData.append('type', 'other')
+        formData.append('category', '合规归档')
+        formData.append('description', noteText.trim() || `${editTarget.title} 完成归档`)
+        if (companyId) formData.append('company', companyId)
+        try {
+          await documentService.upload(formData)
+          toast.success('附件已归档到公司文档')
+        } catch (uploadErr) {
+          console.error('文件上传失败:', uploadErr)
+          toast.error('附件上传失败，但任务已完成')
+        }
+      }
+
+      // 2. 更新提醒状态为已完成
       const notes = Array.isArray(editTarget.notes) ? editTarget.notes : []
       const payload = { notes: [...notes, { content: noteText, createdAt: new Date().toISOString() }], status: 'completed', completed: true }
       const { data: resData } = await complianceReminderService.update(editTarget._id, payload)
       setReminders(rs => rs.map(r => r._id === editTarget._id ? (resData.data || { ...r, ...payload }) : r))
+      toast.success('已标记为完成')
     } catch (e) {
       toast.error(e.response?.data?.message || '操作失败')
     } finally {
       setSaving(false)
       setCompleteModal(false)
       setNoteText('')
+      setUploadFile(null)
     }
   }
 
@@ -356,49 +380,21 @@ const ComplianceReminders = () => {
         <ReminderForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModal(null)} loading={saving} companies={companies} />
       </Modal>
 
-      {/* 标记完成 Modal — 强制要求备注 */}
-      <Modal isOpen={completeModal} onClose={() => { setCompleteModal(false) }}
-        title="标记为已完成" size="sm">
-        <div className="space-y-4">
-          {/* 已有备注 */}
-          {editTarget?.notes?.length > 0 && (
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-2">已有备注：</p>
-              <div className="space-y-2 max-h-32 overflow-y-auto bg-gray-50 rounded-lg p-3">
-                {editTarget.notes.map((n, i) => (
-                  <div key={i} className="text-sm text-gray-700">
-                    <p>{typeof n === 'string' ? n : n.content}</p>
-                    {n.createdAt && typeof n === 'object' && <p className="text-xs text-gray-400 mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 新备注输入 */}
-          <FormField label="完成备注" required>
-            <textarea
-              rows={3}
-              className={inputClass}
-              placeholder="请输入完成说明或备注..."
-              value={noteText}
-              onChange={e => setNoteText(e.target.value)}
-            />
-            <p className="text-xs text-gray-400 mt-1">合规提醒/任务必须填写备注才能标记完成</p>
-          </FormField>
-
-          <div className="flex justify-end gap-3">
-            <button onClick={() => { setCompleteModal(false) }} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
-            <button
-              onClick={handleComplete}
-              disabled={!noteText.trim() || saving}
-              className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {saving ? '处理中...' : '确认完成'}
-            </button>
-          </div>
-        </div>
-      </Modal>
+      {/* 标记完成 Modal — 备注或附件二选一 */}
+      <CompleteWithAttachmentModal
+        isOpen={completeModal}
+        onClose={() => { setCompleteModal(false); setUploadFile(null) }}
+        title="标记为已完成"
+        warningText="合规提醒必须填写备注或上传附件才能标记完成"
+        noteText={noteText}
+        onNoteChange={setNoteText}
+        uploadFile={uploadFile}
+        onFileChange={(f) => setUploadFile(f)}
+        onFileRemove={() => setUploadFile(null)}
+        onConfirm={handleComplete}
+        saving={saving}
+        fileInputRef={fileInputRef}
+      />
 
       {/* 删除确认 Modal */}
       <DeleteConfirmModal
