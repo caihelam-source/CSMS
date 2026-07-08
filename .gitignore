@@ -95,3 +95,7 @@ Claw_Company_Secretary_System/
 output/
 scripts/pdf_extracts/
 *.zip
+
+# Vite build temp config files
+vite.config.js.timestamp-*
+client/vite.config.js.timestamp-*
