@@ -1,5 +1,15 @@
 const mongoose = require('mongoose');
 
+// 任职记录子文档 — 人员可在多家公司担任不同职位
+const appointmentSchema = new mongoose.Schema({
+  company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
+  position: { type: String, trim: true },          // 职位, 如 董事/公司秘书/股东
+  appointedDate: { type: Date },
+  ceasedDate: { type: Date },
+  status: { type: String, enum: ['current', 'ceased', '在任', '离任'], default: 'current' },
+  notes: { type: String },
+}, { _id: true });
+
 const personnelSchema = new mongoose.Schema({
   name: { type: String, required: [true, 'Name is required'], trim: true },
   nameChinese: { type: String, trim: true },
@@ -10,6 +20,10 @@ const personnelSchema = new mongoose.Schema({
   address: {
     street: String, city: String, state: String, postalCode: String, country: String,
   },
+  // 角色标签 — 由任职记录自动汇总 (director/secretary/shareholder/employee/manager)
+  roles: [{ type: String }],
+  // 任职记录 — 关联多家公司的职位时间线
+  appointments: [appointmentSchema],
   // Legacy fields for compatibility
   dateOfBirth: Date,
   placeOfBirth: String,

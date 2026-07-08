@@ -45,7 +45,6 @@ router.get('/', auth, async (req, res) => {
 
     const documents = await Document.find(query)
       .populate('company', 'name nameChinese stockCode')
-      .populate('director', 'name nameChinese')
       .populate('uploadedBy', 'name email')
       .sort({ createdAt: -1 });
 
@@ -59,7 +58,7 @@ router.get('/', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id)
-      .populate('company').populate('director').populate('uploadedBy', 'name email');
+      .populate('company').populate('uploadedBy', 'name email');
     if (!doc) return res.status(404).json({ message: 'Document not found' });
     res.json({ success: true, document: doc });
   } catch (err) {

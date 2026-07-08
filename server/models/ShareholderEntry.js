@@ -33,7 +33,6 @@ const shareholderEntrySchema = new mongoose.Schema({
     considerationPaid: { type: String },                      // 已付代价
     numberOfShares: { type: Number, default: 0 },             // 股份数
     transactionDate: { type: Date },                          // 交易日期
-    _id: true,
   }],
 
   totalSharesHeld: { type: Number, default: 0 },             // 总持股数

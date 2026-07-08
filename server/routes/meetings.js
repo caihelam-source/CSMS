@@ -23,7 +23,7 @@ router.get('/', auth, async (req, res) => {
 
     const meetings = await Meeting.find(query)
       .populate('company', ' name')
-      .populate('attendees.user', 'name email')
+      .populate('attendees.ref', 'name email')
       .populate('createdBy', 'name')
       .sort({ date: -1 });
 
@@ -44,7 +44,7 @@ router.get('/:id', auth, async (req, res) => {
   try {
     const meeting = await Meeting.findById(req.params.id)
       .populate('company')
-      .populate('attendees.user', 'name email phone')
+      .populate('attendees.ref', 'name email phone')
       .populate('createdBy', 'name')
       .populate('documents');
 
