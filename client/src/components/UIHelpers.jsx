@@ -124,6 +124,12 @@ export const DetailHeader = ({ onBack, title, subtitle = '', initials = '?', ava
   </div>
 )
 
+// Shared CSS constants — must be defined before any component that uses them
+const INP = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
+const LBL = 'block text-sm font-medium text-gray-700 mb-1'
+
+export { INP as inputClass, LBL as labelClass }
+
 /**
  * CompleteWithAttachmentModal — shared "mark complete" dialog with note + file attachment
  * Used by TaskDetail and ComplianceReminderDetail (deduplicated from both pages)
@@ -148,11 +154,11 @@ export const CompleteWithAttachmentModal = ({
         </div>
       )}
       <FormField label="完成备注">
-        <textarea rows={3} className={inputClass}
+        <textarea rows={3} className={INP}
           value={noteText} onChange={e => onNoteChange(e.target.value)} placeholder="请输入完成说明..." />
       </FormField>
       <FormField label="上传附件（可选，将归档到公司文档）">
-        <input type="file" ref={fileInputRef} className={inputClass}
+        <input type="file" ref={fileInputRef} className={INP}
           onChange={e => onFileChange(e.target.files[0] || null)} />
         {uploadFile && (
           <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
@@ -172,13 +178,7 @@ export const CompleteWithAttachmentModal = ({
   </Modal>
 )
 
-const INP = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
-const LBL = 'block text-sm font-medium text-gray-700 mb-1'
-
-export { INP as inputClass, LBL as labelClass }
-
 /**
- * Compliance priority color helper
  * Usage: <span className={`rounded-full ${compliancePriorityColor(r.priority)}`}>{r.priority}</span>
  */
 export const compliancePriorityColor = (p) => ({
