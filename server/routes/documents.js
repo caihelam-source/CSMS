@@ -26,10 +26,11 @@ const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 // GET /api/documents
 router.get('/', auth, async (req, res) => {
   try {
-    const { type, company, director, signStatus, search } = req.query;
+    const { type, company, companyId, director, signStatus, search } = req.query;
     const query = {};
     if (type) query.type = type;
     if (company) query.company = company;
+    if (companyId) query.company = companyId;
     if (director) query.director = director;
     if (signStatus) query.signStatus = signStatus;
     if (search) {
@@ -69,14 +70,21 @@ router.get('/:id', auth, async (req, res) => {
 // POST /api/documents — 上传文件
 router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
-    const { title, type, company, director, description, tags, keywords, isConfidential } = req.body;
+    const { title, name, type, company, director, description, category, note, tags, keywords, isConfidential } = req.body;
+
+    // 兼容前端自动归档：company / director 可能是 { _id, name } 对象，也可能直接是 ObjectId
+    const companyVal = (company && typeof company === 'object' && company._id) ? company._id : company;
+    const directorVal = (director && typeof director === 'object' && director._id) ? director._id : director;
+
+    // 文档标题：优先 title，其次 name（前端自动归档使用 name 字段）
+    const docTitle = title || name || req.file?.originalname || 'Untitled';
 
     // 生成文档编号
     let companyObj = null;
     let directorName = null;
-    if (company) companyObj = await Company.findById(company);
-    if (director) {
-      const d = await Director.findById(director);
+    if (companyVal) companyObj = await Company.findById(companyVal);
+    if (directorVal) {
+      const d = await Director.findById(directorVal);
       if (d) directorName = d.name;
     }
 
@@ -84,11 +92,13 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
     const docData = {
       docNumber,
-      title: title || req.file?.originalname || 'Untitled',
+      name: docTitle,
       type: type || 'other',
-      company: company || undefined,
-      director: director || undefined,
-      description,
+      category: category || 'other',
+      company: companyVal || undefined,
+      director: directorVal || undefined,
+      description: description || note || undefined,
+      note: note || undefined,
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : [],
       keywords: keywords ? (Array.isArray(keywords) ? keywords : keywords.split(',').map(k => k.trim())) : [],
       isConfidential: isConfidential === 'true' || isConfidential === true,

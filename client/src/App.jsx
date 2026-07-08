@@ -1,29 +1,49 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext.jsx'
 import Layout from './components/Layout'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
-import Meetings from './pages/Meetings'
-import Documents from './pages/Documents'
-import Companies from './pages/Companies'
-import CompanyDetail from './pages/CompanyDetail'
-import Tasks from './pages/Tasks'
-import Directors from './pages/Directors'
-import ComplianceReminders from './pages/ComplianceReminders'
-import ComplianceRules from './pages/ComplianceRules'
-import Templates from './pages/Templates'
-import SignTasks from './pages/SignTasks'
-import Personnel from './pages/Personnel'
-import PersonnelDetail from './pages/PersonnelDetail'
-import AdminPanel from './pages/AdminPanel'
-import Settings from './pages/Settings'
 
-// Spinner used during auth check
+// Lazy-loaded page components
+const Login = lazy(() => import('./pages/Login'))
+const Register = lazy(() => import('./pages/Register'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Meetings = lazy(() => import('./pages/Meetings'))
+const MeetingDetail = lazy(() => import('./pages/MeetingDetail'))
+const Documents = lazy(() => import('./pages/Documents'))
+const Companies = lazy(() => import('./pages/Companies'))
+const CompanyDetail = lazy(() => import('./pages/CompanyDetail'))
+const Tasks = lazy(() => import('./pages/Tasks'))
+const TaskDetail = lazy(() => import('./pages/TaskDetail'))
+const Directors = lazy(() => import('./pages/Directors'))
+const ComplianceReminders = lazy(() => import('./pages/ComplianceReminders'))
+const ComplianceReminderDetail = lazy(() => import('./pages/ComplianceReminderDetail'))
+const ComplianceRules = lazy(() => import('./pages/ComplianceRules'))
+const Templates = lazy(() => import('./pages/Templates'))
+const SignTasks = lazy(() => import('./pages/SignTasks'))
+const Personnel = lazy(() => import('./pages/Personnel'))
+const PersonnelDetail = lazy(() => import('./pages/PersonnelDetail'))
+const AdminPanel = lazy(() => import('./pages/AdminPanel'))
+const Settings = lazy(() => import('./pages/Settings'))
+
+// Spinner used during auth check and lazy loading
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
   </div>
+)
+
+// Page-level loading fallback (lighter, inside layout)
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+  </div>
+)
+
+// Suspense wrapper for lazy pages
+const LazyPage = ({ children }) => (
+  <Suspense fallback={<PageLoader />}>
+    {children}
+  </Suspense>
 )
 
 // Requires login
@@ -44,48 +64,53 @@ const AdminRoute = ({ children }) => {
 
 function App() {
   return (
-    <Routes>
-      {/* Public */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+    <Suspense fallback={<Spinner />}>
+      <Routes>
+        {/* Public */}
+        <Route path="/login" element={<LazyPage><Login /></LazyPage>} />
+        <Route path="/register" element={<LazyPage><Register /></LazyPage>} />
 
-      {/* Protected — all wrapped in Layout (Outlet renders page) */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="companies" element={<Companies />} />
-        <Route path="companies/:id" element={<CompanyDetail />} />
-        <Route path="meetings" element={<Meetings />} />
-        <Route path="documents" element={<Documents />} />
-        <Route path="personnel" element={<Personnel />} />
-        <Route path="personnel/:id" element={<PersonnelDetail />} />
-        <Route path="tasks" element={<Tasks />} />
-        <Route path="directors" element={<Directors />} />
-        <Route path="compliance-rules" element={<ComplianceRules />} />
-        <Route path="compliance-reminders" element={<ComplianceReminders />} />
-        <Route path="templates" element={<Templates />} />
-        <Route path="sign-tasks" element={<SignTasks />} />
-        <Route path="settings" element={<Settings />} />
+        {/* Protected — all wrapped in Layout (Outlet renders page) */}
         <Route
-          path="admin"
+          path="/"
           element={
-            <AdminRoute>
-              <AdminPanel />
-            </AdminRoute>
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
           }
-        />
-      </Route>
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<LazyPage><Dashboard /></LazyPage>} />
+          <Route path="companies" element={<LazyPage><Companies /></LazyPage>} />
+          <Route path="companies/:id" element={<LazyPage><CompanyDetail /></LazyPage>} />
+          <Route path="meetings" element={<LazyPage><Meetings /></LazyPage>} />
+          <Route path="meetings/:id" element={<LazyPage><MeetingDetail /></LazyPage>} />
+          <Route path="documents" element={<LazyPage><Documents /></LazyPage>} />
+          <Route path="personnel" element={<LazyPage><Personnel /></LazyPage>} />
+          <Route path="personnel/:id" element={<LazyPage><PersonnelDetail /></LazyPage>} />
+          <Route path="tasks" element={<LazyPage><Tasks /></LazyPage>} />
+          <Route path="tasks/:id" element={<LazyPage><TaskDetail /></LazyPage>} />
+          <Route path="directors" element={<LazyPage><Directors /></LazyPage>} />
+          <Route path="compliance-rules" element={<LazyPage><ComplianceRules /></LazyPage>} />
+          <Route path="compliance-reminders" element={<LazyPage><ComplianceReminders /></LazyPage>} />
+          <Route path="compliance-reminders/:id" element={<LazyPage><ComplianceReminderDetail /></LazyPage>} />
+          <Route path="templates" element={<LazyPage><Templates /></LazyPage>} />
+          <Route path="sign-tasks" element={<LazyPage><SignTasks /></LazyPage>} />
+          <Route path="settings" element={<LazyPage><Settings /></LazyPage>} />
+          <Route
+            path="admin"
+            element={
+              <AdminRoute>
+                <LazyPage><AdminPanel /></LazyPage>
+              </AdminRoute>
+            }
+          />
+        </Route>
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Suspense>
   )
 }
 

@@ -1,31 +1,41 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { companyService, documentService, meetingService, personnelService } from '../services'
-import { formatDate, getStatusColor } from '../utils/helpers'
-import { ArrowLeft, Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, UserPlus, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, ClipboardCheck } from 'lucide-react'
+import { companyService, documentService, meetingService, personnelService } from '../services/index.js'
+import EquityGraph from './EquityGraph'
+import { formatDate, getStatusColor, DOC_CATEGORY_LABELS } from '../utils/helpers'
+import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, labelClass, TabNav } from '../components/UIHelpers'
+import Modal from '../components/Modal'
+import { useConfirm } from '../components/ConfirmDialog'
+import { validate, required } from '../utils/validators'
+
+const LINK_FORM_RULES = {
+  name: [required('名称为必填')],
+}
 
 export default function CompanyDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { confirm, ConfirmDialogComponent } = useConfirm()
   const [company, setCompany] = useState(null)
   const [documents, setDocuments] = useState([])
   const [meetings, setMeetings] = useState([])
   const [compliance, setCompliance] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('info')
+  const [docFilterCategory, setDocFilterCategory] = useState('all')
   const [showLinkModal, setShowLinkModal] = useState(false)
   const [editingLink, setEditingLink] = useState(null)
   const [linkForm, setLinkForm] = useState({ linkModel: 'Personnel', name: '', roles: ['director'], shares: '', shareType: 'ordinary', nric: '', appointedDate: '', ceasedDate: '', selectedId: '' })
+  const [linkFormErrors, setLinkFormErrors] = useState({})
   // 登记册生成
   const [generatingReg, setGeneratingReg] = useState(null) // 'rod' | 'rom' | null
   // 所有 personnel 和 companies（用于联动显示最新数据）
   const [allPersonnel, setAllPersonnel] = useState([])
   const [allCompanies, setAllCompanies] = useState([])
 
-  useEffect(() => { loadAll() }, [id])
-
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true)
     try {
       const [compRes, docRes, meetRes, compRes2, persRes, compsRes] = await Promise.all([
@@ -42,22 +52,30 @@ export default function CompanyDetail() {
       if (compRes2) setCompliance(compRes2.data.data)
       setAllPersonnel(persRes?.data?.data || [])
       setAllCompanies(compsRes?.data?.data || [])
-    } catch (err) {
+    } catch {
       toast.error('Failed to load company')
       navigate('/companies')
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, navigate])
+
+  useEffect(() => { loadAll() }, [loadAll])
 
   // Build maps for display (always use latest personnel/company data)
-  const personnelMap = {}
-  allPersonnel.forEach(p => { personnelMap[p._id] = p })
-  const companyMap = {}
-  allCompanies.forEach(c => { companyMap[c._id] = c })
+  const personnelMap = useMemo(() => {
+    const map = {}
+    allPersonnel.forEach(p => { map[p._id] = p })
+    return map
+  }, [allPersonnel])
+  const companyMap = useMemo(() => {
+    const map = {}
+    allCompanies.forEach(c => { map[c._id] = c })
+    return map
+  }, [allCompanies])
 
   // Resolve a link's display data: always prefer the map (latest data)
-  const resolveLinkDisplay = (link) => {
+  const resolveLinkDisplay = useCallback((link) => {
     if (link.linkModel === 'Personnel' && link.link?._id && personnelMap[link.link._id]) {
       return personnelMap[link.link._id]
     }
@@ -65,11 +83,11 @@ export default function CompanyDetail() {
       return companyMap[link.link._id]
     }
     return link.link || {}
-  }
+  }, [personnelMap, companyMap])
 
-  const directors = (company?.links || []).filter(l => l.roles.includes('director') || l.roles.includes('alternate_director'))
-  const shareholders = (company?.links || []).filter(l => l.roles.includes('shareholder'))
-  const secretaries = (company?.links || []).filter(l => l.roles.includes('secretary'))
+  const directors = useMemo(() => (company?.links || []).filter(l => l.roles.includes('director') || l.roles.includes('alternate_director')), [company?.links])
+  const shareholders = useMemo(() => (company?.links || []).filter(l => l.roles.includes('shareholder')), [company?.links])
+  const secretaries = useMemo(() => (company?.links || []).filter(l => l.roles.includes('secretary')), [company?.links])
 
   // ---- Link CRUD ----
   const openAddLink = () => {
@@ -95,7 +113,8 @@ export default function CompanyDetail() {
   }
 
   const handleRemoveLink = async (linkId) => {
-    if (!confirm('Remove this link?')) return
+    const ok = await confirm({ title: '移除关联', message: '移除这个关联？此操作不可撤销。', confirmLabel: '确认移除' })
+    if (!ok) return
     try {
       await companyService.removeLink(id, linkId)
       toast.success('Link removed')
@@ -107,7 +126,9 @@ export default function CompanyDetail() {
 
   const handleAddLink = async (e) => {
     e.preventDefault()
-    if (!linkForm.selectedId && !linkForm.name) { toast.error('Please select or enter a name'); return }
+    const { valid, errors } = validate(linkForm, LINK_FORM_RULES)
+    if (!valid) { setLinkFormErrors(errors); return }
+    setLinkFormErrors({})
     try {
       // Determine the _id for link.link
       let linkId = linkForm.selectedId
@@ -146,7 +167,7 @@ export default function CompanyDetail() {
   }
 
   // Handle selecting existing personnel in Link Modal
-  const handlePersonnelSelect = (e) => {
+  const handlePersonnelSelect = useCallback((e) => {
     const pid = e.target.value
     if (!pid) {
       setLinkForm({ ...linkForm, selectedId: '', name: '', nric: '', nationality: '' })
@@ -156,8 +177,8 @@ export default function CompanyDetail() {
     if (p) {
       setLinkForm({ ...linkForm, selectedId: pid, name: p.name, nric: p.nric || '', nationality: p.nationality || '' })
     }
-  }
-  const handleCompanySelect = (e) => {
+  }, [linkForm, allPersonnel])
+  const handleCompanySelect = useCallback((e) => {
     const cid = e.target.value
     if (!cid) {
       setLinkForm({ ...linkForm, selectedId: '', name: '' })
@@ -167,7 +188,7 @@ export default function CompanyDetail() {
     if (c) {
       setLinkForm({ ...linkForm, selectedId: cid, name: c.name, registrationNumber: c.registrationNumber || '' })
     }
-  }
+  }, [linkForm, allCompanies])
   const downloadRegister = (type) => {
     if (!company) return
     setGeneratingReg(type)
@@ -181,7 +202,7 @@ export default function CompanyDetail() {
       document.body.appendChild(a); a.click()
       document.body.removeChild(a); URL.revokeObjectURL(url)
       toast.success(`${type === 'rod' ? 'ROD' : 'ROM'} downloaded`)
-    } catch (err) {
+    } catch {
       toast.error('Failed to generate register')
     } finally {
       setGeneratingReg(null)
@@ -301,45 +322,44 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
     )
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64">Loading...</div>
-  if (!company) return <div className="text-center py-12 text-gray-400">Company not found</div>
+  if (loading) return <LoadingSpinner size="md" />
+  if (!company) return <EmptyState icon={Building2} title="未找到该公司" description="该公司记录不存在或已被删除" />
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate('/companies')} className="p-2 rounded-lg hover:bg-gray-100"><ArrowLeft size={20} /></button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{company.name}</h1>
-            <span className={`badge ${getStatusColor(company.status)}`}>{company.status}</span>
-            {company.jurisdiction && <span className="badge badge-info">{company.jurisdiction}</span>}
-          </div>
-          <p className="text-gray-500 mt-1">
+      <DetailHeader
+        onBack={() => navigate('/companies')}
+        title={company.name}
+        subtitle={
+          <>
             {company.registrationNumber}
             {company.type && <> &middot; {company.type.replace(/_/g, ' ')}</>}
             {company.incorporationDate && <> &middot; Incorporated {formatDate(company.incorporationDate)}</>}
-          </p>
-        </div>
-      </div>
+          </>
+        }
+        initials={company.name?.charAt(0) || '?'}
+        badges={
+          <>
+            <span className={`badge ${getStatusColor(company.status)}`}>{company.status}</span>
+            {company.jurisdiction && <span className="badge badge-info">{company.jurisdiction}</span>}
+          </>
+        }
+      />
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
-        {[
+      <TabNav
+        tabs={[
           { key: 'info', label: '基本信息', icon: Building2 },
           { key: 'people', label: `董事/股东 (${(company.links || []).length})`, icon: Users },
           { key: 'documents', label: `文件 (${documents.length})`, icon: FileText },
+          { key: 'equity', label: '股权架构', icon: Network },
           { key: 'registers', label: '登记册', icon: BookOpen },
           { key: 'compliance', label: '合规', icon: Shield },
-        ].map(({ key, label, icon: Icon }) => (
-          <button key={key} onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === key ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}>
-            <Icon size={16} />{label}
-          </button>
-        ))}
-      </div>
+        ]}
+        active={activeTab}
+        onChange={setActiveTab}
+      />
 
       {/* Info Tab */}
       {activeTab === 'info' && (
@@ -372,7 +392,7 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
             <h3 className="font-semibold mb-4">合规日期</h3>
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">AGM 到期</span><span>{formatDate(company.compliance?.agmDueDate)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">年报到期</span><span className={new Date(company.compliance?.arDueDate) < new Date() ? 'text-red-600 font-medium' : ''}>{formatDate(company.compliance?.arDueDate)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">年报到期</span><span className={company.compliance?.arDueDate && new Date(company.compliance.arDueDate) < new Date() ? 'text-red-600 font-medium' : ''}>{formatDate(company.compliance?.arDueDate)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">上次 AGM</span><span>{formatDate(company.compliance?.lastAgmDate)}</span></div>
             </dl>
           </div>
@@ -406,7 +426,7 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
           <div className="card">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><Users size={18} /> 董事 ({directors.length})</h3>
             {directors.length === 0 ? (
-              <p className="text-gray-400 text-sm">No directors</p>
+              <p className="text-gray-400 text-sm">暂无董事</p>
             ) : (
               <div className="space-y-2">
                 {directors.map(link => renderLinkRow(link))}
@@ -418,7 +438,7 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
           <div className="card">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><Building2 size={18} /> 股东 ({shareholders.length})</h3>
             {shareholders.length === 0 ? (
-              <p className="text-gray-400 text-sm">No shareholders</p>
+              <p className="text-gray-400 text-sm">暂无股东</p>
             ) : (
               <div className="space-y-2">
                 {shareholders.map(link => renderLinkRow(link))}
@@ -430,7 +450,7 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
           <div className="card">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><Shield size={18} /> 公司秘书 ({secretaries.length})</h3>
             {secretaries.length === 0 ? (
-              <p className="text-gray-400 text-sm">No secretary</p>
+              <p className="text-gray-400 text-sm">暂无公司秘书</p>
             ) : (
               <div className="space-y-2">
                 {secretaries.map(link => renderLinkRow(link))}
@@ -440,39 +460,75 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
         </div>
       )}
 
-      {/* Documents Tab */}
+      {/* Documents Tab — 分类侧栏 */}
       {activeTab === 'documents' && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">关联文件</h2>
-          {documents.length === 0 ? (
-            <div className="card text-center py-12 text-gray-400">
-              <FileText size={48} className="mx-auto mb-4 opacity-50" />
-              <p>No documents</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {documents.map(doc => (
-                <div key={doc._id} className="card flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <FileText size={20} className="text-primary-600" />
-                    <div>
-                      <p className="font-medium">{doc.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {doc.type && <span className="capitalize">{doc.type.replace(/_/g, ' ')}</span>}
-                        {doc.fileSize && <> &middot; {(doc.fileSize / 1024).toFixed(0)} KB</>}
-                        {doc.createdAt && <> &middot; {formatDate(doc.createdAt)}</>}
-                      </p>
+        <div className="flex gap-6">
+          {/* 侧栏：分类 */}
+          <aside className="w-48 shrink-0 space-y-1">
+            <h3 className="text-sm font-semibold text-gray-500 px-2 pb-2">文档分类</h3>
+            <button onClick={() => setDocFilterCategory('all')}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${docFilterCategory === 'all' ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-gray-50 text-gray-700'}`}>
+              <span>全部</span>
+              <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{documents.length}</span>
+            </button>
+            {Object.entries(DOC_CATEGORY_LABELS).map(([key, label]) => {
+              const count = documents.filter(d => (d.category || 'other') === key).length
+              return (
+                <button key={key} onClick={() => setDocFilterCategory(key)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${docFilterCategory === key ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-gray-50 text-gray-700'}`}>
+                  <span className="flex items-center gap-2"><ClipboardCheck size={14} /> {label}</span>
+                  <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{count}</span>
+                </button>
+              )
+            })}
+          </aside>
+
+          {/* 主区：文件列表 */}
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-semibold mb-4">关联文件</h2>
+            {documents.length === 0 ? (
+              <div className="card text-center py-12 text-gray-400">
+                <FileText size={48} className="mx-auto mb-4 opacity-50" />
+                <p>暂无关联文件</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {documents
+                  .filter(d => docFilterCategory === 'all' || (d.category || 'other') === docFilterCategory)
+                  .map(doc => (
+                    <div key={doc._id} className="card flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileText size={20} className="text-primary-600 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {doc.docNumber && <span className="text-xs font-mono text-gray-400">{doc.docNumber}</span>}
+                            <p className="font-medium truncate">{doc.name}</p>
+                          </div>
+                          <p className="text-xs text-gray-400">
+                            <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{DOC_CATEGORY_LABELS[doc.category] || '其他'}</span>
+                            {doc.type && <> &middot; {doc.type.replace(/_/g, ' ')}</>}
+                            {doc.fileSize && <> &middot; {(doc.fileSize / 1024).toFixed(0)} KB</>}
+                            {doc.createdAt && <> &middot; {formatDate(doc.createdAt)}</>}
+                          </p>
+                        </div>
+                      </div>
+                      {doc.fileUrl ? (
+                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm shrink-0">Download</a>
+                      ) : (
+                        <span className="text-xs text-gray-400 shrink-0">无文件</span>
+                      )}
                     </div>
-                  </div>
-                  {doc.fileUrl ? (
-                    <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">Download</a>
-                  ) : (
-                    <span className="text-xs text-gray-400">No file</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Equity Graph Tab — 股权穿透架构 */}
+      {activeTab === 'equity' && (
+        <div className="space-y-4">
+          <EquityGraph companyId={id} />
         </div>
       )}
 
@@ -663,8 +719,8 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
                   </div>
                 )}
               </div>
-              {compliance.items?.map((item, i) => (
-                <div key={i} className="card flex items-center justify-between">
+              {compliance.items?.map((item) => (
+                <div key={`${item.type}-${item.dueDate}`} className="card flex items-center justify-between">
                   <div>
                     <p className="font-medium">{item.type}</p>
                     <p className="text-sm text-gray-500">Due: {formatDate(item.dueDate)}</p>
@@ -674,63 +730,54 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
               ))}
             </div>
           ) : (
-            <p className="text-gray-400">Compliance data not available</p>
+                <p>Compliance data not available</p>
           )}
         </div>
       )}
 
       {/* ======== Add/Edit Link Modal ======== */}
-      {showLinkModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold mb-4">{editingLink ? 'Edit Link' : 'Add Link'}</h2>
-            <form onSubmit={handleAddLink} className="space-y-4">
-              <div>
-                <label className="label">Link Type</label>
-                <select className="input-field" value={linkForm.linkModel}
+      <Modal isOpen={showLinkModal} onClose={() => { setShowLinkModal(false); setEditingLink(null) }} title={editingLink ? 'Edit Link' : 'Add Link'} size="md">
+        <form onSubmit={handleAddLink} className="space-y-4">
+              <FormField label="Link Type">
+                <select className={inputClass} value={linkForm.linkModel}
                   onChange={(e) => setLinkForm({ ...linkForm, linkModel: e.target.value, roles: e.target.value === 'Company' ? ['shareholder'] : ['director'] })}>
                   <option value="Personnel">Person (Personnel)</option>
                   <option value="Company">Company</option>
                 </select>
-              </div>
+              </FormField>
               {/* Select existing personnel/company */}
               {linkForm.linkModel === 'Personnel' && (
-                <div>
-                  <label className="label">Select Existing Personnel (optional)</label>
-                  <select className="input-field" value={linkForm.selectedId} onChange={handlePersonnelSelect}>
+                <FormField label="Select Existing Personnel (optional)">
+                  <select className={inputClass} value={linkForm.selectedId} onChange={handlePersonnelSelect}>
                     <option value="">-- Enter new person --</option>
                     {allPersonnel.map(p => (
                       <option key={p._id} value={p._id}>{p.name} ({p.nric || 'no ID'})</option>
                     ))}
                   </select>
-                </div>
+                </FormField>
               )}
               {linkForm.linkModel === 'Company' && (
-                <div>
-                  <label className="label">Select Existing Company (optional)</label>
-                  <select className="input-field" value={linkForm.selectedId} onChange={handleCompanySelect}>
+                <FormField label="Select Existing Company (optional)">
+                  <select className={inputClass} value={linkForm.selectedId} onChange={handleCompanySelect}>
                     <option value="">-- Enter new company --</option>
                     {allCompanies.map(c => (
                       <option key={c._id} value={c._id}>{c.name} ({c.registrationNumber || 'N/A'})</option>
                     ))}
                   </select>
-                </div>
+                </FormField>
               )}
 
-              <div>
-                <label className="label">Name *</label>
-                <input className="input-field" value={linkForm.name}
-                  onChange={(e) => setLinkForm({ ...linkForm, name: e.target.value, selectedId: '' })} required />
-              </div>
+              <FormField label="Name" required error={linkFormErrors.name}>
+                <input className={inputClass} value={linkForm.name}
+                  onChange={(e) => { setLinkForm({ ...linkForm, name: e.target.value, selectedId: '' }); setLinkFormErrors(fe => ({ ...fe, name: '' })) }} />
+              </FormField>
               {linkForm.linkModel === 'Personnel' && (
-                <div>
-                  <label className="label">NRIC</label>
-                  <input className="input-field" value={linkForm.nric}
+                <FormField label="NRIC">
+                  <input className={inputClass} value={linkForm.nric}
                     onChange={(e) => setLinkForm({ ...linkForm, nric: e.target.value })} />
-                </div>
+                </FormField>
               )}
-              <div>
-                <label className="label">Roles</label>
+              <FormField label="Roles">
                 <div className="flex flex-wrap gap-2">
                   {['director', 'shareholder', 'secretary', 'other'].map(r => (
                     <label key={r} className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm cursor-pointer border ${
@@ -744,38 +791,34 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
                     </label>
                   ))}
                 </div>
-              </div>
+              </FormField>
 
               {/* Dates */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">Appointed Date</label>
-                  <input type="date" className="input-field" value={linkForm.appointedDate}
+                <FormField label="Appointed Date">
+                  <input type="date" className={inputClass} value={linkForm.appointedDate}
                     onChange={(e) => setLinkForm({ ...linkForm, appointedDate: e.target.value })} />
-                </div>
-                <div>
-                  <label className="label">Ceased Date</label>
-                  <input type="date" className="input-field" value={linkForm.ceasedDate}
+                </FormField>
+                <FormField label="Ceased Date">
+                  <input type="date" className={inputClass} value={linkForm.ceasedDate}
                     onChange={(e) => setLinkForm({ ...linkForm, ceasedDate: e.target.value })} />
-                </div>
+                </FormField>
               </div>
 
               {linkForm.roles.includes('shareholder') && (
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="label">Shares</label>
-                    <input type="number" className="input-field" value={linkForm.shares}
+                  <FormField label="Shares">
+                    <input type="number" className={inputClass} value={linkForm.shares}
                       onChange={(e) => setLinkForm({ ...linkForm, shares: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="label">Share Type</label>
-                    <select className="input-field" value={linkForm.shareType}
+                  </FormField>
+                  <FormField label="Share Type">
+                    <select className={inputClass} value={linkForm.shareType}
                       onChange={(e) => setLinkForm({ ...linkForm, shareType: e.target.value })}>
                       <option value="ordinary">Ordinary</option>
                       <option value="preference">Preference</option>
                       <option value="other">Other</option>
                     </select>
-                  </div>
+                  </FormField>
                 </div>
               )}
 
@@ -784,9 +827,10 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
                 <button type="submit" className="btn-primary">{editingLink ? 'Save Changes' : 'Add Link'}</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
+
+      {/* Confirm Dialog */}
+      {ConfirmDialogComponent}
     </div>
   )
 }

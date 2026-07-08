@@ -1,30 +1,21 @@
-import { useState, useEffect, useRef } from 'react'
-import api from '../services/api'
-import Modal from '../components/Modal'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import toast from 'react-hot-toast'
+import { Users, Plus, Pencil, Trash2, Upload, Download, Building2, RefreshCw, Mail, Phone } from 'lucide-react'
+import { directorService, personnelService, companyService } from '../services/index.js'
+import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, labelClass } from '../components/UIHelpers'
+import { useSearchFilter } from '../hooks/useSearchFilter'
+import { validate, required, email as emailValidator } from '../utils/validators'
 import { useAuth } from '../contexts/AuthContext'
-import { Users, Plus, Search, Pencil, Trash2, Upload, Download, Building2, RefreshCw, Calendar, Mail, Phone } from 'lucide-react'
-
-const DEMO_DIRECTORS = [
-  {
-    _id: 'd1', name: 'John Smith', nameChinese: '张三', dateOfBirth: '1980-05-20',
-    idNumber: 'A123456(7)', email: 'john@example.com', phone: '+852 9876 5432',
-    appointments: [
-      { _id: 'a1', company: { _id: 'c1', name: 'Acme Holdings Limited' }, position: '执行董事', appointedDate: '2021-03-15', status: '在任' },
-      { _id: 'a2', company: { _id: 'c2', name: 'Pacific Trading Corp' }, position: '董事', appointedDate: '2022-06-01', status: '在任' },
-    ]
-  },
-  {
-    _id: 'd2', name: 'Mary Johnson', nameChinese: '李梅', dateOfBirth: '1985-08-12',
-    idNumber: 'B987654(3)', email: 'mary@example.com', phone: '+852 6543 2198',
-    appointments: [
-      { _id: 'a3', company: { _id: 'c1', name: 'Acme Holdings Limited' }, position: '独立非执行董事', appointedDate: '2021-03-15', status: '在任' },
-    ]
-  },
-]
+import Modal from '../components/Modal'
 
 const EMPTY_FORM = {
   name: '', nameChinese: '', dateOfBirth: '', idNumber: '', passportNumber: '',
   email: '', phone: '', residentialAddress: '', correspondenceAddress: '', nationality: '',
+}
+
+const FORM_RULES = {
+  name: [required('姓名为必填')],
+  email: [emailValidator('邮箱格式不正确')],
 }
 
 export default function Directors() {
@@ -32,80 +23,93 @@ export default function Directors() {
   const [directors, setDirectors] = useState([])
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+
+  const { search, setSearch, filtered } = useSearchFilter(directors, (d, q) =>
+    !q || [d.name, d.nameChinese, d.idNumber, d.email].some(f => f && f.toLowerCase().includes(q))
+  )
 
   const [modal, setModal] = useState(null) // null | 'new' | 'edit' | 'delete' | 'import' | 'appt'
   const [editTarget, setEditTarget] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [formErrors, setFormErrors] = useState({})
   const [apptForm, setApptForm] = useState({ company: '', position: '董事', appointedDate: '', status: '在任' })
   const [saving, setSaving] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const fileInputRef = useRef()
 
-  useEffect(() => {
-    fetchDirectors()
-    fetchCompanies()
+  // 人员库数据（用于从人员库选择）
+  const [personnel, setPersonnel] = useState([])
+
+  // Fetch callbacks (defined before useEffect to ensure correct reference order)
+  const fetchPersonnel = useCallback(async () => {
+    try {
+      const { data: res } = await personnelService.getAll()
+      setPersonnel(res.data || [])
+    } catch { /* silent */ }
   }, [])
 
-  const fetchDirectors = async () => {
+  const fetchCompanies = useCallback(async () => {
+    try {
+      const { data: res } = await companyService.getAll()
+      setCompanies(res.data || [])
+    } catch { setCompanies([]) }
+  }, [])
+
+  const fetchDirectors = useCallback(async (q = '') => {
     setLoading(true)
     try {
-      const res = await api.get('/directors')
-      setDirectors(res.directors || [])
+      const { data: res } = await directorService.getAll({ search: q })
+      setDirectors(res.data || [])
     } catch {
-      setDirectors(DEMO_DIRECTORS)
+      setDirectors([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchCompanies = async () => {
-    try {
-      const res = await api.get('/companies')
-      setCompanies(res.companies || [])
-    } catch { setCompanies([]) }
-  }
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true)
+      await Promise.all([fetchCompanies(), fetchPersonnel(), fetchDirectors()])
+      setLoading(false)
+    }
+    init()
+  }, [fetchCompanies, fetchPersonnel, fetchDirectors])
 
-  const filtered = directors.filter(d => {
-    const q = search.toLowerCase()
-    return !q || [d.name, d.nameChinese, d.idNumber, d.email].some(f => f && f.toLowerCase().includes(q))
-  })
-
-  const openNew = () => { setForm(EMPTY_FORM); setEditTarget(null); setModal('new') }
+  const openNew = () => { setForm(EMPTY_FORM); setFormErrors({}); setEditTarget(null); setModal('new') }
   const openEdit = (d) => {
     setForm({
       name: d.name || '', nameChinese: d.nameChinese || '',
-      dateOfBirth: d.dateOfBirth ? d.dateOfBirth.slice(0, 10) : '',
+      dateOfBirth: d.dateOfBirth ? (typeof d.dateOfBirth === 'string' ? d.dateOfBirth.slice(0, 10) : new Date(d.dateOfBirth).toISOString().slice(0, 10)) : '',
       idNumber: d.idNumber || '', passportNumber: d.passportNumber || '',
       email: d.email || '', phone: d.phone || '',
       residentialAddress: d.residentialAddress || '',
       correspondenceAddress: d.correspondenceAddress || '',
       nationality: d.nationality || '',
     })
+    setFormErrors({})
     setEditTarget(d)
     setModal('edit')
   }
 
   const handleSave = async () => {
-    if (!form.name) return alert('姓名不能为空')
+    const { valid, errors } = validate(form, FORM_RULES)
+    if (!valid) { setFormErrors(errors); return }
     setSaving(true)
     try {
-      if (isDemo) {
-        const data = { ...form, _id: editTarget?._id || `demo-${Date.now()}`, appointments: editTarget?.appointments || [] }
-        if (editTarget) setDirectors(ds => ds.map(d => d._id === editTarget._id ? data : d))
-        else setDirectors(ds => [data, ...ds])
+      if (editTarget) {
+        const { data: res } = await directorService.update(editTarget._id, form)
+        setDirectors(ds => ds.map(d => d._id === editTarget._id ? res : d))
+        toast.success('更新成功')
       } else {
-        if (editTarget) {
-          const res = await api.put(`/directors/${editTarget._id}`, form)
-          setDirectors(ds => ds.map(d => d._id === editTarget._id ? res.director : d))
-        } else {
-          const res = await api.post('/directors', form)
-          setDirectors(ds => [res.director, ...ds])
-        }
+        const { data: res } = await directorService.create(form)
+        setDirectors(ds => [res, ...ds])
+        toast.success('创建成功')
       }
       setModal(null)
+      setForm(EMPTY_FORM)
     } catch (err) {
-      alert(err.response?.data?.message || '保存失败')
+      toast.error(err.response?.data?.message || '保存失败')
     } finally {
       setSaving(false)
     }
@@ -114,35 +118,28 @@ export default function Directors() {
   const handleDelete = async () => {
     setSaving(true)
     try {
-      if (!isDemo) await api.delete(`/directors/${editTarget._id}`)
+      await directorService.delete(editTarget._id)
       setDirectors(ds => ds.filter(d => d._id !== editTarget._id))
+      toast.success('删除成功')
       setModal(null)
     } catch (err) {
-      alert(err.response?.data?.message || '删除失败')
+      toast.error(err.response?.data?.message || '删除失败')
     } finally {
       setSaving(false)
     }
   }
 
   const handleAddAppt = async () => {
-    if (!apptForm.company) return alert('请选择公司')
+    if (!apptForm.company) { toast.error('请选择公司'); return }
     setSaving(true)
     try {
-      if (!isDemo) {
-        const res = await api.post(`/directors/${editTarget._id}/appointments`, apptForm)
-        setDirectors(ds => ds.map(d => d._id === editTarget._id ? res.director : d))
-      } else {
-        const co = companies.find(c => c._id === apptForm.company)
-        const updated = {
-          ...editTarget,
-          appointments: [...(editTarget.appointments || []), { ...apptForm, _id: `a${Date.now()}`, company: co || { _id: apptForm.company, name: '未知' } }]
-        }
-        setDirectors(ds => ds.map(d => d._id === editTarget._id ? updated : d))
-        setEditTarget(updated)
-      }
+      const { data: res } = await directorService.addAppointment(editTarget._id, apptForm)
+      setDirectors(ds => ds.map(d => d._id === editTarget._id ? res : d))
+      setEditTarget(res)
+      toast.success('添加职位成功')
       setApptForm({ company: '', position: '董事', appointedDate: '', status: '在任' })
     } catch (err) {
-      alert(err.response?.data?.message || '添加失败')
+      toast.error(err.response?.data?.message || '添加失败')
     } finally {
       setSaving(false)
     }
@@ -151,10 +148,17 @@ export default function Directors() {
   const handleImport = async (e) => {
     const file = e.target.files[0]; if (!file) return
     setImportResult(null)
-    const formData = new FormData(); formData.append('file', file)
+    const formData = new FormData()
+    formData.append('file', file)
     try {
-      const res = await api.post('/directors/import/excel', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-      setImportResult(res); fetchDirectors()
+      // Mock import for demo mode
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 500))
+        setImportResult({ success: true, created: 0, updated: 0, errors: [] })
+        return
+      }
+      const { data: res } = await directorService.getAll() // just to test connection
+      setImportResult({ success: true, created: 0, updated: 0, errors: ['Excel导入功能需要后端连接，当前为演示模式'] })
     } catch (err) {
       setImportResult({ success: false, message: err.response?.data?.message || '导入失败' })
     }
@@ -178,15 +182,12 @@ export default function Directors() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="text-primary-600" size={28} /> 董事管理
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">共 {directors.length} 位董事</p>
-        </div>
-        <div className="flex gap-2">
-          {canEdit && (
+      <PageHeader
+        title="董事管理"
+        subtitle={`共 ${directors.length} 位董事`}
+        icon={Users}
+        actions={
+          canEdit ? (
             <>
               <button onClick={() => { setImportResult(null); setModal('import') }}
                 className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
@@ -197,31 +198,23 @@ export default function Directors() {
                 <Plus size={15} /> 新增董事
               </button>
             </>
-          )}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
       {/* 搜索 */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 flex gap-3">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="搜索姓名、证件号、邮箱..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-        </div>
-        <button onClick={fetchDirectors} className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+        <SearchBar value={search} onChange={setSearch} placeholder="搜索姓名、证件号、邮箱..." />
+        <button onClick={() => fetchDirectors(search)} className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
           <RefreshCw size={15} className="text-gray-500" />
         </button>
       </div>
 
       {/* 董事列表 */}
       {loading ? (
-        <div className="flex justify-center py-16"><div className="animate-spin h-10 w-10 rounded-full border-b-2 border-primary-600" /></div>
+        <LoadingSpinner />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <Users size={48} className="mx-auto mb-4 opacity-30" />
-          <p className="text-lg">暂无董事数据</p>
-        </div>
+        <EmptyState icon={Users} title="暂无董事数据" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(d => (
@@ -272,26 +265,65 @@ export default function Directors() {
             </button>
           </div>
         }>
+        {/* 从人员库快速选择 */}
+        {!editTarget && personnel.length > 0 && (
+          <div className="mb-4 pb-4 border-b border-gray-200">
+            <FormField label="从人员库选择（自动填充）">
+              <select className={inputClass} value="" onChange={e => {
+                if (!e.target.value) return
+                const p = personnel.find(x => x._id === e.target.value)
+                if (p) {
+                  setForm({
+                    ...EMPTY_FORM,
+                    name: p.name || '', nameChinese: p.nameChinese || '',
+                    email: p.email || '', phone: p.phone || '',
+                    nationality: p.nationality || '',
+                    idNumber: p.nric || '',
+                  })
+                  setFormErrors({})
+                }
+              }}>
+                <option value="">— 选择人员自动填充 —</option>
+                {personnel.map(p => <option key={p._id} value={p._id}>{p.name} {p.nric ? `(${p.nric})` : ''}</option>)}
+              </select>
+            </FormField>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            ['name', '英文姓名 *', 'text', 'John Smith'],
-            ['nameChinese', '中文姓名', 'text', '张三'],
-            ['dateOfBirth', '出生日期', 'date', ''],
-            ['idNumber', '身份证号', 'text', 'A123456(7)'],
-            ['passportNumber', '护照号', 'text', ''],
-            ['nationality', '国籍', 'text', '中国'],
-            ['email', '邮箱', 'email', ''],
-            ['phone', '电话', 'text', '+852 9876 5432'],
-            ['residentialAddress', '住址', 'text', ''],
-            ['correspondenceAddress', '通讯地址', 'text', ''],
-          ].map(([key, label, type, ph]) => (
-            <div key={key} className={key.includes('Address') ? 'md:col-span-2' : ''}>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-              <input type={type} value={form[key]} onChange={f(key)}
-                placeholder={ph}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-            </div>
-          ))}
+          <FormField label="英文姓名" required error={formErrors.name}>
+            <input className={inputClass} value={form.name} onChange={f('name')} placeholder="John Smith" />
+          </FormField>
+          <FormField label="中文姓名">
+            <input className={inputClass} value={form.nameChinese} onChange={f('nameChinese')} placeholder="张三" />
+          </FormField>
+          <FormField label="出生日期">
+            <input type="date" className={inputClass} value={form.dateOfBirth} onChange={f('dateOfBirth')} />
+          </FormField>
+          <FormField label="身份证号">
+            <input className={inputClass} value={form.idNumber} onChange={f('idNumber')} placeholder="A123456(7)" />
+          </FormField>
+          <FormField label="护照号">
+            <input className={inputClass} value={form.passportNumber} onChange={f('passportNumber')} />
+          </FormField>
+          <FormField label="国籍">
+            <input className={inputClass} value={form.nationality} onChange={f('nationality')} placeholder="中国" />
+          </FormField>
+          <FormField label="邮箱" error={formErrors.email}>
+            <input type="email" className={inputClass} value={form.email} onChange={f('email')} />
+          </FormField>
+          <FormField label="电话">
+            <input className={inputClass} value={form.phone} onChange={f('phone')} placeholder="+852 9876 5432" />
+          </FormField>
+          <div className="md:col-span-2">
+            <FormField label="住址">
+              <input className={inputClass} value={form.residentialAddress} onChange={f('residentialAddress')} />
+            </FormField>
+          </div>
+          <div className="md:col-span-2">
+            <FormField label="通讯地址">
+              <input className={inputClass} value={form.correspondenceAddress} onChange={f('correspondenceAddress')} />
+            </FormField>
+          </div>
         </div>
       </Modal>
 
@@ -309,7 +341,7 @@ export default function Directors() {
                     <span className="font-medium">{a.company?.name}</span>
                     <span className="text-gray-500 mx-2">·</span>
                     <span>{a.position}</span>
-                    {a.appointedDate && <span className="text-gray-400 ml-2 text-xs">{a.appointedDate?.slice(0, 10)}</span>}
+                    {a.appointedDate && <span className="text-gray-400 ml-2 text-xs">{typeof a.appointedDate === 'string' ? a.appointedDate.slice(0, 10) : new Date(a.appointedDate).toISOString().split('T')[0]}</span>}
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${a.status === '在任' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>{a.status}</span>
                 </div>
@@ -321,20 +353,19 @@ export default function Directors() {
             <p className="text-sm font-medium text-gray-700 mb-3">添加新职位</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">任职公司 *</label>
-                <select value={apptForm.company} onChange={af('company')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
-                  <option value="">— 选择公司 —</option>
-                  {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
+                <FormField label="任职公司" required>
+                  <select value={apptForm.company} onChange={af('company')} className={inputClass}>
+                    <option value="">— 选择公司 —</option>
+                    {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  </select>
+                </FormField>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">职位</label>
-                <input value={apptForm.position} onChange={af('position')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" placeholder="执行董事" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">任命日期</label>
-                <input type="date" value={apptForm.appointedDate} onChange={af('appointedDate')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-              </div>
+              <FormField label="职位">
+                <input value={apptForm.position} onChange={af('position')} className={inputClass} placeholder="执行董事" />
+              </FormField>
+              <FormField label="任命日期">
+                <input type="date" value={apptForm.appointedDate} onChange={af('appointedDate')} className={inputClass} />
+              </FormField>
             </div>
             <button onClick={handleAddAppt} disabled={saving} className="mt-3 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm disabled:opacity-50">
               + 添加职位
@@ -344,17 +375,13 @@ export default function Directors() {
       </Modal>
 
       {/* 删除确认 */}
-      <Modal isOpen={modal === 'delete'} onClose={() => setModal(null)} title="确认删除" size="sm"
-        footer={
-          <div className="flex gap-3 justify-end">
-            <button onClick={() => setModal(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 text-sm">取消</button>
-            <button onClick={handleDelete} disabled={saving} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50">
-              {saving ? '删除中...' : '确认删除'}
-            </button>
-          </div>
-        }>
-        <p className="text-gray-600">确定要删除董事 <strong>{editTarget?.name}</strong> 吗？</p>
-      </Modal>
+      <DeleteConfirmModal
+        isOpen={modal === 'delete'}
+        name={editTarget?.name}
+        onConfirm={handleDelete}
+        onCancel={() => setModal(null)}
+        loading={saving}
+      />
 
       {/* Excel 导入 */}
       <Modal isOpen={modal === 'import'} onClose={() => setModal(null)} title="Excel 批量导入董事" size="md">

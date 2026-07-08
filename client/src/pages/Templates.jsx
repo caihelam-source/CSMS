@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react'
-import api from '../services/api'
-import Modal from '../components/Modal'
+import { useEffect, useState, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import {
-  FileCode, Plus, Search, RefreshCw, Zap,
-  Pencil, Trash2, Eye, Play, Copy
+  FileCode, Plus, RefreshCw, Zap,
+  Pencil, Trash2, Play, Copy
 } from 'lucide-react'
+import { templateService, companyService } from '../services/index.js'
+import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField } from '../components/UIHelpers'
+import { useSearchFilter } from '../hooks/useSearchFilter'
+import { validate, required } from '../utils/validators'
+import { extractVars } from '../utils/helpers'
+import Modal from '../components/Modal'
+import { useConfirm } from '../components/ConfirmDialog'
 
 const CATEGORIES = ['board_resolution', 'agm_resolution', 'director_change', 'shareholder_notice', 'annual_report', 'other']
 const CATEGORY_LABELS = {
@@ -16,13 +22,9 @@ const CATEGORY_LABELS = {
   other: '其他',
 }
 
-const inp = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
-const lbl = 'block text-sm font-medium text-gray-700 mb-1'
 
-// 从模板内容中提取 {{变量}}
-const extractVars = (content) => {
-  const matches = [...new Set((content.match(/\{\{([^}]+)\}\}/g) || []).map(m => m.replace(/\{\{|\}\}/g, '').trim()))]
-  return matches
+const TEMPLATE_FORM_RULES = {
+  name: [required('模板名称为必填')],
 }
 
 const TemplateForm = ({ initial = {}, onSave, onCancel, loading }) => {
@@ -31,36 +33,45 @@ const TemplateForm = ({ initial = {}, onSave, onCancel, loading }) => {
     description: initial.description || '',
     category: initial.category || 'other',
     content: initial.content || '',
+    variables: initial.variables || [],
   })
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const [errors, setErrors] = useState({})
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })) }
   const vars = extractVars(form.content)
 
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const { valid, errors: vErrors } = validate(form, TEMPLATE_FORM_RULES)
+    if (!valid) { setErrors(vErrors); return }
+    setErrors({})
+    onSave(form)
+  }
+
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField label="模板名称" required error={errors.name}>
+          <input className={inputClass} value={form.name} onChange={e => set('name', e.target.value)} placeholder="董事会决议模板" />
+        </FormField>
         <div>
-          <label className={lbl}>模板名称 <span className="text-red-500">*</span></label>
-          <input required className={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="董事会决议模板" />
-        </div>
-        <div>
-          <label className={lbl}>类别</label>
-          <select className={inp} value={form.category} onChange={e => set('category', e.target.value)}>
+          <label className={labelClass}>类别</label>
+          <select className={inputClass} value={form.category} onChange={e => set('category', e.target.value)}>
             {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
           </select>
         </div>
       </div>
       <div>
-        <label className={lbl}>描述</label>
-        <input className={inp} value={form.description} onChange={e => set('description', e.target.value)} placeholder="简短描述模板用途" />
+        <label className={labelClass}>描述</label>
+        <input className={inputClass} value={form.description} onChange={e => set('description', e.target.value)} placeholder="简短描述模板用途" />
       </div>
       <div>
-        <label className={lbl}>
+        <label className={labelClass}>
           模板内容
           <span className="ml-2 text-xs text-gray-400 font-normal">使用 {'{{变量名}}'} 标记变量，如 {'{{公司名称}}'}</span>
         </label>
         <textarea
           rows={12}
-          className={inp + ' font-mono text-xs'}
+          className={inputClass + ' font-mono text-xs'}
           value={form.content}
           onChange={e => set('content', e.target.value)}
           placeholder={'<h2>{{公司名称}}</h2>\n<p>决议日期：{{会议日期}}</p>\n<p>{{决议内容}}</p>'}
@@ -87,7 +98,7 @@ const TemplateForm = ({ initial = {}, onSave, onCancel, loading }) => {
 }
 
 const RenderModal = ({ template, companies, onClose }) => {
-  const [companyId, setCompanyId] = useState('')
+  const [selectedCompany, setSelectedCompany] = useState('')
   const [manualVars, setManualVars] = useState({})
   const [rendered, setRendered] = useState('')
   const [loading, setLoading] = useState(false)
@@ -95,16 +106,20 @@ const RenderModal = ({ template, companies, onClose }) => {
 
   const vars = template ? extractVars(template.content) : []
 
-  const autoCompanyVars = ['公司名称', '公司中文名', '注册地址', '成立日期', '注册号', '股票代码']
-
   const handleRender = async () => {
     setLoading(true); setError('')
     try {
-      const res = await api.post(`/templates/${template._id}/render`, {
-        companyId: companyId || undefined,
-        manualVars,
-      })
-      setRendered(res.html || '')
+      const co = companies.find(c => c._id === selectedCompany)
+      const companyVars = {}
+      if (co) {
+        companyVars['公司名称'] = co.name
+        if (co.nameChinese) companyVars['公司中文名'] = co.nameChinese
+        if (co.registrationNumber) companyVars['注册号'] = co.registrationNumber
+        if (co.stockCode) companyVars['股票代码'] = co.stockCode
+        if (co.incorporationDate) companyVars['成立日期'] = co.incorporationDate
+      }
+      const { data } = await templateService.render(template._id, { data: { ...companyVars, ...manualVars } })
+      setRendered(data.data?.rendered || data.rendered || '')
     } catch (e) {
       setError(e.response?.data?.message || '渲染失败')
     } finally {
@@ -114,22 +129,20 @@ const RenderModal = ({ template, companies, onClose }) => {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={lbl}>关联公司（自动填充公司信息）</label>
-          <select className={inp} value={companyId} onChange={e => setCompanyId(e.target.value)}>
-            <option value="">-- 不关联 --</option>
-            {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-          </select>
-        </div>
+      <div>
+        <label className={labelClass}>关联公司（自动填充公司信息）</label>
+        <select className={inputClass} value={selectedCompany} onChange={e => setSelectedCompany(e.target.value)}>
+          <option value="">-- 不关联 --</option>
+          {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+        </select>
       </div>
-      {vars.filter(v => !autoCompanyVars.includes(v)).length > 0 && (
+      {vars.filter(v => !['公司名称', '公司中文名', '注册地址', '成立日期', '注册号', '股票代码'].includes(v)).length > 0 && (
         <div className="border border-gray-200 rounded-lg p-4 space-y-3">
           <p className="text-sm font-medium text-gray-700">手动填写变量：</p>
-          {vars.filter(v => !autoCompanyVars.includes(v)).map(v => (
+          {vars.filter(v => !['公司名称', '公司中文名', '注册地址', '成立日期', '注册号', '股票代码'].includes(v)).map(v => (
             <div key={v}>
               <label className="block text-xs font-medium text-gray-600 mb-1">{v}</label>
-              <input className={inp} value={manualVars[v] || ''} onChange={e => setManualVars(m => ({ ...m, [v]: e.target.value }))} placeholder={`填写 ${v}`} />
+              <input className={inputClass} value={manualVars[v] || ''} onChange={e => setManualVars(m => ({ ...m, [v]: e.target.value }))} placeholder={`填写 ${v}`} />
             </div>
           ))}
         </div>
@@ -166,46 +179,54 @@ const categoryColor = (c) => ({
 }[c] || 'bg-gray-100 text-gray-600')
 
 const Templates = () => {
+  const { confirm, ConfirmDialogComponent } = useConfirm()
   const [templates, setTemplates] = useState([])
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [search, setSearch] = useState('')
-  const [filterCategory, setFilterCategory] = useState('')
   const [modal, setModal] = useState(null)
   const [editTarget, setEditTarget] = useState(null)
   const [renderTarget, setRenderTarget] = useState(null)
   const [error, setError] = useState('')
 
-  useEffect(() => { fetchAll() }, [filterCategory])
+  const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
+    templates,
+    (t, q, f) => {
+      const matchSearch = !q || t.name?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
+      const matchCategory = !f.category || t.category === f.category
+      return matchSearch && matchCategory
+    },
+    { category: '' }
+  )
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const params = {}
-      if (filterCategory) params.category = filterCategory
       const [tmplRes, compRes] = await Promise.all([
-        api.get('/templates', { params }),
-        api.get('/companies').catch(() => ({ companies: [] })),
+        templateService.getAll().catch(() => ({ data: { data: [] } })),
+        companyService.getAll().catch(() => ({ data: { data: [] } })),
       ])
-      setTemplates(tmplRes.templates || [])
-      setCompanies(compRes.companies || [])
+      setTemplates(tmplRes.data?.data || [])
+      setCompanies(compRes.data?.data || [])
     } catch {
-      setTemplates(DEMO_TEMPLATES)
+      setTemplates([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => { fetchAll() }, [fetchAll])
 
   const handleInitialize = async () => {
-    if (!confirm('初始化将加载预设文档模板，确定继续？')) return
+    const ok = await confirm({ title: '初始化预设模板', message: '初始化将加载预设文档模板，确定继续？', confirmLabel: '确认初始化', variant: 'warning' })
+    if (!ok) return
     setSaving(true)
     try {
-      await api.post('/templates/initialize')
-      alert('预设模板初始化完成！')
+      await templateService.initPresets()
+      toast.success('预设模板初始化完成！')
       fetchAll()
     } catch (e) {
-      alert(e.response?.data?.message || '初始化失败')
+      toast.error(e.response?.data?.message || '初始化失败')
     } finally {
       setSaving(false)
     }
@@ -215,15 +236,15 @@ const Templates = () => {
     setSaving(true); setError('')
     try {
       if (editTarget) {
-        const res = await api.put(`/templates/${editTarget._id}`, data)
-        setTemplates(ts => ts.map(t => t._id === editTarget._id ? (res.template || { ...t, ...data }) : t))
+        const { data: resData } = await templateService.update(editTarget._id, data)
+        setTemplates(ts => ts.map(t => t._id === editTarget._id ? (resData.data || { ...t, ...data }) : t))
       } else {
-        const res = await api.post('/templates', data)
-        setTemplates(ts => [res.template || { _id: Date.now().toString(), ...data }, ...ts])
+        const { data: resData } = await templateService.create(data)
+        setTemplates(ts => [resData.data || { _id: Date.now().toString(), ...data }, ...ts])
       }
       setModal(null)
     } catch (e) {
-      setError(e.response?.data?.message || '保存失败')
+      toast.error(e.response?.data?.message || '保存失败')
     } finally {
       setSaving(false)
     }
@@ -233,54 +254,42 @@ const Templates = () => {
     if (!editTarget) return
     setSaving(true)
     try {
-      await api.delete(`/templates/${editTarget._id}`)
+      await templateService.delete(editTarget._id)
       setTemplates(ts => ts.filter(t => t._id !== editTarget._id))
       setModal(null)
     } catch (e) {
-      alert(e.response?.data?.message || '删除失败')
+      toast.error(e.response?.data?.message || '删除失败')
     } finally {
       setSaving(false)
     }
   }
 
-  const filtered = templates.filter(t => {
-    const q = search.toLowerCase()
-    return !q || t.name?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
-  })
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileCode className="text-primary-600" size={26} />
-            文档模板
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">管理文档模板并渲染生成文件</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={handleInitialize} disabled={saving}
-            className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
-            <Zap size={15} /> 初始化预设模板
-          </button>
-          <button onClick={() => { setEditTarget(null); setError(''); setModal('new') }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
-            <Plus size={15} /> 新建模板
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="文档模板"
+        subtitle="管理文档模板并渲染生成文件"
+        icon={FileCode}
+        actions={
+          <>
+            <button onClick={handleInitialize} disabled={saving}
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+              <Zap size={15} /> 初始化预设模板
+            </button>
+            <button onClick={() => { setEditTarget(null); setError(''); setModal('new') }}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
+              <Plus size={15} /> 新建模板
+            </button>
+          </>
+        }
+      />
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="搜索模板名称..."
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-          </div>
-          <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
+          <SearchBar value={search} onChange={setSearch} placeholder="搜索模板名称..." />
+          <select value={filters.category} onChange={e => setFilter('category', e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
             <option value="">全部类别</option>
             {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
@@ -293,13 +302,11 @@ const Templates = () => {
 
       {/* Template Grid */}
       {loading ? (
-        <div className="flex justify-center py-16"><div className="animate-spin h-10 w-10 rounded-full border-b-2 border-primary-600" /></div>
+        <LoadingSpinner />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <FileCode size={48} className="mx-auto mb-4 opacity-30" />
-          <p className="text-lg">暂无模板</p>
+        <EmptyState icon={FileCode} title="暂无模板" action={
           <button onClick={handleInitialize} className="mt-4 text-primary-600 hover:underline text-sm">点击初始化预设模板</button>
-        </div>
+        } />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map(t => {
@@ -356,23 +363,18 @@ const Templates = () => {
       </Modal>
 
       {/* 删除确认 Modal */}
-      <Modal isOpen={modal === 'delete'} onClose={() => setModal(null)} title="确认删除" size="sm">
-        <p className="text-gray-600 mb-6">确定删除模板 <strong>{editTarget?.name}</strong>？此操作不可撤销。</p>
-        <div className="flex justify-end gap-3">
-          <button onClick={() => setModal(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
-          <button onClick={handleDelete} disabled={saving} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50">
-            {saving ? '删除中...' : '确认删除'}
-          </button>
-        </div>
-      </Modal>
+      <DeleteConfirmModal
+        isOpen={modal === 'delete'}
+        name={editTarget?.name}
+        onConfirm={handleDelete}
+        onCancel={() => setModal(null)}
+        loading={saving}
+      />
+
+      {/* Confirm Dialog */}
+      {ConfirmDialogComponent}
     </div>
   )
 }
-
-const DEMO_TEMPLATES = [
-  { _id: 't1', name: '董事会决议（通用）', category: 'board_resolution', description: '标准董事会决议模板，适用于一般事项审批', isPreset: true, content: '<h2>{{公司名称}}</h2><p>决议日期：{{会议日期}}</p><p>出席董事：{{董事列表}}</p><p>{{决议内容}}</p>' },
-  { _id: 't2', name: '股东大会通知', category: 'agm_resolution', description: '年度股东大会召开通知', isPreset: true, content: '<h2>{{公司名称}}</h2><p>会议日期：{{会议日期}}</p><p>会议地点：{{会议地点}}</p>' },
-  { _id: 't3', name: '董事任命通知', category: 'director_change', description: '委任新董事的正式通知', isPreset: true, content: '<h2>{{公司名称}} 董事任命通知</h2><p>任命日期：{{任命日期}}</p><p>新董事姓名：{{新董事姓名}}</p>' },
-]
 
 export default Templates

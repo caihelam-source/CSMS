@@ -1,17 +1,25 @@
-import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
-import api from '../services/api'
-import Modal from '../components/Modal'
-import { useAuth } from '../contexts/AuthContext'
+import { useEffect, useState, useCallback } from 'react'
 import {
-  CheckSquare, Plus, Search, Filter, Calendar,
+  CheckSquare, Plus, Filter, Calendar,
   AlertTriangle, Clock, CheckCircle2, Circle,
-  MoreVertical, Pencil, Trash2, X, MessageSquare
+  Pencil, Trash2, MessageSquare
 } from 'lucide-react'
+import { taskService } from '../services/index.js'
+import { fmtDateShort } from '../utils/helpers'
+import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, taskPriorityColor, taskStatusColor } from '../components/UIHelpers'
+import { useSearchFilter } from '../hooks/useSearchFilter'
+import { validate, required } from '../utils/validators'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import Modal from '../components/Modal'
 
 const TASK_STATUSES = ['pending', 'in_progress', 'completed', 'overdue']
 const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent']
 const TASK_TYPES = ['filing', 'compliance', 'meeting_prep', 'document', 'follow_up', 'other']
+
+const TASK_FORM_RULES = {
+  title: [required('Task title is required')],
+  dueDate: [required('Due date is required')],
+}
 
 const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
   const [form, setForm] = useState({
@@ -20,47 +28,49 @@ const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
     type: initial.type || 'other',
     priority: initial.priority || 'medium',
     status: initial.status || 'pending',
-    dueDate: initial.dueDate ? format(new Date(initial.dueDate), 'yyyy-MM-dd') : '',
+    dueDate: initial.dueDate ? fmtDateShort(initial.dueDate) : '',
   })
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const handleSubmit = (e) => { e.preventDefault(); onSave(form) }
-
-  const inp = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
-  const lbl = 'block text-sm font-medium text-gray-700 mb-1'
+  const [errors, setErrors] = useState({})
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })) }
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const { valid, errors: vErrors } = validate(form, TASK_FORM_RULES)
+    if (!valid) { setErrors(vErrors); return }
+    setErrors({})
+    onSave(form)
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="Task Title" required error={errors.title}>
+        <input className={inputClass} value={form.title} onChange={e => set('title', e.target.value)} placeholder="File annual return" />
+      </FormField>
       <div>
-        <label className={lbl}>Task Title *</label>
-        <input required className={inp} value={form.title} onChange={e => set('title', e.target.value)} placeholder="File annual return" />
-      </div>
-      <div>
-        <label className={lbl}>Description</label>
-        <textarea rows={3} className={inp} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Additional details..." />
+        <label className={labelClass}>Description</label>
+        <textarea rows={3} className={inputClass} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Additional details..." />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className={lbl}>Type</label>
-          <select className={inp} value={form.type} onChange={e => set('type', e.target.value)}>
+          <label className={labelClass}>Type</label>
+          <select className={inputClass} value={form.type} onChange={e => set('type', e.target.value)}>
             {TASK_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
           </select>
         </div>
         <div>
-          <label className={lbl}>Priority</label>
-          <select className={inp} value={form.priority} onChange={e => set('priority', e.target.value)}>
+          <label className={labelClass}>Priority</label>
+          <select className={inputClass} value={form.priority} onChange={e => set('priority', e.target.value)}>
             {TASK_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
         <div>
-          <label className={lbl}>Status</label>
-          <select className={inp} value={form.status} onChange={e => set('status', e.target.value)}>
+          <label className={labelClass}>Status</label>
+          <select className={inputClass} value={form.status} onChange={e => set('status', e.target.value)}>
             {TASK_STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
           </select>
         </div>
-        <div>
-          <label className={lbl}>Due Date *</label>
-          <input required type="date" className={inp} value={form.dueDate} onChange={e => set('dueDate', e.target.value)} />
-        </div>
+        <FormField label="Due Date" required error={errors.dueDate}>
+          <input type="date" className={inputClass} value={form.dueDate} onChange={e => set('dueDate', e.target.value)} />
+        </FormField>
       </div>
       <div className="flex justify-end gap-3 pt-2">
         <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
@@ -72,8 +82,6 @@ const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
   )
 }
 
-const priorityColor = (p) => ({ urgent: 'bg-red-100 text-red-700 border-red-200', high: 'bg-orange-100 text-orange-700 border-orange-200', medium: 'bg-yellow-100 text-yellow-700 border-yellow-200', low: 'bg-gray-100 text-gray-600 border-gray-200' }[p] || 'bg-gray-100 text-gray-600 border-gray-200')
-const statusColor = (s) => ({ completed: 'bg-green-100 text-green-700', in_progress: 'bg-blue-100 text-blue-700', overdue: 'bg-red-100 text-red-700', pending: 'bg-gray-100 text-gray-600' }[s] || 'bg-gray-100 text-gray-600')
 const statusIcon = (s) => {
   const m = { completed: <CheckCircle2 size={20} className="text-green-500" />, in_progress: <Clock size={20} className="text-blue-500" />, overdue: <AlertTriangle size={20} className="text-red-500" /> }
   return m[s] || <Circle size={20} className="text-gray-400" />
@@ -84,9 +92,6 @@ const Tasks = () => {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
-  const [filterPriority, setFilterPriority] = useState('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -94,35 +99,43 @@ const Tasks = () => {
   const [noteText, setNoteText] = useState('')
   const [error, setError] = useState('')
 
-  useEffect(() => { fetchTasks() }, [filterStatus, filterPriority])
+  const { search: searchTerm, setSearch: setSearchTerm, filters, setFilter, filtered } = useSearchFilter(
+    tasks,
+    (t, q, f) => {
+      const matchSearch = !q || t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
+      const matchStatus = f.status === 'all' || !f.status || t.status === f.status
+      const matchPriority = f.priority === 'all' || !f.priority || t.priority === f.priority
+      return matchSearch && matchStatus && matchPriority
+    },
+    { status: 'all', priority: 'all' }
+  )
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       setLoading(true)
-      const params = {}
-      if (filterStatus !== 'all') params.status = filterStatus
-      if (filterPriority !== 'all') params.priority = filterPriority
-      const response = await api.get('/tasks', { params })
-      setTasks(response.tasks || [])
+      const { data } = await taskService.getAll()
+      setTasks(data.data || [])
     } catch {
-      setTasks(DEMO_TASKS)
+      setTasks([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => { fetchTasks() }, [fetchTasks])
 
   const openNew = () => { setEditTarget(null); setError(''); setModalOpen(true) }
   const openEdit = (t) => { setEditTarget(t); setError(''); setModalOpen(true) }
 
-  const handleSave = async (data) => {
+  const handleSave = async (formData) => {
     setSaving(true); setError('')
     try {
       if (editTarget) {
-        const res = await api.put(`/tasks/${editTarget._id}`, data)
-        setTasks(ts => ts.map(t => t._id === editTarget._id ? (res.task || { ...t, ...data }) : t))
+        const { data } = await taskService.update(editTarget._id, formData)
+        setTasks(ts => ts.map(t => t._id === editTarget._id ? (data.data || { ...t, ...formData }) : t))
       } else {
-        const res = await api.post('/tasks', data)
-        setTasks(ts => [res.task || { _id: Date.now().toString(), ...data }, ...ts])
+        const { data: resData } = await taskService.create(formData)
+        setTasks(ts => [resData.data || { _id: Date.now().toString(), ...formData }, ...ts])
       }
       setModalOpen(false)
     } catch (e) {
@@ -134,63 +147,73 @@ const Tasks = () => {
 
   const handleDelete = async () => {
     if (!deleteTarget) return
-    try { await api.delete(`/tasks/${deleteTarget._id}`) } catch {}
+    try { await taskService.delete(deleteTarget._id) } catch {}
     setTasks(ts => ts.filter(t => t._id !== deleteTarget._id))
     setDeleteTarget(null)
   }
 
   const handleQuickComplete = async (task) => {
-    const newStatus = task.status === 'completed' ? 'pending' : 'completed'
-    try { await api.put(`/tasks/${task._id}`, { status: newStatus }) } catch {}
-    setTasks(ts => ts.map(t => t._id === task._id ? { ...t, status: newStatus } : t))
+    if (task.status === 'completed') {
+      // Un-complete
+      try { await taskService.update(task._id, { status: 'pending' }) } catch {}
+      setTasks(ts => ts.map(t => t._id === task._id ? { ...t, status: 'pending' } : t))
+      return
+    }
+    // Require remark before marking as complete
+    if (!task.notes || task.notes.length === 0) {
+      // Open note modal instead
+      setNoteTarget(task)
+      setNoteText('')
+      return
+    }
+    try { await taskService.update(task._id, { status: 'completed' }) } catch {}
+    setTasks(ts => ts.map(t => t._id === task._id ? { ...t, status: 'completed' } : t))
   }
 
   const handleAddNote = async () => {
     if (!noteTarget || !noteText.trim()) return
     try {
-      await api.post(`/tasks/${noteTarget._id}/notes`, { content: noteText })
+      await taskService.addNote(noteTarget._id, { content: noteText })
+      const newNote = { content: noteText, createdAt: new Date().toISOString() }
+      setTasks(ts => ts.map(t => t._id === noteTarget._id
+        ? { ...t, notes: [...(t.notes || []), newNote] }
+        : t
+      ))
+      // Auto-complete after adding note
+      try { await taskService.update(noteTarget._id, { status: 'completed' }) } catch {}
+      setTasks(ts => ts.map(t => t._id === noteTarget._id
+        ? { ...t, notes: [...(t.notes || []), newNote], status: 'completed' }
+        : t
+      ))
     } catch {}
-    setTasks(ts => ts.map(t => t._id === noteTarget._id
-      ? { ...t, notes: [...(t.notes || []), { content: noteText, createdAt: new Date().toISOString() }] }
-      : t
-    ))
     setNoteText('')
     setNoteTarget(null)
   }
 
-  const filtered = tasks.filter(t =>
-    t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const getDaysRemaining = (dueDate) => {
+  const getDaysRemaining = useCallback((dueDate) => {
     const diff = Math.ceil((new Date(dueDate) - new Date()) / 86400000)
     return diff
-  }
+  }, [])
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
-          <p className="text-gray-500 mt-1">Track and manage all your tasks</p>
-        </div>
-        <button onClick={openNew} className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors">
-          <Plus size={18} className="mr-2" /> New Task
-        </button>
-      </div>
+      <PageHeader
+        title="Tasks"
+        subtitle="Track and manage all your tasks"
+        actions={
+          <button onClick={openNew} className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors">
+            <Plus size={18} className="mr-2" /> New Task
+          </button>
+        }
+      />
       {!canEdit && <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-lg">You have <strong>view-only</strong> access. Contact an admin to make changes.</div>}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder="Search tasks..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
-        </div>
+        <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search tasks..." />
         <div className="relative">
           <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+          <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
             className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 appearance-none bg-white">
             <option value="all">All Status</option>
             {TASK_STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
@@ -198,7 +221,7 @@ const Tasks = () => {
         </div>
         <div className="relative">
           <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}
+          <select value={filters.priority} onChange={e => setFilter('priority', e.target.value)}
             className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 appearance-none bg-white">
             <option value="all">All Priorities</option>
             {TASK_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
@@ -207,18 +230,18 @@ const Tasks = () => {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
-        </div>
+        <LoadingSpinner size="lg" />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <CheckSquare size={48} className="mx-auto text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-1">No tasks found</h3>
-          <p className="text-gray-500 mb-4">Create your first task to get started</p>
-          <button onClick={openNew} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
-            <Plus size={16} className="inline mr-1" /> New Task
-          </button>
-        </div>
+        <EmptyState
+          icon={CheckSquare}
+          title="No tasks found"
+          description="Create your first task to get started"
+          action={
+            <button onClick={openNew} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
+              <Plus size={16} className="inline mr-1" /> New Task
+            </button>
+          }
+        />
       ) : (
         <div className="space-y-3">
           {filtered.map(task => {
@@ -238,8 +261,8 @@ const Tasks = () => {
                           <h3 className={`font-semibold ${overdue ? 'text-red-700' : task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                             {task.title}
                           </h3>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${priorityColor(task.priority)}`}>{task.priority}</span>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor(overdue ? 'overdue' : task.status)}`}>{(overdue ? 'overdue' : task.status).replace('_', ' ')}</span>
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${taskPriorityColor(task.priority)}`}>{task.priority}</span>
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${taskStatusColor(overdue ? 'overdue' : task.status)}`}>{(overdue ? 'overdue' : task.status).replace('_', ' ')}</span>
                         </div>
                         {task.description && <p className="text-sm text-gray-500 line-clamp-2 mb-2">{task.description}</p>}
                         <div className="flex flex-wrap gap-3 text-xs text-gray-500">
@@ -276,13 +299,13 @@ const Tasks = () => {
         <TaskForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModalOpen(false)} loading={saving} />
       </Modal>
 
-      <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Task" size="sm">
-        <p className="text-gray-600 mb-6">Delete <strong>{deleteTarget?.title}</strong>? This cannot be undone.</p>
-        <div className="flex justify-end gap-3">
-          <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">Cancel</button>
-          <button onClick={handleDelete} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">Delete</button>
-        </div>
-      </Modal>
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        name={deleteTarget?.title}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={false}
+      />
 
       {/* 添加备注 Modal */}
       <Modal isOpen={!!noteTarget} onClose={() => setNoteTarget(null)} title={`添加备注：${noteTarget?.title}`} size="sm">
@@ -301,7 +324,7 @@ const Tasks = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">新备注</label>
             <textarea rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+              className={inputClass}
               value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="输入备注内容..." />
           </div>
           <div className="flex justify-end gap-3">
@@ -316,12 +339,5 @@ const Tasks = () => {
     </div>
   )
 }
-
-const DEMO_TASKS = [
-  { _id: 't1', title: 'File Annual Return - Acme Holdings', type: 'filing', priority: 'urgent', status: 'pending', dueDate: '2026-03-20', description: 'Submit annual return to Companies House before deadline.' },
-  { _id: 't2', title: 'Prepare Board Meeting Minutes', type: 'document', priority: 'high', status: 'in_progress', dueDate: '2026-03-28', description: 'Draft and circulate minutes from Q1 board meeting.' },
-  { _id: 't3', title: 'Update Director Register', type: 'compliance', priority: 'medium', status: 'pending', dueDate: '2026-04-05', description: '' },
-  { _id: 't4', title: 'Review Service Agreement', type: 'document', priority: 'low', status: 'completed', dueDate: '2026-03-10', description: 'Review and sign vendor service agreement.' },
-]
 
 export default Tasks

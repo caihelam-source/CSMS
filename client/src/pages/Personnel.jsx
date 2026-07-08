@@ -1,18 +1,30 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { personnelService } from '../services/index.js'
-import { Plus, Search, Users, Pencil, Trash2, Merge, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { Plus, Users, Pencil, Trash2, Merge, AlertTriangle } from 'lucide-react'
+import { personnelService } from '../services/index.js'
+import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, labelClass } from '../components/UIHelpers'
+import { useSearchFilter } from '../hooks/useSearchFilter'
+import { validate, required, email as emailValidator } from '../utils/validators'
+import { useConfirm } from '../components/ConfirmDialog'
+import { VirtualList } from '../components/VirtualList'
+import Modal from '../components/Modal'
 
 const EMPTY_FORM = { name: '', nric: '', email: '', phone: '', nationality: '', address: { country: '' } }
 
+const FORM_RULES = {
+  name: [required('姓名为必填')],
+  email: [emailValidator('邮箱格式不正确')],
+}
+
 export default function Personnel() {
+  const { confirm, ConfirmDialogComponent } = useConfirm()
   const [personnel, setPersonnel] = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [formErrors, setFormErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [duplicateWarnings, setDuplicateWarnings] = useState([])
   // Merge feature
@@ -20,9 +32,14 @@ export default function Personnel() {
   const [showMergeModal, setShowMergeModal] = useState(false)
   const [mergeTargetId, setMergeTargetId] = useState('')
 
-  useEffect(() => { loadPersonnel() }, [])
+  // Search + filter via useSearchFilter
+  const { search, setSearch, filtered } = useSearchFilter(
+    personnel,
+    (p, q) => !q || p.name?.toLowerCase().includes(q) || p.nric?.toLowerCase().includes(q),
+    {}
+  )
 
-  const loadPersonnel = async () => {
+  const loadPersonnel = useCallback(async () => {
     setLoading(true)
     try {
       const { data } = await personnelService.getAll()
@@ -37,20 +54,17 @@ export default function Personnel() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const filtered = personnel.filter(p => {
-    const q = search.toLowerCase()
-    return !q || p.name?.toLowerCase().includes(q) || p.nric?.toLowerCase().includes(q)
-  })
+  useEffect(() => { loadPersonnel() }, [loadPersonnel])
 
-  const findDuplicateGroup = (id) => {
-    return duplicateWarnings.find(group => 
+  const findDuplicateGroup = useCallback((id) => {
+    return duplicateWarnings.find(group =>
       group.records.some(r => r._id === id)
     )
-  }
+  }, [duplicateWarnings])
 
-  const openCreate = () => { setForm(EMPTY_FORM); setEditTarget(null); setShowModal(true) }
+  const openCreate = () => { setForm(EMPTY_FORM); setFormErrors({}); setEditTarget(null); setShowModal(true) }
   const openEdit = (p) => {
     setForm({
       name: p.name || '',
@@ -60,13 +74,15 @@ export default function Personnel() {
       nationality: p.nationality || '',
       address: { country: p.address?.country || '' },
     })
+    setFormErrors({})
     setEditTarget(p)
     setShowModal(true)
   }
 
   const handleSave = async (e) => {
     e.preventDefault()
-    if (!form.name) { toast.error('Name is required'); return }
+    const { valid, errors } = validate(form, FORM_RULES)
+    if (!valid) { setFormErrors(errors); return }
     setSaving(true)
     try {
       if (editTarget) {
@@ -77,14 +93,12 @@ export default function Personnel() {
         const result = await personnelService.create(form)
         if (result.duplicateFound) {
           toast.warning(`Possible duplicate: ${result.error}`, { icon: <AlertTriangle /> })
-          // Still create, but warn
         }
         setPersonnel(ps => [result.personnel || result, ...ps])
         toast.success('Person created')
       }
       setShowModal(false)
       setForm(EMPTY_FORM)
-      // Refresh duplicate info
       loadPersonnel()
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Save failed')
@@ -94,7 +108,8 @@ export default function Personnel() {
   }
 
   const handleDelete = async (p) => {
-    if (!confirm(`Delete ${p.name}? This will remove all associated appointments.`)) return
+    const ok = await confirm({ title: '删除人员', message: `确定删除 ${p.name}？此操作将移除所有关联任职记录，不可撤销。`, confirmLabel: '确认删除' })
+    if (!ok) return
     try {
       await personnelService.delete(p._id)
       setPersonnel(ps => ps.filter(x => x._id !== p._id))
@@ -118,7 +133,7 @@ export default function Personnel() {
     const sourceId = selectedIds.find(id => id !== mergeTargetId)
     if (!sourceId) return
     try {
-      const result = await personnelService.merge(mergeTargetId, sourceId)
+      await personnelService.merge(mergeTargetId, sourceId)
       toast.success('Personnel merged successfully')
       setSelectedIds([])
       setShowMergeModal(false)
@@ -131,22 +146,23 @@ export default function Personnel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Personnel</h1>
-          <p className="text-gray-500">{personnel.length} people</p>
-        </div>
-        <div className="flex gap-2">
-          {selectedIds.length === 2 && (
-            <button onClick={() => setShowMergeModal(true)} className="btn-primary flex items-center gap-2">
-              <Merge size={16} /> Merge Selected
+      <PageHeader
+        title="Personnel"
+        subtitle={`${personnel.length} people`}
+        icon={Users}
+        actions={
+          <div className="flex gap-2">
+            {selectedIds.length === 2 && (
+              <button onClick={() => setShowMergeModal(true)} className="btn-primary flex items-center gap-2">
+                <Merge size={16} /> Merge Selected
+              </button>
+            )}
+            <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+              <Plus size={16} /> New Person
             </button>
-          )}
-          <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-            <Plus size={16} /> New Person
-          </button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Duplicate warnings */}
       {duplicateWarnings.length > 0 && (
@@ -172,21 +188,57 @@ export default function Personnel() {
 
       {/* Search */}
       <div className="card flex gap-3">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="input-field pl-9" placeholder="Search by name or NRIC..."
-            value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
+        <SearchBar value={search} onChange={setSearch} placeholder="Search by name or NRIC..." />
       </div>
 
       {/* List */}
       {loading ? (
-        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" /></div>
+        <LoadingSpinner size="lg" />
       ) : filtered.length === 0 ? (
-        <div className="card text-center py-12 text-gray-400">
-          <Users size={48} className="mx-auto mb-4 opacity-50" />
-          <p>No personnel found</p>
-        </div>
+        <EmptyState icon={Users} title="No personnel found" />
+      ) : filtered.length > 50 ? (
+        <VirtualList
+          items={filtered}
+          itemHeight={80}
+          maxHeight={600}
+          renderItem={(p, _idx, style) => {
+            const dupGroup = findDuplicateGroup(p._id)
+            return (
+              <div key={p._id} style={style} className={`px-1 py-1`}>
+                <div className={`card flex items-center justify-between hover:shadow-md transition-shadow ${selectedIds.includes(p._id) ? 'ring-2 ring-primary-500' : ''} ${dupGroup ? 'border-l-4 border-l-yellow-400' : ''}`}>
+                  <div className="flex items-center gap-3 flex-1">
+                    <input type="checkbox" checked={selectedIds.includes(p._id)} onChange={() => toggleSelect(p._id)}
+                      className="w-4 h-4 text-primary-600 rounded" />
+                    <Link to={`/personnel/${p._id}`} className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold">
+                        {p.name?.charAt(0) || '?'}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-primary-600 hover:underline">{p.name}</p>
+                          {dupGroup && (
+                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full flex items-center gap-1" title="Duplicate detected">
+                              <AlertTriangle size={10} /> {dupGroup.count}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2 text-xs text-gray-400">
+                          {p.nric && <span>{p.nric}</span>}
+                          {p.nationality && <span>· {p.nationality}</span>}
+                          {p.email && <span>· {p.email}</span>}
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => openEdit(p)} className="p-2 text-gray-400 hover:text-blue-600 rounded"><Pencil size={14} /></button>
+                    <button onClick={() => handleDelete(p)} className="p-2 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              </div>
+            )
+          }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map(p => {
@@ -228,38 +280,30 @@ export default function Personnel() {
       )}
 
       {/* Create/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-xl font-semibold mb-4">{editTarget ? 'Edit Person' : 'New Person'}</h2>
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editTarget ? 'Edit Person' : 'New Person'} size="md">
             <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="label">Name *</label>
-                <input className="input-field" value={form.name} required
-                  onChange={e => setForm({ ...form, name: e.target.value })} />
-              </div>
+              <FormField label="Name" required error={formErrors.name}>
+                <input className={inputClass} value={form.name}
+                  onChange={e => { setForm({ ...form, name: e.target.value }); setFormErrors(fe => ({ ...fe, name: '' })) }} />
+              </FormField>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">NRIC</label>
-                  <input className="input-field" value={form.nric}
+                <FormField label="NRIC">
+                  <input className={inputClass} value={form.nric}
                     onChange={e => setForm({ ...form, nric: e.target.value })} />
-                </div>
-                <div>
-                  <label className="label">Nationality</label>
-                  <input className="input-field" value={form.nationality}
+                </FormField>
+                <FormField label="Nationality">
+                  <input className={inputClass} value={form.nationality}
                     onChange={e => setForm({ ...form, nationality: e.target.value })} />
-                </div>
+                </FormField>
               </div>
-              <div>
-                <label className="label">Email</label>
-                <input type="email" className="input-field" value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })} />
-              </div>
-              <div>
-                <label className="label">Phone</label>
-                <input className="input-field" value={form.phone}
+              <FormField label="Email" error={formErrors.email}>
+                <input type="email" className={inputClass} value={form.email}
+                  onChange={e => { setForm({ ...form, email: e.target.value }); setFormErrors(fe => ({ ...fe, email: '' })) }} />
+              </FormField>
+              <FormField label="Phone">
+                <input className={inputClass} value={form.phone}
                   onChange={e => setForm({ ...form, phone: e.target.value })} />
-              </div>
+              </FormField>
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
                 <button type="submit" disabled={saving} className="btn-primary">
@@ -267,15 +311,10 @@ export default function Personnel() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       {/* Merge Modal */}
-      {showMergeModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Merge Personnel</h2>
+      <Modal isOpen={showMergeModal} onClose={() => { setShowMergeModal(false); setSelectedIds([]); setMergeTargetId('') }} title="Merge Personnel" size="md">
             <p className="text-sm text-gray-500 mb-4">Select which person to keep as the main record. The other will be deleted and all references (companies, meetings, documents) will be updated.</p>
             <div className="space-y-3">
               {selectedIds.map(id => {
@@ -299,9 +338,10 @@ export default function Personnel() {
               <button type="button" onClick={() => { setShowMergeModal(false); setSelectedIds([]); setMergeTargetId('') }} className="btn-secondary">Cancel</button>
               <button onClick={handleMerge} disabled={!mergeTargetId} className="btn-primary">Merge</button>
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
+
+      {/* Confirm Dialog */}
+      {ConfirmDialogComponent}
     </div>
   )
 }

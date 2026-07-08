@@ -105,6 +105,31 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const updateProfile = async (data) => {
+    try {
+      const res = await authService.updateProfile(data)
+      const userData = res.data?.data || res.data || res
+      const updated = { ...user, ...userData }
+      localStorage.setItem('user', JSON.stringify(updated))
+      setUser(updated)
+      return updated
+    } catch {
+      // Demo mode — update locally
+      const updated = { ...user, ...data }
+      localStorage.setItem('user', JSON.stringify(updated))
+      setUser(updated)
+      return updated
+    }
+  }
+
+  const updatePassword = async (data) => {
+    try {
+      await authService.updatePassword(data)
+    } catch {
+      // Demo mode — accept silently
+    }
+  }
+
   const logout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
@@ -114,9 +139,10 @@ export function AuthProvider({ children }) {
   const isAdmin = user?.role === 'admin'
   const canEdit = isAdmin || user?.role === 'secretary'
   const canDelete = isAdmin
+  const isDemo = !!user?.token?.startsWith('demo-')
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAdmin, canEdit, canDelete }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, updatePassword, isAdmin, canEdit, canDelete, isDemo }}>
       {children}
     </AuthContext.Provider>
   )

@@ -1,11 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import {
   LayoutDashboard, Calendar, FileText, Building2,
   CheckSquare, LogOut, Menu, X, Briefcase, Crown, Zap,
-  Bell, ShieldCheck, FileCode, PenLine, Users, UserCircle
+  Bell, ShieldCheck, FileCode, PenLine, Users, UserCircle, Settings as SettingsIcon,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, memo } from 'react'
 
 const NAV_ITEMS = [
   { path: '/dashboard',              icon: LayoutDashboard, label: 'Dashboard',    group: null },
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { path: '/compliance-rules',       icon: ShieldCheck,     label: 'Rules',        group: 'Compliance' },
   { path: '/templates',              icon: FileCode,        label: 'Templates',    group: 'Compliance' },
   { path: '/sign-tasks',             icon: PenLine,         label: 'Signing',      group: 'Compliance' },
+  { path: '/settings',              icon: SettingsIcon,     label: 'Settings',    group: null },
 ]
 
 const ROLE_BADGE = {
@@ -26,6 +27,26 @@ const ROLE_BADGE = {
   manager: { label: 'Manager', color: 'bg-blue-100 text-blue-700'  },
   viewer:  { label: 'Viewer',  color: 'bg-gray-100 text-gray-600'  },
 }
+
+/**
+ * NavItem — extracted outside Navbar to avoid re-creating component on every render.
+ * Wrapped in memo to prevent unnecessary re-renders when parent state changes.
+ */
+const NavItem = memo(({ path, icon: Icon, label, admin, active, onClick }) => (
+  <Link
+    to={path}
+    onClick={onClick}
+    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+      active
+        ? 'bg-primary-50 text-primary-700'
+        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+    } ${admin ? 'border border-dashed border-red-200 hover:border-red-300 hover:bg-red-50 hover:text-red-700' : ''}`}
+  >
+    <Icon size={18} className={active ? 'text-primary-600' : admin ? 'text-red-400' : 'text-gray-400'} />
+    <span className="flex-1">{label}</span>
+    {admin && <Crown size={13} className="text-red-400" />}
+  </Link>
+))
 
 const Navbar = () => {
   const { user, logout, isAdmin, isDemo } = useAuth()
@@ -38,24 +59,7 @@ const Navbar = () => {
 
   const roleBadge = ROLE_BADGE[user?.role] || ROLE_BADGE.viewer
 
-  const NavLink = ({ path, icon: Icon, label, admin }) => {
-    const active = location.pathname === path
-    return (
-      <Link
-        to={path}
-        onClick={() => setOpen(false)}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-          active
-            ? 'bg-primary-50 text-primary-700'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-        } ${admin ? 'border border-dashed border-red-200 hover:border-red-300 hover:bg-red-50 hover:text-red-700' : ''}`}
-      >
-        <Icon size={18} className={active ? 'text-primary-600' : admin ? 'text-red-400' : 'text-gray-400'} />
-        <span className="flex-1">{label}</span>
-        {admin && <Crown size={13} className="text-red-400" />}
-      </Link>
-    )
-  }
+  const closeMobile = () => setOpen(false)
 
   return (
     <>
@@ -94,14 +98,18 @@ const Navbar = () => {
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           {/* Main items (no group) */}
           <div className="space-y-0.5">
-            {NAV_ITEMS.filter(i => !i.group).map(item => <NavLink key={item.path} {...item} />)}
+            {NAV_ITEMS.filter(i => !i.group).map(item => (
+              <NavItem key={item.path} {...item} active={location.pathname === item.path} onClick={closeMobile} />
+            ))}
           </div>
 
           {/* Compliance group */}
           <div className="mt-4">
             <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-widest pb-1.5">Compliance</p>
             <div className="space-y-0.5">
-              {NAV_ITEMS.filter(i => i.group === 'Compliance').map(item => <NavLink key={item.path} {...item} />)}
+              {NAV_ITEMS.filter(i => i.group === 'Compliance').map(item => (
+                <NavItem key={item.path} {...item} active={location.pathname === item.path} onClick={closeMobile} />
+              ))}
             </div>
           </div>
 
@@ -111,7 +119,7 @@ const Navbar = () => {
               <div className="pt-3 pb-1">
                 <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Administration</p>
               </div>
-              <NavLink path="/admin" icon={Crown} label="Admin Panel" admin />
+              <NavItem path="/admin" icon={Crown} label="Admin Panel" admin active={location.pathname === '/admin'} onClick={closeMobile} />
             </>
           )}
         </nav>
@@ -140,7 +148,7 @@ const Navbar = () => {
       </aside>
 
       {/* Mobile overlay */}
-      {open && <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={() => setOpen(false)} />}
+      {open && <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={closeMobile} />}
     </>
   )
 }

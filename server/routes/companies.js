@@ -1,6 +1,12 @@
 const express = require('express');
 const XLSX = require('xlsx');
 const Company = require('../models/Company');
+const Document = require('../models/Document');
+const Personnel = require('../models/Personnel');
+const Meeting = require('../models/Meeting');
+const Task = require('../models/Task');
+const ComplianceReminder = require('../models/ComplianceReminder');
+const SignTask = require('../models/SignTask');
 const { auth } = require('../middleware/auth');
 const multer = require('multer');
 
@@ -27,6 +33,41 @@ router.get('/', auth, async (req, res) => {
 
     const companies = await Company.find(query).sort({ name: 1 });
     res.json({ success: true, count: companies.length, companies });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/companies/stats/dashboard — Dashboard 统计概览（与前端 getDashboardStats 对齐）
+router.get('/stats/dashboard', auth, async (req, res) => {
+  try {
+    const now = new Date();
+    const [
+      totalCompanies, activeCompanies, totalPersonnel, totalDocuments, totalMeetings,
+      totalTasks, pendingTasks, completedTasks, totalReminders, upcomingReminders,
+      expiredReminders, totalSignTasks,
+    ] = await Promise.all([
+      Company.countDocuments(),
+      Company.countDocuments({ status: 'active' }),
+      Personnel.countDocuments(),
+      Document.countDocuments(),
+      Meeting.countDocuments(),
+      Task.countDocuments(),
+      Task.countDocuments({ status: 'pending' }),
+      Task.countDocuments({ status: 'completed' }),
+      ComplianceReminder.countDocuments(),
+      ComplianceReminder.countDocuments({ status: { $in: ['待办', '处理中'] }, dueDate: { $gte: now } }),
+      ComplianceReminder.countDocuments({ status: { $in: ['待办', '处理中'] }, dueDate: { $lt: now } }),
+      SignTask.countDocuments(),
+    ]);
+    res.json({
+      success: true,
+      data: {
+        totalCompanies, activeCompanies, totalPersonnel, totalDocuments, totalMeetings,
+        totalTasks, pendingTasks, completedTasks, totalReminders, upcomingReminders,
+        expiredReminders, totalSignTasks,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

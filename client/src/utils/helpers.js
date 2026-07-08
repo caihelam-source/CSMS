@@ -85,3 +85,89 @@ export const TASK_STATUSES = [
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
 ]
+
+// Shared document category labels (used in Documents.jsx & CompanyDetail.jsx)
+export const DOC_CATEGORY_LABELS = {
+  establishment: '设立文件',
+  government: '政府往来',
+  financial: '财务税务',
+  banking: '银行文件',
+  meeting: '会议文件',
+  other: '其他',
+}
+
+// ── Meeting shared constants ──
+
+export const MEETING_TYPE_LABELS = {
+  board: '董事会', agm: '周年股东大会', egm: '股东特别大会',
+  committee: '委员会会议', other: '其他',
+}
+
+export const MEETING_PHASES = {
+  setup: { label: '草稿', color: 'bg-gray-200 text-gray-600' },
+  'notice-draft': { label: '通知草稿', color: 'bg-blue-100 text-blue-600' },
+  'notice-sent': { label: '已发通知', color: 'bg-blue-100 text-blue-700' },
+  'meeting-held': { label: '已召开', color: 'bg-green-100 text-green-700' },
+  'minutes-draft': { label: '纪要草稿', color: 'bg-purple-100 text-purple-700' },
+  'minutes-signed': { label: '已签署', color: 'bg-green-100 text-green-800' },
+  completed: { label: '已完成', color: 'bg-green-100 text-green-800' },
+}
+
+export const MEETING_STATUSES = {
+  draft: '草稿', scheduled: '已排期', in_progress: '进行中',
+  completed: '已完成', cancelled: '已取消',
+}
+
+// ── Meeting phase icon mapping (shared by Meetings.jsx & MeetingDetail.jsx) ──
+
+export const PHASE_ICON_MAP = {
+  setup: 'PenLine', 'notice-draft': 'Clock3', 'notice-sent': 'Send',
+  'meeting-held': 'CheckCircle2', 'minutes-draft': 'FileText',
+  'minutes-signed': 'CheckCircle2', completed: 'CheckCircle2',
+}
+
+/** Build PHASES enriched with Lucide icon components — call with the icon imports */
+export const buildPhasesWithIcons = (iconMap) => {
+  const icons = {
+    PenLine: iconMap.PenLine, Clock3: iconMap.Clock3, Send: iconMap.Send,
+    CheckCircle2: iconMap.CheckCircle2, FileText: iconMap.FileText, AlertCircle: iconMap.AlertCircle,
+  }
+  return Object.fromEntries(
+    Object.entries(MEETING_PHASES).map(([k, v]) => [k, { ...v, icon: icons[PHASE_ICON_MAP[k]] || icons.PenLine }])
+  )
+}
+
+// ── Meeting date/time formatters ──
+
+export function fmtDate(d) {
+  if (!d) return ''
+  const dt = new Date(d)
+  const w = ['日', '一', '二', '三', '四', '五', '六']
+  return `${dt.getFullYear()}年${dt.getMonth() + 1}月${dt.getDate()}日（周${w[dt.getDay()]}）`
+}
+
+export function fmtTime(d) {
+  if (!d) return ''
+  const dt = new Date(d)
+  return `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`
+}
+
+export function fmtDateShort(d) {
+  if (!d) return ''
+  const dt = new Date(d)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+}
+
+export function fmtDateTimeShort(d) {
+  if (!d) return ''
+  return `${fmtDateShort(d)} ${fmtTime(d)}`
+}
+
+/**
+ * extractVars — extract {{variable}} placeholders from template content
+ * Used by Templates.jsx for variable detection and rendering
+ */
+export const extractVars = (content) => {
+  if (!content) return []
+  return [...new Set((content.match(/\{\{([^}]+)\}\}/g) || []).map(m => m.replace(/\{\{|\}\}/g, '').trim()))]
+}

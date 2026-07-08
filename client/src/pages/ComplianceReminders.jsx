@@ -1,85 +1,119 @@
-import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
-import api from '../services/api'
-import Modal from '../components/Modal'
+import { useEffect, useState, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import {
-  Bell, Plus, Search, Filter, CheckCircle2, Clock,
-  AlertTriangle, Trash2, Pencil, RefreshCw, X, ChevronDown
+  Bell, Plus, RefreshCw,
+  CheckCircle2, Clock,
+  Pencil, Trash2
 } from 'lucide-react'
+import { complianceReminderService, companyService } from '../services/index.js'
+import { fmtDateShort } from '../utils/helpers'
+import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, compliancePriorityColor, complianceStatusColor } from '../components/UIHelpers'
+import { useSearchFilter } from '../hooks/useSearchFilter'
+import { validate, required } from '../utils/validators'
+import Modal from '../components/Modal'
 
-const STATUSES = ['待办', '处理中', '已完成', '已忽略']
-const PRIORITIES = ['低', '中', '高', '紧急']
-const CATEGORIES = ['周年申报', '税务申报', '合规报告', '董事变更', '股份变更', '会议召开', '其他']
+const STATUSES_API = [
+  { value: 'upcoming', label: '即将到期' },
+  { value: 'active', label: '进行中' },
+  { value: 'completed', label: '已完成' },
+  { value: 'expired', label: '已过期' },
+]
 
-const priorityColor = (p) => ({
-  '紧急': 'bg-red-100 text-red-700 border-red-200',
-  '高': 'bg-orange-100 text-orange-700 border-orange-200',
-  '中': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  '低': 'bg-gray-100 text-gray-600 border-gray-200',
-}[p] || 'bg-gray-100 text-gray-600 border-gray-200')
+const PRIORITIES_API = [
+  { value: 'low', label: '低' },
+  { value: 'medium', label: '中' },
+  { value: 'high', label: '高' },
+  { value: 'critical', label: '紧急' },
+]
 
-const statusColor = (s) => ({
-  '待办': 'bg-blue-100 text-blue-700',
-  '处理中': 'bg-yellow-100 text-yellow-700',
-  '已完成': 'bg-green-100 text-green-700',
-  '已忽略': 'bg-gray-100 text-gray-500',
-}[s] || 'bg-gray-100 text-gray-600')
+const STATUS_DISPLAY = { upcoming: '即将到期', active: '进行中', completed: '已完成', expired: '已过期' }
+const PRIORITY_DISPLAY = { low: '低', medium: '中', high: '高', critical: '紧急' }
 
-const inp = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
-const lbl = 'block text-sm font-medium text-gray-700 mb-1'
 
 const ReminderForm = ({ initial = {}, onSave, onCancel, loading, companies }) => {
   const [form, setForm] = useState({
     title: initial.title || '',
-    category: initial.category || '其他',
-    priority: initial.priority || '中',
-    status: initial.status || '待办',
-    dueDate: initial.dueDate ? format(new Date(initial.dueDate), 'yyyy-MM-dd') : '',
-    company: initial.company?._id || initial.company || '',
+    category: initial.category || '周年申报',
+    priority: initial.priority || 'medium',
+    status: initial.status || 'upcoming',
+    dueDate: initial.dueDate ? (typeof initial.dueDate === 'string' ? initial.dueDate.slice(0, 10) : fmtDateShort(initial.dueDate)) : '',
+    companyId: initial.company?._id || initial.company || '',
     notes: initial.notes || '',
+    completed: initial.completed || false,
   })
+  const [errors, setErrors] = useState({})
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const { valid, errors: vErrors } = validate(form, {
+      title: [required('请输入提醒标题')],
+      dueDate: [required('请选择截止日期')],
+    })
+    if (!valid) { setErrors(vErrors); return }
+    setErrors({})
+    const payload = {
+      title: form.title,
+      category: form.category,
+      priority: form.priority,
+      status: form.status,
+      dueDate: form.dueDate,
+      completed: form.completed,
+      notes: form.notes,
+    }
+    if (form.companyId) {
+      const co = companies.find(c => c._id === form.companyId)
+      if (co) {
+        payload.company = { _id: co._id, name: co.name, registrationNumber: co.registrationNumber }
+      }
+    }
+    onSave(payload)
+  }
+
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-4">
-      <div>
-        <label className={lbl}>提醒标题 <span className="text-red-500">*</span></label>
-        <input required className={inp} value={form.title} onChange={e => set('title', e.target.value)} placeholder="年度申报提醒" />
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FormField label="提醒标题" required error={errors.title}>
+        <input className={inputClass} value={form.title} onChange={e => { set('title', e.target.value); setErrors(e => ({ ...e, title: '' })) }} placeholder="年度申报提醒" />
+      </FormField>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className={lbl}>类别</label>
-          <select className={inp} value={form.category} onChange={e => set('category', e.target.value)}>
-            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          <label className={labelClass}>类别</label>
+          <select className={inputClass} value={form.category} onChange={e => set('category', e.target.value)}>
+            <option>周年申报</option>
+            <option>税务申报</option>
+            <option>合规报告</option>
+            <option>董事变更</option>
+            <option>股份变更</option>
+            <option>会议召开</option>
+            <option>其他</option>
           </select>
         </div>
         <div>
-          <label className={lbl}>优先级</label>
-          <select className={inp} value={form.priority} onChange={e => set('priority', e.target.value)}>
-            {PRIORITIES.map(p => <option key={p}>{p}</option>)}
+          <label className={labelClass}>优先级</label>
+          <select className={inputClass} value={form.priority} onChange={e => set('priority', e.target.value)}>
+            {PRIORITIES_API.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
         </div>
         <div>
-          <label className={lbl}>状态</label>
-          <select className={inp} value={form.status} onChange={e => set('status', e.target.value)}>
-            {STATUSES.map(s => <option key={s}>{s}</option>)}
+          <label className={labelClass}>状态</label>
+          <select className={inputClass} value={form.status} onChange={e => set('status', e.target.value)}>
+            {STATUSES_API.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
-        <div>
-          <label className={lbl}>截止日期 <span className="text-red-500">*</span></label>
-          <input required type="date" className={inp} value={form.dueDate} onChange={e => set('dueDate', e.target.value)} />
-        </div>
+        <FormField label="截止日期" required error={errors.dueDate}>
+          <input type="date" className={inputClass} value={form.dueDate} onChange={e => { set('dueDate', e.target.value); setErrors(e => ({ ...e, dueDate: '' })) }} />
+        </FormField>
         <div className="md:col-span-2">
-          <label className={lbl}>关联公司</label>
-          <select className={inp} value={form.company} onChange={e => set('company', e.target.value)}>
-            <option value="">-- 不关联公司 --</option>
+          <label className={labelClass}>关联公司</label>
+          <select className={inputClass} value={form.companyId} onChange={e => set('companyId', e.target.value)}>
+            <option value="">-- 不关联 --</option>
             {companies.map(c => <option key={c._id} value={c._id}>{c.name}{c.nameChinese ? ` / ${c.nameChinese}` : ''}</option>)}
           </select>
         </div>
       </div>
       <div>
-        <label className={lbl}>备注</label>
-        <textarea rows={3} className={inp} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="其他说明..." />
+        <label className={labelClass}>备注</label>
+        <textarea rows={3} className={inputClass} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="其他说明..." />
       </div>
       <div className="flex justify-end gap-3 pt-2">
         <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
@@ -91,62 +125,61 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, loading, companies }) =>
   )
 }
 
-const CompleteModal = ({ reminder, onConfirm, onCancel, loading }) => {
-  const [notes, setNotes] = useState('')
-  return (
-    <div className="space-y-4">
-      <p className="text-gray-600">确认将 <strong>{reminder?.title}</strong> 标记为已完成？</p>
-      <div>
-        <label className={lbl}>完成备注（可选）</label>
-        <textarea rows={3} className={inp} value={notes} onChange={e => setNotes(e.target.value)} placeholder="填写完成情况..." />
-      </div>
-      <div className="flex justify-end gap-3">
-        <button onClick={onCancel} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
-        <button onClick={() => onConfirm(notes)} disabled={loading} className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium">
-          {loading ? '处理中...' : '确认完成'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
 const ComplianceReminders = () => {
   const [reminders, setReminders] = useState([])
   const [stats, setStats] = useState(null)
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
-  const [filterPriority, setFilterPriority] = useState('')
-  const [filterOverdue, setFilterOverdue] = useState(false)
-  const [modal, setModal] = useState(null) // null | 'new' | 'edit' | 'delete' | 'complete'
+  const [modal, setModal] = useState(null)
   const [editTarget, setEditTarget] = useState(null)
+  const [noteText, setNoteText] = useState('')
+  const [completeModal, setCompleteModal] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => { fetchAll() }, [filterStatus, filterPriority, filterOverdue])
+  const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
+    reminders,
+    (r, q, f) => {
+      const matchSearch = !q || r.title?.toLowerCase().includes(q) || r.category?.toLowerCase().includes(q)
+      const matchStatus = !f.status || r.status === f.status
+      const matchPriority = !f.priority || r.priority === f.priority
+      return matchSearch && matchStatus && matchPriority
+    },
+    { status: '', priority: '' }
+  )
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const params = {}
-      if (filterStatus) params.status = filterStatus
-      if (filterPriority) params.priority = filterPriority
-      if (filterOverdue) params.overdue = 'true'
-      const [remRes, statsRes, compRes] = await Promise.all([
-        api.get('/compliance-reminders', { params }),
-        api.get('/compliance-reminders/stats/summary').catch(() => null),
-        api.get('/companies').catch(() => ({ companies: [] })),
+      const [remRes, statsRes] = await Promise.all([
+        complianceReminderService.getAll().catch(() => ({ data: { data: [] } })),
+        complianceReminderService.getStatistics().catch(() => null),
       ])
-      setReminders(remRes.reminders || [])
-      if (statsRes) setStats(statsRes.stats)
-      setCompanies(compRes.companies || [])
+      const { data: remData } = remRes
+      setReminders(remData?.data || [])
+
+      if (statsRes?.data?.data) {
+        const s = statsRes.data.data
+        setStats({
+          total: s.total || 0,
+          pending: s.upcoming || 0,
+          overdue: s.overdue || s.expired || 0,
+          completed: s.completed || 0,
+        })
+      }
+
+      try {
+        const { data: coRes } = await companyService.getAll()
+        setCompanies(coRes.data || [])
+      } catch { /* silent */ }
     } catch {
-      setReminders(DEMO_REMINDERS)
+      setReminders([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => { fetchAll() }, [fetchAll])
 
   const openNew = () => { setEditTarget(null); setError(''); setModal('new') }
   const openEdit = (r) => { setEditTarget(r); setError(''); setModal('edit') }
@@ -155,87 +188,86 @@ const ComplianceReminders = () => {
     setSaving(true); setError('')
     try {
       if (editTarget) {
-        const res = await api.put(`/compliance-reminders/${editTarget._id}`, data)
-        setReminders(rs => rs.map(r => r._id === editTarget._id ? (res.reminder || { ...r, ...data }) : r))
+        const { data: resData } = await complianceReminderService.update(editTarget._id, data)
+        setReminders(rs => rs.map(r => r._id === editTarget._id ? (resData.data || { ...r, ...data }) : r))
       } else {
-        const res = await api.post('/compliance-reminders', data)
-        setReminders(rs => [res.reminder || { _id: Date.now().toString(), ...data }, ...rs])
+        const { data: resData } = await complianceReminderService.create(data)
+        setReminders(rs => [resData.data || { _id: Date.now().toString(), ...data }, ...rs])
       }
       setModal(null)
-      fetchAll()
     } catch (e) {
-      setError(e.response?.data?.message || '保存失败')
+      toast.error(e.response?.data?.message || '保存失败')
     } finally {
       setSaving(false)
     }
   }
 
-  const handleComplete = async (notes) => {
+  const handleComplete = async () => {
     if (!editTarget) return
     setSaving(true)
     try {
-      const res = await api.post(`/compliance-reminders/${editTarget._id}/complete`, { notes })
-      setReminders(rs => rs.map(r => r._id === editTarget._id ? (res.reminder || { ...r, status: '已完成' }) : r))
-      setModal(null)
-      fetchAll()
+      const notes = Array.isArray(editTarget.notes) ? editTarget.notes : []
+      const payload = { notes: [...notes, { content: noteText, createdAt: new Date().toISOString() }], status: 'completed', completed: true }
+      const { data: resData } = await complianceReminderService.update(editTarget._id, payload)
+      setReminders(rs => rs.map(r => r._id === editTarget._id ? (resData.data || { ...r, ...payload }) : r))
     } catch (e) {
-      alert(e.response?.data?.message || '操作失败')
+      toast.error(e.response?.data?.message || '操作失败')
     } finally {
       setSaving(false)
+      setCompleteModal(false)
+      setNoteText('')
     }
+  }
+
+  const handleQuickComplete = async (r) => {
+    setEditTarget(r)
+    setNoteText('')
+    setCompleteModal(true)
   }
 
   const handleDelete = async () => {
     if (!editTarget) return
     setSaving(true)
     try {
-      await api.delete(`/compliance-reminders/${editTarget._id}`)
+      await complianceReminderService.delete(editTarget._id)
       setReminders(rs => rs.filter(r => r._id !== editTarget._id))
       setModal(null)
-      fetchAll()
     } catch (e) {
-      alert(e.response?.data?.message || '删除失败')
+      toast.error(e.response?.data?.message || '删除失败')
     } finally {
       setSaving(false)
     }
   }
 
-  const filtered = reminders.filter(r => {
-    const q = search.toLowerCase()
-    return !q || r.title?.toLowerCase().includes(q) || r.category?.toLowerCase().includes(q)
-  })
-
-  const getDaysRemaining = (dueDate) => Math.ceil((new Date(dueDate) - new Date()) / 86400000)
+  const getDaysRemaining = useCallback((dueDate) => Math.ceil((new Date(dueDate) - new Date()) / 86400000), [])
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Bell className="text-primary-600" size={26} />
-            合规提醒
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">跟踪所有合规截止日期与待办事项</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={fetchAll} className="px-3 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">
-            <RefreshCw size={15} />
-          </button>
-          <button onClick={openNew} className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
-            <Plus size={15} /> 新增提醒
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="合规提醒"
+        subtitle="跟踪所有合规截止日期与待办事项"
+        icon={Bell}
+        actions={
+          <>
+            <button onClick={fetchAll} className="px-3 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">
+              <RefreshCw size={15} />
+            </button>
+            <button onClick={openNew} className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
+              <Plus size={15} /> 新增提醒
+            </button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: '全部', value: stats.total, color: 'text-gray-700', bg: 'bg-gray-50' },
-            { label: '待办', value: stats.pending, color: 'text-blue-700', bg: 'bg-blue-50' },
+            { label: '即将到期', value: stats.pending, color: 'text-blue-700', bg: 'bg-blue-50' },
             { label: '已逾期', value: stats.overdue, color: 'text-red-700', bg: 'bg-red-50' },
-            { label: '紧急', value: stats.urgent, color: 'text-orange-700', bg: 'bg-orange-50' },
+            { label: '已完成', value: stats.completed, color: 'text-green-700', bg: 'bg-green-50' },
           ].map(s => (
             <div key={s.label} className={`${s.bg} rounded-xl p-4 border border-gray-100`}>
               <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
@@ -248,54 +280,40 @@ const ComplianceReminders = () => {
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="搜索提醒标题、类别..."
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-          </div>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+          <SearchBar value={search} onChange={setSearch} placeholder="搜索提醒标题、类别..." />
+          <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
             <option value="">全部状态</option>
-            {STATUSES.map(s => <option key={s}>{s}</option>)}
+            {STATUSES_API.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
-          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}
+          <select value={filters.priority} onChange={e => setFilter('priority', e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
             <option value="">全部优先级</option>
-            {PRIORITIES.map(p => <option key={p}>{p}</option>)}
+            {PRIORITIES_API.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
-          <label className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm cursor-pointer hover:bg-gray-50">
-            <input type="checkbox" checked={filterOverdue} onChange={e => setFilterOverdue(e.target.checked)}
-              className="w-4 h-4 rounded text-primary-600" />
-            仅显示逾期
-          </label>
         </div>
       </div>
 
       {/* List */}
       {loading ? (
-        <div className="flex justify-center py-16"><div className="animate-spin h-10 w-10 rounded-full border-b-2 border-primary-600" /></div>
+        <LoadingSpinner />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <Bell size={48} className="mx-auto mb-4 opacity-30" />
-          <p className="text-lg">暂无合规提醒</p>
-          <button onClick={openNew} className="mt-4 text-primary-600 hover:underline text-sm">+ 新增提醒</button>
-        </div>
+        <EmptyState icon={Bell} title="暂无合规提醒" action={<button onClick={openNew} className="mt-4 text-primary-600 hover:underline text-sm">+ 新增提醒</button>} />
       ) : (
         <div className="space-y-3">
           {filtered.map(r => {
             const days = r.dueDate ? getDaysRemaining(r.dueDate) : null
-            const isOverdue = r.status !== '已完成' && r.status !== '已忽略' && days !== null && days < 0
+            const isOverdue = r.status !== 'completed' && days !== null && days < 0
             return (
               <div key={r._id} className={`bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${isOverdue ? 'border-red-200' : 'border-gray-200'}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className={`font-semibold ${isOverdue ? 'text-red-700' : r.status === '已完成' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                      <h3 className={`font-semibold ${isOverdue ? 'text-red-700' : r.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                         {r.title}
                       </h3>
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${priorityColor(r.priority)}`}>{r.priority}</span>
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor(r.status)}`}>{r.status}</span>
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${compliancePriorityColor(r.priority)}`}>{PRIORITY_DISPLAY[r.priority] || r.priority}</span>
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${complianceStatusColor(r.status)}`}>{STATUS_DISPLAY[r.status] || r.status}</span>
                     </div>
                     <div className="flex flex-wrap gap-4 text-xs text-gray-500 mt-1">
                       {r.category && <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{r.category}</span>}
@@ -303,7 +321,7 @@ const ComplianceReminders = () => {
                       {r.dueDate && (
                         <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : days <= 7 ? 'text-orange-600' : ''}`}>
                           <Clock size={13} />
-                          截止：{format(new Date(r.dueDate), 'yyyy-MM-dd')}
+                          截止：{fmtDateShort(r.dueDate)}
                           {days !== null && ` (${isOverdue ? `逾期${Math.abs(days)}天` : days === 0 ? '今天到期' : `剩余${days}天`})`}
                         </span>
                       )}
@@ -311,8 +329,8 @@ const ComplianceReminders = () => {
                     {r.notes && <p className="text-xs text-gray-400 mt-2 line-clamp-1">{r.notes}</p>}
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    {r.status !== '已完成' && r.status !== '已忽略' && (
-                      <button onClick={() => { setEditTarget(r); setModal('complete') }}
+                    {r.status !== 'completed' && r.status !== 'expired' && (
+                      <button onClick={() => handleQuickComplete(r)}
                         className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="标记完成">
                         <CheckCircle2 size={16} />
                       </button>
@@ -338,30 +356,60 @@ const ComplianceReminders = () => {
         <ReminderForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModal(null)} loading={saving} companies={companies} />
       </Modal>
 
-      {/* 标记完成 Modal */}
-      <Modal isOpen={modal === 'complete'} onClose={() => setModal(null)} title="标记为已完成" size="sm">
-        <CompleteModal reminder={editTarget} onConfirm={handleComplete} onCancel={() => setModal(null)} loading={saving} />
+      {/* 标记完成 Modal — 强制要求备注 */}
+      <Modal isOpen={completeModal} onClose={() => { setCompleteModal(false) }}
+        title="标记为已完成" size="sm">
+        <div className="space-y-4">
+          {/* 已有备注 */}
+          {editTarget?.notes?.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-2">已有备注：</p>
+              <div className="space-y-2 max-h-32 overflow-y-auto bg-gray-50 rounded-lg p-3">
+                {editTarget.notes.map((n, i) => (
+                  <div key={i} className="text-sm text-gray-700">
+                    <p>{typeof n === 'string' ? n : n.content}</p>
+                    {n.createdAt && typeof n === 'object' && <p className="text-xs text-gray-400 mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 新备注输入 */}
+          <FormField label="完成备注" required>
+            <textarea
+              rows={3}
+              className={inputClass}
+              placeholder="请输入完成说明或备注..."
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+            />
+            <p className="text-xs text-gray-400 mt-1">合规提醒/任务必须填写备注才能标记完成</p>
+          </FormField>
+
+          <div className="flex justify-end gap-3">
+            <button onClick={() => { setCompleteModal(false) }} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+            <button
+              onClick={handleComplete}
+              disabled={!noteText.trim() || saving}
+              className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {saving ? '处理中...' : '确认完成'}
+            </button>
+          </div>
+        </div>
       </Modal>
 
       {/* 删除确认 Modal */}
-      <Modal isOpen={modal === 'delete'} onClose={() => setModal(null)} title="确认删除" size="sm">
-        <p className="text-gray-600 mb-6">确定删除提醒 <strong>{editTarget?.title}</strong>？此操作不可撤销。</p>
-        <div className="flex justify-end gap-3">
-          <button onClick={() => setModal(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
-          <button onClick={handleDelete} disabled={saving} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50">
-            {saving ? '删除中...' : '确认删除'}
-          </button>
-        </div>
-      </Modal>
+      <DeleteConfirmModal
+        isOpen={modal === 'delete'}
+        name={editTarget?.title}
+        onConfirm={handleDelete}
+        onCancel={() => setModal(null)}
+        loading={saving}
+      />
     </div>
   )
 }
-
-const DEMO_REMINDERS = [
-  { _id: 'r1', title: 'Acme Holdings 年度申报', category: '周年申报', priority: '高', status: '待办', dueDate: '2026-07-15', company: { name: 'Acme Holdings Limited' }, notes: '需提前准备财务报表' },
-  { _id: 'r2', title: 'Pacific Trading 税务申报', category: '税务申报', priority: '紧急', status: '待办', dueDate: '2026-06-30', company: { name: 'Pacific Trading Corp' } },
-  { _id: 'r3', title: 'Global Ventures 董事变更通知', category: '董事变更', priority: '中', status: '处理中', dueDate: '2026-08-01', company: { name: 'Global Ventures Ltd' } },
-  { _id: 'r4', title: 'Acme Holdings 周年大会召开', category: '会议召开', priority: '高', status: '已完成', dueDate: '2026-05-10', company: { name: 'Acme Holdings Limited' } },
-]
 
 export default ComplianceReminders

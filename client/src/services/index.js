@@ -10,6 +10,7 @@ import {
   complianceReminders as mockComplianceReminders,
   templates as mockTemplates,
   signTasks as mockSignTasks,
+  directors as mockDirectors,
 } from './mock.js'
 
 // Default to mock mode — app always works without backend
@@ -25,7 +26,7 @@ const wrap = (apiFn, mockFn) => async (...args) => {
   } catch (err) {
     if (!err.response && (err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED')) {
       useMock = true
-      console.log('[DEMO MODE] Backend unavailable, switching to mock data')
+      // Silently switch to demo mode when backend is unavailable
       return mockFn(...args)
     }
     throw err
@@ -200,6 +201,10 @@ export const meetingService = {
     (meetingId, data) => api.post(`/api/meetings/${meetingId}/sign`, data),
     mockMeetings.signMinutes,
   ),
+  updateStatus: wrap(
+    (id, data) => api.patch(`/api/meetings/${id}/status`, data),
+    mockMeetings.updateStatus,
+  ),
 }
 
 // ====== Document Service ======
@@ -226,6 +231,14 @@ export const documentService = {
     }),
     mockDocuments.upload,
   ),
+  create: wrap(
+    (data) => api.post('/api/documents', data),
+    mockDocuments.create,
+  ),
+  update: wrap(
+    (id, data) => api.put(`/api/documents/${id}`, data),
+    mockDocuments.update,
+  ),
   delete: wrap(
     (id) => api.delete(`/api/documents/${id}`),
     mockDocuments.delete,
@@ -242,6 +255,10 @@ export const taskService = {
     (params) => api.get(`/api/tasks${buildParams(params)}`),
     mockTasks.getAll,
   ),
+  getOne: wrap(
+    (id) => api.get(`/api/tasks/${id}`),
+    mockTasks.getOne,
+  ),
   create: wrap(
     (data) => api.post('/api/tasks', data),
     mockTasks.create,
@@ -254,6 +271,42 @@ export const taskService = {
     (id) => api.delete(`/api/tasks/${id}`),
     mockTasks.delete,
   ),
+  addNote: wrap(
+    (id, data) => api.post(`/api/tasks/${id}/notes`, data),
+    mockTasks.addNote,
+  ),
+  getExpiring: wrap(
+    () => api.get('/api/tasks/expiring'),
+    mockTasks.getExpiring,
+  ),
+}
+
+// ====== Director Service ======
+export const directorService = {
+  getAll: wrap(
+    (params) => api.get(`/api/directors${buildParams(params)}`),
+    mockDirectors.getAll,
+  ),
+  getOne: wrap(
+    (id) => api.get(`/api/directors/${id}`),
+    mockDirectors.getOne,
+  ),
+  create: wrap(
+    (data) => api.post('/api/directors', data),
+    mockDirectors.create,
+  ),
+  update: wrap(
+    (id, data) => api.put(`/api/directors/${id}`, data),
+    mockDirectors.update,
+  ),
+  delete: wrap(
+    (id) => api.delete(`/api/directors/${id}`),
+    mockDirectors.delete,
+  ),
+  addAppointment: wrap(
+    (id, data) => api.post(`/api/directors/${id}/appointments`, data),
+    mockDirectors.addAppointment,
+  ),
 }
 
 // ====== Compliance Rule Service ======
@@ -261,6 +314,34 @@ export const complianceRuleService = {
   getAll: wrap(
     (params) => api.get(`/api/compliance-rules${buildParams(params)}`),
     mockComplianceRules.getAll,
+  ),
+  getOne: wrap(
+    (id) => api.get(`/api/compliance-rules/${id}`),
+    mockComplianceRules.getOne,
+  ),
+  create: wrap(
+    (data) => api.post('/api/compliance-rules', data),
+    mockComplianceRules.create,
+  ),
+  update: wrap(
+    (id, data) => api.put(`/api/compliance-rules/${id}`, data),
+    mockComplianceRules.update,
+  ),
+  delete: wrap(
+    (id) => api.delete(`/api/compliance-rules/${id}`),
+    mockComplianceRules.delete,
+  ),
+  initPresets: wrap(
+    () => api.post('/api/compliance-rules/initialize'),
+    mockComplianceRules.initPresets,
+  ),
+  generateReminders: wrap(
+    (ruleId, { companyIds } = {}) => api.post(`/api/compliance-rules/${ruleId}/generate`, { companyIds }),
+    mockComplianceRules.generateReminders,
+  ),
+  applyRule: wrap(
+    (id, companyIds) => api.post(`/api/compliance-rules/${id}/apply`, { companyIds }),
+    mockComplianceRules.applyRule,
   ),
 }
 
@@ -270,6 +351,46 @@ export const complianceReminderService = {
     (params) => api.get(`/api/compliance-reminders${buildParams(params)}`),
     mockComplianceReminders.getAll,
   ),
+  getOne: wrap(
+    (id) => api.get(`/api/compliance-reminders/${id}`),
+    mockComplianceReminders.getOne,
+  ),
+  create: wrap(
+    (data) => api.post('/api/compliance-reminders', data),
+    mockComplianceReminders.create,
+  ),
+  update: wrap(
+    (id, data) => api.put(`/api/compliance-reminders/${id}`, data),
+    mockComplianceReminders.update,
+  ),
+  delete: wrap(
+    (id) => api.delete(`/api/compliance-reminders/${id}`),
+    mockComplianceReminders.delete,
+  ),
+  markCompleted: wrap(
+    (id) => api.post(`/api/compliance-reminders/${id}/complete`),
+    mockComplianceReminders.markCompleted,
+  ),
+  markOverdue: wrap(
+    (id) => api.put(`/api/compliance-reminders/${id}/overdue`),
+    mockComplianceReminders.markOverdue,
+  ),
+  getScheduled: wrap(
+    (params) => api.get(`/api/compliance-reminders/scheduled${buildParams(params)}`),
+    mockComplianceReminders.getScheduled,
+  ),
+  getExpired: wrap(
+    (params) => api.get(`/api/compliance-reminders/expired${buildParams(params)}`),
+    mockComplianceReminders.getExpired,
+  ),
+  getStatistics: wrap(
+    () => api.get('/api/compliance-reminders/statistics'),
+    mockComplianceReminders.getStatistics,
+  ),
+  triggerCheck: wrap(
+    () => api.post('/api/compliance-reminders/trigger-check'),
+    mockComplianceReminders.triggerCheck,
+  ),
 }
 
 // ====== Template Service ======
@@ -278,6 +399,30 @@ export const templateService = {
     (params) => api.get(`/api/templates${buildParams(params)}`),
     mockTemplates.getAll,
   ),
+  getOne: wrap(
+    (id) => api.get(`/api/templates/${id}`),
+    mockTemplates.getOne,
+  ),
+  create: wrap(
+    (data) => api.post('/api/templates', data),
+    mockTemplates.create,
+  ),
+  update: wrap(
+    (id, data) => api.put(`/api/templates/${id}`, data),
+    mockTemplates.update,
+  ),
+  delete: wrap(
+    (id) => api.delete(`/api/templates/${id}`),
+    mockTemplates.delete,
+  ),
+  render: wrap(
+    (id, variables) => api.post(`/api/templates/${id}/render`, { variables }),
+    mockTemplates.render,
+  ),
+  initPresets: wrap(
+    () => api.post('/api/templates/init-presets'),
+    mockTemplates.initPresets,
+  ),
 }
 
 // ====== Sign Task Service ======
@@ -285,5 +430,33 @@ export const signTaskService = {
   getAll: wrap(
     (params) => api.get(`/api/sign-tasks${buildParams(params)}`),
     mockSignTasks.getAll,
+  ),
+  getOne: wrap(
+    (id) => api.get(`/api/sign-tasks/${id}`),
+    mockSignTasks.getOne,
+  ),
+  create: wrap(
+    (data) => api.post('/api/sign-tasks', data),
+    mockSignTasks.create,
+  ),
+  update: wrap(
+    (id, data) => api.put(`/api/sign-tasks/${id}`, data),
+    mockSignTasks.update,
+  ),
+  delete: wrap(
+    (id) => api.delete(`/api/sign-tasks/${id}`),
+    mockSignTasks.delete,
+  ),
+  getSigners: wrap(
+    (id) => api.get(`/api/sign-tasks/${id}/signers`),
+    mockSignTasks.getSigners,
+  ),
+  sign: wrap(
+    (id, signerId) => api.post(`/api/sign-tasks/${id}/${signerId}/sign`),
+    mockSignTasks.sign,
+  ),
+  getStatistics: wrap(
+    () => api.get('/api/sign-tasks/statistics'),
+    mockSignTasks.getStatistics,
   ),
 }

@@ -1,35 +1,50 @@
-import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
+import { Building2, Plus, Pencil, Trash2 } from 'lucide-react'
 import { companyService } from '../services/index.js'
 import { formatDate, getStatusColor } from '../utils/helpers'
+import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, labelClass } from '../components/UIHelpers'
+import { useSearchFilter } from '../hooks/useSearchFilter'
+import { validate, required } from '../utils/validators'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import toast from 'react-hot-toast'
-import { Building2, Plus, Search, Pencil, Trash2, Upload, Download } from 'lucide-react'
+import Modal from '../components/Modal'
 
 const EMPTY_FORM = {
   name: '', registrationNumber: '', type: 'private_limited', status: 'active',
   incorporationDate: '', jurisdiction: '', registeredAddress: { country: '' },
 }
 
+const FORM_RULES = {
+  name: [required('公司名称为必填')],
+}
+
 export default function Companies() {
-  const { user, isAdmin } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const isDemo = !user?.token || user?.token?.startsWith('demo-')
 
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
-  const [filterType, setFilterType] = useState('')
   const [modal, setModal] = useState(null)
   const [editTarget, setEditTarget] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [formErrors, setFormErrors] = useState({})
   const [saving, setSaving] = useState(false)
-  const fileInputRef = useRef()
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
-  useEffect(() => { fetchCompanies() }, [])
+  // Search + filter via useSearchFilter
+  const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
+    companies,
+    (c, q, f) => {
+      const matchSearch = !q || c.name?.toLowerCase().includes(q) || c.registrationNumber?.toLowerCase().includes(q)
+      const matchStatus = !f.status || c.status === f.status
+      const matchType = !f.type || c.type === f.type
+      return matchSearch && matchStatus && matchType
+    },
+    { status: '', type: '' }
+  )
 
-  const fetchCompanies = async () => {
+  const fetchCompanies = useCallback(async () => {
     setLoading(true)
     try {
       const { data } = await companyService.getAll()
@@ -39,17 +54,11 @@ export default function Companies() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const filtered = companies.filter(c => {
-    const q = search.toLowerCase()
-    const matchSearch = !q || c.name?.toLowerCase().includes(q) || c.registrationNumber?.toLowerCase().includes(q)
-    const matchStatus = !filterStatus || c.status === filterStatus
-    const matchType = !filterType || c.type === filterType
-    return matchSearch && matchStatus && matchType
-  })
+  useEffect(() => { fetchCompanies() }, [fetchCompanies])
 
-  const openNew = () => { setForm(EMPTY_FORM); setEditTarget(null); setModal('new') }
+  const openNew = () => { setForm(EMPTY_FORM); setFormErrors({}); setEditTarget(null); setModal('new') }
   const openEdit = (c) => {
     setForm({
       ...EMPTY_FORM,
@@ -60,12 +69,14 @@ export default function Companies() {
       incorporationDate: c.incorporationDate ? c.incorporationDate.slice(0, 10) : '',
       jurisdiction: c.jurisdiction || c.registeredAddress?.country || '',
     })
+    setFormErrors({})
     setEditTarget(c)
     setModal('edit')
   }
 
   const handleSave = async () => {
-    if (!form.name) { toast.error('Company name required'); return }
+    const { valid, errors } = validate(form, FORM_RULES)
+    if (!valid) { setFormErrors(errors); return }
     setSaving(true)
     try {
       if (editTarget) {
@@ -86,49 +97,44 @@ export default function Companies() {
   }
 
   const handleDelete = async () => {
-    if (!editTarget) return
+    if (!deleteTarget) return
     setSaving(true)
     try {
-      if (!isDemo) await companyService.delete(editTarget._id)
-      setCompanies(cs => cs.filter(c => c._id !== editTarget._id))
-      setModal(null)
+      if (!isDemo) await companyService.delete(deleteTarget._id)
+      setCompanies(cs => cs.filter(c => c._id !== deleteTarget._id))
       toast.success('Company deleted')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Delete failed')
     } finally {
       setSaving(false)
+      setDeleteTarget(null)
     }
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Companies</h1>
-          <p className="text-gray-500">{companies.length} companies</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Companies"
+        subtitle={`${companies.length} companies`}
+        icon={Building2}
+        actions={
           <button onClick={openNew} className="btn-primary flex items-center gap-2">
             <Plus size={16} /> New Company
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
       <div className="card flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="input-field pl-9" placeholder="Search companies..."
-            value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <select className="input-field w-auto" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+        <SearchBar value={search} onChange={setSearch} placeholder="Search companies..." />
+        <select className="input-field w-auto" value={filters.status} onChange={e => setFilter('status', e.target.value)}>
           <option value="">All Status</option>
           <option value="active">Active</option>
           <option value="dormant">Dormant</option>
           <option value="struck_off">Struck Off</option>
         </select>
-        <select className="input-field w-auto" value={filterType} onChange={e => setFilterType(e.target.value)}>
+        <select className="input-field w-auto" value={filters.type} onChange={e => setFilter('type', e.target.value)}>
           <option value="">All Types</option>
           <option value="private_limited">Private Limited</option>
           <option value="public_limited">Public Limited</option>
@@ -137,14 +143,9 @@ export default function Companies() {
 
       {/* Company List */}
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
-        </div>
+        <LoadingSpinner size="lg" />
       ) : filtered.length === 0 ? (
-        <div className="card text-center py-12 text-gray-400">
-          <Building2 size={48} className="mx-auto mb-4 opacity-50" />
-          <p>No companies found</p>
-        </div>
+        <EmptyState icon={Building2} title="No companies found" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(c => (
@@ -161,34 +162,33 @@ export default function Companies() {
               {c.incorporationDate && (
                 <p className="text-xs text-gray-400 mt-3">Incorporated: {formatDate(c.incorporationDate)}</p>
               )}
-              {(c.links?.length > 0) && (
+              {c.links?.length > 0 && (
                 <p className="text-xs text-gray-400 mt-1">{c.links.length} linked people/companies</p>
               )}
+              <div className="flex gap-1 mt-3 pt-2 border-t border-gray-100" onClick={e => e.preventDefault()}>
+                <button onClick={() => openEdit(c)} className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-gray-50"><Pencil size={14} /></button>
+                <button onClick={() => setDeleteTarget(c)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-50"><Trash2 size={14} /></button>
+              </div>
             </Link>
           ))}
         </div>
       )}
 
       {/* New/Edit Modal */}
-      {(modal === 'new' || modal === 'edit') && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">{modal === 'new' ? 'New Company' : 'Edit Company'}</h2>
+      <Modal isOpen={modal === 'new' || modal === 'edit'} onClose={() => setModal(null)}
+        title={modal === 'new' ? 'New Company' : 'Edit Company'} size="md">
             <div className="space-y-4">
-              <div>
-                <label className="label">Company Name *</label>
-                <input className="input-field" value={form.name} required
-                  onChange={e => setForm({ ...form, name: e.target.value })} />
-              </div>
+              <FormField label="Company Name" required error={formErrors.name}>
+                <input className={inputClass} value={form.name}
+                  onChange={e => { setForm({ ...form, name: e.target.value }); setFormErrors(fe => ({ ...fe, name: '' })) }} />
+              </FormField>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Registration No.</label>
-                  <input className="input-field" value={form.registrationNumber}
+                <FormField label="Registration No.">
+                  <input className={inputClass} value={form.registrationNumber}
                     onChange={e => setForm({ ...form, registrationNumber: e.target.value })} />
-                </div>
-                <div>
-                  <label className="label">Jurisdiction</label>
-                  <select className="input-field" value={form.jurisdiction}
+                </FormField>
+                <FormField label="Jurisdiction">
+                  <select className={inputClass} value={form.jurisdiction}
                     onChange={e => setForm({ ...form, jurisdiction: e.target.value })}>
                     <option value="">Select</option>
                     <option value="Hong Kong">Hong Kong</option>
@@ -196,33 +196,30 @@ export default function Companies() {
                     <option value="Cayman Islands">Cayman Islands</option>
                     <option value="Singapore">Singapore</option>
                   </select>
-                </div>
+                </FormField>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Type</label>
-                  <select className="input-field" value={form.type}
+                <FormField label="Type">
+                  <select className={inputClass} value={form.type}
                     onChange={e => setForm({ ...form, type: e.target.value })}>
                     <option value="private_limited">Private Limited</option>
                     <option value="public_limited">Public Limited</option>
                     <option value="llp">LLP</option>
                   </select>
-                </div>
-                <div>
-                  <label className="label">Status</label>
-                  <select className="input-field" value={form.status}
+                </FormField>
+                <FormField label="Status">
+                  <select className={inputClass} value={form.status}
                     onChange={e => setForm({ ...form, status: e.target.value })}>
                     <option value="active">Active</option>
                     <option value="dormant">Dormant</option>
                     <option value="struck_off">Struck Off</option>
                   </select>
-                </div>
+                </FormField>
               </div>
-              <div>
-                <label className="label">Incorporation Date</label>
-                <input type="date" className="input-field" value={form.incorporationDate}
+              <FormField label="Incorporation Date">
+                <input type="date" className={inputClass} value={form.incorporationDate}
                   onChange={e => setForm({ ...form, incorporationDate: e.target.value })} />
-              </div>
+              </FormField>
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={() => setModal(null)} className="btn-secondary">Cancel</button>
@@ -230,25 +227,16 @@ export default function Companies() {
                 {saving ? 'Saving...' : 'Save'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       {/* Delete Confirm */}
-      {modal === 'delete' && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h2 className="text-xl font-semibold mb-4 text-red-600">Confirm Delete</h2>
-            <p className="text-gray-600 mb-6">Delete "{editTarget?.name}"? This cannot be undone.</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setModal(null)} className="btn-secondary">Cancel</button>
-              <button onClick={handleDelete} disabled={saving} className="btn-danger">
-                {saving ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        name={deleteTarget?.name}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={saving}
+      />
     </div>
   )
 }

@@ -1,7 +1,20 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import toast from 'react-hot-toast'
-import { User, Lock, Bell, Database } from 'lucide-react'
+import { User, Lock, Bell } from 'lucide-react'
+import { PageHeader, FormField, inputClass, TabNav } from '../components/UIHelpers'
+import { validate, required, email as emailValidator, minLength } from '../utils/validators'
+
+const PROFILE_RULES = {
+  name: [required('姓名为必填')],
+  email: [required('邮箱为必填'), emailValidator('邮箱格式不正确')],
+}
+
+const PASSWORD_RULES = {
+  currentPassword: [required('请输入当前密码')],
+  newPassword: [required('请输入新密码'), minLength(6, '密码至少6位')],
+  confirmPassword: [required('请确认新密码')],
+}
 
 export default function Settings() {
   const { user, updateProfile, updatePassword } = useAuth()
@@ -10,21 +23,26 @@ export default function Settings() {
     name: user?.name || '',
     email: user?.email || '',
   })
+  const [profileErrors, setProfileErrors] = useState({})
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   })
+  const [passwordErrors, setPasswordErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault()
+    const { valid, errors } = validate(profileForm, PROFILE_RULES)
+    if (!valid) { setProfileErrors(errors); return }
+    setProfileErrors({})
     setLoading(true)
     try {
       await updateProfile(profileForm)
-      toast.success('Profile updated!')
+      toast.success('个人资料已更新')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Update failed')
+      toast.error(err.response?.data?.message || '更新失败')
     } finally {
       setLoading(false)
     }
@@ -32,20 +50,23 @@ export default function Settings() {
 
   const handlePasswordUpdate = async (e) => {
     e.preventDefault()
+    const { valid, errors } = validate(passwordForm, PASSWORD_RULES)
+    if (!valid) { setPasswordErrors(errors); return }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error('New passwords do not match')
+      setPasswordErrors({ confirmPassword: '两次输入的密码不一致' })
       return
     }
+    setPasswordErrors({})
     setLoading(true)
     try {
       await updatePassword({
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       })
-      toast.success('Password updated!')
+      toast.success('密码已更新')
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Password update failed')
+      toast.error(err.response?.data?.message || '密码更新失败')
     } finally {
       setLoading(false)
     }
@@ -59,52 +80,34 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-gray-500">Manage your account settings</p>
-      </div>
+      <PageHeader title="Settings" subtitle="Manage your account settings" icon={User} />
 
       <div className="card p-0 overflow-hidden">
-        <div className="flex border-b border-gray-200">
-          {tabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === id
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
-        </div>
+        <TabNav
+          tabs={tabs.map(t => ({ key: t.id, label: t.label, icon: t.icon }))}
+          active={activeTab}
+          onChange={setActiveTab}
+        />
 
         <div className="p-6">
           {activeTab === 'profile' && (
             <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg">
-              <div>
-                <label className="label">Name</label>
+              <FormField label="Name" required error={profileErrors.name}>
                 <input
                   type="text"
-                  className="input-field"
+                  className={inputClass}
                   value={profileForm.name}
-                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                  required
+                  onChange={(e) => { setProfileForm({ ...profileForm, name: e.target.value }); setProfileErrors(pe => ({ ...pe, name: '' })) }}
                 />
-              </div>
-              <div>
-                <label className="label">Email</label>
+              </FormField>
+              <FormField label="Email" required error={profileErrors.email}>
                 <input
                   type="email"
-                  className="input-field"
+                  className={inputClass}
                   value={profileForm.email}
-                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                  required
+                  onChange={(e) => { setProfileForm({ ...profileForm, email: e.target.value }); setProfileErrors(pe => ({ ...pe, email: '' })) }}
                 />
-              </div>
+              </FormField>
               <button type="submit" className="btn-primary" disabled={loading}>
                 {loading ? 'Saving...' : 'Save Changes'}
               </button>
@@ -113,37 +116,31 @@ export default function Settings() {
 
           {activeTab === 'password' && (
             <form onSubmit={handlePasswordUpdate} className="space-y-4 max-w-lg">
-              <div>
-                <label className="label">Current Password</label>
+              <FormField label="Current Password" required error={passwordErrors.currentPassword}>
                 <input
                   type="password"
-                  className="input-field"
+                  className={inputClass}
                   value={passwordForm.currentPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                  required
+                  onChange={(e) => { setPasswordForm({ ...passwordForm, currentPassword: e.target.value }); setPasswordErrors(pe => ({ ...pe, currentPassword: '' })) }}
                 />
-              </div>
-              <div>
-                <label className="label">New Password</label>
+              </FormField>
+              <FormField label="New Password" required error={passwordErrors.newPassword}>
                 <input
                   type="password"
-                  className="input-field"
+                  className={inputClass}
                   value={passwordForm.newPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                  required
+                  onChange={(e) => { setPasswordForm({ ...passwordForm, newPassword: e.target.value }); setPasswordErrors(pe => ({ ...pe, newPassword: '' })) }}
                   minLength={6}
                 />
-              </div>
-              <div>
-                <label className="label">Confirm New Password</label>
+              </FormField>
+              <FormField label="Confirm New Password" required error={passwordErrors.confirmPassword}>
                 <input
                   type="password"
-                  className="input-field"
+                  className={inputClass}
                   value={passwordForm.confirmPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                  required
+                  onChange={(e) => { setPasswordForm({ ...passwordForm, confirmPassword: e.target.value }); setPasswordErrors(pe => ({ ...pe, confirmPassword: '' })) }}
                 />
-              </div>
+              </FormField>
               <button type="submit" className="btn-primary" disabled={loading}>
                 {loading ? 'Updating...' : 'Update Password'}
               </button>

@@ -1,17 +1,24 @@
-import { useEffect, useState } from 'react'
-import api from '../services/api'
-import Modal from '../components/Modal'
+import { useEffect, useState, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import {
-  ShieldCheck, Plus, Search, RefreshCw, Zap,
-  Pencil, Trash2, ChevronRight, CheckCircle2, Building2, AlertCircle
+  ShieldCheck, Plus, RefreshCw, Zap,
+  Pencil, Trash2
 } from 'lucide-react'
+import { complianceRuleService, companyService } from '../services/index.js'
+import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField } from '../components/UIHelpers'
+import { useSearchFilter } from '../hooks/useSearchFilter'
+import { validate, required } from '../utils/validators'
+import Modal from '../components/Modal'
+import { useConfirm } from '../components/ConfirmDialog'
 
 const JURISDICTIONS = ['香港', 'BVI', '开曼', '新加坡', '其他']
 const CATEGORIES = ['周年申报', '税务申报', '合规报告', '董事变更', '股份变更', '会议召开', '其他']
 const FREQ = ['一次性', '每月', '每季度', '每半年', '每年']
 
-const inp = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
-const lbl = 'block text-sm font-medium text-gray-700 mb-1'
+
+const RULE_FORM_RULES = {
+  ruleName: [required('规则名称为必填')],
+}
 
 const RuleForm = ({ initial = {}, onSave, onCancel, loading }) => {
   const [form, setForm] = useState({
@@ -25,44 +32,52 @@ const RuleForm = ({ initial = {}, onSave, onCancel, loading }) => {
     description: initial.description || '',
     status: initial.status || 'active',
   })
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const [errors, setErrors] = useState({})
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })) }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const { valid, errors: vErrors } = validate(form, RULE_FORM_RULES)
+    if (!valid) { setErrors(vErrors); return }
+    setErrors({})
+    onSave(form)
+  }
 
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField label="规则名称" required error={errors.ruleName}>
+          <input className={inputClass} value={form.ruleName} onChange={e => set('ruleName', e.target.value)} placeholder="年度申报规则" />
+        </FormField>
         <div>
-          <label className={lbl}>规则名称 <span className="text-red-500">*</span></label>
-          <input required className={inp} value={form.ruleName} onChange={e => set('ruleName', e.target.value)} placeholder="年度申报规则" />
+          <label className={labelClass}>规则编号</label>
+          <input className={inputClass} value={form.ruleId} onChange={e => set('ruleId', e.target.value)} placeholder="HK-001" />
         </div>
         <div>
-          <label className={lbl}>规则编号</label>
-          <input className={inp} value={form.ruleId} onChange={e => set('ruleId', e.target.value)} placeholder="HK-001" />
-        </div>
-        <div>
-          <label className={lbl}>注册地</label>
-          <select className={inp} value={form.jurisdiction} onChange={e => set('jurisdiction', e.target.value)}>
+          <label className={labelClass}>注册地</label>
+          <select className={inputClass} value={form.jurisdiction} onChange={e => set('jurisdiction', e.target.value)}>
             {JURISDICTIONS.map(j => <option key={j}>{j}</option>)}
           </select>
         </div>
         <div>
-          <label className={lbl}>类别</label>
-          <select className={inp} value={form.category} onChange={e => set('category', e.target.value)}>
+          <label className={labelClass}>类别</label>
+          <select className={inputClass} value={form.category} onChange={e => set('category', e.target.value)}>
             {CATEGORIES.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
         <div>
-          <label className={lbl}>频率</label>
-          <select className={inp} value={form.frequency} onChange={e => set('frequency', e.target.value)}>
+          <label className={labelClass}>频率</label>
+          <select className={inputClass} value={form.frequency} onChange={e => set('frequency', e.target.value)}>
             {FREQ.map(f => <option key={f}>{f}</option>)}
           </select>
         </div>
         <div>
-          <label className={lbl}>提前提醒天数</label>
-          <input type="number" min={1} max={365} className={inp} value={form.daysBefore} onChange={e => set('daysBefore', Number(e.target.value))} />
+          <label className={labelClass}>提前提醒天数</label>
+          <input type="number" min={1} max={365} className={inputClass} value={form.daysBefore} onChange={e => set('daysBefore', Number(e.target.value))} />
         </div>
         <div>
-          <label className={lbl}>状态</label>
-          <select className={inp} value={form.status} onChange={e => set('status', e.target.value)}>
+          <label className={labelClass}>状态</label>
+          <select className={inputClass} value={form.status} onChange={e => set('status', e.target.value)}>
             <option value="active">启用</option>
             <option value="inactive">停用</option>
           </select>
@@ -75,8 +90,8 @@ const RuleForm = ({ initial = {}, onSave, onCancel, loading }) => {
         </div>
       </div>
       <div>
-        <label className={lbl}>规则描述</label>
-        <textarea rows={3} className={inp} value={form.description} onChange={e => set('description', e.target.value)} placeholder="详细说明此合规规则的要求..." />
+        <label className={labelClass}>规则描述</label>
+        <textarea rows={3} className={inputClass} value={form.description} onChange={e => set('description', e.target.value)} placeholder="详细说明此合规规则的要求..." />
       </div>
       <div className="flex justify-end gap-3 pt-2">
         <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
@@ -123,66 +138,74 @@ const jurisdictionColor = (j) => ({
 }[j] || 'bg-gray-100 text-gray-600')
 
 const ComplianceRules = () => {
+  const { confirm, ConfirmDialogComponent } = useConfirm()
   const [rules, setRules] = useState([])
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [search, setSearch] = useState('')
-  const [filterJurisdiction, setFilterJurisdiction] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
   const [modal, setModal] = useState(null)
   const [editTarget, setEditTarget] = useState(null)
-  const [error, setError] = useState('')
   const [genResult, setGenResult] = useState(null)
 
-  useEffect(() => { fetchAll() }, [filterJurisdiction, filterStatus])
+  const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
+    rules,
+    (r, q, f) => {
+      const matchSearch = !q || r.ruleName?.toLowerCase().includes(q) || r.ruleId?.toLowerCase().includes(q) || r.category?.toLowerCase().includes(q)
+      const matchJurisdiction = !f.jurisdiction || r.jurisdiction === f.jurisdiction
+      const matchStatus = !f.status || r.status === f.status
+      return matchSearch && matchJurisdiction && matchStatus
+    },
+    { jurisdiction: '', status: '' }
+  )
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const params = {}
-      if (filterJurisdiction) params.jurisdiction = filterJurisdiction
-      if (filterStatus) params.status = filterStatus
       const [rulesRes, compRes] = await Promise.all([
-        api.get('/compliance-rules', { params }),
-        api.get('/companies').catch(() => ({ companies: [] })),
+        complianceRuleService.getAll(),
+        companyService.getAll(),
       ])
-      setRules(rulesRes.rules || [])
-      setCompanies(compRes.companies || [])
+      setRules(rulesRes.data?.data || rulesRes.data || [])
+      setCompanies(compRes.data?.data || compRes.data || [])
     } catch {
-      setRules(DEMO_RULES)
+      setRules([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => { fetchAll() }, [fetchAll])
 
   const handleInitialize = async () => {
-    if (!confirm('初始化将加载17条预设合规规则，确定继续？')) return
+    const ok = await confirm({ title: '初始化预设规则', message: '初始化将加载预设合规规则，确定继续？', confirmLabel: '确认初始化', variant: 'warning' })
+    if (!ok) return
     setSaving(true)
     try {
-      await api.post('/compliance-rules/initialize')
-      alert('预设规则初始化完成！')
+      await complianceRuleService.initPresets()
+      toast.success('预设规则初始化完成！')
       fetchAll()
     } catch (e) {
-      alert(e.response?.data?.message || '初始化失败')
+      toast.error(e.response?.data?.message || '初始化失败')
     } finally {
       setSaving(false)
     }
   }
 
   const handleSave = async (data) => {
-    setSaving(true); setError('')
+    setSaving(true)
     try {
       if (editTarget) {
-        const res = await api.put(`/compliance-rules/${editTarget._id}`, data)
-        setRules(rs => rs.map(r => r._id === editTarget._id ? (res.rule || { ...r, ...data }) : r))
+        const { data: res } = await complianceRuleService.update(editTarget._id, data)
+        setRules(rs => rs.map(r => r._id === editTarget._id ? res : r))
+        toast.success('更新成功')
       } else {
-        const res = await api.post('/compliance-rules', data)
-        setRules(rs => [res.rule || { _id: Date.now().toString(), ...data }, ...rs])
+        const { data: res } = await complianceRuleService.create(data)
+        setRules(rs => [res, ...rs])
+        toast.success('创建成功')
       }
       setModal(null)
     } catch (e) {
-      setError(e.response?.data?.message || '保存失败')
+      toast.error(e.response?.data?.message || '保存失败')
     } finally {
       setSaving(false)
     }
@@ -192,8 +215,8 @@ const ComplianceRules = () => {
     if (!editTarget) return
     setSaving(true)
     try {
-      const res = await api.post(`/compliance-rules/${editTarget._id}/generate`, { companyIds })
-      setGenResult({ success: true, message: `成功生成 ${res.created || 0} 条提醒，跳过 ${res.skipped || 0} 条` })
+      const { data: res } = await complianceRuleService.generateReminders(editTarget._id, { companyIds })
+      setGenResult({ success: true, message: `成功生成 ${res.remindersGenerated || 0} 条提醒，跳过 ${res.skipped || 0} 条` })
       setTimeout(() => { setModal(null); setGenResult(null) }, 2500)
     } catch (e) {
       setGenResult({ success: false, message: e.response?.data?.message || '生成失败' })
@@ -206,59 +229,48 @@ const ComplianceRules = () => {
     if (!editTarget) return
     setSaving(true)
     try {
-      await api.delete(`/compliance-rules/${editTarget._id}`)
+      await complianceRuleService.delete(editTarget._id)
       setRules(rs => rs.filter(r => r._id !== editTarget._id))
+      toast.success('删除成功')
       setModal(null)
     } catch (e) {
-      alert(e.response?.data?.message || '删除失败')
+      toast.error(e.response?.data?.message || '删除失败')
     } finally {
       setSaving(false)
     }
   }
 
-  const filtered = rules.filter(r => {
-    const q = search.toLowerCase()
-    return !q || r.ruleName?.toLowerCase().includes(q) || r.ruleId?.toLowerCase().includes(q) || r.category?.toLowerCase().includes(q)
-  })
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <ShieldCheck className="text-primary-600" size={26} />
-            合规规则
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">管理合规规则并生成自动提醒</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={handleInitialize} disabled={saving}
-            className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
-            <Zap size={15} /> 初始化预设规则
-          </button>
-          <button onClick={() => { setEditTarget(null); setError(''); setModal('new') }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
-            <Plus size={15} /> 新建规则
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="合规规则"
+        subtitle="管理合规规则并生成自动提醒"
+        icon={ShieldCheck}
+        actions={
+          <>
+            <button onClick={handleInitialize} disabled={saving}
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+              <Zap size={15} /> 初始化预设规则
+            </button>
+            <button onClick={() => { setEditTarget(null); setModal('new') }}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
+              <Plus size={15} /> 新建规则
+            </button>
+          </>
+        }
+      />
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="搜索规则名称、编号..."
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-          </div>
-          <select value={filterJurisdiction} onChange={e => setFilterJurisdiction(e.target.value)}
+          <SearchBar value={search} onChange={setSearch} placeholder="搜索规则名称、编号..." />
+          <select value={filters.jurisdiction} onChange={e => setFilter('jurisdiction', e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
             <option value="">全部注册地</option>
             {JURISDICTIONS.map(j => <option key={j}>{j}</option>)}
           </select>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+          <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
             <option value="">全部状态</option>
             <option value="active">启用</option>
@@ -272,13 +284,11 @@ const ComplianceRules = () => {
 
       {/* List */}
       {loading ? (
-        <div className="flex justify-center py-16"><div className="animate-spin h-10 w-10 rounded-full border-b-2 border-primary-600" /></div>
+        <LoadingSpinner />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <ShieldCheck size={48} className="mx-auto mb-4 opacity-30" />
-          <p className="text-lg">暂无合规规则</p>
+        <EmptyState icon={ShieldCheck} title="暂无合规规则" action={
           <button onClick={handleInitialize} className="mt-4 text-primary-600 hover:underline text-sm">点击初始化预设规则</button>
-        </div>
+        } />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
@@ -297,8 +307,8 @@ const ComplianceRules = () => {
                 <tr key={rule._id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900 flex items-center gap-1.5">
-                      {rule.ruleName}
-                      {rule.isPreset && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-normal">预设</span>}
+                      {rule.name || rule.ruleName}
+                      {(rule.isPreset || rule.isPredefined) && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-normal">预设</span>}
                       {rule.isListedOnly && <span className="text-xs bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-normal">上市</span>}
                     </div>
                     <div className="text-xs text-gray-400 mt-0.5 flex gap-2">
@@ -312,7 +322,7 @@ const ComplianceRules = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell text-gray-600">{rule.frequency || '—'}</td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-gray-600">{rule.daysBefore ? `${rule.daysBefore} 天` : '—'}</td>
+                  <td className="px-4 py-3 hidden lg:table-cell text-gray-600">{rule.dueDaysBefore ?? rule.daysBefore ? `${rule.dueDaysBefore ?? rule.daysBefore} 天` : '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${rule.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                       {rule.status === 'active' ? '启用' : '停用'}
@@ -324,11 +334,11 @@ const ComplianceRules = () => {
                         className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="生成提醒">
                         <Zap size={15} />
                       </button>
-                      <button onClick={() => { setEditTarget(rule); setError(''); setModal('edit') }}
+                      <button onClick={() => { setEditTarget(rule); setModal('edit') }}
                         className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
                         <Pencil size={15} />
                       </button>
-                      {!rule.isPreset && (
+                      {!rule.isPreset && !rule.isPredefined && (
                         <button onClick={() => { setEditTarget(rule); setModal('delete') }}
                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                           <Trash2 size={15} />
@@ -346,7 +356,6 @@ const ComplianceRules = () => {
       {/* 新增/编辑 Modal */}
       <Modal isOpen={modal === 'new' || modal === 'edit'} onClose={() => setModal(null)}
         title={modal === 'edit' ? '编辑合规规则' : '新建合规规则'} size="lg">
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{error}</div>}
         <RuleForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModal(null)} loading={saving} />
       </Modal>
 
@@ -364,24 +373,18 @@ const ComplianceRules = () => {
       </Modal>
 
       {/* 删除确认 Modal */}
-      <Modal isOpen={modal === 'delete'} onClose={() => setModal(null)} title="确认删除" size="sm">
-        <p className="text-gray-600 mb-6">确定删除规则 <strong>{editTarget?.ruleName}</strong>？此操作不可撤销。</p>
-        <div className="flex justify-end gap-3">
-          <button onClick={() => setModal(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
-          <button onClick={handleDelete} disabled={saving} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50">
-            {saving ? '删除中...' : '确认删除'}
-          </button>
-        </div>
-      </Modal>
+      <DeleteConfirmModal
+        isOpen={modal === 'delete'}
+        name={editTarget?.name || editTarget?.ruleName}
+        onConfirm={handleDelete}
+        onCancel={() => setModal(null)}
+        loading={saving}
+      />
+
+      {/* Confirm Dialog */}
+      {ConfirmDialogComponent}
     </div>
   )
 }
-
-const DEMO_RULES = [
-  { _id: 'cr1', ruleName: '年度申报（香港）', ruleId: 'HK-001', category: '周年申报', jurisdiction: '香港', frequency: '每年', daysBefore: 30, isPreset: true, status: 'active', isListedOnly: false },
-  { _id: 'cr2', ruleName: '利得税申报', ruleId: 'HK-002', category: '税务申报', jurisdiction: '香港', frequency: '每年', daysBefore: 60, isPreset: true, status: 'active', isListedOnly: false },
-  { _id: 'cr3', ruleName: 'BVI 年费缴纳', ruleId: 'BVI-001', category: '周年申报', jurisdiction: 'BVI', frequency: '每年', daysBefore: 45, isPreset: true, status: 'active', isListedOnly: false },
-  { _id: 'cr4', ruleName: '上市公司季报披露', ruleId: 'HK-L01', category: '合规报告', jurisdiction: '香港', frequency: '每季度', daysBefore: 14, isPreset: true, status: 'active', isListedOnly: true },
-]
 
 export default ComplianceRules

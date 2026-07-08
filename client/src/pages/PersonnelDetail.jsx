@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { personnelService, documentService } from '../services'
-import { formatDate } from '../utils/helpers'
-import { ArrowLeft, User, Building2, FileText, Mail, Phone, MapPin, Briefcase } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { User, Building2, FileText, Mail, Phone, MapPin } from 'lucide-react'
+import { personnelService, documentService } from '../services/index.js'
+import { formatDate } from '../utils/helpers'
+import { LoadingSpinner, DetailHeader, EmptyState } from '../components/UIHelpers'
 
 export default function PersonnelDetail() {
   const { id } = useParams()
@@ -12,9 +13,7 @@ export default function PersonnelDetail() {
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { loadAll() }, [id])
-
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true)
     try {
       const [personRes, docRes] = await Promise.all([
@@ -23,33 +22,33 @@ export default function PersonnelDetail() {
       ])
       setPerson(personRes.data.data)
       setDocuments(docRes.data.data || [])
-    } catch (err) {
+    } catch {
       toast.error('Failed to load personnel')
       navigate('/personnel')
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, navigate])
 
-  if (loading) return <div className="flex items-center justify-center h-64">Loading...</div>
-  if (!person) return <div className="text-center py-12 text-gray-400">Person not found</div>
+  useEffect(() => { loadAll() }, [loadAll])
+
+  if (loading) return <LoadingSpinner size="md" />
+  if (!person) return <EmptyState icon={User} title="人员未找到" description="该人员记录不存在或已被删除" />
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate('/personnel')} className="p-2 rounded-lg hover:bg-gray-100"><ArrowLeft size={20} /></button>
-        <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xl font-bold">
-          {person.name?.charAt(0) || '?'}
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">{person.name}</h1>
-          <p className="text-gray-500">
+      <DetailHeader
+        onBack={() => navigate('/personnel')}
+        title={person.name}
+        subtitle={
+          <>
             {person.nric && <span>{person.nric} &middot; </span>}
             {person.nationality && <span>{person.nationality}</span>}
-          </p>
-        </div>
-      </div>
+          </>
+        }
+        initials={person.name?.charAt(0) || '?'}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left: Info */}
@@ -93,10 +92,7 @@ export default function PersonnelDetail() {
         <div className="card md:col-span-2 space-y-4">
           <h3 className="font-semibold flex items-center gap-2"><Building2 size={18} /> 关联公司 ({person.companies?.length || 0})</h3>
           {!person.companies || person.companies.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <Building2 size={32} className="mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No linked companies</p>
-            </div>
+            <EmptyState icon={Building2} title="No linked companies" />
           ) : (
             <div className="space-y-2">
               {person.companies.map((item, idx) => (
@@ -127,10 +123,7 @@ export default function PersonnelDetail() {
       <div className="card">
         <h3 className="font-semibold mb-4 flex items-center gap-2"><FileText size={18} /> 关联文件 ({documents.length})</h3>
         {documents.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <FileText size={32} className="mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No documents</p>
-          </div>
+          <EmptyState icon={FileText} title="No documents" />
         ) : (
           <div className="space-y-2">
             {documents.map(doc => (

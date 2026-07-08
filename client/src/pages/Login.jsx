@@ -1,8 +1,15 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext.jsx'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Briefcase, Mail, Lock, AlertCircle, Zap } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import { LoadingSpinner, FormField, inputClass } from '../components/UIHelpers'
+import { validate, required, email as emailValidator } from '../utils/validators'
+
+const LOGIN_RULES = {
+  email: [required('请输入邮箱'), emailValidator('邮箱格式不正确')],
+  password: [required('请输入密码')],
+}
 
 const DEMO_ACCOUNTS = [
   { label: 'Admin', email: 'admin@example.com', password: 'admin123', color: 'bg-blue-100 text-blue-700 hover:bg-blue-200' },
@@ -12,6 +19,7 @@ const DEMO_ACCOUNTS = [
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
@@ -19,6 +27,9 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const { valid, errors: vErrors } = validate({ email, password }, LOGIN_RULES)
+    if (!valid) { setErrors(vErrors); return }
+    setErrors({})
     setError('')
     setLoading(true)
     try {
@@ -62,37 +73,33 @@ const Login = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+            <FormField label="Email Address" required error={errors.email}>
               <div className="relative">
                 <Mail size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
+                  onChange={e => { setEmail(e.target.value); setErrors(er => ({ ...er, email: '' })) }}
                   autoComplete="email"
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  className={`${inputClass} pl-10`}
                   placeholder="you@example.com"
                 />
               </div>
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <FormField label="Password" required error={errors.password}>
               <div className="relative">
                 <Lock size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
+                  onChange={e => { setPassword(e.target.value); setErrors(er => ({ ...er, password: '' })) }}
                   autoComplete="current-password"
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  className={`${inputClass} pl-10`}
                   placeholder="••••••••"
                 />
               </div>
-            </div>
+            </FormField>
 
             <button
               type="submit"
@@ -101,7 +108,7 @@ const Login = () => {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <LoadingSpinner size="xs" variant="inline" className="border-white/30 border-r-white" />
                   Signing in...
                 </span>
               ) : 'Sign In'}

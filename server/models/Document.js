@@ -10,8 +10,10 @@ const documentSchema = new mongoose.Schema({
            'board_resolution', 'incorporation_doc', 'other'],
     default: 'other',
   },
-  fileUrl: { type: String, required: true },
-  fileName: { type: String, required: true },
+  fileUrl: { type: String },
+  fileName: { type: String },
+  category: { type: String, default: 'other' },
+  note: { type: String },
   fileSize: { type: Number },
   mimeType: { type: String },
   // Linked entities
@@ -34,5 +36,15 @@ const documentSchema = new mongoose.Schema({
 documentSchema.index({ company: 1, type: 1 });
 documentSchema.index({ personnel: 1, type: 1 });
 documentSchema.index({ renewalDueDate: 1 });
+
+// 自动生成文档编号：<类型缩写>-<年份>-<序号>
+documentSchema.statics.generateDocNumber = async function (company, directorName, type) {
+  const raw = (type || 'doc').toString().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const prefix = raw.slice(0, 4) || 'DOC';
+  const year = new Date().getFullYear();
+  const count = await this.countDocuments({ type: type || 'other' });
+  const seq = String(count + 1).padStart(4, '0');
+  return `${prefix}-${year}-${seq}`;
+};
 
 module.exports = mongoose.model('Document', documentSchema);

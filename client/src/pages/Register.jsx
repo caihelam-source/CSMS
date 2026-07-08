@@ -1,8 +1,16 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext.jsx'
 import toast from 'react-hot-toast'
 import { Briefcase, Mail, Lock, User, AlertCircle } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import { LoadingSpinner, FormField, inputClass, labelClass } from '../components/UIHelpers'
+import { validate, required, email as emailValidator, minLength } from '../utils/validators'
+
+const REGISTER_RULES = {
+  name: [required('请输入姓名')],
+  email: [required('请输入邮箱'), emailValidator('邮箱格式不正确')],
+  password: [required('请输入密码'), minLength(6, '密码至少6位')],
+}
 
 const ROLES = [
   { value: 'secretary', label: 'Company Secretary' },
@@ -15,6 +23,7 @@ const Register = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState('secretary')
+  const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
@@ -22,6 +31,9 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const { valid, errors: vErrors } = validate({ name, email, password }, REGISTER_RULES)
+    if (!valid) { setErrors(vErrors); return }
+    setErrors({})
     setError('')
     setLoading(true)
     try {
@@ -59,59 +71,52 @@ const Register = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+            <FormField label="Full Name" required error={errors.name}>
               <div className="relative">
                 <User size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={name}
-                  onChange={e => setName(e.target.value)}
-                  required
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  onChange={e => { setName(e.target.value); setErrors(er => ({ ...er, name: '' })) }}
+                  className={`${inputClass} pl-10`}
                   placeholder="John Doe"
                 />
               </div>
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+            <FormField label="Email Address" required error={errors.email}>
               <div className="relative">
                 <Mail size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
+                  onChange={e => { setEmail(e.target.value); setErrors(er => ({ ...er, email: '' })) }}
                   autoComplete="email"
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  className={`${inputClass} pl-10`}
                   placeholder="you@example.com"
                 />
               </div>
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <FormField label="Password" required error={errors.password}>
               <div className="relative">
                 <Lock size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  onChange={e => { setPassword(e.target.value); setErrors(er => ({ ...er, password: '' })) }}
+                  className={`${inputClass} pl-10`}
                   placeholder="At least 6 characters"
                 />
               </div>
-            </div>
+            </FormField>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
+              <label className={labelClass}>Role</label>
               <select
                 value={role}
                 onChange={e => setRole(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white"
+                className={inputClass}
               >
                 {ROLES.map(r => (
                   <option key={r.value} value={r.value}>{r.label}</option>
@@ -126,7 +131,7 @@ const Register = () => {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <LoadingSpinner size="xs" variant="inline" className="border-white/30 border-r-white" />
                   Creating account...
                 </span>
               ) : 'Create Account'}

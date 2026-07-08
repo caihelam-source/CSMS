@@ -1,11 +1,19 @@
 import { useState } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import Modal from '../components/Modal'
 import {
   Users, Shield, Settings, Plus, Pencil, Trash2,
   CheckCircle, XCircle, Crown, Eye, UserCog, Mail,
   Activity, Building2, Calendar, FileText, CheckSquare
 } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import { validate, required, email as emailValidator, minLength } from '../utils/validators'
+import { inputClass, labelClass, PageHeader, DeleteConfirmModal, FormField, TabNav } from '../components/UIHelpers'
+import Modal from '../components/Modal'
+
+const USER_FORM_RULES = {
+  name: [required('姓名为必填')],
+  email: [required('邮箱为必填'), emailValidator('邮箱格式不正确')],
+  password: [minLength(8, '密码至少8位')],
+}
 
 // ─── Demo user list ───────────────────────────────────────────────
 const INITIAL_USERS = [
@@ -31,38 +39,46 @@ const UserForm = ({ initial = {}, onSave, onCancel, loading, currentUserId }) =>
     status: initial.status || 'active',
     password: '',
   })
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const [errors, setErrors] = useState({})
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })) }
   const isEdit = !!initial.id
 
-  const inp = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
-  const lbl = 'block text-sm font-medium text-gray-700 mb-1'
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const rules = { ...USER_FORM_RULES }
+    if (!isEdit) rules.password = [required('密码为必填'), minLength(8, '密码至少8位')]
+    const { valid, errors: vErrors } = validate(form, rules)
+    if (!valid) { setErrors(vErrors); return }
+    onSave(form)
+  }
 
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          <label className={lbl}>Full Name *</label>
-          <input required className={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Jane Smith" />
+          <FormField label="Full Name" required error={errors.name}>
+            <input className={inputClass} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Jane Smith" />
+          </FormField>
         </div>
         <div className="md:col-span-2">
-          <label className={lbl}>Email Address *</label>
-          <input required type="email" className={inp} value={form.email} onChange={e => set('email', e.target.value)} placeholder="jane@company.com" />
+          <FormField label="Email Address" required error={errors.email}>
+            <input type="email" className={inputClass} value={form.email} onChange={e => set('email', e.target.value)} placeholder="jane@company.com" />
+          </FormField>
         </div>
         <div>
-          <label className={lbl}>{isEdit ? 'New Password' : 'Password *'}</label>
-          <input
-            type="password"
-            className={inp}
-            value={form.password}
-            onChange={e => set('password', e.target.value)}
-            placeholder={isEdit ? 'Leave blank to keep unchanged' : 'Min 8 characters'}
-            minLength={isEdit ? 0 : 8}
-            required={!isEdit}
-          />
+          <FormField label={isEdit ? 'New Password' : 'Password *'} error={errors.password}>
+            <input
+              type="password"
+              className={inputClass}
+              value={form.password}
+              onChange={e => set('password', e.target.value)}
+              placeholder={isEdit ? 'Leave blank to keep unchanged' : 'Min 8 characters'}
+            />
+          </FormField>
         </div>
         <div>
-          <label className={lbl}>Status</label>
-          <select className={inp} value={form.status} onChange={e => set('status', e.target.value)}
+          <label className={labelClass}>Status</label>
+          <select className={inputClass} value={form.status} onChange={e => set('status', e.target.value)}
             disabled={initial.id === currentUserId}>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
@@ -73,7 +89,7 @@ const UserForm = ({ initial = {}, onSave, onCancel, loading, currentUserId }) =>
 
       {/* Role picker */}
       <div>
-        <label className={lbl}>Role *</label>
+        <label className={labelClass}>Role *</label>
         <div className="space-y-2 mt-1">
           {ROLES.map(r => {
             const Icon = r.icon
@@ -182,16 +198,15 @@ const AdminPanel = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <span className="p-1.5 bg-red-100 rounded-lg"><Crown size={22} className="text-red-600" /></span>
-            Admin Panel
-          </h1>
-          <p className="text-gray-500 mt-1">System administration and access control</p>
-        </div>
-        <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Admin Only</span>
-      </div>
+      <PageHeader
+        title="Admin Panel"
+        subtitle="System administration and access control"
+        icon={Crown}
+        iconColor="text-red-600"
+        actions={
+          <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Admin Only</span>
+        }
+      />
 
       {/* Stats */}
       <div className="flex flex-wrap gap-3">
@@ -203,19 +218,11 @@ const AdminPanel = () => {
       </div>
 
       {/* Tab nav */}
-      <div className="flex gap-1 border-b border-gray-200">
-        {TABS.map(t => {
-          const Icon = t.icon
-          return (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                tab === t.id ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}>
-              <Icon size={16} />{t.label}
-            </button>
-          )
-        })}
-      </div>
+      <TabNav
+        tabs={TABS.map(t => ({ key: t.id, label: t.label, icon: t.icon }))}
+        active={tab}
+        onChange={setTab}
+      />
 
       {/* ── USER MANAGEMENT ── */}
       {tab === 'users' && (
@@ -337,7 +344,7 @@ const AdminPanel = () => {
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Activity size={18} className="text-primary-600" />System Overview</h3>
             <div className="space-y-3 text-sm">
               {[
-                { label: 'Application', value: 'CSMS v2.0' },
+                { label: 'Application', value: 'CSMS v3.0' },
                 { label: 'Framework', value: 'React 18 + Vite' },
                 { label: 'Backend', value: 'Node.js / Express' },
                 { label: 'Database', value: 'MongoDB' },
@@ -377,13 +384,13 @@ const AdminPanel = () => {
         <UserForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModalOpen(false)} loading={saving} currentUserId={currentUser?._id} />
       </Modal>
 
-      <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Remove User" size="sm">
-        <p className="text-gray-600 mb-6">Remove <strong>{deleteTarget?.name}</strong> from the system? They will lose all access.</p>
-        <div className="flex justify-end gap-3">
-          <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">Cancel</button>
-          <button onClick={handleDelete} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">Remove</button>
-        </div>
-      </Modal>
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        name={deleteTarget?.name}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={false}
+      />
     </div>
   )
 }

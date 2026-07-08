@@ -1,53 +1,61 @@
-import { useState, useEffect, useCallback } from 'react'
-import { meetingService, companyService, personnelService } from '../services/index.js'
+import { useState, useEffect, useCallback, memo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
-  Calendar, Clock, MapPin, Users, Plus, Search, Filter, Trash2, Pencil,
-  ChevronRight, ChevronLeft, Check, X, Copy, Download, Eye, FileText,
-  CheckCircle2, Clock3, PenLine, Video, Building2, MoreHorizontal,
-  ChevronDown, ChevronUp, Send, AlertCircle
+  Calendar, Clock, Users, Plus,
+  ChevronRight, ChevronLeft, Check, X, Copy, Search,
+  CheckCircle2, Clock3, PenLine, Video,
+  Send, AlertCircle, FileText, Pencil, Trash2, Eye
 } from 'lucide-react'
+import { meetingService, companyService, personnelService } from '../services/index.js'
+import { MEETING_TYPE_LABELS as TYPES, MEETING_PHASES as PHASES, MEETING_STATUSES as STATUS, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
+import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClass, labelClass } from '../components/UIHelpers'
+import { useSearchFilter } from '../hooks/useSearchFilter'
+import { validate, required } from '../utils/validators'
+import Modal from '../components/Modal'
+import { useConfirm } from '../components/ConfirmDialog'
 
-// ====== Constants ======
-const TYPES = { board: '董事会', agm: '周年股东大会', egm: '股东特别大会', committee: '委员会会议', other: '其他' }
-const PHASES = {
-  'setup': { label: '草稿', color: 'bg-gray-200 text-gray-600', icon: PenLine },
-  'notice-draft': { label: '通知草稿', color: 'bg-blue-100 text-blue-600', icon: Clock3 },
-  'notice-sent': { label: '已发通知', color: 'bg-blue-100 text-blue-700', icon: Send },
-  'meeting-held': { label: '已召开', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
-  'minutes-draft': { label: '纪要草稿', color: 'bg-purple-100 text-purple-700', icon: FileText },
-  'minutes-signed': { label: '已签署', color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
-  'completed': { label: '已完成', color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
-}
-const STATUS = { draft: '草稿', scheduled: '已排期', in_progress: '进行中', completed: '已完成', cancelled: '已取消' }
-
-// ====== Helper ======
-function fmtDate(d) { if (!d) return ''; const dt = new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}` }
-function fmtTime(d) { if (!d) return ''; const dt = new Date(d); return `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}` }
-function fullDate(d) {
-  if (!d) return ''; const dt = new Date(d);
-  const w = ['日','一','二','三','四','五','六'];
-  return `${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日（周${w[dt.getDay()]}）`
-}
+// ====== Phase icon mapping — uses shared buildPhasesWithIcons ======
+const PHASES_WITH_ICONS = buildPhasesWithIcons({ PenLine, Clock3, Send, CheckCircle2, FileText, AlertCircle: PenLine })
 
 // ====== Inline button ======
 function Btn({ children, className, ...rest }) {
   return <button className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${className || ''}`} {...rest}>{children}</button>
 }
 
-// ====== Phase badge ======
-function PhaseBadge({ phase }) {
-  const p = PHASES[phase] || PHASES.setup
+// ====== Phase badge (memoized — re-renders only when phase changes) ======
+const PhaseBadge = memo(({ phase }) => {
+  const p = PHASES_WITH_ICONS[phase] || PHASES_WITH_ICONS.setup
   const Icon = p.icon
   return <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${p.color}`}><Icon size={12} />{p.label}</span>
+})
+
+const STEP1_RULES = {
+  title: [required('请输入会议标题')],
+  companyId: [required('请选择关联公司')],
+  date: [required('请选择日期')],
 }
 
 // ====== MAIN PAGE ======
 export default function Meetings() {
+  const navigate = useNavigate()
   const [meetings, setMeetings] = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
+  const { confirm, ConfirmDialogComponent } = useConfirm()
+
+  // Sign minutes form state (replaces window.prompt)
+  const [signForm, setSignForm] = useState({ open: false, name: '', title: '董事会主席' })
+
+  // Search + filter via useSearchFilter
+  const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
+    meetings,
+    (m, q, f) => {
+      const matchSearch = !q || m.title?.toLowerCase().includes(q) || m.company?.name?.toLowerCase().includes(q) || m.type?.toLowerCase().includes(q)
+      const matchStatus = f.status === 'all' || !f.status || m.status === f.status
+      return matchSearch && matchStatus
+    },
+    { status: 'all' }
+  )
 
   // Wizard states
   const [wizardStep, setWizardStep] = useState(0) // 0=closed, 1-4=steps
@@ -58,7 +66,7 @@ export default function Meetings() {
   const [step4, setStep4] = useState(null) // notice result { text, html }
   const [step5, setStep5] = useState(null) // minutes result
 
-  // Detail view
+  // Detail view — now navigates to page instead of modal
   const [detailId, setDetailId] = useState(null)
   const [detailTab, setDetailTab] = useState('overview')
   const [detailMeeting, setDetailMeeting] = useState(null)
@@ -117,10 +125,12 @@ export default function Meetings() {
   // === Wizard steps ===
   const goStep = (n) => { setWizardStep(n) }
 
+  const [step1Errors, setStep1Errors] = useState({})
+
   const saveStep1 = () => {
-    if (!step1.title) { toast.error('请输入会议标题'); return }
-    if (!step1.companyId) { toast.error('请选择关联公司'); return }
-    if (!step1.date) { toast.error('请选择日期'); return }
+    const { valid, errors } = validate(step1, STEP1_RULES)
+    if (!valid) { setStep1Errors(errors); return }
+    setStep1Errors({})
     goStep(2)
   }
 
@@ -163,7 +173,7 @@ export default function Meetings() {
         setEditMeeting(saved.data)
       }
       goStep(4)
-    } catch (err) { toast.error('生成通知失败') }
+    } catch { toast.error('生成通知失败') }
     finally { setSaving(false) }
   }
 
@@ -190,12 +200,17 @@ export default function Meetings() {
 
   const signMinutes = async () => {
     if (!editMeeting?._id) return
+    // Open sign form dialog instead of window.prompt
+    setSignForm({ open: true, name: '', title: '董事会主席' })
+  }
+
+  const handleSignSubmit = async () => {
+    if (!signForm.name) { toast.error('请输入签署人姓名'); return }
     try {
-      const sigName = window.prompt('请输入签署人姓名：') || '会议主席'
-      const sigTitle = window.prompt('请输入签署人职务：', '董事会主席')
-      const { data } = await meetingService.signMinutes(editMeeting._id, { name: sigName, title: sigTitle })
+      const { data } = await meetingService.signMinutes(editMeeting._id, { name: signForm.name, title: signForm.title })
       await refreshMeetings()
       setWizardStep(0)
+      setSignForm({ open: false, name: '', title: '董事会主席' })
       toast.success('会议纪要已签署')
     } catch { toast.error('签署失败') }
   }
@@ -231,7 +246,8 @@ export default function Meetings() {
   }
 
   const handleDelete = async (m) => {
-    if (!confirm(`删除会议「${m.title}」？此操作不可撤销。`)) return
+    const ok = await confirm({ title: '删除会议', message: `删除会议「${m.title}」？此操作不可撤销。`, confirmLabel: '确认删除', variant: 'danger' })
+    if (!ok) return
     try { await meetingService.delete(m._id); toast.success('会议已删除'); refreshMeetings() } catch { toast.error('删除失败') }
   }
 
@@ -240,50 +256,42 @@ export default function Meetings() {
   }
 
   // Copy text
-  const copyText = (text) => { navigator.clipboard.writeText(text); toast.success('已复制到剪贴板') }
-
-  // Filter
-  const filtered = meetings.filter(m => {
-    const q = search.toLowerCase()
-    return (!q || m.title?.toLowerCase().includes(q) || m.company?.name?.toLowerCase().includes(q) || m.type?.toLowerCase().includes(q)) && (filterStatus === 'all' || m.status === filterStatus)
-  })
+  const copyText = useCallback((text) => { navigator.clipboard.writeText(text); toast.success('已复制到剪贴板') }, [])
 
   // ====== Render ======
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>
+  if (loading) return <LoadingSpinner text="加载会议数据..." />
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Meetings</h1>
-          <p className="text-gray-500">{filtered.length} meetings</p>
-        </div>
-        <button onClick={openWizard} className="btn-primary flex items-center gap-2"><Plus size={16} />New Meeting</button>
-      </div>
+      <PageHeader
+        title="Meetings"
+        subtitle={`${filtered.length} 次会议`}
+        icon={Calendar}
+        actions={
+          <button onClick={openWizard} className="btn-primary flex items-center gap-2"><Plus size={16} /> 新建会议</button>
+        }
+      />
 
       {/* Filters */}
       <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="input-field pl-9" placeholder="Search meetings..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field w-40">
-          <option value="all">All Status</option>
+        <SearchBar value={search} onChange={setSearch} placeholder="搜索会议..." />
+        <select value={filters.status} onChange={e => setFilter('status', e.target.value)} className="input-field w-40">
+          <option value="all">全部状态</option>
           {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
 
       {/* Meeting List */}
       {filtered.length === 0 ? (
-        <div className="card text-center py-16 text-gray-400">
-          <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-lg font-medium text-gray-600 mb-2">No meetings found</p>
-          <p className="mb-4">Create your first meeting to get started</p>
-          <button onClick={openWizard} className="btn-primary"><Plus size={14} className="inline mr-1" />New Meeting</button>
-        </div>
+        <EmptyState
+          icon={Calendar}
+          title="暂无会议数据"
+          description="创建您的第一个会议来开始使用"
+          action={<button onClick={openWizard} className="btn-primary"><Plus size={14} className="inline mr-1" />新建会议</button>}
+        />
       ) : filtered.map(m => (
-        <div key={m._id} className="card hover:shadow-md transition-shadow cursor-pointer group" onClick={() => openDetail(m._id)}>
+        <div key={m._id} className="card hover:shadow-md transition-shadow cursor-pointer group" onClick={() => navigate(`/meetings/${m._id}`)}>
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -292,7 +300,7 @@ export default function Meetings() {
               </div>
               <p className="text-sm text-gray-500 mb-2">{m.company?.name}</p>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                <span className="flex items-center gap-1"><Calendar size={14} />{fullDate(m.scheduledAt)}</span>
+                <span className="flex items-center gap-1"><Calendar size={14} />{fmtDate(m.scheduledAt)}</span>
                 <span className="flex items-center gap-1"><Clock size={14} />{fmtTime(m.scheduledAt)}{m.duration ? ` (${m.duration}分钟)` : ''}</span>
                 <span className="flex items-center gap-1"><Users size={14} />{m.attendees?.length || 0} 人</span>
                 {m.isVirtual && <span className="flex items-center gap-1 text-blue-500"><Video size={14} />{m.meetingId}</span>}
@@ -336,37 +344,36 @@ export default function Meetings() {
                   <h3 className="text-lg font-semibold flex items-center gap-2"><span className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-bold">1</span>基本信息</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
-                      <label className="label">会议标题 *</label>
-                      <input className="input-field" value={step1.title} onChange={e => setStep1({ ...step1, title: e.target.value })} placeholder="Q1 董事会会议" />
+                      <FormField label="会议标题" required error={step1Errors.title}>
+                        <input className={inputClass} value={step1.title} onChange={e => { setStep1({ ...step1, title: e.target.value }); setStep1Errors(e => ({ ...e, title: '' })) }} placeholder="Q1 董事会会议" />
+                      </FormField>
                     </div>
-                    <div>
-                      <label className="label">关联公司 *</label>
-                      <select className="input-field" value={step1.companyId} onChange={e => setStep1({ ...step1, companyId: e.target.value })}>
+                    <FormField label="关联公司" required error={step1Errors.companyId}>
+                      <select className={inputClass} value={step1.companyId} onChange={e => { setStep1({ ...step1, companyId: e.target.value }); setStep1Errors(e => ({ ...e, companyId: '' })) }}>
                         <option value="">请选择公司...</option>
                         {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                       </select>
-                    </div>
+                    </FormField>
                     <div>
-                      <label className="label">会议类型</label>
-                      <select className="input-field" value={step1.type} onChange={e => setStep1({ ...step1, type: e.target.value })}>
+                      <label className={labelClass}>会议类型</label>
+                      <select className={inputClass} value={step1.type} onChange={e => setStep1({ ...step1, type: e.target.value })}>
                         {Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                       </select>
                     </div>
+                    <FormField label="日期" required error={step1Errors.date}>
+                      <input type="date" className={inputClass} value={step1.date} onChange={e => { setStep1({ ...step1, date: e.target.value }); setStep1Errors(e => ({ ...e, date: '' })) }} />
+                    </FormField>
                     <div>
-                      <label className="label">日期 *</label>
-                      <input type="date" className="input-field" value={step1.date} onChange={e => setStep1({ ...step1, date: e.target.value })} />
-                    </div>
-                    <div>
-                      <label className="label">时间</label>
+                      <label className={labelClass}>时间</label>
                       <div className="flex gap-2">
-                        <input type="time" className="input-field flex-1" value={step1.time} onChange={e => setStep1({ ...step1, time: e.target.value })} placeholder="开始" />
+                        <input type="time" className={`${inputClass} flex-1`} value={step1.time} onChange={e => setStep1({ ...step1, time: e.target.value })} placeholder="开始" />
                         <span className="py-2 text-gray-400">-</span>
-                        <input type="time" className="input-field flex-1" value={step1.endTime} onChange={e => setStep1({ ...step1, endTime: e.target.value })} placeholder="结束" />
+                        <input type="time" className={`${inputClass} flex-1`} value={step1.endTime} onChange={e => setStep1({ ...step1, endTime: e.target.value })} placeholder="结束" />
                       </div>
                     </div>
                     <div>
-                      <label className="label">预计时长(分钟)</label>
-                      <input type="number" className="input-field" value={step1.duration} onChange={e => setStep1({ ...step1, duration: parseInt(e.target.value) || 60 })} />
+                      <label className={labelClass}>预计时长(分钟)</label>
+                      <input type="number" className={inputClass} value={step1.duration} onChange={e => setStep1({ ...step1, duration: parseInt(e.target.value) || 60 })} />
                     </div>
                     <div className="md:col-span-2 flex items-center gap-4">
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -376,15 +383,15 @@ export default function Meetings() {
                     </div>
                     {step1.isVirtual ? (
                       <>
-                        <div><label className="label">会议号</label><input className="input-field" value={step1.meetingId} onChange={e => setStep1({ ...step1, meetingId: e.target.value })} /></div>
-                        <div><label className="label">会议链接</label><input className="input-field" value={step1.meetingLink} onChange={e => setStep1({ ...step1, meetingLink: e.target.value })} /></div>
-                        <div><label className="label">会议密码</label><input className="input-field" value={step1.meetingPassword} onChange={e => setStep1({ ...step1, meetingPassword: e.target.value })} /></div>
-                        <div className="md:col-span-2"><label className="label">会议室名称</label><input className="input-field" value={step1.location} onChange={e => setStep1({ ...step1, location: e.target.value })} placeholder="腾讯视频会议" /></div>
+                        <div><label className={labelClass}>会议号</label><input className={inputClass} value={step1.meetingId} onChange={e => setStep1({ ...step1, meetingId: e.target.value })} /></div>
+                        <div><label className={labelClass}>会议链接</label><input className={inputClass} value={step1.meetingLink} onChange={e => setStep1({ ...step1, meetingLink: e.target.value })} /></div>
+                        <div><label className={labelClass}>会议密码</label><input className={inputClass} value={step1.meetingPassword} onChange={e => setStep1({ ...step1, meetingPassword: e.target.value })} /></div>
+                        <div className="md:col-span-2"><label className={labelClass}>会议室名称</label><input className={inputClass} value={step1.location} onChange={e => setStep1({ ...step1, location: e.target.value })} placeholder="腾讯视频会议" /></div>
                       </>
                     ) : (
                       <div className="md:col-span-2">
-                        <label className="label">会议地点</label>
-                        <input className="input-field" value={step1.location} onChange={e => setStep1({ ...step1, location: e.target.value })} placeholder="公司会议室A" />
+                        <label className={labelClass}>会议地点</label>
+                        <input className={inputClass} value={step1.location} onChange={e => setStep1({ ...step1, location: e.target.value })} placeholder="公司会议室A" />
                       </div>
                     )}
                   </div>
@@ -411,15 +418,15 @@ export default function Meetings() {
                     <div key={a._id || i} className="flex gap-2 items-start bg-gray-50 rounded-lg p-3">
                       <div className="flex gap-2 flex-1 items-start flex-wrap">
                         {a.isAdHoc ? (
-                          <input className="input-field flex-1 min-w-[120px]" placeholder="姓名 *" value={a.name} onChange={e => updateAttendee(i, 'name', e.target.value)} />
+                          <input className={`${inputClass} flex-1 min-w-[120px]`} placeholder="姓名 *" value={a.name} onChange={e => updateAttendee(i, 'name', e.target.value)} />
                         ) : (
-                          <select className="input-field flex-1 min-w-[150px]" value={a.refId} onChange={e => updateAttendee(i, 'refId', e.target.value)}>
+                          <select className={`${inputClass} flex-1 min-w-[150px]`} value={a.refId} onChange={e => updateAttendee(i, 'refId', e.target.value)}>
                             <option value="">选择人员...</option>
                             {personnelList.map(p => <option key={p._id} value={p._id}>{p.name} {p.nric ? `(${p.nric})` : ''}</option>)}
                           </select>
                         )}
-                        <input className="input-field flex-1 min-w-[120px]" placeholder="职务/角色" value={a.role} onChange={e => updateAttendee(i, 'role', e.target.value)} />
-                        <select className="input-field w-28" value={a.status} onChange={e => updateAttendee(i, 'status', e.target.value)}>
+                        <input className={`${inputClass} flex-1 min-w-[120px]`} placeholder="职务/角色" value={a.role} onChange={e => updateAttendee(i, 'role', e.target.value)} />
+                        <select className={`${inputClass} w-28`} value={a.status} onChange={e => updateAttendee(i, 'status', e.target.value)}>
                           <option value="pending">待确认</option>
                           <option value="accepted">已接受</option>
                           <option value="declined">已拒绝</option>
@@ -455,8 +462,8 @@ export default function Meetings() {
                   {step3.map((a, i) => (
                     <div key={i} className="flex gap-2 items-start">
                       <span className="mt-2.5 text-sm text-gray-400 font-bold w-6 shrink-0 text-right">{i + 1}.</span>
-                      <input className="input-field flex-1" placeholder="议题描述" value={a.item} onChange={e => updateAgendaItem(i, 'item', e.target.value)} />
-                      <input className="input-field w-28" placeholder="主讲人" value={a.presenter} onChange={e => updateAgendaItem(i, 'presenter', e.target.value)} />
+                      <input className={`${inputClass} flex-1`} placeholder="议题描述" value={a.item} onChange={e => updateAgendaItem(i, 'item', e.target.value)} />
+                      <input className={`${inputClass} w-28`} placeholder="主讲人" value={a.presenter} onChange={e => updateAgendaItem(i, 'presenter', e.target.value)} />
                       <button onClick={() => removeAgendaItem(i)} className="mt-2 text-gray-400 hover:text-red-500"><X size={16} /></button>
                     </div>
                   ))}
@@ -468,7 +475,7 @@ export default function Meetings() {
                 <div className="space-y-5">
                   <h3 className="text-lg font-semibold flex items-center gap-2"><span className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-bold">4</span>会议通知</h3>
                   {!step4 ? (
-                    <div className="text-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4" /><p className="text-gray-500">正在生成通知...</p></div>
+                    <LoadingSpinner size="sm" text="正在生成通知..." />
                   ) : (
                     <>
                       <div className="flex gap-2 mb-2">
@@ -494,7 +501,7 @@ export default function Meetings() {
                 <div className="space-y-5">
                   <h3 className="text-lg font-semibold flex items-center gap-2"><span className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-bold">5</span>会议纪要 & 签署</h3>
                   {!step5 ? (
-                    <div className="text-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4" /><p className="text-gray-500">正在生成纪要...</p></div>
+                    <LoadingSpinner size="sm" text="正在生成纪要..." />
                   ) : (
                     <>
                       <div className="card bg-gray-50 max-h-[450px] overflow-y-auto">
@@ -585,7 +592,7 @@ export default function Meetings() {
                       <h4 className="text-sm font-semibold text-gray-500 mb-3">基本信息</h4>
                       <dl className="space-y-2 text-sm">
                         <div className="flex"><dt className="w-20 text-gray-400">类型：</dt><dd>{TYPES[detailMeeting.type] || detailMeeting.type}</dd></div>
-                        <div className="flex"><dt className="w-20 text-gray-400">日期：</dt><dd>{fullDate(detailMeeting.scheduledAt)}</dd></div>
+                        <div className="flex"><dt className="w-20 text-gray-400">日期：</dt><dd>{fmtDate(detailMeeting.scheduledAt)}</dd></div>
                         <div className="flex"><dt className="w-20 text-gray-400">时间：</dt><dd>{fmtTime(detailMeeting.scheduledAt)} {detailMeeting.duration ? `(${detailMeeting.duration}分钟)` : ''}</dd></div>
                         <div className="flex"><dt className="w-20 text-gray-400">地点：</dt><dd>{detailMeeting.isVirtual ? `线上：${detailMeeting.location || '腾讯会议'}` : (detailMeeting.location || '-')}</dd></div>
                         {detailMeeting.isVirtual && detailMeeting.meetingId && <div className="flex"><dt className="w-20 text-gray-400">会议号：</dt><dd className="font-mono">{detailMeeting.meetingId}{detailMeeting.meetingPassword ? ` (密码: ${detailMeeting.meetingPassword})` : ''}</dd></div>}
@@ -596,8 +603,8 @@ export default function Meetings() {
                       <dl className="space-y-2 text-sm">
                         <div className="flex"><dt className="w-20 text-gray-400">公司：</dt><dd className="font-medium">{detailMeeting.company?.name}</dd></div>
                         <div className="flex"><dt className="w-20 text-gray-400">状态：</dt><dd><PhaseBadge phase={detailMeeting.phase || 'setup'} /></dd></div>
-                        {detailMeeting.notice?.sentAt && <div className="flex"><dt className="w-20 text-gray-400">通知发送：</dt><dd>{fullDate(detailMeeting.notice.sentAt)}</dd></div>}
-                        {detailMeeting.minutes?.signedAt && <div className="flex"><dt className="w-20 text-gray-400">纪要签署：</dt><dd className="text-green-600">{fullDate(detailMeeting.minutes.signedAt)}</dd></div>}
+                        {detailMeeting.notice?.sentAt && <div className="flex"><dt className="w-20 text-gray-400">通知发送：</dt><dd>{fmtDate(detailMeeting.notice.sentAt)}</dd></div>}
+                        {detailMeeting.minutes?.signedAt && <div className="flex"><dt className="w-20 text-gray-400">纪要签署：</dt><dd className="text-green-600">{fmtDate(detailMeeting.minutes.signedAt)}</dd></div>}
                       </dl>
                     </div>
                   </div>
@@ -656,7 +663,7 @@ export default function Meetings() {
               {detailTab === 'notice' && (
                 <div className="space-y-4">
                   {!noticeData ? (
-                    <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>
+                    <LoadingSpinner size="sm" />
                   ) : (
                     <>
                       <div className="flex gap-2">
@@ -678,7 +685,7 @@ export default function Meetings() {
               {detailTab === 'minutes' && (
                 <div className="space-y-4">
                   {!minutesData ? (
-                    <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>
+                    <LoadingSpinner size="sm" />
                   ) : (
                     <>
                       <div className="flex gap-2">
@@ -699,7 +706,7 @@ export default function Meetings() {
                         ) : minutesData.signatures.map((s, i) => (
                           <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
                             <div><p className="font-medium">{s.name}</p><p className="text-xs text-gray-400">{s.title}</p></div>
-                            {s.status === 'signed' ? <span className="text-xs text-green-600 font-medium flex items-center gap-1"><CheckCircle2 size={14} />已签署 {s.signedAt ? `(${fullDate(s.signedAt)})` : ''}</span> : <span className="text-xs text-amber-600 flex items-center gap-1"><Clock3 size={14} />待签署</span>}
+                            {s.status === 'signed' ? <span className="text-xs text-green-600 font-medium flex items-center gap-1"><CheckCircle2 size={14} />已签署 {s.signedAt ? `(${fmtDate(s.signedAt)})` : ''}</span> : <span className="text-xs text-amber-600 flex items-center gap-1"><Clock3 size={14} />待签署</span>}
                           </div>
                         ))}
                       </div>
@@ -711,6 +718,35 @@ export default function Meetings() {
           </div>
         </div>
       )}
+      {/* ========== CONFIRM DIALOG ========== */}
+      {ConfirmDialogComponent}
+
+      {/* ========== SIGN MINUTES FORM ========== */}
+      <Modal isOpen={signForm.open} onClose={() => setSignForm({ ...signForm, open: false })} title="签署会议纪要" size="sm">
+        <div className="space-y-4">
+          <FormField label="签署人姓名" required>
+            <input
+              className={inputClass}
+              value={signForm.name}
+              onChange={e => setSignForm({ ...signForm, name: e.target.value })}
+              placeholder="请输入签署人姓名"
+              autoFocus
+            />
+          </FormField>
+          <FormField label="签署人职务">
+            <input
+              className={inputClass}
+              value={signForm.title}
+              onChange={e => setSignForm({ ...signForm, title: e.target.value })}
+              placeholder="董事会主席"
+            />
+          </FormField>
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setSignForm({ ...signForm, open: false })} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+            <button onClick={handleSignSubmit} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">确认签署</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
