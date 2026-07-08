@@ -6,6 +6,10 @@
 node_modules/
 client/node_modules/
 
+# Local MongoDB data (one-click setup fallback)
+.mongo-data/
+.mongo-test/
+
 # Build output
 dist/
 build/

@@ -5,11 +5,13 @@
   "description": "A modern Company Secretary Management System",
   "scripts": {
     "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
-    "server:dev": "nodemon server/index.js",
+    "server:dev": "nodemon --ignore .mongo-data --ignore .dev.log server/index.js",
     "client:dev": "cd client && npm run dev",
     "server:start": "node server/index.js",
     "client:build": "cd client && npm run build",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "setup": "node scripts/run-setup.js",
+    "mongo:stop": "node scripts/run-stop-mongo.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
