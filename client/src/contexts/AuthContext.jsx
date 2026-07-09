@@ -30,11 +30,15 @@ export function AuthProvider({ children }) {
       }
     }
 
-    // Auto demo mode: try health check, fall back to demo
+    // Auto demo mode: try health check against real backend, fall back to demo
     const autoDemo = async () => {
       try {
-        await fetch('/api/health', { signal: AbortSignal.timeout(1500) })
+        // Use VITE_API_BASE if set, otherwise fall back to root-relative
+        const baseUrl = import.meta.env.VITE_API_BASE || ''
+        const healthUrl = baseUrl ? `${baseUrl}/api/health` : '/api/health'
+        await fetch(healthUrl, { signal: AbortSignal.timeout(3000) })
         setLoading(false)
+        // Health check succeeded — user stays unauthenticated
       } catch {
         localStorage.setItem('token', DEMO_USER.token)
         localStorage.setItem('user', JSON.stringify(DEMO_USER))
