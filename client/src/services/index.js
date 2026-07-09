@@ -13,8 +13,10 @@ import {
   directors as mockDirectors,
 } from './mock.js'
 
-// Default to mock mode — app always works without backend
-let useMock = true
+// 生产环境通过 VITE_USE_MOCK=false 注入真实 API 模式
+// 开发/演示默认 Mock 模式（无需后端即可体验 UI）
+const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+let useMock = USE_MOCK
 
 // ====== wrap — unifies API and mock ======
 // Both return { data: { data: ..., count: ... } } format

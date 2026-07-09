@@ -6,22 +6,15 @@ const Document = require('../models/Document');
 const Company = require('../models/Company');
 const Director = require('../models/Director');
 const { auth } = require('../middleware/auth');
+const { storage: fileStorage } = require('../storage/r2');
 
 const router = express.Router();
 
-// 文件存储配置
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../../uploads/documents');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
-  },
+// multer 仅负责解析 multipart，文件暂存内存（再转交存储适配器）
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
 });
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 // GET /api/documents
 router.get('/', auth, async (req, res) => {
@@ -105,11 +98,18 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     };
 
     if (req.file) {
-      docData.filename = req.file.filename;
+      // 通过存储适配器持久化（local 磁盘 或 R2 对象存储）
+      const saved = await fileStorage.upload(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+      );
+      docData.filename = saved.key;
       docData.originalName = req.file.originalname;
-      docData.filepath = req.file.path;
+      docData.filepath = saved.url;       // R2: 公开 URL; local: /uploads/... 路径
+      docData.fileUrl = saved.url;
       docData.mimetype = req.file.mimetype;
-      docData.size = req.file.size;
+      docData.size = saved.size;
     }
 
     const doc = await Document.create(docData);
@@ -142,9 +142,9 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     const doc = await Document.findByIdAndDelete(req.params.id);
     if (!doc) return res.status(404).json({ message: 'Document not found' });
-    // 删除物理文件
-    if (doc.filepath && fs.existsSync(doc.filepath)) {
-      fs.unlinkSync(doc.filepath);
+    // 删除物理文件（R2 或本地磁盘）
+    if (doc.filename) {
+      try { await fileStorage.delete(doc.filename); } catch (e) { console.error('删除文件失败:', e.message); }
     }
     res.json({ success: true });
   } catch (err) {
@@ -157,7 +157,17 @@ router.get('/:id/download', auth, async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
     if (!doc || !doc.filepath) return res.status(404).json({ message: 'File not found' });
-    res.download(doc.filepath, doc.originalName || doc.filename);
+
+    // R2 模式：直接重定向到公开 URL（前端可用此 URL 预览/下载）
+    if ((process.env.STORAGE_DRIVER || 'local') === 'r2') {
+      return res.redirect(doc.filepath);
+    }
+
+    // 本地磁盘：直接发送文件
+    if (fs.existsSync(doc.filepath)) {
+      return res.download(doc.filepath, doc.originalName || doc.filename);
+    }
+    res.status(404).json({ message: 'File not found on disk' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

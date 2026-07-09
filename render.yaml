@@ -1,0 +1,54 @@
+# Claw - Render 部署配置
+# 用法: 在 Render 控制台 "New" → "Blueprint" → 连接仓库 → 选择此文件
+
+services:
+  # ── 后端 API 服务 ───────────────────────────────────────
+  - type: web
+    name: claw-api
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    rootDir: .
+    buildCommand: npm install
+    startCommand: node server/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false   # ← 填入 MongoDB Atlas 连接串
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false   # ← 填入前端部署地址，如 https://claw-web.onrender.com
+      - key: STORAGE_DRIVER
+        value: r2
+      - key: R2_ENDPOINT
+        sync: false   # ← 填入 R2 Endpoint
+      - key: R2_ACCESS_KEY_ID
+        sync: false   # ← 填入 R2 Access Key
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false   # ← 填入 R2 Secret Key
+      - key: R2_BUCKET_NAME
+        sync: false   # ← 填入 R2 Bucket 名称
+      - key: R2_PUBLIC_URL
+        sync: false   # ← 填入 R2 公开访问 URL 或自定义域
+
+  # ── 前端静态站 ─────────────────────────────────────────
+  - type: web
+    name: claw-web
+    runtime: static
+    plan: free
+    branch: main
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: VITE_USE_MOCK
+        value: "false"
+      - key: VITE_API_BASE
+        sync: false   # ← 填入后端地址：https://claw-api.onrender.com

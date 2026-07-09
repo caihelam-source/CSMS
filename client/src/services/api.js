@@ -1,7 +1,11 @@
 import axios from 'axios'
 
+// 生产环境：VITE_API_BASE 指向真实后端（如 https://claw-api.onrender.com）
+// 开发/演示：留空，使用同源 /api 代理
+const API_BASE = import.meta.env.VITE_API_BASE || ''
+
 const api = axios.create({
-  baseURL: '',
+  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
 })
 
