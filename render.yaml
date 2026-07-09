@@ -43,7 +43,7 @@ services:
     runtime: static
     branch: main
     rootDir: client
-    buildCommand: npm install && npm run build
+    buildCommand: cd .. && npm install && cd client && npm install && npm run build
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
     envVars:
