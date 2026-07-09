@@ -24,19 +24,11 @@ const wrap = (apiFn, mockFn) => async (...args) => {
   if (useMock) return mockFn(...args)
   try {
     const res = await apiFn(...args)
-    return res // keep full axios response — pages destructure .data
+    return res
   } catch (err) {
-    if (!err.response && (err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED')) {
-      useMock = true
-      // Silently switch to demo mode when backend is unavailable
-      return mockFn(...args)
-    }
-    // For 4xx (except 401) and 5xx — fall back to mock instead of throwing
-    if (!err.response || (err.response.status >= 400 && err.response.status !== 401)) {
-      useMock = true
-      return mockFn(...args)
-    }
-    throw err
+    // Any error (network + HTTP errors) — silently fall back to mock
+    useMock = true
+    return mockFn(...args)
   }
 }
 
