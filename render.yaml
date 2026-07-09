@@ -41,7 +41,6 @@ services:
   - type: web
     name: claw-web
     runtime: static
-    plan: free
     branch: main
     rootDir: client
     buildCommand: npm install && npm run build
