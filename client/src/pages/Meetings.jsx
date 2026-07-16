@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, memo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   Calendar, Clock, Users, Plus,
@@ -7,7 +7,7 @@ import {
   CheckCircle2, Clock3, PenLine, Video,
   Send, AlertCircle, FileText, Pencil, Trash2, Eye
 } from 'lucide-react'
-import { meetingService, companyService, personnelService } from '../services/index.js'
+import { meetingService, companyService, personnelService, signTaskService } from '../services/index.js'
 import { MEETING_TYPE_LABELS as TYPES, MEETING_PHASES as PHASES, MEETING_STATUSES as STATUS, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClass, labelClass } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
@@ -75,11 +75,15 @@ export default function Meetings() {
   const [saving, setSaving] = useState(false)
   const [companies, setCompanies] = useState([])
   const [personnelList, setPersonnelList] = useState([])
+  const [signTaskMap, setSignTaskMap] = useState({}) // meetingId → count
 
-  // Load meetings
+  // Load meetings + sign tasks
   useEffect(() => {
     const load = async () => {
-      try { const { data } = await meetingService.getAll(); setMeetings(data.data || []); } catch { setMeetings([]) } finally { setLoading(false) }
+      try { const { data } = await meetingService.getAll(); setMeetings(data.data || []); } catch { setMeetings([]) }
+      // 并加载签署任务，用于在会议卡片上显示指示
+      try { const { data: stRes } = await signTaskService.getAll(); const all = stRes?.data || []; const map = {}; all.forEach(st => { const mid = st.relatedMeeting?._id || st.meeting?._id; if (mid) map[mid] = (map[mid] || 0) + 1 }); setSignTaskMap(map) } catch { /* non-critical */ }
+      finally { setLoading(false) }
     }
     load()
   }, [])
@@ -311,6 +315,15 @@ export default function Meetings() {
             </div>
             <div className="flex items-start gap-2 ml-4 shrink-0" onClick={e => e.stopPropagation()}>
               <PhaseBadge phase={m.phase || 'setup'} />
+              {signTaskMap[m._id] ? (
+                <Link to={`/meetings/${m._id}?tab=signing`} className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
+                  <PenLine size={12} /> 签署 {signTaskMap[m._id]}
+                </Link>
+              ) : (
+                <Link to={`/meetings/${m._id}?tab=signing`} className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border border-gray-200 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50" title="发起签署任务">
+                  <PenLine size={12} /> 签署
+                </Link>
+              )}
               <button onClick={() => openEdit(m)} className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-gray-100"><Pencil size={14} /></button>
               <button onClick={() => handleDelete(m)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-100"><Trash2 size={14} /></button>
             </div>

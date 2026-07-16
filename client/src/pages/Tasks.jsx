@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   CheckSquare, Plus, Filter, Calendar,
   AlertTriangle, Clock, CheckCircle2, Circle,
-  Pencil, Trash2, MessageSquare
+  Pencil, Trash2, MessageSquare, ArrowRight
 } from 'lucide-react'
 import { taskService, documentService } from '../services/index.js'
 import { fmtDateShort } from '../utils/helpers'
@@ -89,6 +90,7 @@ const statusIcon = (s) => {
 
 const Tasks = () => {
   const { canEdit, canDelete } = useAuth()
+  const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -267,20 +269,22 @@ const Tasks = () => {
             return (
               <div key={task._id} className={`bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${overdue ? 'border-red-200' : 'border-gray-200'}`}>
                 <div className="flex items-start gap-4">
-                  {/* Quick complete toggle */}
-                  <button onClick={() => handleQuickComplete(task)} className="mt-0.5 shrink-0 hover:scale-110 transition-transform">
+                  {/* Quick complete toggle — 保持原有圆圈图标，但加 tooltip */}
+                  <button onClick={() => handleQuickComplete(task)} className="mt-0.5 shrink-0 hover:scale-110 transition-transform" title={task.status === 'completed' ? '重新打开' : '标记完成'}>
                     {statusIcon(overdue ? 'overdue' : task.status)}
                   </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className={`font-semibold ${overdue ? 'text-red-700' : task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                            {task.title}
-                          </h3>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${taskPriorityColor(task.priority)}`}>{task.priority}</span>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${taskStatusColor(overdue ? 'overdue' : task.status)}`}>{(overdue ? 'overdue' : task.status).replace('_', ' ')}</span>
-                        </div>
+                        {/* 标题可点击 → 进入详情页 */}
+                        <h3
+                          onClick={() => navigate(`/tasks/${task._id}`)}
+                          className={`font-semibold cursor-pointer hover:text-primary-600 transition-colors ${overdue ? 'text-red-700' : task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}
+                        >
+                          {task.title}
+                        </h3>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${taskPriorityColor(task.priority)}`}>{task.priority}</span>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${taskStatusColor(overdue ? 'overdue' : task.status)}`}>{(overdue ? 'overdue' : task.status).replace('_', ' ')}</span>
                         {task.description && <p className="text-sm text-gray-500 line-clamp-2 mb-2">{task.description}</p>}
                         <div className="flex flex-wrap gap-3 text-xs text-gray-500">
                           <span className={`flex items-center gap-1 ${overdue ? 'text-red-600 font-medium' : days <= 3 ? 'text-orange-600' : ''}`}>
@@ -295,7 +299,7 @@ const Tasks = () => {
                           className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="添加备注">
                           <MessageSquare size={15} />
                         </button>
-                        <button onClick={() => openEdit(task)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+                        <button onClick={() => openEdit(task)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="编辑任务">
                           <Pencil size={15} />
                         </button>
                         <button onClick={() => setDeleteTarget(task)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
@@ -303,6 +307,17 @@ const Tasks = () => {
                         </button>
                       </div>
                     </div>
+                    {/* 醒目的完成操作按钮（未完成时显示） */}
+                    {task.status !== 'completed' && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <button
+                          onClick={() => handleQuickComplete(task)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 hover:border-green-300 transition-colors"
+                        >
+                          <CheckCircle2 size={14} /> 标记完成
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

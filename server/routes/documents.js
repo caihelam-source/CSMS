@@ -4,7 +4,7 @@ const fs = require('fs');
 const multer = require('multer');
 const Document = require('../models/Document');
 const Company = require('../models/Company');
-const Director = require('../models/Director');
+const Personnel = require('../models/Personnel');
 const { auth } = require('../middleware/auth');
 const { storage: fileStorage } = require('../storage/r2');
 
@@ -19,12 +19,12 @@ const upload = multer({
 // GET /api/documents
 router.get('/', auth, async (req, res) => {
   try {
-    const { type, company, companyId, director, signStatus, search } = req.query;
+    const { type, company, companyId, personnelId, signStatus, search } = req.query;
     const query = {};
     if (type) query.type = type;
     if (company) query.company = company;
     if (companyId) query.company = companyId;
-    if (director) query.director = director;
+    if (personnelId) query.personnel = personnelId;
     if (signStatus) query.signStatus = signStatus;
     if (search) {
       query.$or = [
@@ -62,11 +62,11 @@ router.get('/:id', auth, async (req, res) => {
 // POST /api/documents — 上传文件
 router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
-    const { title, name, type, company, director, description, category, note, tags, keywords, isConfidential } = req.body;
+    const { title, name, type, company, personnel, description, category, note, tags, keywords, isConfidential } = req.body;
 
-    // 兼容前端自动归档：company / director 可能是 { _id, name } 对象，也可能直接是 ObjectId
+    // 兼容前端自动归档：company / personnel 可能是 { _id, name } 对象，也可能直接是 ObjectId
     const companyVal = (company && typeof company === 'object' && company._id) ? company._id : company;
-    const directorVal = (director && typeof director === 'object' && director._id) ? director._id : director;
+    const personnelVal = (personnel && typeof personnel === 'object' && personnel._id) ? personnel._id : personnel;
 
     // 文档标题：优先 title，其次 name（前端自动归档使用 name 字段）
     const docTitle = title || name || req.file?.originalname || 'Untitled';
@@ -75,8 +75,8 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     let companyObj = null;
     let directorName = null;
     if (companyVal) companyObj = await Company.findById(companyVal);
-    if (directorVal) {
-      const d = await Director.findById(directorVal);
+    if (personnelVal) {
+      const d = await Personnel.findById(personnelVal);
       if (d) directorName = d.name;
     }
 
@@ -88,7 +88,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       type: type || 'other',
       category: category || 'other',
       company: companyVal || undefined,
-      director: directorVal || undefined,
+      personnel: personnelVal || undefined,
       description: description || note || undefined,
       note: note || undefined,
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : [],

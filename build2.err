@@ -1,0 +1,22 @@
+[31mx[39m Build failed in 56.01s
+[31merror during build:
+[31msrc/pages/CompanyDetail.jsx (7:93): "taskPriorityColor" is not exported by "src/utils/helpers.js", imported by "src/pages/CompanyDetail.jsx".[31m
+file: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/pages/CompanyDetail.jsx:7:93[31m
+[33m
+5: import { companyService, documentService, meetingService, personnelService, complianceReminderService, taskService } ...
+6: import EquityGraph from './EquityGraph'
+7: import { formatDate, getStatusColor, DOC_CATEGORY_LABELS, docExpiryStatus, DOC_EXPIRY_BADGE, taskPriorityColor } from...
+                                                                                                ^
+8: import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, labelClass, TabNav } from '../components/UI...
+9: import Modal from '../components/Modal'
+[31m
+    at getRollupError (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/rollup/dist/es/shared/parseAst.js:402:41)
+    at error (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/rollup/dist/es/shared/parseAst.js:398:42)
+    at Module.error (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/rollup/dist/es/shared/node-entry.js:17040:16)
+    at Module.traceVariable (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/rollup/dist/es/shared/node-entry.js:17452:29)
+    at ModuleScope.findVariable (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/rollup/dist/es/shared/node-entry.js:15070:39)
+    at FunctionScope.findVariable (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at ReturnValueScope.findVariable (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at Identifier.bind (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/rollup/dist/es/shared/node-entry.js:5447:40)[39m

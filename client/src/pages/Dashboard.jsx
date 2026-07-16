@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, memo } from 'react'
 import { Link } from 'react-router-dom'
-import { companyService, meetingService, complianceReminderService, signTaskService, templateService, taskService } from '../services/index.js'
+import { companyService, personnelService, documentService, meetingService, complianceReminderService, signTaskService, templateService, taskService } from '../services/index.js'
 import { formatDate, formatRelative } from '../utils/helpers'
 import { LoadingSpinner, PageHeader, WarningBanner } from '../components/UIHelpers'
 import { Calendar, FileText, Building2, Users, Clock, AlertTriangle, FileCode, PenLine, RefreshCw, CheckCircle2, ChevronRight } from 'lucide-react'
@@ -44,8 +44,12 @@ export default function Dashboard() {
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
+      // 各服务独立调用，统计卡片数据不再依赖单一 getDashboardStats 端点（该端点内联
+      //   调 getAll 容易级联失败导致全部归零）。改为从各独立响应中自行聚合。
       const [
-        statsRes,
+        compRes,
+        persRes,
+        docRes,
         meetRes,
         reminderUpRes,
         reminderExpRes,
@@ -53,7 +57,9 @@ export default function Dashboard() {
         signRes,
         templRes,
       ] = await Promise.all([
-        companyService.getDashboardStats().catch(() => ({ data: { data: {} } })),
+        companyService.getAll().catch(() => ({ data: { data: [], total: 0 } })),
+        personnelService.getAll().catch(() => ({ data: { data: [], total: 0 } })),
+        documentService.getAll().catch(() => ({ data: { data: [], total: 0 } })),
         meetingService.getAll().catch(() => ({ data: { data: [] } })),
         complianceReminderService.getScheduled({ status: 'upcoming' }).catch(() => ({ data: { data: [] } })),
         complianceReminderService.getExpired().catch(() => ({ data: { data: [] } })),
@@ -62,8 +68,18 @@ export default function Dashboard() {
         templateService.getAll().catch(() => ({ data: { data: [] } })),
       ])
 
-      setStats(statsRes.data?.data || {})
+      // 从各服务独立响应中聚合统计，单点故障不影响其余卡片
+      const companies = compRes.data?.data || []
+      const personnel = persRes.data?.data || []
+      const documents = docRes.data?.data || []
       const meetings = meetRes.data?.data || []
+      setStats({
+        totalCompanies: companies.length || compRes.data?.total || 0,
+        activeCompanies: companies.filter(c => c.status === 'active').length,
+        totalPersonnel: personnel.length || persRes.data?.total || 0,
+        totalDocuments: documents.length || docRes.data?.total || 0,
+        totalMeetings: meetings.length,
+      })
       setUpcomingMeetings(meetings.filter(m => m.status === 'scheduled' || m.status === 'draft').slice(0, 5))
       setRecentMeetings(meetings.filter(m => m.status === 'completed').slice(0, 3))
       setExpiredReminders(reminderExpRes.data?.data || [])

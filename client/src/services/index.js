@@ -10,7 +10,7 @@ import {
   complianceReminders as mockComplianceReminders,
   templates as mockTemplates,
   signTasks as mockSignTasks,
-  directors as mockDirectors,
+  search as mockSearch,
 } from './mock.js'
 
 // 生产环境通过 VITE_USE_MOCK=false 注入真实 API 模式
@@ -19,13 +19,30 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 let useMock = USE_MOCK
 
 // ====== wrap — unifies API and mock ======
-// Both return { data: { data: ..., count: ... } } format
+// Mock 返回 { data: { data: X } }；真实后端返回 { success, entity } 或 { success, count, list }。
+// 统一归一化为前端期望的 { data: { data: X } } 形状，消除 Mock/真实差异。
+const normalize = (body) => {
+  if (body && typeof body === 'object' && body.data !== undefined) {
+    // 已是 { data: ... } 形态（mock 的 { data: { data: X } } 或后端嵌套 { data: { data: X } }）
+    return { data: body.data }
+  }
+  // 扁平响应（{ success, personnel } / { success, companies } 等）→ 提取主负载
+  const entityKeys = [
+    'personnel', 'company', 'document', 'meeting', 'task', 'reminder', 'template', 'signTask',
+    'companies', 'documents', 'meetings', 'tasks', 'reminders', 'personnelList', 'links', 'link',
+  ]
+  for (const k of entityKeys) {
+    if (body && body[k] !== undefined) return { data: { data: body[k] } }
+  }
+  return { data: { data: body } }
+}
+
 const wrap = (apiFn, mockFn) => async (...args) => {
   if (useMock) return mockFn(...args)
   try {
     const res = await apiFn(...args)
-    return res
-  } catch (err) {
+    return normalize(res.data)
+  } catch {
     // Any error (network + HTTP errors) — silently fall back to mock
     useMock = true
     return mockFn(...args)
@@ -147,6 +164,10 @@ export const personnelService = {
   merge: wrap(
     (targetId, sourceId) => api.post(`/api/personnel/merge`, { targetId, sourceId }),
     mockPersonnel.merge,
+  ),
+  getByPersonnel: wrap(
+    (id) => api.get(`/api/personnel/${id}/aggregate`),
+    mockPersonnel.getByPersonnel,
   ),
 }
 
@@ -278,33 +299,13 @@ export const taskService = {
     () => api.get('/api/tasks/expiring'),
     mockTasks.getExpiring,
   ),
-}
-
-// ====== Director Service ======
-export const directorService = {
-  getAll: wrap(
-    (params) => api.get(`/api/directors${buildParams(params)}`),
-    mockDirectors.getAll,
+  getByCompany: wrap(
+    (companyId) => api.get(`/api/tasks${buildParams({ companyId })}`),
+    mockTasks.getByCompany,
   ),
-  getOne: wrap(
-    (id) => api.get(`/api/directors/${id}`),
-    mockDirectors.getOne,
-  ),
-  create: wrap(
-    (data) => api.post('/api/directors', data),
-    mockDirectors.create,
-  ),
-  update: wrap(
-    (id, data) => api.put(`/api/directors/${id}`, data),
-    mockDirectors.update,
-  ),
-  delete: wrap(
-    (id) => api.delete(`/api/directors/${id}`),
-    mockDirectors.delete,
-  ),
-  addAppointment: wrap(
-    (id, data) => api.post(`/api/directors/${id}/appointments`, data),
-    mockDirectors.addAppointment,
+  getByPersonnel: wrap(
+    (personnelId) => api.get(`/api/tasks${buildParams({ personnelId })}`),
+    mockTasks.getByPersonnel,
   ),
 }
 
@@ -457,5 +458,19 @@ export const signTaskService = {
   getStatistics: wrap(
     () => api.get('/api/sign-tasks/statistics'),
     mockSignTasks.getStatistics,
+  ),
+  getByMeeting: wrap(
+    (meetingId) => api.get(`/api/sign-tasks${buildParams({ meetingId })}`),
+    mockSignTasks.getByMeeting,
+  ),
+}
+
+// ====== Global Search Service ======
+// 跨实体结构化关联全局搜索：包装 /api/search（真实）与 mock.globalSearch（演示）。
+// 真实后端返回 { data: { data: { results, counts, query } } }，与 mock 形状一致，normalize 直接透传。
+export const searchService = {
+  globalSearch: wrap(
+    (q) => api.get('/api/search', { params: { q } }),
+    mockSearch.globalSearch,
   ),
 }

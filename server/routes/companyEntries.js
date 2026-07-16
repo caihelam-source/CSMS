@@ -29,9 +29,19 @@ router.post('/shareholder-entries', auth, async (req, res) => {
     const data = { ...req.body, company: req.params.id };
     const entry = await ShareholderEntry.create(data);
 
-    // 如果关联了人员库，自动给人员加上"股东"角色
+    // v5.0 读时聚合：停止物化；单一事实源 Company.links 同步写入股东 link
     if (data.personnelRef) {
-      await Personnel.findByIdAndUpdate(data.personnelRef, { $addToSet: { roles: '股东' } });
+      await Personnel.findByIdAndUpdate(data.personnelRef, { $addToSet: { roles: 'shareholder' } });
+      const company = await Company.findById(req.params.id);
+      if (company) {
+        const exists = (company.links || []).some(l =>
+          l.linkModel === 'Personnel' && l.link?.toString() === data.personnelRef && (l.roles || []).includes('shareholder')
+        );
+        if (!exists) {
+          company.links.push({ linkModel: 'Personnel', link: data.personnelRef, roles: ['shareholder'], shares: data.totalSharesHeld });
+          await company.save();
+        }
+      }
     }
 
     await entry.populate('personnelRef', 'name nameChinese');
@@ -65,6 +75,13 @@ router.delete('/shareholder-entries/:entryId', auth, async (req, res) => {
   try {
     const entry = await ShareholderEntry.findOneAndDelete({ _id: req.params.entryId, company: req.params.id });
     if (!entry) return res.status(404).json({ message: 'Shareholder entry not found' });
+    // v5.0 读时聚合：从单一事实源 Company.links 移除对应股东关系
+    if (entry.personnelRef) {
+      await Company.updateOne(
+        { _id: entry.company },
+        { $pull: { links: { linkModel: 'Personnel', link: entry.personnelRef, roles: 'shareholder' } } }
+      );
+    }
     res.json({ success: true, message: 'Shareholder entry deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -107,29 +124,25 @@ router.post('/director-entries', auth, async (req, res) => {
 
     const entry = await DirectorEntry.create(data);
 
-    // 如果关联了人员库，自动加角色和appointment（去重）
+    // v5.0 读时聚合：停止物化 Personnel.appointments。
+    // 单一事实源为 Company.links：同步写入一条 link，使新/旧 UI 都能读到该任职关系。
     if (data.personnelRef) {
-      const roleToAdd = data.positionType === '公司秘书' ? '公司秘书' : '董事';
-      await Personnel.findByIdAndUpdate(data.personnelRef, {
-        $addToSet: { roles: roleToAdd },
-      });
-
-      // 给人员加appointment记录（去重）
-      const person = await Personnel.findById(data.personnelRef);
-      if (person) {
-        const already = person.appointments.some(a =>
-          a.company?.toString() === req.params.id &&
-          a.position === (data.positionTitle || data.positionType) &&
-          a.appointedDate?.toISOString() === new Date(data.dateOfAppointment)?.toISOString()
+      const role = data.positionType === '公司秘书' ? 'secretary' : 'director';
+      await Personnel.findByIdAndUpdate(data.personnelRef, { $addToSet: { roles: role } });
+      const company = await Company.findById(req.params.id);
+      if (company) {
+        const exists = (company.links || []).some(l =>
+          l.linkModel === 'Personnel' && l.link?.toString() === data.personnelRef &&
+          (l.roles || []).includes(role) &&
+          (l.appointmentDate?.toISOString() === new Date(data.dateOfAppointment)?.toISOString())
         );
-        if (!already) {
-          person.appointments.push({
-            company: req.params.id,
-            position: data.positionTitle || data.positionType,
-            appointedDate: data.dateOfAppointment,
-            status: data.isCurrent !== false ? '在任' : '离任',
+        if (!exists) {
+          company.links.push({
+            linkModel: 'Personnel', link: data.personnelRef, roles: [role],
+            appointmentDate: data.dateOfAppointment,
+            cessationDate: data.isCurrent === false ? (data.dateOfCessation || null) : null,
           });
-          await person.save();
+          await company.save();
         }
       }
     }
@@ -164,17 +177,13 @@ router.delete('/director-entries/:entryId', auth, async (req, res) => {
     const entry = await DirectorEntry.findOne({ _id: req.params.entryId, company: req.params.id });
     if (!entry) return res.status(404).json({ message: 'Director entry not found' });
 
-    // 同步删除 Personnel.appointments 里对应的记录
+    // v5.0 读时聚合：从单一事实源 Company.links 移除对应任职关系（不再碰 Personnel.appointments）
     if (entry.personnelRef) {
-      const person = await Personnel.findById(entry.personnelRef);
-      if (person) {
-        person.appointments = person.appointments.filter(a =>
-          !(a.company?.toString() === entry.company.toString() &&
-            a.position === (entry.positionTitle || entry.positionType) &&
-            a.appointedDate?.toISOString() === entry.dateOfAppointment?.toISOString())
-        );
-        await person.save();
-      }
+      const role = entry.positionType === '公司秘书' ? 'secretary' : 'director';
+      await Company.updateOne(
+        { _id: entry.company },
+        { $pull: { links: { linkModel: 'Personnel', link: entry.personnelRef, roles: role } } }
+      );
     }
 
     await entry.deleteOne();

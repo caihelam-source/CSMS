@@ -114,7 +114,8 @@ router.get('/rod', auth, async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${company.name.replace(/[^a-zA-Z0-9]/g, '_')}_ROD.pdf"`);
+    const rodName = `${company.name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim()}_${company.registrationNumber || 'NA'}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_ROD.pdf`;
+    res.setHeader('Content-Disposition', `attachment; filename="${rodName}"`);
     doc.pipe(res);
 
     // ── 标题区 ──
@@ -230,7 +231,8 @@ router.get('/rom', auth, async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${company.name.replace(/[^a-zA-Z0-9]/g, '_')}_ROM.pdf"`);
+    const romName = `${company.name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim()}_${company.registrationNumber || 'NA'}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_ROM.pdf`;
+    res.setHeader('Content-Disposition', `attachment; filename="${romName}"`);
     doc.pipe(res);
 
     // ── 标题区 ──

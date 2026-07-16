@@ -6,7 +6,7 @@ import {
   FileText, Send, PenLine, Eye, Copy, Pencil,
   Building2, AlertCircle, Download, Printer, Upload
 } from 'lucide-react'
-import { meetingService, companyService, documentService } from '../services/index.js'
+import { meetingService, companyService, documentService, signTaskService, taskService } from '../services/index.js'
 import { formatDate, MEETING_TYPE_LABELS as TYPES, MEETING_PHASES, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
 import { validate, required } from '../utils/validators'
 import { LoadingSpinner, DetailHeader, FormField, inputClass, labelClass, InfoCard, TabNav } from '../components/UIHelpers'
@@ -53,6 +53,13 @@ export default function MeetingDetail() {
   const [noticeData, setNoticeData] = useState(null)
   const [minutesData, setMinutesData] = useState(null)
   const [documents, setDocuments] = useState([])
+  const [signTasks, setSignTasks] = useState([])
+
+  // 编辑模式状态（通知 / 纪要）
+  const [editingNotice, setEditingNotice] = useState(false)
+  const [editingMinutes, setEditingMinutes] = useState(false)
+  const [editedNoticeText, setEditedNoticeText] = useState('')
+  const [editedMinutesText, setEditedMinutesText] = useState('')
 
   // Actions
   const [generating, setGenerating] = useState(null) // 'notice' | 'minutes'
@@ -62,6 +69,11 @@ export default function MeetingDetail() {
   const [attachModal, setAttachModal] = useState(false)
   const [attachForm, setAttachForm] = useState({ name: '', type: 'attachment', file: null })
   const [attachErrors, setAttachErrors] = useState({})
+
+  // Signing — 从会议发起签署任务（关联 meetingId）
+  const [signModal, setSignModal] = useState(false)
+  const [signForm, setSignForm] = useState({ title: '', priority: 'medium', signerIds: [] })
+  const [signErrors, setSignErrors] = useState({})
 
   const fetchMeeting = useCallback(async () => {
     setLoading(true)
@@ -76,6 +88,10 @@ export default function MeetingDetail() {
       } else {
         setDocuments([])
       }
+      // v5.0: 加载关联签署任务（Signing 并入 Meeting）
+      const { data: stRes } = await signTaskService.getAll().catch(() => ({ data: { data: [] } }))
+      const all = stRes?.data || []
+      setSignTasks(all.filter(st => st.relatedMeeting?._id === id || st.meeting?._id === id))
     } catch {
       toast.error('无法加载会议详情')
     } finally {
@@ -159,6 +175,61 @@ export default function MeetingDetail() {
     }
   }, [attachForm, meeting, fetchMeeting])
 
+  // 发起签署任务（关联本会议 meetingId）
+  const openSignModal = useCallback(() => {
+    setSignForm({
+      title: `${meeting?.title || '会议'} — 签署任务`,
+      priority: 'medium',
+      signerIds: (meeting?.attendees || []).map(a => a._id),
+    })
+    setSignErrors({})
+    setSignModal(true)
+  }, [meeting])
+
+  const createSignTask = useCallback(async () => {
+    const { valid, errors } = validate(signForm, { title: [required('任务标题为必填')] })
+    if (!valid) { setSignErrors(errors); return }
+    setSignErrors({})
+    try {
+      const signers = (meeting?.attendees || [])
+        .filter(a => signForm.signerIds.includes(a._id))
+        .map(a => ({ _id: a._id, name: a.name, role: a.role || '签署人', status: 'pending' }))
+      await signTaskService.create({
+        title: signForm.title,
+        priority: signForm.priority,
+        status: 'pending',
+        relatedMeeting: meeting ? { _id: meeting._id, title: meeting.title } : null,
+        relatedCompany: meeting?.company
+          ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
+          : null,
+        signers: signers.length
+          ? signers
+          : [{ _id: 's' + Date.now(), name: '签署人', status: 'pending' }],
+      })
+      // 同步创建对应 Task 记录，让签署任务在 Task 列表中可追踪、可完成
+      try {
+        await taskService.create({
+          title: `签署：${signForm.title}`,
+          type: 'document',
+          priority: signForm.priority,
+          status: 'pending',
+          dueDate: meeting?.scheduledAt || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+          description: `从会议「${meeting?.title || ''}」发起的签署任务，需 ${signers.length} 人签署。`,
+          company: meeting?.company
+            ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
+            : undefined,
+        })
+      } catch (taskErr) {
+        console.warn('签署任务已创建，但关联 Task 创建失败（非阻塞）:', taskErr)
+      }
+      toast.success('签署任务已发起（已同步创建对应 Task）')
+      setSignModal(false)
+      fetchMeeting()
+    } catch {
+      toast.error('发起失败')
+    }
+  }, [signForm, meeting, fetchMeeting])
+
   if (loading) {
     return <LoadingSpinner text="加载会议详情..." />
   }
@@ -229,6 +300,7 @@ export default function MeetingDetail() {
           { key: 'notice', label: '会议通知' },
           { key: 'minutes', label: '会议纪要' },
           { key: 'documents', label: '相关文档' },
+          { key: 'signing', label: '签署任务', icon: PenLine },
         ]}
         active={activeTab}
         onChange={setActiveTab}
@@ -349,11 +421,28 @@ export default function MeetingDetail() {
               </div>
             ) : (
               <>
-                <div className="flex gap-2">
-                  <button onClick={() => copyText(noticeData.text)} className="btn-secondary inline-flex items-center gap-1.5 text-sm">
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={() => copyText(editingNotice ? editedNoticeText : noticeData.text)} className="btn-secondary inline-flex items-center gap-1.5 text-sm">
                     <Copy size={14} /> 复制文案
                   </button>
-                  {noticeData.html && (
+                  {(noticeData.html || editingNotice) && (
+                    <button
+                      onClick={() => {
+                        if (editingNotice) {
+                          // 退出编辑：用编辑后的文本预览（简单渲染为带格式的文本）
+                          setEditingNotice(false)
+                        } else {
+                          // 进入编辑模式
+                          setEditedNoticeText(noticeData.text)
+                          setEditingNotice(true)
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1.5 text-sm ${editingNotice ? 'btn-primary' : 'btn-secondary text-blue-600'}`}
+                    >
+                      {editingNotice ? <><CheckCircle2 size={14} /> 完成编辑</> : <><Pencil size={14} /> 编辑</>}
+                    </button>
+                  )}
+                  {!editingNotice && noticeData.html && (
                     <button
                       onClick={() => { const w = window.open(''); w.document.write(noticeData.html); w.document.close() }}
                       className="btn-secondary inline-flex items-center gap-1.5 text-sm text-blue-600"
@@ -362,13 +451,33 @@ export default function MeetingDetail() {
                     </button>
                   )}
                 </div>
-                <div className="bg-white p-4 rounded-lg border">
-                  {noticeData.html ? (
-                    <iframe srcDoc={noticeData.html} className="w-full min-h-[300px] border-0" title="notice-preview" />
-                  ) : (
-                    <pre className="whitespace-pre-wrap text-sm font-sans text-gray-700">{noticeData.text}</pre>
-                  )}
-                </div>
+                {editingNotice ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-500">编辑通知内容（修改后可复制或退出编辑预览）：</p>
+                    <textarea
+                      value={editedNoticeText}
+                      onChange={e => setEditedNoticeText(e.target.value)}
+                      rows={16}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-sans leading-relaxed focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
+                    />
+                    <div className="flex gap-2">
+                      <button onClick={() => { copyText(editedNoticeText) }} className="btn-primary inline-flex items-center gap-1.5 text-sm">
+                        <Copy size={14} /> 复制已编辑内容
+                      </button>
+                      <button onClick={() => { setEditingNotice(false); setEditedNoticeText('') }} className="btn-secondary text-sm">
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white p-4 rounded-lg border">
+                    {noticeData.html ? (
+                      <iframe srcDoc={noticeData.html} className="w-full min-h-[300px] border-0" title="notice-preview" />
+                    ) : (
+                      <pre className="whitespace-pre-wrap text-sm font-sans text-gray-700">{noticeData.text}</pre>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -396,11 +505,26 @@ export default function MeetingDetail() {
               </div>
             ) : (
               <>
-                <div className="flex gap-2">
-                  <button onClick={() => copyText(minutesData.text)} className="btn-secondary inline-flex items-center gap-1.5 text-sm">
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={() => copyText(editingMinutes ? editedMinutesText : minutesData.text)} className="btn-secondary inline-flex items-center gap-1.5 text-sm">
                     <Copy size={14} /> 复制文案
                   </button>
-                  {minutesData.html && (
+                  {(minutesData.html || editingMinutes) && (
+                    <button
+                      onClick={() => {
+                        if (editingMinutes) {
+                          setEditingMinutes(false)
+                        } else {
+                          setEditedMinutesText(minutesData.text)
+                          setEditingMinutes(true)
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1.5 text-sm ${editingMinutes ? 'btn-primary' : 'btn-secondary text-blue-600'}`}
+                    >
+                      {editingMinutes ? <><CheckCircle2 size={14} /> 完成编辑</> : <><Pencil size={14} /> 编辑</>}
+                    </button>
+                  )}
+                  {!editingMinutes && minutesData.html && (
                     <button
                       onClick={() => { const w = window.open(''); w.document.write(minutesData.html); w.document.close() }}
                       className="btn-secondary inline-flex items-center gap-1.5 text-sm text-blue-600"
@@ -409,16 +533,36 @@ export default function MeetingDetail() {
                     </button>
                   )}
                 </div>
-                <div className="bg-white p-4 rounded-lg border">
-                  {minutesData.html ? (
-                    <iframe srcDoc={minutesData.html} className="w-full min-h-[300px] border-0" title="minutes-preview" />
-                  ) : (
-                    <pre className="whitespace-pre-wrap text-sm font-sans text-gray-700">{minutesData.text}</pre>
-                  )}
-                </div>
+                {editingMinutes ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-500">编辑纪要内容（修改后可复制或退出编辑预览）：</p>
+                    <textarea
+                      value={editedMinutesText}
+                      onChange={e => setEditedMinutesText(e.target.value)}
+                      rows={20}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-sans leading-relaxed focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
+                    />
+                    <div className="flex gap-2">
+                      <button onClick={() => { copyText(editedMinutesText) }} className="btn-primary inline-flex items-center gap-1.5 text-sm">
+                        <Copy size={14} /> 复制已编辑内容
+                      </button>
+                      <button onClick={() => { setEditingMinutes(false); setEditedMinutesText('') }} className="btn-secondary text-sm">
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white p-4 rounded-lg border">
+                    {minutesData.html ? (
+                      <iframe srcDoc={minutesData.html} className="w-full min-h-[300px] border-0" title="minutes-preview" />
+                    ) : (
+                      <pre className="whitespace-pre-wrap text-sm font-sans text-gray-700">{minutesData.text}</pre>
+                    )}
+                  </div>
+                )}
 
                 {/* Signatures */}
-                {minutesData.signatures?.length > 0 && (
+                {minutesData.signatures?.length > 0 && !editingMinutes && (
                   <div className="mt-4">
                     <h4 className="text-sm font-semibold text-gray-500 mb-2">签署状态</h4>
                     <div className="space-y-2">
@@ -494,6 +638,51 @@ export default function MeetingDetail() {
                         <Printer size={14} />
                       </button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SIGNING TAB — v5.0: 签署任务并入会议 */}
+        {activeTab === 'signing' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-gray-500">关联签署任务 ({signTasks.length})</h4>
+              <button onClick={openSignModal} className="btn-primary flex items-center gap-1.5 text-sm">
+                <PenLine size={14} /> 发起签署任务
+              </button>
+            </div>
+            {signTasks.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <PenLine size={48} className="mx-auto mb-4 opacity-50" />
+                <p>暂无关联签署任务</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {signTasks.map(st => (
+                  <div key={st._id} className="border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium">{st.title}</p>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        st.status === 'completed' ? 'bg-green-100 text-green-700'
+                        : st.status === 'in_progress' ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-500'
+                      }`}>{st.status}</span>
+                    </div>
+                    {st.signers?.length > 0 && (
+                      <div className="mt-3 space-y-1">
+                        {st.signers.map((s, i) => (
+                          <div key={i} className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">{s.signerName || s.name || '签署人'}</span>
+                            <span className={s.status === 'signed' ? 'text-green-600' : 'text-amber-600'}>
+                              {s.status === 'signed' ? '已签署' : '待签署'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -582,6 +771,60 @@ export default function MeetingDetail() {
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setArchiveModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
             <button onClick={archiveDocument} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">确认归档</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Sign Task Modal — 从会议发起签署任务（关联 meetingId） */}
+      <Modal isOpen={signModal} onClose={() => setSignModal(false)} title="发起签署任务" size="md">
+        <div className="space-y-4">
+          <FormField label="任务标题" required error={signErrors.title}>
+            <input
+              className={inputClass}
+              value={signForm.title}
+              onChange={e => { setSignForm({ ...signForm, title: e.target.value }); setSignErrors(se => ({ ...se, title: '' })) }}
+              placeholder="例如：签署 CNC 2025年度会议纪要"
+            />
+          </FormField>
+          <FormField label="优先级">
+            <select className={inputClass} value={signForm.priority}
+              onChange={e => setSignForm({ ...signForm, priority: e.target.value })}>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </FormField>
+          <FormField label="签署人（从参会人员选择）">
+            <div className="space-y-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
+              {(meeting?.attendees || []).length === 0 && (
+                <p className="text-xs text-gray-400">该会议暂无参会人员</p>
+              )}
+              {(meeting?.attendees || []).map(a => (
+                <label key={a._id} className="flex items-center gap-2 p-1.5 rounded hover:bg-gray-50 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={signForm.signerIds.includes(a._id)}
+                    onChange={() => setSignForm(sf => ({
+                      ...sf,
+                      signerIds: sf.signerIds.includes(a._id)
+                        ? sf.signerIds.filter(x => x !== a._id)
+                        : [...sf.signerIds, a._id],
+                    }))}
+                  />
+                  <span className="flex-1">{a.name}</span>
+                  <span className="text-xs text-gray-400">{a.role || '-'}</span>
+                </label>
+              ))}
+            </div>
+          </FormField>
+          <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm text-amber-800 flex items-start gap-2">
+            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <span>签署任务将关联至本会议（meetingId: {meeting?._id}），发起后可在「签署任务」列表与会议签署页查看。</span>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setSignModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+            <button onClick={createSignTask} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">确认发起</button>
           </div>
         </div>
       </Modal>

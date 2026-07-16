@@ -1,5 +1,6 @@
 const express = require('express');
 const Meeting = require('../models/Meeting');
+const Company = require('../models/Company');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -9,12 +10,20 @@ const router = express.Router();
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const { status, type, company, startDate, endDate } = req.query;
+    const { status, type, company, personnelId, startDate, endDate } = req.query;
     const query = {};
 
     if (status) query.status = status;
     if (type) query.type = type;
     if (company) query.company = company;
+    // v5.0 读时聚合：personnelId 反查该人关联公司的会议 + 其作为出席人的会议
+    if (personnelId) {
+      const linkedCompanies = await Company.find({ 'links.link': personnelId, 'links.linkModel': 'Personnel' }).select('_id');
+      query.$or = [
+        { 'attendees.ref': personnelId },
+        { company: { $in: linkedCompanies.map(c => c._id) } },
+      ];
+    }
     if (startDate || endDate) {
       query.date = {};
       if (startDate) query.date.$gte = new Date(startDate);

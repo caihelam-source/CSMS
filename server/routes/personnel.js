@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Personnel = require('../models/Personnel');
 const Company = require('../models/Company');
 const ShareholderEntry = require('../models/ShareholderEntry');
@@ -10,9 +11,10 @@ const { auth } = require('../middleware/auth');
 const router = express.Router();
 
 // GET /api/personnel — 人员列表（支持搜索/筛选）
+// v5.0 读时聚合：role / company 过滤与 roles 标签均从 Company.links 派生，不依赖 stored appointments
 router.get('/', auth, async (req, res) => {
   try {
-    const { search, role, company, status } = req.query;
+    const { search, role, company } = req.query;
     const query = {};
 
     if (search) {
@@ -24,31 +26,237 @@ router.get('/', auth, async (req, res) => {
         { nric: { $regex: search, $options: 'i' } },
       ];
     }
-    if (role) query.roles = role;
-    if (company) query['appointments.company'] = company;
-    if (status) query['appointments.status'] = status;
 
-    const personnel = await Personnel.find(query)
-      .populate('appointments.company', 'name nameChinese stockCode')
-      .sort({ name: 1 });
+    // 读时聚合：role / company 过滤均从 Company.links 派生
+    if (role || company) {
+      const match = { 'links.linkModel': 'Personnel' };
+      if (company && mongoose.Types.ObjectId.isValid(company)) {
+        match['links.link'] = new mongoose.Types.ObjectId(company);
+      }
+      if (role) match['links.roles'] = role;
+      const agg = await Company.aggregate([
+        company ? { $match: { _id: new mongoose.Types.ObjectId(company) } } : { $match: {} },
+        { $unwind: '$links' },
+        { $match: match },
+        { $group: { _id: '$links.link' } },
+      ]);
+      query._id = { $in: agg.map(a => a._id) };
+    }
 
-    res.json({ success: true, count: personnel.length, personnel });
+    const personnel = await Personnel.find(query).sort({ name: 1 });
+
+    // 读时聚合：派生的 roles（来自 Company.links），覆盖 stored roles
+    const roleAgg = await Company.aggregate([
+      { $unwind: '$links' },
+      { $match: { 'links.linkModel': 'Personnel' } },
+      { $unwind: '$links.roles' },
+      { $group: { _id: '$links.link', roles: { $addToSet: '$links.roles' } } },
+    ]);
+    const roleMap = new Map(roleAgg.map(r => [r._id.toString(), r.roles]));
+    const result = personnel.map(p => {
+      const obj = p.toObject();
+      obj.roles = roleMap.get(p._id.toString()) || [];
+      return obj;
+    });
+
+    res.json({ success: true, count: result.length, personnel: result });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // GET /api/personnel/:id
+// v5.0 读时聚合：从 Company.links 反查关联公司（单一事实源），并派生 roles
 router.get('/:id', auth, async (req, res) => {
   try {
-    const person = await Personnel.findById(req.params.id)
-      .populate('appointments.company', 'name nameChinese stockCode jurisdiction');
+    const person = await Personnel.findById(req.params.id);
     if (!person) return res.status(404).json({ message: 'Personnel not found' });
-    res.json({ success: true, personnel: person });
+
+    const companies = await Company.find({ 'links.link': person._id, 'links.linkModel': 'Personnel' })
+      .select('name nameChinese registrationNumber type status links');
+    const linked = [];
+    const roleSet = new Set();
+    companies.forEach(c => (c.links || []).forEach(l => {
+      if (l.linkModel === 'Personnel' && l.link?.toString() === person._id.toString()) {
+        linked.push({
+          company: { _id: c._id, name: c.name, nameChinese: c.nameChinese, registrationNumber: c.registrationNumber, type: c.type, status: c.status },
+          roles: l.roles || [],
+          appointmentDate: l.appointmentDate,
+          cessationDate: l.cessationDate,
+          shares: l.shares,
+          shareType: l.shareType,
+          notes: l.notes,
+        });
+        (l.roles || []).forEach(r => roleSet.add(r));
+      }
+    }));
+
+    const obj = person.toObject();
+    obj.companies = linked;
+    obj.roles = [...roleSet];
+    res.json({ success: true, personnel: obj });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
+// GET /api/personnel/:id/aggregate — Person 360° 读时聚合（单一事实源 + $lookup）
+// 用 $lookup 一次性聚合人员关联的公司 / Task / Meeting / Document(Files) / ComplianceReminder
+async function getByPersonnelAPI(req, res) {
+  try {
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ message: 'Personnel not found' })
+    }
+    const personId = new mongoose.Types.ObjectId(id)
+
+    const [result] = await Personnel.aggregate([
+      { $match: { _id: personId } },
+
+      // 1) 关联公司：反向引用 Company.links[].link === 本人员
+      {
+        $lookup: {
+          from: 'companies',
+          let: { pid: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$$pid', '$links.link'] } } },
+            { $unwind: '$links' },
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$links.linkModel', 'Personnel'] },
+                    { $eq: ['$links.link', '$$pid'] },
+                  ],
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                company: {
+                  _id: '$_id',
+                  name: '$name',
+                  nameChinese: '$nameChinese',
+                  registrationNumber: '$registrationNumber',
+                  type: '$type',
+                  status: '$status',
+                },
+                roles: '$links.roles',
+                shares: '$links.shares',
+                shareType: '$links.shareType',
+                appointmentDate: '$links.appointmentDate',
+                cessationDate: '$links.cessationDate',
+                notes: '$links.notes',
+              },
+            },
+          ],
+          as: 'companies',
+        },
+      },
+
+      // 2) 关联 Task（公司引用 ∪ 直接人员引用）
+      {
+        $lookup: {
+          from: 'tasks',
+          let: { pid: '$_id', cids: '$companies.company' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $or: [
+                    { $in: ['$company', '$$cids'] },
+                    { $eq: ['$personnel', '$$pid'] },
+                  ],
+                },
+              },
+            },
+            { $sort: { dueDate: 1 } },
+          ],
+          as: 'tasks',
+        },
+      },
+
+      // 3) 关联 Meeting（公司引用 ∪ 参会人员）
+      {
+        $lookup: {
+          from: 'meetings',
+          let: { pid: '$_id', cids: '$companies.company' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $or: [
+                    { $in: ['$company', '$$cids'] },
+                    { $in: ['$$pid', '$attendees.ref'] },
+                  ],
+                },
+              },
+            },
+            { $sort: { scheduledAt: -1 } },
+          ],
+          as: 'meetings',
+        },
+      },
+
+      // 4) 关联 Files（Document：仅直接人员引用，不含公司全部文件）
+      //     公司文件 ≠ 个人文件：个人 360° 视图只展示与该人直接关联的证件/个人文档
+      {
+        $lookup: {
+          from: 'documents',
+          let: { pid: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$personnel', '$$pid'] },
+              },
+            },
+            { $sort: { createdAt: -1 } },
+          ],
+          as: 'documents',
+        },
+      },
+
+      // 5) 关联 ComplianceReminder（仅公司引用）
+      {
+        $lookup: {
+          from: 'compliancereminders',
+          let: { cids: '$companies.company' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$company', '$$cids'] } } },
+            { $sort: { dueDate: 1 } },
+          ],
+          as: 'reminders',
+        },
+      },
+    ])
+
+    if (!result) return res.status(404).json({ message: 'Personnel not found' })
+
+    // 角色汇总（读时聚合自 Company.links.roles）
+    const roleSet = new Set()
+    ;(result.companies || []).forEach((c) => (c.roles || []).forEach((r) => roleSet.add(r)))
+
+    // 剥离 $lookup 中间字段，仅保留人员基础字段
+    const { companies, tasks, meetings, documents, reminders, ...personnel } = result
+
+    res.json({
+      data: {
+        data: {
+          personnel: { ...personnel, roles: [...roleSet] },
+          companies: companies || [],
+          tasks: tasks || [],
+          meetings: meetings || [],
+          documents: documents || [],
+          reminders: reminders || [],
+        },
+      },
+    })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
+router.get('/:id/aggregate', auth, getByPersonnelAPI);
 
 // POST /api/personnel — 创建人员（含重复检测）
 router.post('/', auth, async (req, res) => {
@@ -86,7 +294,6 @@ router.post('/', auth, async (req, res) => {
     }
 
     const person = await Personnel.create(req.body);
-    await person.populate('appointments.company', 'name nameChinese');
     res.status(201).json({ success: true, personnel: person });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -96,8 +303,7 @@ router.post('/', auth, async (req, res) => {
 // PUT /api/personnel/:id — 更新人员
 router.put('/:id', auth, async (req, res) => {
   try {
-    const person = await Personnel.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-      .populate('appointments.company', 'name nameChinese stockCode');
+    const person = await Personnel.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!person) return res.status(404).json({ message: 'Personnel not found' });
     res.json({ success: true, personnel: person });
   } catch (err) {
@@ -116,84 +322,7 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-// POST /api/personnel/:id/appointments — 添加职位关联
-router.post('/:id/appointments', auth, async (req, res) => {
-  try {
-    const person = await Personnel.findById(req.params.id);
-    if (!person) return res.status(404).json({ message: 'Personnel not found' });
 
-    const { company, position, appointedDate, ceasedDate, status, notes } = req.body;
-
-    // Check if this appointment already exists
-    const existingIndex = person.appointments.findIndex(
-      a => a.company?.toString() === (company?._id || company)?.toString() && 
-           a.position === position
-    );
-
-    if (existingIndex !== -1) {
-      return res.status(400).json({ message: 'This appointment already exists' });
-    }
-
-    person.appointments.push({
-      company: company?._id || company,
-      position: position || '董事',
-      appointedDate: appointedDate ? new Date(appointedDate) : new Date(),
-      ceasedDate: ceasedDate ? new Date(ceasedDate) : null,
-      status: status || 'current',
-      notes: notes || '',
-    });
-
-    // Auto-add role tags
-    if (!person.roles) person.roles = [];
-    const roleMap = {
-      '董事': 'director',
-      '公司秘书': 'secretary',
-      '股东': 'shareholder',
-      '雇员': 'employee',
-      '总经理': 'manager',
-    };
-    
-    const roleName = Object.keys(roleMap).find(k => position?.includes(k));
-    if (roleName && !person.roles.includes(roleMap[roleName])) {
-      person.roles.push(roleMap[roleName]);
-    }
-    
-    // Also add roles from existing appointments
-    if (person.appointments) {
-      person.appointments.forEach(appt => {
-        if (appt.position) {
-          const ar = Object.keys(roleMap).find(k => appt.position.includes(k));
-          if (ar && !person.roles.includes(roleMap[ar])) {
-            person.roles.push(roleMap[ar]);
-          }
-        }
-      });
-    }
-
-    await person.save();
-    await person.populate('appointments.company', 'name registrationNumber type status');
-    res.json({ success: true, personnel: person });
-  } catch (err) {
-    console.error('Error adding appointment:', err);
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// PUT /api/personnel/:id/appointments/:apptId — 更新职位关联
-router.put('/:id/appointments/:apptId', auth, async (req, res) => {
-  try {
-    const person = await Personnel.findById(req.params.id);
-    if (!person) return res.status(404).json({ message: 'Personnel not found' });
-    const appt = person.appointments.id(req.params.apptId);
-    if (!appt) return res.status(404).json({ message: 'Appointment not found' });
-    Object.assign(appt, req.body);
-    await person.save();
-    await person.populate('appointments.company', 'name registrationNumber');
-    res.json({ success: true, personnel: person });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 
 // Duplicate detection — GET /api/personnel/duplicates
 router.get('/duplicates', auth, async (req, res) => {
@@ -230,7 +359,7 @@ router.get('/duplicates', auth, async (req, res) => {
     // 只返回有重复的组
     const duplicateGroups = Object.entries(duplicates)
       .filter(([_, group]) => group.length > 1)
-      .map(([key, group]) => ({
+      .map(([_key, group]) => ({
         name: group[0].name,
         count: group.length,
         records: group.map(r => ({
@@ -239,7 +368,7 @@ router.get('/duplicates', auth, async (req, res) => {
           nric: r.nric,
           email: r.email,
           phone: r.phone,
-          appointments: r.appointments?.length || 0,
+          appointments: 0, // v5.0 读时聚合：任职关系已迁至 Company.links，不再 stored
         })),
       }));
 
@@ -265,23 +394,17 @@ router.post('/merge', auth, async (req, res) => {
     if (!target) return res.status(404).json({ message: 'Target personnel not found' });
     if (!source) return res.status(404).json({ message: 'Source personnel not found' });
 
-    // Merge appointments
-    const sourceAppointments = source.appointments || [];
-    const targetAppointments = target.appointments || [];
+    // v5.0 读时聚合：重指单一事实源 Company.links（不再维护 Personnel.appointments）
+    const sourceObj = mongoose.Types.ObjectId(sourceId);
+    const targetObj = mongoose.Types.ObjectId(targetId);
+    await Company.updateMany(
+      { 'links.link': sourceObj, 'links.linkModel': 'Personnel' },
+      { $set: { 'links.$[elem].link': targetObj } },
+      { arrayFilters: [{ 'elem.link': sourceObj, 'elem.linkModel': 'Personnel' }] }
+    );
 
-    // Deduplicate by company ID
-    const targetApptCompanyIds = new Set(targetAppointments.map(a => a.company?.toString?.() || a.company).filter(Boolean));
-    sourceAppointments.forEach(appt => {
-      const companyId = appt.company?.toString?.() || appt.company;
-      if (!targetApptCompanyIds.has(companyId)) {
-        targetAppointments.push(appt);
-        targetApptCompanyIds.add(companyId);
-      }
-    });
-
-    // Merge roles
+    // Merge roles (stored roles 仅作过渡缓存；实际以 Company.links 读时派生为准)
     const sourceRoles = source.roles || [];
-    const targetRoles = [...new Set([...targetAppointments, ...sourceRoles].filter(Boolean))];
     target.roles = [...new Set([...(target.roles || []), ...sourceRoles])];
 
     // Preserve best data from source
@@ -351,42 +474,6 @@ router.post('/check-duplicate', auth, async (req, res) => {
   }
 });
 
-// GET /api/personnel/:id/appointments — 获取人员任职记录
-router.get('/:id/appointments', auth, async (req, res) => {
-  try {
-    const person = await Personnel.findById(req.params.id);
-    if (!person) return res.status(404).json({ message: 'Personnel not found' });
 
-    // Populate company details from appointments
-    const populatedAppts = await Promise.all(
-      (person.appointments || []).map(async (a) => {
-        if (a.company) {
-          const company = await Company.findById(a.company).select('name registrationNumber type status');
-          return { ...a.toObject(), company };
-        }
-        return a;
-      })
-    );
-
-    res.json({ success: true, appointments: populatedAppts });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Delete appointment — DELETE /api/personnel/:id/appointments/:apptId
-router.delete('/:id/appointments/:apptId', auth, async (req, res) => {
-  try {
-    const person = await Personnel.findById(req.params.id);
-    if (!person) return res.status(404).json({ message: 'Personnel not found' });
-    const idx = person.appointments.findIndex(a => a._id.toString() === req.params.apptId);
-    if (idx === -1) return res.status(404).json({ message: 'Appointment not found' });
-    person.appointments.splice(idx, 1);
-    await person.save();
-    res.json({ success: true, personnel: person });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 
 module.exports = router;

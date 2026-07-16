@@ -1,5 +1,44 @@
 import { format, formatDistanceToNow, isAfter, isBefore, addDays } from 'date-fns'
 
+/**
+ * 生成规范文档文件名（适用于 ROM / ROD / 合同等下载）
+ * 格式：{TYPE}_{公司名(英文大写)}_{注册号}_{YYYYMMDD}.{ext}
+ * 例：ROM_EASY RICH CORPORATION LIMITED_1964368_20260716.docx
+ *
+ * @param {'ROM'|'ROD'|string} docType - 文档类型代码
+ * @param {{ name?: string, registrationNumber?: string }} company - 公司对象
+ * @param {object} opts - 可选：{ ext?: string, date?: Date|str, maxLength?: number }
+ */
+export const generateDocFilename = (docType, company, opts = {}) => {
+  const { ext = 'docx', date, maxLength = 80 } = opts
+  const now = date ? new Date(date) : new Date()
+  const yyyymmdd = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('')
+
+  // 公司名：取英文 → 大写 → 去除文件名非法字符 → 截断
+  let rawName = (company?.name || company?.nameChinese || 'UNKNOWN').trim()
+  rawName = rawName.replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim()
+  if (rawName.length > maxLength) rawName = rawName.substring(0, maxLength)
+
+  const regNo = company?.registrationNumber || 'NA'
+  return `${docType}_${rawName}_${regNo}_${yyyymmdd}.${ext}`
+}
+
+/**
+ * 稳健的 Blob 下载：避免浏览器忽略 a.download 导致文件名变成 blob UUID。
+ * 关键：revokeObjectURL 延迟执行，确保浏览器已真正发起下载。
+ */
+export const saveBlob = (blob, filename) => {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.style.display = 'none'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 export const formatDate = (date, fmt = 'dd MMM yyyy') => {
   if (!date) return '-'
   try { return format(new Date(date), fmt) }
@@ -94,6 +133,27 @@ export const DOC_CATEGORY_LABELS = {
   banking: '银行文件',
   meeting: '会议文件',
   other: '其他',
+}
+
+// ── Document expiry status (red / orange / green) ──
+// Returns 'expired' (红) | 'expiring' (橙) | 'ok' (绿) | 'none'
+export function docExpiryStatus(doc, warnDays = 30) {
+  const exp = doc?.expiresAt ? new Date(doc.expiresAt) : null
+  const ren = doc?.renewalDueDate ? new Date(doc.renewalDueDate) : null
+  const d = exp || ren
+  if (!d) return 'none'
+  const now = new Date()
+  if (d < now) return 'expired'
+  const soon = new Date(now.getTime() + warnDays * 86400000)
+  if (d <= soon) return 'expiring'
+  return 'ok'
+}
+
+export const DOC_EXPIRY_BADGE = {
+  expired: { label: '已过期', cls: 'bg-red-100 text-red-700' },
+  expiring: { label: '即将到期', cls: 'bg-amber-100 text-amber-700' },
+  ok: { label: '有效', cls: 'bg-green-100 text-green-700' },
+  none: null,
 }
 
 // ── Meeting shared constants ──

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const signRecordSchema = new mongoose.Schema({
-  signer: { type: mongoose.Schema.Types.ObjectId, ref: 'Director' },
+  signer: { type: mongoose.Schema.Types.ObjectId, ref: 'Personnel' },
   signerName: String,
   signerEmail: String,
   status: { type: String, enum: ['pending', 'signed', 'rejected'], default: 'pending' },
@@ -15,6 +15,7 @@ const signRecordSchema = new mongoose.Schema({
 const signTaskSchema = new mongoose.Schema({
   document: { type: mongoose.Schema.Types.ObjectId, ref: 'Document', required: true },
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
+  meeting: { type: mongoose.Schema.Types.ObjectId, ref: 'Meeting' },
   title: { type: String },
   description: { type: String },
   deadline: { type: Date },
@@ -35,5 +36,11 @@ const signTaskSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// v5.0 读时聚合索引：签署任务按 company / meeting / document 聚合
+signTaskSchema.index({ company: 1 });
+signTaskSchema.index({ meeting: 1 });
+signTaskSchema.index({ document: 1 });
+signTaskSchema.index({ status: 1 });
 
 module.exports = mongoose.model('SignTask', signTaskSchema);

@@ -38,6 +38,27 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// GET /api/companies/reverse-links?personnelId=xxx — 反查某人关联的所有公司（v5.0 方案甲：从 Company.links 读）
+router.get('/reverse-links', auth, async (req, res) => {
+  try {
+    const { personnelId } = req.query;
+    if (!personnelId) return res.status(400).json({ message: 'personnelId required' });
+    const companies = await Company.find({ 'links.link': personnelId, 'links.linkModel': 'Personnel' })
+      .select('name nameChinese registrationNumber type status links');
+    const links = [];
+    companies.forEach(c => {
+      (c.links || []).forEach(l => {
+        if (l.linkModel === 'Personnel' && l.link?.toString() === personnelId) {
+          links.push({ ...l.toObject(), company: { _id: c._id, name: c.name, nameChinese: c.nameChinese, registrationNumber: c.registrationNumber } });
+        }
+      });
+    });
+    res.json({ success: true, links });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // GET /api/companies/stats/dashboard — Dashboard 统计概览（与前端 getDashboardStats 对齐）
 router.get('/stats/dashboard', auth, async (req, res) => {
   try {
@@ -84,6 +105,50 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// GET /api/companies/reverse-links/:personnelId — 反查某人关联的所有公司（读时聚合自 Company.links）
+router.get('/reverse-links/:personnelId', auth, async (req, res) => {
+  try {
+    const pid = req.params.personnelId;
+    const companies = await Company.find({ 'links.link': pid, 'links.linkModel': 'Personnel' })
+      .select('name nameChinese registrationNumber type status links');
+    const links = [];
+    companies.forEach(c => (c.links || []).forEach(l => {
+      if (l.linkModel === 'Personnel' && l.link?.toString() === pid) {
+        links.push({
+          company: { _id: c._id, name: c.name, nameChinese: c.nameChinese, registrationNumber: c.registrationNumber, type: c.type, status: c.status },
+          roles: l.roles || [], shares: l.shares, shareType: l.shareType,
+          appointmentDate: l.appointmentDate, cessationDate: l.cessationDate, notes: l.notes,
+        });
+      }
+    }));
+    res.json({ success: true, count: links.length, links });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/companies/reverse-links/:personnelId — 反查某人关联的所有公司（读时聚合自 Company.links）
+router.get('/reverse-links/:personnelId', auth, async (req, res) => {
+  try {
+    const pid = req.params.personnelId;
+    const companies = await Company.find({ 'links.link': pid, 'links.linkModel': 'Personnel' })
+      .select('name nameChinese registrationNumber type status links');
+    const links = [];
+    companies.forEach(c => (c.links || []).forEach(l => {
+      if (l.linkModel === 'Personnel' && l.link?.toString() === pid) {
+        links.push({
+          company: { _id: c._id, name: c.name, nameChinese: c.nameChinese, registrationNumber: c.registrationNumber, type: c.type, status: c.status },
+          roles: l.roles || [], shares: l.shares, shareType: l.shareType,
+          appointmentDate: l.appointmentDate, cessationDate: l.cessationDate, notes: l.notes,
+        });
+      }
+    }));
+    res.json({ success: true, count: links.length, links });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // POST /api/companies
 router.post('/', auth, async (req, res) => {
   try {
@@ -111,17 +176,6 @@ router.delete('/:id', auth, async (req, res) => {
     const company = await Company.findByIdAndDelete(req.params.id);
     if (!company) return res.status(404).json({ message: 'Company not found' });
     res.json({ success: true, message: 'Company deleted' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// GET /api/companies/:id/directors — 获取公司的所有在任董事
-router.get('/:id/directors', auth, async (req, res) => {
-  try {
-    const Director = require('../models/Director');
-    const directors = await Director.find({ 'appointments.company': req.params.id });
-    res.json({ success: true, directors });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -207,6 +261,93 @@ router.get('/template/excel', auth, (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename=companies_template.xlsx');
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
+});
+
+// ====== v5.0: 统一关联 CRUD（读时聚合：Company.links 为唯一事实源，不物化 Personnel）======
+
+// POST /api/companies/:id/links — 新增关联（董事/股东/秘书/公司型股东）
+router.post('/:id/links', auth, async (req, res) => {
+  try {
+    const company = await Company.findById(req.params.id);
+    if (!company) return res.status(404).json({ message: 'Company not found' });
+
+    const {
+      linkModel, link, roles, shares, shareType,
+      appointmentDate, cessationDate, notes,
+      shareRecords, formerNameOrAlias, documentServiceAddress, usualResidentialAddress,
+    } = req.body;
+
+    const newLink = {
+      linkModel: linkModel || 'Personnel',
+      link: link?._id || link,
+      roles: roles || ['director'],
+      shares, shareType,
+      appointmentDate: appointmentDate ? new Date(appointmentDate) : undefined,
+      cessationDate: cessationDate ? new Date(cessationDate) : undefined,
+      notes,
+      shareRecords: shareRecords || [],
+      formerNameOrAlias, documentServiceAddress, usualResidentialAddress,
+    };
+    company.links.push(newLink);
+    await company.save();
+
+    // 读时聚合：仅写 Company.links（唯一事实源），不物化 Personnel.appointments。
+    // 人视角的任职公司/角色由 GET /api/companies/reverse-links 与 deriveRoles 读时聚合。
+    const updated = await Company.findById(company._id);
+    res.status(201).json({ success: true, company: updated });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /api/companies/:id/links/:linkId — 更新关联
+router.put('/:id/links/:linkId', auth, async (req, res) => {
+  try {
+    const company = await Company.findById(req.params.id);
+    if (!company) return res.status(404).json({ message: 'Company not found' });
+    const link = company.links.id(req.params.linkId);
+    if (!link) return res.status(404).json({ message: 'Link not found' });
+
+    const {
+      linkModel, link: incomingLink, roles, shares, shareType,
+      appointmentDate, cessationDate, notes,
+      shareRecords, formerNameOrAlias, documentServiceAddress, usualResidentialAddress,
+    } = req.body;
+
+    if (linkModel !== undefined) link.linkModel = linkModel;
+    if (incomingLink !== undefined) link.link = incomingLink?._id || incomingLink;
+    if (roles !== undefined) link.roles = roles;
+    if (shares !== undefined) link.shares = shares;
+    if (shareType !== undefined) link.shareType = shareType;
+    if (appointmentDate !== undefined) link.appointmentDate = appointmentDate ? new Date(appointmentDate) : undefined;
+    if (cessationDate !== undefined) link.cessationDate = cessationDate ? new Date(cessationDate) : undefined;
+    if (notes !== undefined) link.notes = notes;
+    if (shareRecords !== undefined) link.shareRecords = shareRecords;
+    if (formerNameOrAlias !== undefined) link.formerNameOrAlias = formerNameOrAlias;
+    if (documentServiceAddress !== undefined) link.documentServiceAddress = documentServiceAddress;
+    if (usualResidentialAddress !== undefined) link.usualResidentialAddress = usualResidentialAddress;
+    await company.save();
+    // 读时聚合：仅更新 Company.links，不回写 Personnel.appointments。
+    res.json({ success: true, company });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// DELETE /api/companies/:id/links/:linkId — 删除关联
+router.delete('/:id/links/:linkId', auth, async (req, res) => {
+  try {
+    const company = await Company.findById(req.params.id);
+    if (!company) return res.status(404).json({ message: 'Company not found' });
+    const link = company.links.id(req.params.linkId);
+    if (!link) return res.status(404).json({ message: 'Link not found' });
+
+    company.links.pull(req.params.linkId);
+    await company.save();
+    res.json({ success: true, message: 'Link removed' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;

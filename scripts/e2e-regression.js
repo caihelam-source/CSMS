@@ -173,14 +173,27 @@ async function main() {
   const pList = await request('GET', '/personnel', { token });
   logResult('人员列表', pList.status === 200, `status=${pList.status}`);
 
-  // ── 4. Directors ─────────────────────────────────────────
-  console.log('\n【Directors】');
-  const dCreate = await request('POST', '/directors', {
-    token, body: { name: 'Jane Director', type: 'individual', personsId: personnelId, appointments: [] },
+  // ── 4. Company Links (v5.0 统一关联, 读时聚合) ─────────────
+  console.log('\n【Company Links】');
+  const linkAdd = await request('POST', `/companies/${companyId}/links`, {
+    token, body: { linkModel: 'Personnel', link: personnelId, roles: ['director'], appointmentDate: '2024-01-01' },
   });
-  logResult('创建董事', dCreate.status === 201, `status=${dCreate.status}`);
-  const dList = await request('GET', '/directors', { token });
-  logResult('董事列表', dList.status === 200, `status=${dList.status}`);
+  logResult('新增公司关联(link)', linkAdd.status === 201, `status=${linkAdd.status}`);
+
+  const revLinks = await request('GET', `/companies/reverse-links?personnelId=${personnelId}`, { token });
+  const revArr = revLinks.body.links || [];
+  logResult('反查人员关联公司', revLinks.status === 200 && revArr.length >= 1, `status=${revLinks.status}, links=${revArr.length}`);
+
+  const linkId = revArr[0]?._id;
+  if (linkId) {
+    const linkUpd = await request('PUT', `/companies/${companyId}/links/${linkId}`, { token, body: { roles: ['director', 'shareholder'] } });
+    logResult('更新公司关联', linkUpd.status === 200, `status=${linkUpd.status}`);
+    const linkDel = await request('DELETE', `/companies/${companyId}/links/${linkId}`, { token });
+    logResult('删除公司关联', linkDel.status === 200, `status=${linkDel.status}`);
+  } else {
+    logResult('更新公司关联', false, '未取到 linkId');
+    logResult('删除公司关联', false, '未取到 linkId');
+  }
 
   // ── 5. Company Entries (股东/董事条目) ───────────────────
   console.log('\n【Company Entries】');

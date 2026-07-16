@@ -248,6 +248,26 @@ export const TabNav = ({ tabs, active, onChange }) => (
 )
 
 /**
+ * SectionSkeleton — pulsing placeholder used while a section loads independently.
+ * Keeps the 360° view responsive: each panel shows its own skeleton instead of
+ * blocking the whole page.
+ * Usage: <SectionSkeleton lines={3} />
+ */
+export const SectionSkeleton = ({ lines = 3, className = '' }) => (
+  <div className={`space-y-2 ${className}`} aria-hidden="true">
+    {Array.from({ length: lines }).map((_, i) => (
+      <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+        <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3 bg-gray-200 rounded animate-pulse w-1/3" />
+          <div className="h-2.5 bg-gray-200 rounded animate-pulse w-1/2" />
+        </div>
+      </div>
+    ))}
+  </div>
+)
+
+/**
  * WarningBanner — colored alert banner for urgent/overdue items
  * Usage: <WarningBanner icon={Clock} title="逾期提醒" count={5} color="amber" items={[...]} renderItem={r => <span>{r.title}</span>} linkTo="/reminders" />
  */

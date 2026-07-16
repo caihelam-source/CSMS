@@ -9,14 +9,18 @@ const router = express.Router();
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const { status, priority, type, assignedTo, company, dueDate } = req.query;
+    const { status, priority, type, assignedTo, company, companyId, personnel, personnelId, dueDate } = req.query;
     const query = {};
 
     if (status) query.status = status;
     if (priority) query.priority = priority;
     if (type) query.type = type;
     if (assignedTo) query.assignedTo = assignedTo;
-    if (company) query.company = company;
+    // v5.0 读时聚合：getByCompany / getByPersonnel 通过引用 ID 过滤；兼容 companyId / personnelId 别名
+    const companyRef = company || companyId;
+    if (companyRef) query.company = companyRef;
+    const personnelRef = personnel || personnelId;
+    if (personnelRef) query.personnel = personnelRef;
     if (dueDate) {
       const date = new Date(dueDate);
       query.dueDate = {
@@ -30,6 +34,7 @@ router.get('/', auth, async (req, res) => {
       .populate('assignedTo', 'name email')
       .populate('createdBy', 'name')
       .populate('meeting', 'title date')
+      .populate('personnel', 'name')
       .sort({ dueDate: 1 });
 
     res.json({

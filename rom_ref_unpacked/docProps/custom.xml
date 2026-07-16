@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  
+  
+  <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="Created">
+    
+    
+    <vt:filetime>2026-03-02T00:00:00Z</vt:filetime>
+    
+  
+  </property>
+  
+  
+  <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="3" name="Creator">
+    
+    
+    <vt:lpwstr>Microsoft® Word 2021</vt:lpwstr>
+    
+  
+  </property>
+  
+  
+  <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="4" name="LastSaved">
+    
+    
+    <vt:filetime>2026-07-15T00:00:00Z</vt:filetime>
+    
+  
+  </property>
+  
+  
+  <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="5" name="Producer">
+    
+    
+    <vt:lpwstr>Microsoft® Word 2021</vt:lpwstr>
+    
+  
+  </property>
+  
+  
+  <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="6" name="AIGC">
+    
+    
+    <vt:lpwstr>{"Label":"1","ContentProducer":"001191440300708461136T1IVWN","ProduceID":"4daf5c7ef023ba2396e8a80956f1a3fe-zlqc5c4jxe3ppbp57bkncv7p57k5lz3f57wg75tc","ReservedCode1":"{\"Type\":\" TC260PG\",\"Version\":1,\"Bindings\":[{\"Type\":\"soft\",\"AlgID\":\"sm3\",\"Value\":\"bfee56c4ce63c67b83d6e7fb723bde3c58a614b61c47b78a5b307ae9826b8bfd\"},{\"Type\":\"hash\",\"AlgID\":\"sm3\",\"Value\":\"a8230a19591cb511858632fcc19390df03623db051732da8d8f04995a5bfe662\"}],\"PubSD\":[{\"Type\":\"DS\",\"AlgID\":\"sm2\",\"TBSData\":{\"Type\":\"Binding\",\"BType\":\"hash\"},\"Signature\":\"3045022100d97514a80e8bb495e152e7425943b1b25a91eaf996d8132e4dff180046881295022002f6b1d0119c3ff8ba803351140a58195d5bdceb5b66598875910f287886d90b\"},{\"Type\":\"PubKey\",\"AlgID\":\"sm2\",\"KeyValue\":\"0407f79b28a17a752b3aae4305c98b48978213832729a2571850b1310b2bc9fe8fee039ccf25ebfeac27502414d9fcef792d777183c98893d226171c2f7a3289a2\"}],\"Extension\":{\"Timestamp\":1784096674,\"KeyVersion\":\"v1-Owd2uMESYLo311\"}}","ContentPropagator":"001191440300708461136T1IVWN","PropagateID":"4daf5c7ef023ba2396e8a80956f1a3fe-zlqc5c4jxe3ppbp57bkncv7p57k5lz3f57wg75tc","ReservedCode2":"{\"Type\":\" TC260PG\",\"Version\":1,\"Bindings\":[{\"Type\":\"soft\",\"AlgID\":\"sm3\",\"Value\":\"bfee56c4ce63c67b83d6e7fb723bde3c58a614b61c47b78a5b307ae9826b8bfd\"},{\"Type\":\"hash\",\"AlgID\":\"sm3\",\"Value\":\"a8230a19591cb511858632fcc19390df03623db051732da8d8f04995a5bfe662\"}],\"PubSD\":[{\"Type\":\"DS\",\"AlgID\":\"sm2\",\"TBSData\":{\"Type\":\"Binding\",\"BType\":\"hash\"},\"Signature\":\"3046022100df266e3284899261152ad8b3ec992014e41054a601d4e1dcda31e870ed65909d0221008198d5a2c958a22f802aa6447311efdf4a15da3054d8460274366b105ab2ec4f\"},{\"Type\":\"PubKey\",\"AlgID\":\"sm2\",\"KeyValue\":\"0407f79b28a17a752b3aae4305c98b48978213832729a2571850b1310b2bc9fe8fee039ccf25ebfeac27502414d9fcef792d777183c98893d226171c2f7a3289a2\"}],\"Extension\":{\"Timestamp\":1784096674,\"KeyVersion\":\"v1-Owd2uMESYLo311\"}}"}</vt:lpwstr>
+    
+  
+  </property>
+  
+
+</Properties>

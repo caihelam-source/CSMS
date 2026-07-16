@@ -10,7 +10,6 @@ dotenv.config();
 // ── Routes ─────────────────────────────────────────────────
 const authRoutes = require('./routes/auth');
 const companyRoutes = require('./routes/companies');
-const directorRoutes = require('./routes/directors');
 const documentRoutes = require('./routes/documents');
 const meetingRoutes = require('./routes/meetings');
 const taskRoutes = require('./routes/tasks');
@@ -21,6 +20,7 @@ const signTaskRoutes = require('./routes/signTasks');
 const personnelRoutes = require('./routes/personnel');
 const companyEntriesRoutes = require('./routes/companyEntries');
 const companyRegisterRoutes = require('./routes/companyRegister');
+const searchRoutes = require('./routes/search');
 
 // ── Middleware ──────────────────────────────────────────────
 const errorHandler = require('./middleware/errorHandler');
@@ -45,7 +45,6 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // ── API Routes ─────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
-app.use('/api/directors', directorRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/tasks', taskRoutes);
@@ -54,6 +53,7 @@ app.use('/api/compliance-reminders', complianceReminderRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/sign-tasks', signTaskRoutes);
 app.use('/api/personnel', personnelRoutes);
+app.use('/api/search', searchRoutes);
 app.use('/api/companies/:id', companyEntriesRoutes);   // shareholder-entries / director-entries
 app.use('/api/companies/:id', companyRegisterRoutes);  // rom / rod PDF
 
@@ -73,7 +73,6 @@ async function start() {
 
     // 初始化预设模板
     try {
-      const tmplRouter = require('./routes/templates');
       // 通过 HTTP 调用或直接调用服务层（这里直接用 mongoose）
       const DocumentTemplate = require('./models/DocumentTemplate');
       const count = await DocumentTemplate.countDocuments({ isPreset: true });
@@ -81,7 +80,7 @@ async function start() {
         // 触发一次 /api/templates/initialize 的逻辑
         console.log('🔧 预设模板初始化中...');
       }
-    } catch(e) { /* silent */ }
+    } catch { /* silent */ }
 
     app.listen(PORT, () => {
       console.log(`
@@ -95,8 +94,7 @@ async function start() {
   ✓ Frontend URL: ${CLIENT_URL}
 
   Routes:
-    /api/companies            公司管理 + Excel导入
-    /api/directors            董事管理 + Excel导入
+    /api/companies            公司管理 + Excel导入 + 统一关联links
     /api/documents            文档管理 + 自动编号
     /api/compliance-rules     合规规则管理（17条预设）
     /api/compliance-reminders 合规提醒管理

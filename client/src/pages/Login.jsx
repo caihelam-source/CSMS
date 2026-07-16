@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Briefcase, Mail, Lock, AlertCircle, Zap } from 'lucide-react'
+import { Briefcase, Mail, Lock, AlertCircle, Zap, UserPlus, LogIn } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { LoadingSpinner, FormField, inputClass } from '../components/UIHelpers'
 import { validate, required, email as emailValidator } from '../utils/validators'
@@ -19,25 +19,41 @@ const DEMO_ACCOUNTS = [
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const [isRegister, setIsRegister] = useState(false)
+  const { login, register } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     const { valid, errors: vErrors } = validate({ email, password }, LOGIN_RULES)
     if (!valid) { setErrors(vErrors); return }
+    if (isRegister && password !== confirmPassword) {
+      setErrors({ ...vErrors, confirmPassword: ['两次密码不一致'] })
+      return
+    }
+    if (isRegister) {
+      const { valid: regValid, errors: regErrs } = validate({ name: email.split('@')[0] }, { name: [required('姓名必填')] })
+      if (!regValid) { setErrors(regErrs); return }
+    }
     setErrors({})
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
-      toast.success('Welcome back!')
-      navigate('/dashboard', { replace: true })
+      if (isRegister) {
+        await register(email.split('@')[0], email, password, 'admin')
+        toast.success('注册成功！请登录')
+        setIsRegister(false)
+      } else {
+        await login(email, password)
+        toast.success('Welcome back!')
+        navigate('/dashboard', { replace: true })
+      }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Login failed')
+      setError(err.response?.data?.message || err.message || (isRegister ? '注册失败' : '登录失败'))
     } finally {
       setLoading(false)
     }
@@ -73,6 +89,20 @@ const Login = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {isRegister && (
+              <FormField label="Full Name" required error={errors.name}>
+                <div className="relative">
+                  <Briefcase size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={email.split('@')[0]}
+                    readOnly
+                    className={`${inputClass} pl-10`}
+                    placeholder="Your name"
+                  />
+                </div>
+              </FormField>
+            )}
             <FormField label="Email Address" required error={errors.email}>
               <div className="relative">
                 <Mail size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

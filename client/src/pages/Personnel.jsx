@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Plus, Users, Pencil, Trash2, Merge, AlertTriangle } from 'lucide-react'
-import { personnelService } from '../services/index.js'
+import { Plus, Users, Pencil, Trash2, Merge, AlertTriangle, Upload, Download, Building2 } from 'lucide-react'
+import { personnelService, companyService } from '../services/index.js'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, labelClass } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required, email as emailValidator } from '../utils/validators'
@@ -31,6 +31,13 @@ export default function Personnel() {
   const [selectedIds, setSelectedIds] = useState([])
   const [showMergeModal, setShowMergeModal] = useState(false)
   const [mergeTargetId, setMergeTargetId] = useState('')
+  // 角色筛选（董事/股东/秘书）
+  const [roleFilter, setRoleFilter] = useState('all')
+  // Excel 批量导入（统一入口：导入人员并自动关联任职公司）
+  const [companies, setCompanies] = useState([])
+  const [importModal, setImportModal] = useState(false)
+  const [importResult, setImportResult] = useState(null)
+  const importFileRef = useRef()
 
   // Search + filter via useSearchFilter
   const { search, setSearch, filtered } = useSearchFilter(
@@ -42,8 +49,12 @@ export default function Personnel() {
   const loadPersonnel = useCallback(async () => {
     setLoading(true)
     try {
-      const { data } = await personnelService.getAll()
-      setPersonnel(data.personnel || data.data || [])
+      const [listRes, compRes] = await Promise.all([
+        personnelService.getAll({ role: roleFilter === 'all' ? undefined : roleFilter }),
+        companyService.getAll().catch(() => ({ data: { data: [] } })),
+      ])
+      setPersonnel(listRes.data.data || [])
+      setCompanies(compRes.data.data || [])
       // Load duplicate info
       try {
         const dupRes = await personnelService.getDuplicates()
@@ -54,7 +65,7 @@ export default function Personnel() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [roleFilter])
 
   useEffect(() => { loadPersonnel() }, [loadPersonnel])
 
@@ -144,6 +155,84 @@ export default function Personnel() {
     }
   }
 
+  // 角色中文标签
+  const ROLE_LABELS = { director: '董事', alternate_director: '替任董事', shareholder: '股东', secretary: '公司秘书', auditor: '审计师', authorized_representative: '授权代表', corporate_secretary: '公司秘书(公司)', other: '其他' }
+  const roleLabel = (r) => ROLE_LABELS[r] || r
+
+  // ---- Excel 批量导入（统一：建人员 + 自动关联任职公司）----
+  const downloadTemplate = () => {
+    const headers = ['姓名', '中文名', '证件号', '邮箱', '电话', '任职公司', '角色', '任命日期', '状态']
+    const example = ['John Smith', '张三', 'A123456(7)', 'john@example.com', '+852 9876 5432', 'Easy Rich Corporation Ltd (順富興業)', '董事', '2021-03-15', '在任']
+    import('xlsx').then(XLSX => {
+      const ws = XLSX.utils.aoa_to_sheet([headers, example])
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Personnel')
+      XLSX.writeFile(wb, 'personnel_template.xlsx')
+    })
+  }
+
+  const ROLE_MAP = { 董事: 'director', 股东: 'shareholder', 秘书: 'secretary', 公司秘书: 'secretary', 审计师: 'auditor', 授权代表: 'authorized_representative' }
+
+  const handleImport = async (e) => {
+    const file = e.target.files[0]; if (!file) return
+    setImportResult(null)
+    try {
+      const XLSX = await import('xlsx')
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array' })
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+      let created = 0, linked = 0
+      const errors = []
+      const companyMap = {}
+      companies.forEach(c => { companyMap[c.name] = c._id })
+      const existing = [...personnel]
+      for (const row of rows) {
+        const name = (row['姓名'] || row['Name'] || '').toString().trim()
+        if (!name) { errors.push('跳过空行'); continue }
+        const idNumber = (row['证件号'] || row['ID No.'] || row['idNumber'] || '').toString().trim()
+        let p = existing.find(x => x.name === name && (!idNumber || x.nric === idNumber))
+        if (!p) {
+          const { data: res } = await personnelService.create({
+            name,
+            nameChinese: row['中文名'] || row['Name (Chinese)'] || '',
+            nric: idNumber || undefined,
+            email: row['邮箱'] || row['Email'] || '',
+            phone: row['电话'] || row['Phone'] || '',
+            nationality: row['国籍'] || row['Nationality'] || '',
+          })
+          p = res; existing.push(res); created++
+        }
+        // 关联任职公司
+        const companyName = row['任职公司'] || row['Company'] || ''
+        const roleZh = row['角色'] || row['Role'] || '董事'
+        const role = ROLE_MAP[roleZh] || 'director'
+        const appointedDate = row['任命日期'] || row['Appointed Date'] || ''
+        const status = row['状态'] || row['Status'] || '在任'
+        if (companyName && companyMap[companyName]) {
+          const cid = companyMap[companyName]
+          const already = (p.companies || []).some(c => c.company?._id === cid && (c.roles || []).includes(role))
+          if (!already) {
+            await companyService.addLink(cid, {
+              linkModel: 'Personnel',
+              link: { _id: p._id, name: p.name, nric: p.nric },
+              roles: [role],
+              appointmentDate: appointedDate || undefined,
+              ceasedDate: status === '离任' ? (appointedDate || '') : undefined,
+            })
+            linked++
+          }
+        }
+      }
+      setImportResult({ success: true, created, linked, errors })
+      loadPersonnel()
+      toast.success(`导入完成：新增 ${created} 人，关联 ${linked} 条任职`)
+    } catch (err) {
+      setImportResult({ success: false, message: err.message || '导入失败' })
+    }
+    e.target.value = ''
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -157,12 +246,26 @@ export default function Personnel() {
                 <Merge size={16} /> Merge Selected
               </button>
             )}
+            <button onClick={() => { setImportResult(null); setImportModal(true) }}
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+              <Upload size={15} /> Excel 导入
+            </button>
             <button onClick={openCreate} className="btn-primary flex items-center gap-2">
               <Plus size={16} /> New Person
             </button>
           </div>
         }
       />
+
+      {/* 角色筛选 Tab */}
+      <div className="flex gap-2 flex-wrap">
+        {[{ key: 'all', label: '全部' }, { key: 'director', label: '董事' }, { key: 'shareholder', label: '股东' }, { key: 'secretary', label: '公司秘书' }].map(t => (
+          <button key={t.key} onClick={() => setRoleFilter(t.key)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${roleFilter === t.key ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {/* Duplicate warnings */}
       {duplicateWarnings.length > 0 && (
@@ -222,6 +325,13 @@ export default function Personnel() {
                             </span>
                           )}
                         </div>
+                        {p.roles?.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {p.roles.map(r => (
+                              <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-700">{roleLabel(r)}</span>
+                            ))}
+                          </div>
+                        )}
                         <div className="flex gap-2 text-xs text-gray-400">
                           {p.nric && <span>{p.nric}</span>}
                           {p.nationality && <span>· {p.nationality}</span>}
@@ -261,6 +371,13 @@ export default function Personnel() {
                           </span>
                         )}
                       </div>
+                      {p.roles?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {p.roles.map(r => (
+                            <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-700">{roleLabel(r)}</span>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex gap-2 text-xs text-gray-400">
                         {p.nric && <span>{p.nric}</span>}
                         {p.nationality && <span>· {p.nationality}</span>}
@@ -278,6 +395,37 @@ export default function Personnel() {
           })}
         </div>
       )}
+
+      {/* Excel 导入 */}
+      <Modal isOpen={importModal} onClose={() => setImportModal(false)} title="Excel 批量导入人员" size="md">
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+            <p className="font-medium mb-1">导入说明</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>必填列：姓名</li>
+              <li>可选列：中文名、证件号、邮箱、电话、任职公司、角色(董事/股东/秘书)、任命日期、状态</li>
+              <li>填写"任职公司"将自动把该人员关联为对应角色（董事/股东/秘书）</li>
+            </ul>
+          </div>
+          <button onClick={downloadTemplate} className="flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium">
+            <Download size={16} /> 下载 Excel 模板
+          </button>
+          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors"
+            onClick={() => importFileRef.current?.click()}>
+            <Upload size={32} className="mx-auto text-gray-400 mb-3" />
+            <p className="text-gray-600 text-sm">点击选择 Excel 文件</p>
+            <input ref={importFileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
+          </div>
+          {importResult && (
+            <div className={`p-4 rounded-lg text-sm ${importResult.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+              {importResult.success
+                ? <><p className="font-medium">导入完成</p><p>新增 {importResult.created} 人，关联 {importResult.linked} 条任职</p>
+                  {importResult.errors?.length > 0 && <div className="mt-2 text-amber-700"><ul className="list-disc list-inside text-xs">{importResult.errors.map((e, i) => <li key={i}>{e}</li>)}</ul></div>}</>
+                : <p>{importResult.message}</p>}
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* Create/Edit Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editTarget ? 'Edit Person' : 'New Person'} size="md">

@@ -28,6 +28,21 @@ const companySchema = new mongoose.Schema({
     appointmentDate: Date,
     cessationDate: Date,
     notes: String,
+    // v5.0: 股份变更时间线（吸收原 ShareholderEntry.shareRecords）
+    shareRecords: [{
+      transactionType: { type: String, enum: ['acquired', 'transferred', 'other'], default: 'acquired' },
+      distinctiveNumberFrom: String,
+      distinctiveNumberTo: String,
+      certificateNumber: String,
+      transferDeed: String,
+      considerationPaid: String,
+      numberOfShares: Number,
+      transactionDate: Date,
+    }],
+    // v5.0: ROD 登记册专有字段（吸收原 DirectorEntry）
+    formerNameOrAlias: String,
+    documentServiceAddress: String,
+    usualResidentialAddress: String,
   }],
 
   // Share capital
@@ -63,5 +78,8 @@ companySchema.index({ name: 1 });
 companySchema.index({ 'compliance.agmDueDate': 1 });
 companySchema.index({ 'compliance.arDueDate': 1 });
 companySchema.index({ 'links.link': 1 });
+// v5.0 读时聚合索引：加速 reverse-links 与按角色/公司筛选
+companySchema.index({ 'links.linkModel': 1, 'links.link': 1 });
+companySchema.index({ 'links.linkModel': 1, 'links.roles': 1 });
 
 module.exports = mongoose.model('Company', companySchema);

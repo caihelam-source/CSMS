@@ -97,14 +97,74 @@ const TemplateForm = ({ initial = {}, onSave, onCancel, loading }) => {
   )
 }
 
+// 变量名 → 公司数据字段的映射表（选公司时自动填充）
+// key = 模板里的变量名（中文或英文），value = 公司对象取值路径
+const COMPANY_VAR_MAP = {
+  // 中文名
+  '公司名称':         (c) => c.name || '',
+  '公司中文名':       (c) => c.nameChinese || '',
+  '注册号':          (c) => c.registrationNumber || '',
+  '股票代码':        (c) => c.stockCode || '',
+  '成立日期':        (c) => c.incorporationDate || '',
+  '注册地址':        (c) => c.registeredAddress || (c.address?.street ? [c.address.street, c.address.city, c.address.country].filter(Boolean).join(', ') : ''),
+  // 英文名（模板也可能用英文变量）
+  'companyName':     (c) => c.name || '',
+  'companyNameEn':   (c) => c.name || '',
+  'companyNameCN':   (c) => c.nameChinese || '',
+  'registrationNumber': (c) => c.registrationNumber || '',
+  'registrationNo': (c) => c.registrationNumber || '',
+  'companyNumber':   (c) => c.registrationNumber || '',
+  'stockCode':       (c) => c.stockCode || '',
+  'incorporationDate': (c) => c.incorporationDate || '',
+  'registeredAddress': (c) => c.registeredAddress || '',
+  'jurisdiction':    (c) => c.jurisdiction || '',
+}
+
+// 判断一个变量是否能从公司数据中自动获取
+function canAutoFill(varName) {
+  return !!COMPANY_VAR_MAP[varName]
+}
+
 const RenderModal = ({ template, companies, onClose }) => {
   const [selectedCompany, setSelectedCompany] = useState('')
   const [manualVars, setManualVars] = useState({})
+  const [autoFilledVars, setAutoFilledVars] = useState({})   // 自动填充的值（只读展示）
   const [rendered, setRendered] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const vars = template ? extractVars(template.content) : []
+
+  // 选公司时：自动解析可填充变量 + 重置手动区
+  useEffect(() => {
+    if (!selectedCompany) {
+      setAutoFilledVars({})
+      return
+    }
+    const co = companies.find(c => c._id === selectedCompany)
+    if (!co) return
+
+    const auto = {}
+    // 遍历模板所有变量，能自动填充的归到 autoFilled
+    for (const v of vars) {
+      if (canAutoFill(v)) {
+        const val = COMPANY_VAR_MAP[v](co)
+        if (val) auto[v] = val
+      }
+    }
+    setAutoFilledVars(auto)
+
+    // 同时清掉已被自动填充的手动输入残留（防止旧值冲突）
+    setManualVars(prev => {
+      const next = { ...prev }
+      for (const k of Object.keys(auto)) delete next[k]
+      return next
+    })
+  }, [selectedCompany])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 分离变量：autoVars = 可自动填充, manualOnlyVars = 必须手动填写
+  const autoVarNames = vars.filter(v => canAutoFill(v))
+  const manualOnlyVarNames = vars.filter(v => !canAutoFill(v))
 
   const handleRender = async () => {
     setLoading(true); setError('')
@@ -112,11 +172,12 @@ const RenderModal = ({ template, companies, onClose }) => {
       const co = companies.find(c => c._id === selectedCompany)
       const companyVars = {}
       if (co) {
-        companyVars['公司名称'] = co.name
-        if (co.nameChinese) companyVars['公司中文名'] = co.nameChinese
-        if (co.registrationNumber) companyVars['注册号'] = co.registrationNumber
-        if (co.stockCode) companyVars['股票代码'] = co.stockCode
-        if (co.incorporationDate) companyVars['成立日期'] = co.incorporationDate
+        // 用同一套映射表生成公司变量
+        for (const v of vars) {
+          if (canAutoFill(v)) {
+            companyVars[v] = COMPANY_VAR_MAP[v](co) || ''
+          }
+        }
       }
       const { data } = await templateService.render(template._id, { data: { ...companyVars, ...manualVars } })
       setRendered(data.data?.rendered || data.rendered || '')
@@ -133,13 +194,39 @@ const RenderModal = ({ template, companies, onClose }) => {
         <label className={labelClass}>关联公司（自动填充公司信息）</label>
         <select className={inputClass} value={selectedCompany} onChange={e => setSelectedCompany(e.target.value)}>
           <option value="">-- 不关联 --</option>
-          {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+          {companies.map(c => <option key={c._id} value={c._id}>{c.name}{c.nameChinese ? ` (${c.nameChinese})` : ''}</option>)}
         </select>
       </div>
-      {vars.filter(v => !['公司名称', '公司中文名', '注册地址', '成立日期', '注册号', '股票代码'].includes(v)).length > 0 && (
+
+      {/* 已自动填充的变量（只读展示） */}
+      {Object.keys(autoFilledVars).length > 0 && (
+        <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-2">
+          <p className="text-sm font-medium text-green-700 flex items-center gap-1.5">
+            ✓ 已自动填充（{Object.keys(autoFilledVars).length} 个字段来自中央数据库）
+          </p>
+          {Object.entries(autoFilledVars).map(([key, val]) => (
+            <div key={key} className="flex items-center gap-2">
+              <label className="text-xs font-medium text-gray-600 w-32 flex-shrink-0">{key}</label>
+              <span className="flex-1 text-sm text-gray-900 bg-white border border-green-200 rounded px-3 py-1.5 min-h-[34px] leading-[22px]">{val}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 可自动填充但尚未选择公司的提示 */}
+      {autoVarNames.length > 0 && !selectedCompany && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <p className="text-xs text-yellow-700">
+            💡 选择关联公司后可自动填充：{autoVarNames.join('、')}
+          </p>
+        </div>
+      )}
+
+      {/* 手动填写变量 */}
+      {manualOnlyVarNames.length > 0 && (
         <div className="border border-gray-200 rounded-lg p-4 space-y-3">
           <p className="text-sm font-medium text-gray-700">手动填写变量：</p>
-          {vars.filter(v => !['公司名称', '公司中文名', '注册地址', '成立日期', '注册号', '股票代码'].includes(v)).map(v => (
+          {manualOnlyVarNames.map(v => (
             <div key={v}>
               <label className="block text-xs font-medium text-gray-600 mb-1">{v}</label>
               <input className={inputClass} value={manualVars[v] || ''} onChange={e => setManualVars(m => ({ ...m, [v]: e.target.value }))} placeholder={`填写 ${v}`} />
@@ -147,6 +234,12 @@ const RenderModal = ({ template, companies, onClose }) => {
           ))}
         </div>
       )}
+
+      {/* 无变量的提示 */}
+      {vars.length === 0 && (
+        <div className="text-center py-6 text-sm text-gray-400">此模板无变量，将直接渲染原始内容</div>
+      )}
+
       {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{error}</div>}
       <div className="flex justify-end gap-3">
         <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">关闭</button>

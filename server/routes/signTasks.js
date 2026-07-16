@@ -8,16 +8,22 @@ const router = express.Router();
 // GET /api/sign-tasks
 router.get('/', auth, async (req, res) => {
   try {
-    const { status, company, search } = req.query;
+    const { status, company, companyId, search, meeting, meetingId } = req.query;
     const query = {};
     if (status) query.status = status;
-    if (company) query.company = company;
+    // v5.0 读时聚合：getByMeeting / getByCompany 通过引用 ID 过滤；兼容 meetingId / companyId 别名
+    const companyRef = company || companyId;
+    if (companyRef) query.company = companyRef;
+    const meetingRef = meeting || meetingId;
+    if (meetingRef) query.meeting = meetingRef;
     if (search) query.$or = [{ title: { $regex: search, $options: 'i' } }];
 
     const tasks = await SignTask.find(query)
       .populate('document', 'title docNumber type')
       .populate('company', 'name nameChinese')
+      .populate('meeting', 'title date')
       .populate('createdBy', 'name email')
+      .populate('signers.signer', 'name email')
       .sort({ createdAt: -1 });
 
     res.json({ success: true, count: tasks.length, tasks });

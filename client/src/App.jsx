@@ -14,7 +14,6 @@ const Companies = lazy(() => import('./pages/Companies'))
 const CompanyDetail = lazy(() => import('./pages/CompanyDetail'))
 const Tasks = lazy(() => import('./pages/Tasks'))
 const TaskDetail = lazy(() => import('./pages/TaskDetail'))
-const Directors = lazy(() => import('./pages/Directors'))
 const ComplianceReminders = lazy(() => import('./pages/ComplianceReminders'))
 const ComplianceReminderDetail = lazy(() => import('./pages/ComplianceReminderDetail'))
 const ComplianceRules = lazy(() => import('./pages/ComplianceRules'))
@@ -125,7 +124,6 @@ function App() {
           <Route path="personnel/:id" element={<LazyPage><PersonnelDetail /></LazyPage>} />
           <Route path="tasks" element={<LazyPage><Tasks /></LazyPage>} />
           <Route path="tasks/:id" element={<LazyPage><TaskDetail /></LazyPage>} />
-          <Route path="directors" element={<LazyPage><Directors /></LazyPage>} />
           <Route path="compliance-rules" element={<LazyPage><ComplianceRules /></LazyPage>} />
           <Route path="compliance-reminders" element={<LazyPage><ComplianceReminders /></LazyPage>} />
           <Route path="compliance-reminders/:id" element={<LazyPage><ComplianceReminderDetail /></LazyPage>} />

@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, ClipboardCheck } from 'lucide-react'
-import { companyService, documentService, meetingService, personnelService } from '../services/index.js'
+import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, ClipboardCheck, CheckSquare } from 'lucide-react'
+import { companyService, documentService, meetingService, personnelService, complianceReminderService, complianceRuleService, taskService } from '../services/index.js'
 import EquityGraph from './EquityGraph'
-import { formatDate, getStatusColor, DOC_CATEGORY_LABELS } from '../utils/helpers'
-import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, labelClass, TabNav } from '../components/UIHelpers'
+import { formatDate, getStatusColor, DOC_CATEGORY_LABELS, docExpiryStatus, DOC_EXPIRY_BADGE, generateDocFilename, saveBlob } from '../utils/helpers'
+import { buildRomDocxBlob } from '../utils/romDocx'
+import { buildRodDocxBlob } from '../utils/rodDocx'
+import { inferRegion } from '../utils/docxCommon'
+import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, labelClass, TabNav, taskPriorityColor } from '../components/UIHelpers'
 import Modal from '../components/Modal'
 import { useConfirm } from '../components/ConfirmDialog'
 import { validate, required } from '../utils/validators'
@@ -22,36 +25,72 @@ export default function CompanyDetail() {
   const [documents, setDocuments] = useState([])
   const [meetings, setMeetings] = useState([])
   const [compliance, setCompliance] = useState(null)
+  const [reminders, setReminders] = useState([])
+  const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('info')
   const [docFilterCategory, setDocFilterCategory] = useState('all')
   const [showLinkModal, setShowLinkModal] = useState(false)
+  const [linkModalMode, setLinkModalMode] = useState('add') // 'add' | 'historical'
   const [editingLink, setEditingLink] = useState(null)
   const [linkForm, setLinkForm] = useState({ linkModel: 'Personnel', name: '', roles: ['director'], shares: '', shareType: 'ordinary', nric: '', appointedDate: '', ceasedDate: '', selectedId: '' })
   const [linkFormErrors, setLinkFormErrors] = useState({})
   // 登记册生成
   const [generatingReg, setGeneratingReg] = useState(null) // 'rod' | 'rom' | null
+  // 标记离任模态框
+  const [showCeaseModal, setShowCeaseModal] = useState(false)
+  const [ceasingLink, setCeasingLink] = useState(null) // link being ceased/restored
+  const [ceasedDateInput, setCeasedDateInput] = useState('')
   // 所有 personnel 和 companies（用于联动显示最新数据）
   const [allPersonnel, setAllPersonnel] = useState([])
   const [allCompanies, setAllCompanies] = useState([])
 
+  // 合规规则库（用于新增提醒时联动选择 + 自定义沉淀）
+  const [rules, setRules] = useState([])
+  // 新增合规提醒
+  const [showReminderModal, setShowReminderModal] = useState(false)
+  const [reminderForm, setReminderForm] = useState({
+    mode: 'rule', // 'rule' | 'custom'
+    ruleId: '',
+    title: '',
+    description: '',
+    priority: 'medium',
+    dueDate: '',
+    saveAsRule: false,
+    ruleName: '',
+    ruleCategory: '',
+    ruleFrequency: '',
+  })
+  const [savingReminder, setSavingReminder] = useState(false)
+
+  // 基本信息内联编辑
+  const [editingInfo, setEditingInfo] = useState(false)
+  const [infoForm, setInfoForm] = useState({})
+  const [savingInfo, setSavingInfo] = useState(false)
+
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [compRes, docRes, meetRes, compRes2, persRes, compsRes] = await Promise.all([
+      const [compRes, docRes, meetRes, compRes2, persRes, compsRes, remRes, taskRes, rulesRes] = await Promise.all([
         companyService.getOne(id),
         documentService.getByCompany(id).catch(() => ({ data: { data: [] } })),
         meetingService.getByCompany(id).catch(() => ({ data: { data: [] } })),
         companyService.getCompliance(id).catch(() => null),
         personnelService.getAll().catch(() => ({ data: { data: [] } })),
         companyService.getAll().catch(() => ({ data: { data: [] } })),
+        complianceReminderService.getAll({ companyId: id }).catch(() => ({ data: { data: [] } })),
+        taskService.getByCompany(id).catch(() => ({ data: { data: [] } })),
+        complianceRuleService.getAll().catch(() => ({ data: { data: [] } })),
       ])
       setCompany(compRes.data.data)
       setDocuments(docRes.data.data || [])
       setMeetings(meetRes.data.data || [])
       if (compRes2) setCompliance(compRes2.data.data)
+      setReminders(remRes?.data?.data || [])
+      setTasks(taskRes?.data?.data || [])
       setAllPersonnel(persRes?.data?.data || [])
       setAllCompanies(compsRes?.data?.data || [])
+      setRules(rulesRes?.data?.data || [])
     } catch {
       toast.error('Failed to load company')
       navigate('/companies')
@@ -89,9 +128,33 @@ export default function CompanyDetail() {
   const shareholders = useMemo(() => (company?.links || []).filter(l => l.roles.includes('shareholder')), [company?.links])
   const secretaries = useMemo(() => (company?.links || []).filter(l => l.roles.includes('secretary')), [company?.links])
 
+  // ROM / ROD 生成选项（地区 + 用途），公司地区加载后自动推断默认
+  const [romRegion, setRomRegion] = useState('HK')
+  const [romPurpose, setRomPurpose] = useState('standard')
+  const [rodRegion, setRodRegion] = useState('HK')
+  const [rodPurpose, setRodPurpose] = useState('standard')
+  const didAutoRegion = useRef(false)
+  useEffect(() => {
+    if (company?.jurisdiction && !didAutoRegion.current) {
+      const r = inferRegion(company)
+      setRomRegion(r); setRodRegion(r); didAutoRegion.current = true
+    }
+  }, [company?.jurisdiction, company])
+
+  // Active (current) members — for People tab; excludes those with ceasedDate
+  const activeDirectors = useMemo(() => directors.filter(l => !l.ceasedDate), [directors])
+  const activeShareholders = useMemo(() => shareholders.filter(l => !l.ceasedDate), [shareholders])
+  const activeSecretaries = useMemo(() => secretaries.filter(l => !l.ceasedDate), [secretaries])
+
+  // Former (ceased) counts — for register display
+  const formerDirectors = useMemo(() => directors.filter(l => !!l.ceasedDate), [directors])
+  const formerShareholders = useMemo(() => shareholders.filter(l => !!l.ceasedDate), [shareholders])
+  const formerSecretaries = useMemo(() => secretaries.filter(l => !!l.ceasedDate), [secretaries])
+
   // ---- Link CRUD ----
   const openAddLink = () => {
     setEditingLink(null)
+    setLinkModalMode('add')
     setLinkForm({ linkModel: 'Personnel', name: '', roles: ['director'], shares: '', shareType: 'ordinary', nric: '', appointedDate: '', ceasedDate: '', selectedId: '' })
     setShowLinkModal(true)
   }
@@ -113,15 +176,51 @@ export default function CompanyDetail() {
   }
 
   const handleRemoveLink = async (linkId) => {
-    const ok = await confirm({ title: '移除关联', message: '移除这个关联？此操作不可撤销。', confirmLabel: '确认移除' })
+    // In registers context, "remove" means marking as ceased, not deleting
+    const ok = await confirm({
+      title: '标记离任',
+      message: '确定要标记此成员为离任吗？记录将保留在登记册中（可恢复）。',
+      confirmLabel: '确认离任'
+    })
+    if (!ok) return
+    setCeasingLink(linkId)
+    setCeasedDateInput(new Date().toISOString().substring(0, 10))
+    setShowCeaseModal(true)
+  }
+
+  // Mark a link as ceased (set ceasedDate)
+  const handleConfirmCease = async () => {
+    if (!ceasingLink || !ceasedDateInput) return
+    try {
+      await companyService.updateLink(id, ceasingLink, { ceasedDate: ceasedDateInput })
+      toast.success('已标记为离任')
+      setShowCeaseModal(false)
+      setCeasingLink(null)
+      loadAll()
+    } catch { toast.error('操作失败') }
+  }
+
+  // Restore a ceased link (clear ceasedDate)
+  const handleRestoreLink = async (linkId) => {
+    const ok = await confirm({ title: '恢复任职', message: '确定要恢复此成员为现任？', confirmLabel: '确认恢复' })
     if (!ok) return
     try {
-      await companyService.removeLink(id, linkId)
-      toast.success('Link removed')
+      await companyService.updateLink(id, linkId, { ceasedDate: null })
+      toast.success('已恢复为现任')
       loadAll()
-    } catch {
-      toast.error('Failed to remove')
-    }
+    } catch { toast.error('恢复失败') }
+  }
+
+  // Open modal to add a historical register entry (曾任/曾持，填写任职+离任日期，记录完整保留)
+  const openAddHistorical = () => {
+    setEditingLink(null)
+    setLinkModalMode('historical')
+    setLinkForm({
+      linkModel: 'Personnel', name: '', roles: ['director'],
+      shares: '', shareType: 'ordinary', nric: '',
+      appointedDate: '', ceasedDate: '', selectedId: '',
+    })
+    setShowLinkModal(true)
   }
 
   const handleAddLink = async (e) => {
@@ -189,99 +288,154 @@ export default function CompanyDetail() {
       setLinkForm({ ...linkForm, selectedId: cid, name: c.name, registrationNumber: c.registrationNumber || '' })
     }
   }, [linkForm, allCompanies])
-  const downloadRegister = (type) => {
+  // ---- 基本信息内联编辑 ----
+  const openEditInfo = useCallback(() => {
+    setInfoForm({
+      name: company?.name || '',
+      registrationNumber: company?.registrationNumber || '',
+      type: company?.type || 'private_limited',
+      jurisdiction: company?.jurisdiction || 'Hong Kong',
+      incorporationDate: company?.incorporationDate ? company.incorporationDate.substring(0, 10) : '',
+      issuedShares: company?.shareCapital?.issued || '',
+      paidUpCapital: company?.shareCapital?.paidUp || '',
+      currency: company?.shareCapital?.currency || 'HKD',
+      street: company?.registeredAddress?.street || '',
+      city: company?.registeredAddress?.city || '',
+      state: company?.registeredAddress?.state || '',
+      addressCountry: company?.registeredAddress?.country || '中国香港',
+    })
+    setEditingInfo(true)
+  }, [company])
+
+  const saveInfo = useCallback(async () => {
+    setSavingInfo(true)
+    try {
+      await companyService.update(id, {
+        name: infoForm.name,
+        registrationNumber: infoForm.registrationNumber,
+        type: infoForm.type,
+        jurisdiction: infoForm.jurisdiction,
+        incorporationDate: infoForm.incorporationDate,
+        shareCapital: {
+          issued: Number(infoForm.issuedShares) || undefined,
+          paidUp: Number(infoForm.paidUpCapital) || undefined,
+          currency: infoForm.currency,
+        },
+        registeredAddress: {
+          street: infoForm.street,
+          city: infoForm.city,
+          state: infoForm.state,
+          country: infoForm.addressCountry,
+        },
+      })
+      toast.success('公司信息已更新')
+      setEditingInfo(false)
+      loadAll()
+    } catch { toast.error('更新失败') } finally { setSavingInfo(false) }
+  }, [id, infoForm, loadAll])
+
+  // ---- 合规提醒新增（联动 Rules + 自定义沉淀） ----
+  const openAddReminder = () => {
+    setReminderForm({
+      mode: 'rule', ruleId: '', title: '', description: '',
+      priority: 'medium', dueDate: '',
+      saveAsRule: false, ruleName: '', ruleCategory: 'other', ruleFrequency: 'annual',
+    })
+    setShowReminderModal(true)
+  }
+
+  // 选择 Rule 时自动填充
+  const handleRuleSelect = useCallback((ruleId) => {
+    if (!ruleId) {
+      setReminderForm(f => ({ ...f, ruleId: '', title: '', description: '', priority: 'medium' }))
+      return
+    }
+    const rule = rules.find(r => r._id === ruleId)
+    if (rule) {
+      // 根据频率计算默认到期日
+      let defaultDue = ''
+      if (company?.inccorporationDate) {
+        const inc = new Date(company.incorporationDate)
+        const now = new Date()
+        // 简单策略：规则描述的 dueDaysBefore 或默认30天后的同月同日
+        defaultDue = new Date(now.getTime() + (rule.dueDaysBefore || 30) * 86400000).toISOString().substring(0, 10)
+      } else {
+        defaultDue = new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10)
+      }
+      setReminderForm(f => ({
+        ...f,
+        ruleId,
+        title: `${rule.name} - ${company?.name || ''}`,
+        description: rule.description || '',
+        priority: rule.category === 'annual_return' ? 'high' : rule.category === 'license_renewal' ? 'critical' : 'medium',
+        dueDate: f.dueDate || defaultDue,
+      }))
+    }
+  }, [rules, company])
+
+  const handleSaveReminder = async () => {
+    if (!reminderForm.title || !reminderForm.dueDate) { toast.error('标题和到期日为必填'); return }
+    setSavingReminder(true)
+    try {
+      // 1. 创建提醒
+      await complianceReminderService.create({
+        title: reminderForm.title,
+        description: reminderForm.description,
+        priority: reminderForm.priority,
+        dueDate: reminderForm.dueDate,
+        company: { _id: id, name: company?.name },
+        rule: reminderForm.ruleId ? rules.find(r => r._id === reminderForm.ruleId) : null,
+        status: 'upcoming',
+        completed: false,
+      })
+      // 2. 如果勾选了「保存为规则」，同时创建/更新合规规则库
+      if (reminderForm.saveAsRule && reminderForm.ruleName) {
+        await complianceRuleService.create({
+          name: reminderForm.ruleName,
+          category: reminderForm.ruleCategory || 'other',
+          description: reminderForm.description,
+          jurisdiction: company?.jurisdiction || 'Hong Kong',
+          frequency: reminderForm.ruleFrequency || 'event_driven',
+          isPreset: false,
+        })
+        toast.success('已保存为新规则，可复用于其他公司')
+      }
+      toast.success('合规提醒已添加')
+      setShowReminderModal(false)
+      loadAll()
+    } catch { toast.error('添加失败') } finally { setSavingReminder(false) }
+  }
+
+  const downloadRegister = async (type) => {
     if (!company) return
     setGeneratingReg(type)
     try {
-      const html = type === 'rod' ? buildRodHtml(company) : buildRomHtml(company)
-      const filename = `${type.toUpperCase()}_${(company.registrationNumber || 'N_A')}_${new Date().toISOString().substring(0, 10)}.doc`
-      const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url; a.download = filename
-      document.body.appendChild(a); a.click()
-      document.body.removeChild(a); URL.revokeObjectURL(url)
-      toast.success(`${type === 'rod' ? 'ROD' : 'ROM'} downloaded`)
+      if (type === 'rom') {
+        // 真正的 .docx：香港(8列) / BVI(嵌套19列)，按地区+用途(签字栏)生成
+        const blob = await buildRomDocxBlob(
+          company,
+          (company.links || []).filter((l) => l.roles.includes('shareholder')),
+          { region: romRegion, purpose: romPurpose }
+        )
+        const filename = generateDocFilename('ROM', company, { ext: 'docx' })
+        saveBlob(blob, filename)
+        toast.success(`ROM downloaded (.docx, ${romRegion}${romPurpose !== 'standard' ? ' / ' + romPurpose : ''})`)
+      } else {
+        // 真正的 .docx：香港(7列) / BVI(4表)，按地区+用途(签字栏)生成
+        const blob = await buildRodDocxBlob(
+          company,
+          (company.links || []).filter((l) => l.roles.includes('director') || l.roles.includes('alternate_director')),
+          { region: rodRegion, purpose: rodPurpose }
+        )
+        const filename = generateDocFilename('ROD', company, { ext: 'docx' })
+        saveBlob(blob, filename)
+        toast.success(`ROD downloaded (.docx, ${rodRegion}${rodPurpose !== 'standard' ? ' / ' + rodPurpose : ''})`)
+      }
     } catch {
       toast.error('Failed to generate register')
     } finally {
       setGeneratingReg(null)
     }
-  }
-
-  // ROD — Register of Directors HTML
-  const buildRodHtml = (c) => {
-    const dirLinks = (c.links || []).filter(l => l.roles.includes('director') || l.roles.includes('alternate_director'))
-    const rows = dirLinks.map(l => {
-      const p = resolveLinkDisplay(l)
-      return `<tr>
-        <td>${formatDate(l.appointedDate)}</td>
-        <td>${p.name || '-'}</td>
-        <td>${p.nric ? (p.nric.startsWith('P') ? p.nric : `Passport: ${p.nric}`) : '-'}</td>
-        <td>${p.nationality || '-'}</td>
-        <td>${p.address?.country || '-'}</td>
-        <td>${l.roles.join(', ')}</td>
-        <td>${formatDate(l.ceasedDate) || 'Present'}</td>
-      </tr>`
-    }).join('')
-
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-body{font-family:'Times New Roman',serif;margin:40px 60px;color:#000;line-height:1.6}
-h2{text-align:center;margin-bottom:4px;font-size:16px}
-.reg-title{text-align:center;font-size:14px;font-weight:bold;margin:8px 0 20px;border:1px solid #000;padding:6px;letter-spacing:2px}
-.meta{text-align:center;margin-bottom:20px;font-size:11px}
-table{width:100%;border-collapse:collapse;font-size:11px}
-th,td{border:1px solid #000;padding:5px 6px;text-align:left;vertical-align:top}
-th{background:#f0f0f0;font-weight:bold;text-align:center}
-.footer-note{margin-top:30px;font-size:9px;color:#666}
-@media print{body{margin:20px}}
-</style></head><body>
-<h2>${c.name || ''}</h2>
-${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}</p>` : ''}
-<div class="reg-title">REGISTER OF DIRECTORS</div>
-<div class="meta">Company No.: ${c.registrationNumber || 'N/A'} &nbsp;|&nbsp; Jurisdiction: ${c.jurisdiction || 'N/A'} &nbsp;|&nbsp; Date: ${new Date().toISOString().substring(0,10)}</div>
-<table><thead><tr>
-<th>Date Appointed</th><th>Full Name</th><th>NRIC / Passport</th><th>Nationality</th><th>Address</th><th>Role</th><th>Date Ceased</th>
-</tr></thead><tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#999">No directors registered</td></tr>'}</tbody></table>
-<p class="footer-note">Generated by Claw Company Secretary System on ${new Date().toISOString().substring(0,10)}</p>
-</body></html>`
-  }
-
-  // ROM — Register of Members HTML
-  const buildRomHtml = (c) => {
-    const shLinks = (c.links || []).filter(l => l.roles.includes('shareholder'))
-    const rows = shLinks.map(l => {
-      const p = resolveLinkDisplay(l)
-      return `<tr>
-        <td>${formatDate(l.appointedDate)}</td>
-        <td>${p.name || '-'}</td>
-        <td>${p.address?.country || p.registrationNumber || '-'}</td>
-        <td>${(l.shares || 0).toLocaleString()}</td>
-        <td>${l.shareType || 'Ordinary'}</td>
-        <td>${c.shareCapital?.currency || 'HKD'} ${c.shareCapital?.paidUp ? (l.shares ? ((l.shares / c.shareCapital.paidUp * 100).toFixed(2) + '%') : '-') : '-'}</td>
-        <td>${formatDate(l.ceasedDate) || 'Present'}</td>
-      </tr>`
-    }).join('')
-
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-body{font-family:'Times New Roman',serif;margin:40px 60px;color:#000;line-height:1.6}
-h2{text-align:center;margin-bottom:4px;font-size:16px}
-.reg-title{text-align:center;font-size:14px;font-weight:bold;margin:8px 0 20px;border:1px solid #000;padding:6px;letter-spacing:2px}
-.meta{text-align:center;margin-bottom:20px;font-size:11px}
-table{width:100%;border-collapse:collapse;font-size:11px}
-th,td{border:1px solid #000;padding:5px 6px;text-align:left;vertical-align:top}
-th{background:#f0f0f0;font-weight:bold;text-align:center}
-.footer-note{margin-top:30px;font-size:9px;color:#666}
-</style></head><body>
-<h2>${c.name || ''}</h2>
-${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}</p>` : ''}
-<div class="reg-title">REGISTER OF MEMBERS</div>
-<div class="meta">Company No.: ${c.registrationNumber || 'N/A'} &nbsp;|&nbsp; Jurisdiction: ${c.jurisdiction || 'N/A'} &nbsp;|&nbsp; Issued Shares: ${(c.shareCapital?.issued || 0).toLocaleString()} ${c.shareCapital?.currency || 'HKD'} &nbsp;|&nbsp; Date: ${new Date().toISOString().substring(0,10)}</div>
-<table><thead><tr>
-<th>Date Entered</th><th>Member Name</th><th>Address / Jurisdiction</th><th>No. of Shares</th><th>Share Type</th><th>Shareholding %</th><th>Date Ceased</th>
-</tr></thead><tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#999">No members registered</td></tr>'}</tbody></table>
-<p class="footer-note">Generated by Claw Company Secretary System on ${new Date().toISOString().substring(0,10)}</p>
-</body></html>`
   }
 
   // ---- Render helpers ----
@@ -322,6 +476,106 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
     )
   }
 
+  // 登记册生成选项（地区 / 用途）
+  const REGION_OPTS = [
+    { value: 'HK', label: '香港 HK' },
+    { value: 'BVI', label: 'BVI' },
+  ]
+  const PURPOSE_OPTS = [
+    { value: 'standard', label: '标准' },
+    { value: 'bank', label: '银行' },
+    { value: 'audit', label: '审计' },
+  ]
+  const RegSelect = ({ label, value, onChange, options }) => (
+    <label className="flex items-center gap-1 text-xs text-gray-500">
+      {label}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="border rounded px-1.5 py-1 text-xs bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
+      >
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </label>
+  )
+
+  // 登记册表格子组件：区分现任/历任，支持标记离任/恢复，保留完整记录
+  const RegisterTable = ({ title, subtitle, links, columns, onDownload, generating, regType, emptyText, extraControls }) => {
+    const current = links.filter(l => !l.ceasedDate)
+    const former = links.filter(l => !!l.ceasedDate)
+    const renderRows = (list) => list.map(link => {
+      const p = resolveLinkDisplay(link)
+      return (
+        <tr key={link._id} className={`border-b hover:bg-gray-50 ${link.ceasedDate ? 'bg-red-50/40' : ''}`}>
+          {columns.map(col => (
+            <td key={col.key} className={col.tdClass || 'p-2'}>{col.cell(link, p)}</td>
+          ))}
+          <td className="p-2 text-right">
+            {link.ceasedDate ? (
+              <button onClick={() => handleRestoreLink(link._id)} className="text-xs text-green-600 hover:underline font-medium">恢复</button>
+            ) : (
+              <button onClick={() => handleRemoveLink(link._id)} className="text-xs text-red-500 hover:underline font-medium">标记离任</button>
+            )}
+          </td>
+        </tr>
+      )
+    })
+    const Section = ({ label, list, bg }) => (
+      <div className="mb-3">
+        <div className={`flex items-center gap-2 px-2 py-1.5 rounded-t ${bg}`}>
+          <span className="text-sm font-semibold">{label}</span>
+          <span className="text-xs text-gray-500">({list.length})</span>
+        </div>
+        {list.length === 0 ? (
+          <p className="text-xs text-gray-400 px-2 py-2">—</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <tbody>{renderRows(list)}</tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    )
+    return (
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-lg">{title}</h3>
+            <p className="text-sm text-gray-500">{subtitle}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {extraControls}
+            <button onClick={openAddHistorical} className="btn-secondary flex items-center gap-1 text-xs py-1.5 px-3">
+              <Plus size={14} /> 添加历史记录
+            </button>
+            <button onClick={() => onDownload(regType)} disabled={generating} className="btn-primary flex items-center gap-2 text-sm">
+              {generating ? '生成中...' : <><Download size={16} /> 生成 Word</>}
+            </button>
+          </div>
+        </div>
+        {links.length === 0 ? (
+          <p className="text-gray-400 text-sm py-4">{emptyText}</p>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  {columns.map(col => (
+                    <th key={col.key} className={col.thClass || 'text-left p-2 font-medium text-gray-600'}>{col.header}</th>
+                  ))}
+                  <th className="text-right p-2 font-medium text-gray-600">操作</th>
+                </tr>
+              </thead>
+            </table>
+            <Section label="现任 (Current)" list={current} bg="bg-green-50" />
+            <Section label="历任 (Former)" list={former} bg="bg-red-50" />
+          </div>
+        )}
+      </div>
+    )
+  }
+
   if (loading) return <LoadingSpinner size="md" />
   if (!company) return <EmptyState icon={Building2} title="未找到该公司" description="该公司记录不存在或已被删除" />
 
@@ -356,6 +610,7 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
           { key: 'equity', label: '股权架构', icon: Network },
           { key: 'registers', label: '登记册', icon: BookOpen },
           { key: 'compliance', label: '合规', icon: Shield },
+          { key: 'tasks', label: `任务 (${tasks.length})`, icon: CheckSquare },
         ]}
         active={activeTab}
         onChange={setActiveTab}
@@ -364,8 +619,56 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
       {/* Info Tab */}
       {activeTab === 'info' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="card">
-            <h3 className="font-semibold mb-4">公司信息</h3>
+          <div className="card relative">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">公司信息</h3>
+              {!editingInfo ? (
+                <button onClick={openEditInfo} className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 font-medium">
+                  <Edit3 size={14} /> 编辑
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button onClick={() => setEditingInfo(false)} className="text-sm text-gray-500 hover:text-gray-700">取消</button>
+                  <button onClick={saveInfo} disabled={savingInfo} className="text-sm btn-primary">{savingInfo ? '保存中...' : '保存'}</button>
+                </div>
+              )}
+            </div>
+            {editingInfo ? (
+              /* 编辑模式 */
+              <div className="space-y-3">
+                <FormField label="公司名称" required>
+                  <input className={inputClass} value={infoForm.name} onChange={e => setInfoForm(f => ({ ...f, name: e.target.value }))} />
+                </FormField>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="注册号"><input className={inputClass} value={infoForm.registrationNumber} onChange={e => setInfoForm(f => ({ ...f, registrationNumber: e.target.value }))} /></FormField>
+                  <FormField label="类型">
+                    <select className={inputClass} value={infoForm.type} onChange={e => setInfoForm(f => ({ ...f, type: e.target.value }))}>
+                      <option value="private_limited">Private Limited</option>
+                      <option value="public_limited">Public Limited</option>
+                      <option value="llp">LLP</option>
+                      <option value="service_provider">Service Provider</option>
+                    </select>
+                  </FormField>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="属地"><input className={inputClass} value={infoForm.jurisdiction} onChange={e => setInfoForm(f => ({ ...f, jurisdiction: e.target.value }))} /></FormField>
+                  <FormField label="成立日期"><input type="date" className={inputClass} value={infoForm.incorporationDate} onChange={e => setInfoForm(f => ({ ...f, incorporationDate: e.target.value }))} /></FormField>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <FormField label="已发行股份"><input type="number" className={inputClass} value={infoForm.issuedShares} onChange={e => setInfoForm(f => ({ ...f, issuedShares: e.target.value }))} /></FormField>
+                  <FormField label="已缴股本"><input type="number" className={inputClass} value={infoForm.paidUpCapital} onChange={e => setInfoForm(f => ({ ...f, paidUpCapital: e.target.value }))} /></FormField>
+                  <FormField label="货币">
+                    <select className={inputClass} value={infoForm.currency} onChange={e => setInfoForm(f => ({ ...f, currency: e.target.value }))}>
+                      <option value="HKD">HKD</option>
+                      <option value="USD">USD</option>
+                      <option value="CNY">CNY</option>
+                      <option value="GBP">GBP</option>
+                    </select>
+                  </FormField>
+                </div>
+              </div>
+            ) : (
+              /* 只读模式 */
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">注册号</span><span>{company.registrationNumber || '-'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">类型</span><span className="capitalize">{company.type?.replace(/_/g, ' ') || '-'}</span></div>
@@ -378,10 +681,23 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
                 </>
               )}
             </dl>
+            )}
           </div>
           <div className="card">
-            <h3 className="font-semibold mb-4">地址</h3>
-            {company.registeredAddress ? (
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              地址
+              {editingInfo && <span className="text-xs text-primary-500 font-normal">（编辑中）</span>}
+            </h3>
+            {editingInfo ? (
+              <div className="space-y-3">
+                <FormField label="街道"><input className={inputClass} value={infoForm.street} onChange={e => setInfoForm(f => ({ ...f, street: e.target.value }))} placeholder="例如：皇后大道中 1 号" /></FormField>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="城市"><input className={inputClass} value={infoForm.city} onChange={e => setInfoForm(f => ({ ...f, city: e.target.value }))} /></FormField>
+                  <FormField label="省份/州"><input className={inputClass} value={infoForm.state} onChange={e => setInfoForm(f => ({ ...f, state: e.target.value }))} /></FormField>
+                </div>
+                <FormField label="国家/地区"><input className={inputClass} value={infoForm.addressCountry} onChange={e => setInfoForm(f => ({ ...f, addressCountry: e.target.value }))} /></FormField>
+              </div>
+            ) : company.registeredAddress ? (
               <p className="text-sm text-gray-600">
                 {[company.registeredAddress.street, company.registeredAddress.city, company.registeredAddress.state, company.registeredAddress.country].filter(Boolean).join(', ') || company.registeredAddress.country || '-'}
               </p>
@@ -405,6 +721,20 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
                     <span className="text-primary-600">{m.title}</span>
                     <span className="text-gray-400">{formatDate(m.scheduledAt)}</span>
                   </Link>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* 新增 Task 区域 — 在概览页直接可见，无需切换 Tab */}
+          {tasks.length > 0 && (
+            <div className="card">
+              <h3 className="font-semibold mb-4 flex items-center gap-2"><CheckSquare size={16} /> 近期任务</h3>
+              <div className="space-y-2">
+                {tasks.slice(0, 3).map(t => (
+                  <div key={t._id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-sm">
+                    <span className="text-primary-600 truncate">{t.title}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${taskPriorityColor(t.priority)}`}>{t.priority}</span>
+                  </div>
                 ))}
               </div>
             </div>
@@ -503,6 +833,14 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
                           <div className="flex items-center gap-2 flex-wrap">
                             {doc.docNumber && <span className="text-xs font-mono text-gray-400">{doc.docNumber}</span>}
                             <p className="font-medium truncate">{doc.name}</p>
+                            {/* v5.0: isExpiring 徽章逻辑（红=已过期 / 橙=即将到期 / 绿=有效） */}
+                            {(() => {
+                              const st = docExpiryStatus(doc)
+                              const badge = DOC_EXPIRY_BADGE[st]
+                              return badge ? (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+                              ) : null
+                            })()}
                           </div>
                           <p className="text-xs text-gray-400">
                             <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{DOC_CATEGORY_LABELS[doc.category] || '其他'}</span>
@@ -537,164 +875,164 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
         <div className="space-y-6">
           <h2 className="text-lg font-semibold flex items-center gap-2"><BookOpen size={20} /> 公司登记册</h2>
 
-          {/* ROD Card */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-lg">Register of Directors (ROD)</h3>
-                <p className="text-sm text-gray-500">董事登记册 &mdash; {directors.length} 位董事</p>
-              </div>
-              <button
-                onClick={() => downloadRegister('rod')}
-                disabled={generatingReg === 'rod'}
-                className="btn-primary flex items-center gap-2 text-sm"
-              >
-                {generatingReg === 'rod' ? 'Generating...' : <><Download size={16} /> 生成 Word (.doc)</>}
-              </button>
-            </div>
+          {/* ROD — Register of Directors */}
+          <RegisterTable
+            title="Register of Directors (ROD)"
+            subtitle={`董事登记册 — 现任 ${activeDirectors.length} 位 / 历任 ${formerDirectors.length} 位`}
+            links={directors}
+            regType="rod"
+            onDownload={downloadRegister}
+            generating={generatingReg === 'rod'}
+            emptyText="No directors registered"
+            extraControls={
+              <>
+                <RegSelect label="地区" value={rodRegion} onChange={setRodRegion} options={REGION_OPTS} />
+                <RegSelect label="用途" value={rodPurpose} onChange={setRodPurpose} options={PURPOSE_OPTS} />
+              </>
+            }
+            columns={[
+              { key: 'appointed', header: 'Date Appointed', tdClass: 'p-2 text-xs', cell: (l) => formatDate(l.appointedDate) },
+              { key: 'name', header: 'Full Name', tdClass: 'p-2', cell: (l, p) => p.name || '-' },
+              { key: 'nric', header: 'NRIC / Passport', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.nric || '-' },
+              { key: 'nationality', header: 'Nationality', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.nationality || '-' },
+              { key: 'address', header: 'Address', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.address?.country || '-' },
+              { key: 'role', header: 'Role', tdClass: 'p-2', cell: (l) => l.roles.map(r => <span key={r} className="badge badge-info text-xs mr-1">{r}</span>) },
+              { key: 'ceased', header: 'Date Ceased', tdClass: 'p-2 text-xs', cell: (l) => l.ceasedDate ? formatDate(l.ceasedDate) : 'Present' },
+            ]}
+          />
 
-            {/* Preview table */}
-            {directors.length === 0 ? (
-              <p className="text-gray-400 text-sm py-4">No directors registered</p>
-            ) : (
-              <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 border-b">
-                      <th className="text-left p-2 font-medium text-gray-600">Date Appointed</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Full Name</th>
-                      <th className="text-left p-2 font-medium text-gray-600">NRIC / Passport</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Nationality</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Address</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Role</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Date Ceased</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {directors.map(link => {
-                      const p = resolveLinkDisplay(link)
-                      return (
-                        <tr key={link._id} className="border-b hover:bg-gray-50">
-                          <td className="p-2 text-xs">{formatDate(link.appointedDate)}</td>
-                          <td className="p-2">{p.name || '-'}</td>
-                          <td className="p-2 text-xs text-gray-500">{p.nric || '-'}</td>
-                          <td className="p-2 text-xs">{p.nationality || '-'}</td>
-                          <td className="p-2 text-xs text-gray-500">{p.address?.country || '-'}</td>
-                          <td className="p-2">
-                            <div className="flex flex-wrap gap-0.5">
-                              {link.roles.map(r => <span key={r} className="badge badge-info text-xs">{r}</span>)}
-                            </div>
-                          </td>
-                          <td className="p-2 text-xs">{link.ceasedDate ? formatDate(link.ceasedDate) : 'Present'}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* ROM Card */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-lg">Register of Members (ROM)</h3>
-                <p className="text-sm text-gray-500">股东登记册 &mdash; {shareholders.length} 位股东 &middot; Issued: {(company.shareCapital?.issued || 0).toLocaleString()} {company.shareCapital?.currency || ''}</p>
-              </div>
-              <button
-                onClick={() => downloadRegister('rom')}
-                disabled={generatingReg === 'rom'}
-                className="btn-primary flex items-center gap-2 text-sm"
-              >
-                {generatingReg === 'rom' ? 'Generating...' : <><Download size={16} /> 生成 Word (.doc)</>}
-              </button>
-            </div>
-
-            {shareholders.length === 0 ? (
-              <p className="text-gray-400 text-sm py-4">No shareholders registered</p>
-            ) : (
-              <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 border-b">
-                      <th className="text-left p-2 font-medium text-gray-600">Date Entered</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Member Name</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Address / Jurisdiction</th>
-                      <th className="text-right p-2 font-medium text-gray-600">No. of Shares</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Type</th>
-                      <th className="text-right p-2 font-medium text-gray-600">%</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Date Ceased</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shareholders.map(link => {
-                      const p = resolveLinkDisplay(link)
-                      const pct = company.shareCapital?.paidUp ? (link.shares ? ((link.shares / company.shareCapital.paidUp * 100).toFixed(2) + '%') : '-') : '-'
-                      return (
-                        <tr key={link._id} className="border-b hover:bg-gray-50">
-                          <td className="p-2 text-xs">{formatDate(link.appointedDate)}</td>
-                          <td className="p-2">{p.name || '-'}</td>
-                          <td className="p-2 text-xs text-gray-500">{p.address?.country || p.registrationNumber || '-'}</td>
-                          <td className="p-2 text-xs text-right">{(link.shares || 0).toLocaleString()}</td>
-                          <td className="p-2 text-xs">{link.shareType || 'Ordinary'}</td>
-                          <td className="p-2 text-xs text-right">{pct}</td>
-                          <td className="p-2 text-xs">{link.ceasedDate ? formatDate(link.ceasedDate) : 'Present'}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          {/* ROM — Register of Members */}
+          <RegisterTable
+            title="Register of Members (ROM)"
+            subtitle={`股东登记册 — 现任 ${activeShareholders.length} 位 / 历任 ${formerShareholders.length} 位 · Issued: ${(company.shareCapital?.issued || 0).toLocaleString()} ${company.shareCurrency?.currency || ''}`}
+            links={shareholders}
+            regType="rom"
+            onDownload={downloadRegister}
+            generating={generatingReg === 'rom'}
+            emptyText="No shareholders registered"
+            extraControls={
+              <>
+                <RegSelect label="地区" value={romRegion} onChange={setRomRegion} options={REGION_OPTS} />
+                <RegSelect label="用途" value={romPurpose} onChange={setRomPurpose} options={PURPOSE_OPTS} />
+              </>
+            }
+            columns={[
+              { key: 'entered', header: 'Date Entered', tdClass: 'p-2 text-xs', cell: (l) => formatDate(l.appointedDate) },
+              { key: 'name', header: 'Member Name', tdClass: 'p-2', cell: (l, p) => p.name || '-' },
+              { key: 'address', header: 'Address / Jurisdiction', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.address?.country || p.registrationNumber || '-' },
+              { key: 'shares', header: 'No. of Shares', tdClass: 'p-2 text-right text-xs', cell: (l) => (l.shares || 0).toLocaleString() },
+              { key: 'type', header: 'Type', tdClass: 'p-2 text-xs', cell: (l) => l.shareType || 'Ordinary' },
+              { key: 'pct', header: '%', tdClass: 'p-2 text-right text-xs', cell: (l) => company.shareCapital?.paidUp && l.shares ? ((l.shares / company.shareCapital.paidUp * 100).toFixed(2) + '%') : '-' },
+              { key: 'ceased', header: 'Date Ceased', tdClass: 'p-2 text-xs', cell: (l) => l.ceasedDate ? formatDate(l.ceasedDate) : 'Present' },
+            ]}
+          />
 
           {/* Secretary Register */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-lg">Register of Secretaries</h3>
-                <p className="text-sm text-gray-500">公司秘书登记册 &mdash; {secretaries.length} 位秘书</p>
-              </div>
+          <RegisterTable
+            title="Register of Secretaries"
+            subtitle={`公司秘书登记册 — 现任 ${activeSecretaries.length} 位 / 历任 ${formerSecretaries.length} 位`}
+            links={secretaries}
+            regType="sec"
+            onDownload={() => {} /* TODO: generate ROS Word */ }
+            generating={false}
+            emptyText="No secretary registered"
+            columns={[
+              { key: 'appointed', header: 'Date Appointed', tdClass: 'p-2 text-xs', cell: (l) => formatDate(l.appointedDate) },
+              { key: 'name', header: 'Name', tdClass: 'p-2', cell: (l, p) => p.name || '-' },
+              { key: 'nric', header: 'NRIC / Passport', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.nric || '-' },
+              { key: 'address', header: 'Address', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.address?.country || '-' },
+              { key: 'ceased', header: 'Date Ceased', tdClass: 'p-2 text-xs', cell: (l) => l.ceasedDate ? formatDate(l.ceasedDate) : 'Present' },
+            ]}
+          />
+        </div>
+      )}
+
+      {/* Tasks Tab — 公司关联任务 */}
+      {activeTab === 'tasks' && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">关联任务 ({tasks.length})</h2>
+          {tasks.length === 0 ? (
+            <div className="card text-center py-10 text-gray-400">
+              <CheckSquare size={40} className="mx-auto mb-3 opacity-50" />
+              <p>暂无关联任务</p>
             </div>
-            {secretaries.length === 0 ? (
-              <p className="text-gray-400 text-sm py-4">No secretary registered</p>
-            ) : (
-              <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 border-b">
-                      <th className="text-left p-2 font-medium text-gray-600">Date Appointed</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Name</th>
-                      <th className="text-left p-2 font-medium text-gray-600">NRIC / Passport</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Address</th>
-                      <th className="text-left p-2 font-medium text-gray-600">Date Ceased</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {secretaries.map(link => {
-                      const p = resolveLinkDisplay(link)
-                      return (
-                        <tr key={link._id} className="border-b hover:bg-gray-50">
-                          <td className="p-2 text-xs">{formatDate(link.appointedDate)}</td>
-                          <td className="p-2">{p.name || '-'}</td>
-                          <td className="p-2 text-xs text-gray-500">{p.nric || '-'}</td>
-                          <td className="p-2 text-xs text-gray-500">{p.address?.country || '-'}</td>
-                          <td className="p-2 text-xs">{link.ceasedDate ? formatDate(link.ceasedDate) : 'Present'}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          ) : (
+            <div className="space-y-2">
+              {tasks.map(t => (
+                <div key={t._id} className="card flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{t.title}</p>
+                    <p className="text-xs text-gray-400">{t.type} &middot; 到期 {formatDate(t.dueDate)}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${taskPriorityColor(t.priority)}`}>{t.priority}</span>
+                    <span className={`badge ${getStatusColor(t.status)}`}>{t.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Compliance Tab */}
       {activeTab === 'compliance' && (
         <div className="space-y-4">
+          {/* 合规提醒列表 + 新增入口 */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">合规提醒 ({reminders.length})</h3>
+              <div className="flex items-center gap-3">
+                <Link to="/compliance-reminders" className="text-sm text-primary-600 hover:underline">查看全部</Link>
+                <button onClick={openAddReminder} className="btn-primary flex items-center gap-1 text-sm py-1.5 px-3">
+                  <Plus size={14} /> 新增提醒
+                </button>
+              </div>
+            </div>
+            {reminders.length === 0 ? (
+              <p className="text-sm text-gray-400">暂无与该公司的合规提醒，点击"新增提醒"添加</p>
+            ) : (
+              <div className="space-y-2">
+                {reminders.map(r => (
+                  <div key={r._id} className="flex items-center justify-between border rounded-lg p-3">
+                    <div>
+                      <p className="font-medium text-sm">{r.title}</p>
+                      <p className="text-xs text-gray-500">
+                        到期: {formatDate(r.dueDate)} · 优先级: {r.priority}
+                        {r.rule?.name && <> · 规则: <span className="text-primary-600">{r.rule.name}</span></>}
+                      </p>
+                    </div>
+                    <span className={`badge ${getStatusColor(r.status)}`}>{r.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 可用规则库（快捷参考） */}
+          {rules.length > 0 && (
+            <div className="card">
+              <h3 className="font-semibold mb-3">可用规则 ({rules.length})</h3>
+              <div className="flex flex-wrap gap-2">
+                {rules.map(r => (
+                  <button
+                    key={r._id}
+                    onClick={() => {
+                      setReminderForm({ mode: 'rule', ruleId: r._id, title: '', description: '', priority: 'medium', dueDate: '', saveAsRule: false, ruleName: '', ruleCategory: r.category, ruleFrequency: r.frequency })
+                      handleRuleSelect(r._id)
+                      setShowReminderModal(true)
+                    }}
+                    className="text-xs px-3 py-1.5 rounded-full border transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+                    title={`${r.description || ''} (${r.frequency})`}
+                  >
+                    {r.name}
+                    {r.isPreset && <span className="ml-1 text-[10px] bg-blue-100 text-blue-600 px-1 rounded">预设</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <h2 className="text-lg font-semibold">合规状态</h2>
           {compliance ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -735,8 +1073,26 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
         </div>
       )}
 
+      {/* ====== Cease/Restore Modal ====== */}
+      <Modal isOpen={showCeaseModal} onClose={() => { setShowCeaseModal(false); setCeasingLink(null) }} title="标记离任" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">此成员将标记为「历任」，记录保留在登记册中（可随时恢复）。</p>
+          <FormField label="离任日期" required>
+            <input type="date" className={inputClass} value={ceasedDateInput} onChange={e => setCeasedDateInput(e.target.value)} />
+          </FormField>
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => { setShowCeaseModal(false); setCeasingLink(null) }} className="btn-secondary">取消</button>
+            <button onClick={handleConfirmCease} className="btn-primary bg-red-600 hover:bg-red-700">确认离任</button>
+          </div>
+        </div>
+      </Modal>
+
       {/* ======== Add/Edit Link Modal ======== */}
-      <Modal isOpen={showLinkModal} onClose={() => { setShowLinkModal(false); setEditingLink(null) }} title={editingLink ? 'Edit Link' : 'Add Link'} size="md">
+      <Modal isOpen={showLinkModal} onClose={() => { setShowLinkModal(false); setEditingLink(null) }} title={
+        editingLink ? '编辑关联' :
+        linkModalMode === 'historical' ? '添加历史记录（历任/曾持）' :
+        '新增关联成员'
+      } size="md">
         <form onSubmit={handleAddLink} className="space-y-4">
               <FormField label="Link Type">
                 <select className={inputClass} value={linkForm.linkModel}
@@ -827,6 +1183,94 @@ ${c.nameChinese ? `<p style="text-align:center;font-size:12px">${c.nameChinese}<
                 <button type="submit" className="btn-primary">{editingLink ? 'Save Changes' : 'Add Link'}</button>
               </div>
             </form>
+      </Modal>
+
+      {/* ====== Add Compliance Reminder Modal ====== */}
+      <Modal isOpen={showReminderModal} onClose={() => setShowReminderModal(false)} title="新增合规提醒" size="md">
+        <div className="space-y-4">
+          {/* 模式切换：联动规则 / 自定义 */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setReminderForm(f => ({ ...f, mode: 'rule' }))}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${reminderForm.mode === 'rule' ? 'bg-primary-50 border-primary-300 text-primary-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+            >
+              📋 从规则库选择
+            </button>
+            <button
+              onClick={() => setReminderForm(f => ({ ...f, mode: 'custom', ruleId: '', title: f.title }))}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${reminderForm.mode === 'custom' ? 'bg-primary-50 border-primary-300 text-primary-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+            >
+              ✏️ 自定义填写
+            </button>
+          </div>
+
+          {reminderForm.mode === 'rule' ? (
+            /* 联动规则模式 */
+            <>
+              <FormField label="选择合规规则" required>
+                <select className={inputClass} value={reminderForm.ruleId} onChange={e => handleRuleSelect(e.target.value)}>
+                  <option value="">-- 选择规则 --</option>
+                  {rules.map(r => (
+                    <option key={r._id} value={r._id}>{r.name} ({r.frequency}){r.isPreset ? ' ★' : ''}</option>
+                  ))}
+                </select>
+              </FormField>
+              {rules.length === 0 && <p className="text-xs text-amber-600">暂无可用规则，请先在「合规规则」页面创建</p>}
+            </>
+          ) : null}
+
+          {/* 共用字段（自定义模式下全部可编辑，规则模式下自动填充后可微调） */}
+          <FormField label="标题" required><input className={inputClass} value={reminderForm.title} onChange={e => setReminderForm(f => ({ ...f, title: e.target.value }))} placeholder="例如：NAR1 年度申报表 - Easy Rich Corporation" /></FormField>
+          <FormField label="描述"><textarea className={inputClass} rows={2} value={reminderForm.description} onChange={e => setReminderForm(f => ({ ...f, description: e.target.value }))} placeholder="说明此合规事项的要求..." /></FormField>
+
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="优先级">
+              <select className={inputClass} value={reminderForm.priority} onChange={e => setReminderForm(f => ({ ...f, priority: e.target.value }))}>
+                <option value="low">低</option>
+                <option value="medium">中</option>
+                <option value="high">高</option>
+                <option value="critical">紧急</option>
+              </select>
+            </FormField>
+            <FormField label="到期日期" required>
+              <input type="date" className={inputClass} value={reminderForm.dueDate} onChange={e => setReminderForm(f => ({ ...f, dueDate: e.target.value }))} />
+            </FormField>
+          </div>
+
+          {/* 自定义模式：保存为规则选项 */}
+          {reminderForm.mode === 'custom' && (
+            <div className="border border-dashed border-gray-300 rounded-lg p-3 space-y-3 bg-gray-50/50">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={reminderForm.saveAsRule} onChange={e => setReminderForm(f => ({ ...f, saveAsRule: e.target.checked }))} className="rounded" />
+                <span className="font-medium text-gray-700">💾 保存为规则（沉淀到规则库，供其他公司复用）</span>
+              </label>
+              {reminderForm.saveAsRule && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField label="规则名称" required><input className={inputClass} value={reminderForm.ruleName} onChange={e => setReminderForm(f => ({ ...f, ruleName: e.target.value }))} placeholder="例如：年度税务申报" /></FormField>
+                    <FormField label="分类">
+                      <select className={inputClass} value={reminderForm.ruleCategory} onChange={e => setReminderForm(f => ({ ...f, ruleCategory: e.target.value }))}>
+                        <option value="annual_return">年报/申报</option>
+                        <option value="general_meeting">股东大会</option>
+                        <option value="director_change">董事变更</option>
+                        <option value="license_renewal">证照续期</option>
+                        <option value="auditor">审计相关</option>
+                        <option value="tax">税务</option>
+                        <option value="other">其他</option>
+                      </select>
+                    </FormField>
+                  </div>
+                  <FormField label="频率"><input className={inputClass} value={reminderForm.ruleFrequency} onChange={e => setReminderForm(f => ({ ...f, ruleFrequency: e.target.value }))} placeholder="例如：12 months / event_driven" /></FormField>
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setShowReminderModal(false)} className="btn-secondary">取消</button>
+            <button onClick={handleSaveReminder} disabled={savingReminder || !reminderForm.title || !reminderForm.dueDate} className="btn-primary">{savingReminder ? '添加中...' : '添加提醒'}</button>
+          </div>
+        </div>
       </Modal>
 
       {/* Confirm Dialog */}

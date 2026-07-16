@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Building2, Plus, Pencil, Trash2 } from 'lucide-react'
+import { Building2, Plus, Pencil, Trash2, Upload, Download } from 'lucide-react'
 import { companyService } from '../services/index.js'
 import { formatDate, getStatusColor } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, labelClass } from '../components/UIHelpers'
@@ -20,7 +20,7 @@ const FORM_RULES = {
 }
 
 export default function Companies() {
-  const { user } = useAuth()
+  const { user, canEdit } = useAuth()
   const isDemo = !user?.token || user?.token?.startsWith('demo-')
 
   const [companies, setCompanies] = useState([])
@@ -31,6 +31,10 @@ export default function Companies() {
   const [formErrors, setFormErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  // Excel import
+  const [importModal, setImportModal] = useState(false)
+  const [importResult, setImportResult] = useState(null)
+  const importFileRef = useRef()
 
   // Search + filter via useSearchFilter
   const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
@@ -111,6 +115,59 @@ export default function Companies() {
     }
   }
 
+  // ---- Excel 批量导入（解析 + 落库 + 去重）----
+  const downloadTemplate = () => {
+    const headers = ['公司名称', '注册号', '类型', '属地', '状态', '成立日期']
+    const example = ['ABC Trading Ltd', '12345678', 'private_limited', 'Hong Kong', 'active', '2020-01-15']
+    import('xlsx').then(XLSX => {
+      const ws = XLSX.utils.aoa_to_sheet([headers, example])
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Companies')
+      XLSX.writeFile(wb, 'companies_template.xlsx')
+    })
+  }
+
+  const handleImport = async (e) => {
+    const file = e.target.files[0]; if (!file) return
+    setImportResult(null)
+    try {
+      const XLSX = await import('xlsx')
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array' })
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+      let created = 0, skipped = 0
+      const errors = []
+      const existing = [...companies]
+      const typeMap = { private_limited: 'private_limited', 'Private Limited': 'private_limited', 'private limited': 'private_limited', public_limited: 'public_limited', 'Public Limited': 'public_limited', llp: 'llp', LLP: 'llp' }
+      const statusMap = { active: 'active', Active: 'active', dormant: 'dormant', Dormant: 'dormant', struck_off: 'struck_off', 'Struck Off': 'struck_off' }
+      for (const row of rows) {
+        const name = (row['公司名称'] || row['Company Name'] || row.name || '').toString().trim()
+        if (!name) { errors.push('跳过空行'); continue }
+        const regNo = (row['注册号'] || row['Registration No.'] || row.registrationNumber || '').toString().trim()
+        const dup = existing.find(c => c.name === name || (regNo && c.registrationNumber === regNo))
+        if (dup) { skipped++; continue }
+        const payload = {
+          name,
+          registrationNumber: regNo || undefined,
+          type: typeMap[row['类型'] || row['Type']] || 'private_limited',
+          jurisdiction: row['属地'] || row['Jurisdiction'] || undefined,
+          status: statusMap[row['状态'] || row['Status']] || 'active',
+          incorporationDate: row['成立日期'] || row['Incorporation Date'] || undefined,
+        }
+        await companyService.create(payload)
+        existing.push(payload)
+        created++
+      }
+      setImportResult({ success: true, created, skipped, errors })
+      fetchCompanies()
+      toast.success(`导入完成：新增 ${created} 家，跳过 ${skipped} 家`)
+    } catch (err) {
+      setImportResult({ success: false, message: err.message || '导入失败' })
+    }
+    e.target.value = ''
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -119,9 +176,17 @@ export default function Companies() {
         subtitle={`${companies.length} companies`}
         icon={Building2}
         actions={
-          <button onClick={openNew} className="btn-primary flex items-center gap-2">
-            <Plus size={16} /> New Company
-          </button>
+          <>
+            {canEdit && (
+              <button onClick={() => { setImportResult(null); setImportModal(true) }}
+                className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+                <Upload size={15} /> Excel 导入
+              </button>
+            )}
+            <button onClick={openNew} className="btn-primary flex items-center gap-2">
+              <Plus size={16} /> New Company
+            </button>
+          </>
         }
       />
 
@@ -237,6 +302,37 @@ export default function Companies() {
         onCancel={() => setDeleteTarget(null)}
         loading={saving}
       />
+
+      {/* Excel 导入 */}
+      <Modal isOpen={importModal} onClose={() => setImportModal(false)} title="Excel 批量导入公司" size="md">
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+            <p className="font-medium mb-1">导入说明</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>必填列：公司名称</li>
+              <li>可选列：注册号、类型、属地、状态、成立日期</li>
+              <li>相同名称或注册号的公司将自动跳过（去重）</li>
+            </ul>
+          </div>
+          <button onClick={downloadTemplate} className="flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium">
+            <Download size={16} /> 下载 Excel 模板
+          </button>
+          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors"
+            onClick={() => importFileRef.current?.click()}>
+            <Upload size={32} className="mx-auto text-gray-400 mb-3" />
+            <p className="text-gray-600 text-sm">点击选择 Excel 文件</p>
+            <input ref={importFileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
+          </div>
+          {importResult && (
+            <div className={`p-4 rounded-lg text-sm ${importResult.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+              {importResult.success
+                ? <><p className="font-medium">导入完成</p><p>新增 {importResult.created} 家，跳过 {importResult.skipped} 家</p>
+                  {importResult.errors?.length > 0 && <div className="mt-2 text-amber-700"><ul className="list-disc list-inside text-xs">{importResult.errors.map((er, i) => <li key={i}>{er}</li>)}</ul></div>}</>
+                : <p>{importResult.message}</p>}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }

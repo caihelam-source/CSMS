@@ -20,6 +20,10 @@ const taskSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Meeting'
   },
+  personnel: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Personnel'
+  },
   priority: {
     type: String,
     enum: ['low', 'medium', 'high', 'urgent'],
@@ -73,5 +77,12 @@ taskSchema.pre('save', function(next) {
   }
   next();
 });
+
+// v5.0 读时聚合索引：以 company / personnel / meeting 引用为聚合键
+taskSchema.index({ company: 1 });
+taskSchema.index({ personnel: 1 });
+taskSchema.index({ meeting: 1 });
+taskSchema.index({ dueDate: 1 });
+taskSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);

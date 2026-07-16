@@ -1,7 +1,7 @@
 const express = require('express');
 const DocumentTemplate = require('../models/DocumentTemplate');
 const Company = require('../models/Company');
-const Director = require('../models/Director');
+const Personnel = require('../models/Personnel');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -110,7 +110,7 @@ router.post('/:id/render', auth, async (req, res) => {
 
     // 自动从董事填充
     if (directorIds && directorIds.length > 0) {
-      const directors = await Director.find({ _id: { $in: directorIds } });
+      const directors = await Personnel.find({ _id: { $in: directorIds } });
       vars['董事列表'] = directors.map(d => d.nameChinese || d.name).join('、');
       directors.forEach((d, i) => {
         vars[`董事${i + 1}姓名`] = d.name;

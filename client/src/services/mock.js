@@ -157,8 +157,10 @@ const MOCK_COMPANIES = [
 ];
 
 // ====== 文档数据（含文档编号 + 分类，支撑编档/批量下载） ======
-// 编号规则：<分类前缀>-<类型缩写>-<序号>
+// 编号规则：<分类前缀>-<公司简称(注册号后4位)>-<年份>-<类型缩写>-<序号>
 //   GOV=政府往来  EST=设立文件  FIN=财务税务  BNK=银行文件  MTG=会议文件  OTH=其他
+//   公司简称取注册号后4位（无公司用 P+姓名首字母）
+// 例：GOV-0948-2026-NAR1-001 → Easy Rich(...0948) 2026年 周年申报表 第1号
 const MOCK_DOCUMENTS = [
   { _id: 'd1', docNumber: 'GOV-NAR1-0001', name: 'NAR1 周年申报表 2026', type: 'return', category: 'government', company: { _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)', registrationNumber: '65940948' }, personnel: null, fileUrl: '/docs/EasyRich_NAR1_2026.pdf', fileName: 'NAR1 - Easy Rich Corporation Ltd 2026.pdf', fileSize: 512000, createdAt: '2026-04-21' },
   { _id: 'd2', docNumber: 'GOV-NAR1-0002', name: 'NAR1 周年申报表 2026', type: 'return', category: 'government', company: { _id: 'c2', name: 'Zhong An Travel Ltd (眾安旅遊)', registrationNumber: '69459923' }, personnel: null, fileUrl: '/docs/ZhongAn_NAR1_2026.pdf', fileName: 'NAR1- Zhong An Travel Ltd 2026.pdf', fileSize: 512000, createdAt: '2026-06-10' },
@@ -166,14 +168,14 @@ const MOCK_DOCUMENTS = [
   { _id: 'd4', docNumber: 'GOV-NAR1-0004', name: 'NAR1 周年申报表 2025', type: 'return', category: 'government', company: { _id: 'c4', name: 'Hong Kong Time Honour Property Ltd (香港時駿地産)', registrationNumber: '63822186' }, personnel: null, fileUrl: '/docs/TimeHonour_NAR1_2025.pdf', fileName: 'NAR1 - Hong Kong Time Honour Property Ltd 2025.pdf', fileSize: 512000, createdAt: '2025-12-04' },
   { _id: 'd5', docNumber: 'GOV-NAR1-0005', name: 'NAR1 周年申报表 2025', type: 'return', category: 'government', company: { _id: 'c5', name: 'Pannix Industrial (Hong Kong) Ltd (佳穎實業)', registrationNumber: '63822047' }, personnel: null, fileUrl: '/docs/Pannix_NAR1_2025.pdf', fileName: 'NAR1 - Pannix Industrial (Hong Kong) Limited 2025.pdf', fileSize: 512000, createdAt: '2025-12-02' },
   // 个人证件文档
-  { _id: 'd6', docNumber: 'OTH-ID-0006', name: '施金帆 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p1', name: '施金帆' }, fileUrl: '', fileName: 'shijinfan_id.pdf', fileSize: 256000, createdAt: '2025-01-01' },
-  { _id: 'd7', docNumber: 'OTH-PP-0007', name: '施南路 — 护照复印件', type: 'passport', category: 'other', company: null, personnel: { _id: 'p2', name: '施南路' }, fileUrl: '', fileName: 'shinanlu_passport.pdf', fileSize: 256000, createdAt: '2025-01-01' },
-  { _id: 'd8', docNumber: 'OTH-ID-0008', name: '施中安 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p3', name: '施中安 (施侃成)' }, fileUrl: '', fileName: 'shizhongan_id.pdf', fileSize: 256000, createdAt: '2025-01-01' },
-  { _id: 'd9', docNumber: 'OTH-NRIC-0009', name: '林才賀 — NRIC副本', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, fileUrl: '', fileName: 'lincaihe_nric.pdf', fileSize: 256000, createdAt: '2025-01-01' },
+  { _id: 'd6', docNumber: 'OTH-ID-0006', name: '施金帆 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p1', name: '施金帆' }, fileUrl: '', fileName: 'shijinfan_id.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2027-05-10' },
+  { _id: 'd7', docNumber: 'OTH-PP-0007', name: '施南路 — 护照复印件', type: 'passport', category: 'other', company: null, personnel: { _id: 'p2', name: '施南路' }, fileUrl: '', fileName: 'shinanlu_passport.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-07-20' },
+  { _id: 'd8', docNumber: 'OTH-ID-0008', name: '施中安 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p3', name: '施中安 (施侃成)' }, fileUrl: '', fileName: 'shizhongan_id.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-07-10' },
+  { _id: 'd9', docNumber: 'OTH-NRIC-0009', name: '林才賀 — NRIC副本', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, fileUrl: '', fileName: 'lincaihe_nric.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-08-01' },
   // CNC 文档
   { _id: 'd10', docNumber: 'GOV-NN3-0010', name: 'NAR1 NN3 周年申报表 2025', type: 'return', category: 'government', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_NAR1_NN3_2025.pdf', fileSize: 1024000, createdAt: '2025-11-01', notes: '注册非香港公司周年申报表' },
-  { _id: 'd11', docNumber: 'EST-COI-0011', name: 'Certificate of Incumbency 2026-01-08', type: 'certificate', category: 'establishment', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_COI_20260108.pdf', fileSize: 512000, createdAt: '2026-01-08', notes: '在职证明' },
-  { _id: 'd12', docNumber: 'EST-CGS-0012', name: 'Certificate of Good Standing 2026-01-07', type: 'certificate', category: 'establishment', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_CGS_20260107.pdf', fileSize: 512000, createdAt: '2026-01-07', notes: '存续证明 / 良好存续证书' },
+  { _id: 'd11', docNumber: 'EST-COI-0011', name: 'Certificate of Incumbency 2026-01-08', type: 'certificate', category: 'establishment', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_COI_20260108.pdf', fileSize: 512000, createdAt: '2026-01-08', notes: '在职证明', expiresAt: '2027-01-08' },
+  { _id: 'd12', docNumber: 'EST-CGS-0012', name: 'Certificate of Good Standing 2026-01-07', type: 'certificate', category: 'establishment', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_CGS_20260107.pdf', fileSize: 512000, createdAt: '2026-01-07', notes: '存续证明 / 良好存续证书', expiresAt: '2026-12-07' },
 ];
 
 // ====== 会议数据 ======
@@ -318,6 +320,15 @@ const delay = (ms = 200) => new Promise(r => setTimeout(r, ms));
 function findCompany(id) { return MOCK_COMPANIES.find(c => c._id === id); }
 function findPerson(id) { return MOCK_PERSONNEL.find(p => p._id === id); }
 
+// 从 Company.links 反查某人担任的角色（方案甲：Company.links 为权威存储）
+function deriveRoles(personId) {
+  const roles = new Set();
+  MOCK_COMPANIES.forEach(c => (c.links || []).forEach(l => {
+    if (l.linkModel === 'Personnel' && l.link?._id === personId) (l.roles || []).forEach(r => roles.add(r));
+  }));
+  return [...roles];
+}
+
 // ====== 导出 ======
 export const DEMO_USER = {
   id: 'u1', name: 'Alice Chen', email: 'alice@example.com', role: 'secretary', token: 'demo-token-xxx',
@@ -408,6 +419,85 @@ export const companies = {
       },
     };
   },
+
+  // ====== 统一关联 CRUD（读时聚合：Company.links 为唯一事实源） ======
+  // 新增关联：可连 Personnel(个人) 或 Company(公司型股东)；若填写了新人员姓名会自动建 Personnel 记录
+  // 注意：不物化 Personnel.appointments —— 人视角公司列表由 getReverseLinks 读时从 Company.links 聚合
+  addLink: async (companyId, payload) => {
+    await delay();
+    const c = findCompany(companyId);
+    if (!c) throw new Error('Company not found');
+    if (!c.links) c.links = [];
+    const link = {
+      _id: 'l' + Date.now() + Math.floor(Math.random() * 1000),
+      linkModel: payload.linkModel || 'Personnel',
+      link: payload.link || {},
+      roles: payload.roles || ['director'],
+      shares: payload.shares,
+      shareType: payload.shareType,
+      appointmentDate: payload.appointmentDate,
+      ceasedDate: payload.ceasedDate,
+      notes: payload.notes,
+    };
+    // 关联个人但库中无对应记录 → 自动创建 Personnel（保持单一人员来源）
+    if (link.linkModel === 'Personnel' && (!link.link._id || !findPerson(link.link._id))) {
+      const np = {
+        _id: 'p' + Date.now(),
+        name: link.link.name || '未命名',
+        nric: link.link.nric || '',
+        nationality: link.link.nationality || '',
+      };
+      MOCK_PERSONNEL.push(np);
+      link.link = { _id: np._id, name: np.name, nric: np.nric };
+    }
+    c.links.push(link);
+    // 读时聚合：不物化 Personnel.appointments。人视角公司列表由 getReverseLinks 从 Company.links 聚合。
+    return { data: { data: companies._resolveLinks(c) } };
+  },
+  updateLink: async (companyId, linkId, payload) => {
+    await delay();
+    const c = findCompany(companyId);
+    if (!c) throw new Error('Company not found');
+    const link = (c.links || []).find(l => l._id === linkId);
+    if (!link) throw new Error('Link not found');
+    Object.assign(link, {
+      roles: payload.roles !== undefined ? payload.roles : link.roles,
+      shares: payload.shares !== undefined ? payload.shares : link.shares,
+      shareType: payload.shareType !== undefined ? payload.shareType : link.shareType,
+      appointmentDate: payload.appointmentDate !== undefined ? payload.appointmentDate : link.appointmentDate,
+      ceasedDate: payload.ceasedDate !== undefined ? payload.ceasedDate : link.ceasedDate,
+      notes: payload.notes !== undefined ? payload.notes : link.notes,
+    });
+    return { data: { data: companies._resolveLinks(c) } };
+  },
+  removeLink: async (companyId, linkId) => {
+    await delay();
+    const c = findCompany(companyId);
+    if (!c) throw new Error('Company not found');
+    c.links = (c.links || []).filter(l => l._id !== linkId);
+    return { data: { data: { _id: linkId } } };
+  },
+  getShareholderEntries: async (companyId) => {
+    await delay();
+    const c = findCompany(companyId);
+    return { data: { data: (c?.links || []).filter(l => l.roles.includes('shareholder')) } };
+  },
+  getDirectorEntries: async (companyId) => {
+    await delay();
+    const c = findCompany(companyId);
+    return { data: { data: (c?.links || []).filter(l => l.roles.includes('director') || l.roles.includes('alternate_director')) } };
+  },
+  // 反查：某人关联的所有公司（含角色/股份/日期）
+  getReverseLinks: async (personnelId) => {
+    await delay();
+    const links = [];
+    MOCK_COMPANIES.forEach(c => (c.links || []).forEach(l => {
+      if (l.linkModel === 'Personnel' && l.link?._id === personnelId) {
+        links.push({ ...l, company: { _id: c._id, name: c.name, registrationNumber: c.registrationNumber } });
+      }
+    }));
+    return { data: { data: links } };
+  },
 };
 
 // ====== Personnel Service ======
@@ -419,7 +509,36 @@ export const personnel = {
       const q = filters.search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || (p.nric && p.nric.toLowerCase().includes(q)));
     }
+    // 计算每个人员的角色（董事/股东/秘书），用于标签与筛选
+    list = list.map(p => ({ ...p, roles: deriveRoles(p._id) }));
+    if (filters.role) {
+      list = list.filter(p => (p.roles || []).includes(filters.role));
+    }
     return { data: { data: list, total: list.length, totalPages: 1, currentPage: 1 } };
+  },
+  // Person 360° 读时聚合（mock）：从 Company.links 反查公司，再聚合其 Task/Meeting/Document/Reminder
+  getByPersonnel: async (id) => {
+    await delay();
+    const p = findPerson(id);
+    if (!p) throw new Error('Personnel not found');
+    const links = [];
+    MOCK_COMPANIES.forEach(c => (c.links || []).forEach(l => {
+      if (l.linkModel === 'Personnel' && l.link?._id === id) {
+        links.push({
+          company: { _id: c._id, name: c.name, nameChinese: c.nameChinese, registrationNumber: c.registrationNumber, type: c.type, status: c.status },
+          roles: l.roles || [], shares: l.shares, shareType: l.shareType,
+          appointmentDate: l.appointmentDate, cessationDate: l.cessationDate, notes: l.notes,
+        });
+      }
+    }));
+    const companyIds = links.map(l => l.company._id);
+    const roleSet = new Set();
+    links.forEach(l => (l.roles || []).forEach(r => roleSet.add(r)));
+    const tasks = (MOCK_TASKS || []).filter(t => companyIds.includes(t.company?._id) || t.personnel?._id === id);
+    const meetings = (MOCK_MEETINGS || []).filter(m => companyIds.includes(m.company?._id) || (m.attendees || []).some(a => a.ref?._id === id));
+    const documents = (MOCK_DOCUMENTS || []).filter(d => d.personnel?._id === id);
+    const reminders = (MOCK_COMPLIANCE_REMINDERS || []).filter(r => companyIds.includes(r.company?._id));
+    return { data: { data: { personnel: { ...p, roles: [...roleSet] }, companies: links, tasks, meetings, documents, reminders } } };
   },
   getOne: async (id) => {
     await delay();
@@ -543,91 +662,10 @@ export const documents = {
   },
 };
 
-// ====== Directors Service ======
-const MOCK_DIRECTORS = [
-  { _id: 'dir1', name: '林才賀 (LIN CAI HE)', nameChinese: '林才賀', dateOfBirth: '1985-03-12', idNumber: 'P1000004', email: 'lincaihe@example.com', phone: '+852 9000 0004', residentialAddress: '香港九龙尖沙咀', correspondenceAddress: '香港九龙尖沙咀', nationality: '中国', appointments: [
-    { _id: 'da1', company: { _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)' }, position: '公司秘书', appointedDate: '2017-04-21', status: '在任' },
-    { _id: 'da2', company: { _id: 'c2', name: 'Zhong An Travel Ltd (眾安旅遊)' }, position: '公司秘书', appointedDate: '2018-09-28', status: '在任' },
-    { _id: 'da3', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)' }, position: '公司秘书', appointedDate: '2010-05-14', status: '在任' },
-    { _id: 'da4', company: { _id: 'c4', name: 'Hong Kong Time Honour Property Ltd (香港時駿地産)' }, position: '公司秘书', appointedDate: '2021-12-14', status: '在任' },
-    { _id: 'da5', company: { _id: 'c5', name: 'Pannix Industrial (Hong Kong) Ltd (佳穎實業)' }, position: '公司秘书', appointedDate: '2021-12-14', status: '在任' },
-    { _id: 'da6', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)' }, position: '公司秘书 · 授权代表', appointedDate: '2020-06-24', status: '在任' },
-  ]},
-  { _id: 'dir2', name: '林友耀 (LAM YAU YIU)', nameChinese: '林友耀', dateOfBirth: '1978-06-15', idNumber: 'D308', email: 'laurencelam@hotmail.com', phone: '+852 9000 0005', residentialAddress: '香港港岛', correspondenceAddress: '香港港岛', nationality: '中国', appointments: [
-    { _id: 'da7', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)' }, position: '独立非执行董事', appointedDate: '2021-06-18', status: '在任' },
-  ]},
-  { _id: 'dir3', name: '金建榮 (JIN JIANRONG)', nameChinese: '金建榮', dateOfBirth: '1980-09-22', idNumber: 'G3509', passportNumber: 'G3509', email: 'jinjr@example.com', residentialAddress: '中国杭州', correspondenceAddress: '中国杭州', nationality: '中国', appointments: [
-    { _id: 'da8', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)' }, position: '执行董事', appointedDate: '2021-07-02', status: '在任' },
-  ]},
-  { _id: 'dir4', name: '袁淵 (YUAN YUAN)', nameChinese: '袁渊', dateOfBirth: '1975-11-30', idNumber: 'E4552', passportNumber: 'E4552', email: 'yuan.yuan.phd@foxmail.com', residentialAddress: '中国北京', correspondenceAddress: '中国北京', nationality: '中国', appointments: [
-    { _id: 'da9', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)' }, position: '独立非执行董事', appointedDate: '2024-06-28', status: '在任' },
-  ]},
-  { _id: 'dir5', name: '陳靜 (CHEN JING)', nameChinese: '陈静', dateOfBirth: '1982-04-18', idNumber: 'P1000008', email: 'chenjing@example.com', residentialAddress: '中国香港', correspondenceAddress: '中国香港', nationality: '中国', appointments: [
-    { _id: 'da10', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)' }, position: '执行董事', appointedDate: '2024-06-28', status: '在任' },
-  ]},
-  { _id: 'dir6', name: '施中安 (SHI ZHONGAN)', nameChinese: '施中安', dateOfBirth: '1970-01-05', idNumber: 'R578', email: 'shizhongan@example.com', phone: '+852 9000 0003', residentialAddress: '中国香港', correspondenceAddress: '中国香港', nationality: '中国', notes: '曾用名: 施侃成 (SHI KANCHENG)，中国新城市集团董事会主席', appointments: [
-    { _id: 'da11', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)' }, position: '董事', appointedDate: '2010-05-14', status: '在任' },
-    { _id: 'da12', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)' }, position: '非执行董事 · 董事会主席', appointedDate: '2024-06-28', status: '在任' },
-  ]},
-  { _id: 'dir7', name: '施南路 (SHI NANLU)', nameChinese: '施南路', dateOfBirth: '1983-07-20', idNumber: 'P1000002', email: 'shinanlu@example.com', phone: '+852 9000 0002', residentialAddress: '中国香港', correspondenceAddress: '中国香港', nationality: '中国', appointments: [
-    { _id: 'da13', company: { _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)' }, position: '董事', appointedDate: '2017-04-21', status: '在任' },
-    { _id: 'da14', company: { _id: 'c2', name: 'Zhong An Travel Ltd (眾安旅遊)' }, position: '董事', appointedDate: '2018-09-28', status: '在任' },
-    { _id: 'da15', company: { _id: 'c4', name: 'Hong Kong Time Honour Property Ltd (香港時駿地産)' }, position: '董事', appointedDate: '2021-12-14', status: '在任' },
-    { _id: 'da16', company: { _id: 'c5', name: 'Pannix Industrial (Hong Kong) Ltd (佳穎實業)' }, position: '董事', appointedDate: '2021-12-14', status: '在任' },
-    { _id: 'da17', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)' }, position: '执行董事 · 总裁', appointedDate: '2024-06-28', status: '在任' },
-  ]},
-  { _id: 'dir8', name: '施金帆', nameChinese: '施金帆', dateOfBirth: '1985-02-10', idNumber: 'P1000001', email: 'shijinfan@example.com', phone: '+852 9000 0001', residentialAddress: '中国香港', correspondenceAddress: '中国香港', nationality: '中国', appointments: [
-    { _id: 'da18', company: { _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)' }, position: '董事', appointedDate: '2017-04-21', status: '在任' },
-  ]},
-  { _id: 'dir9', name: '须成发 (XU CHENGFA)', nameChinese: '须成发', dateOfBirth: '1979-08-25', idNumber: 'P1000009', email: 'xuchengfa@example.com', residentialAddress: '中国', correspondenceAddress: '中国', nationality: '中国', appointments: [
-    { _id: 'da19', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)' }, position: '独立非执行董事', appointedDate: '2024-06-28', status: '在任' },
-  ]},
-];
-
-export const directors = {
-  getAll: async (filters = {}) => {
-    await delay();
-    let list = [...MOCK_DIRECTORS];
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      list = list.filter(d => d.name.toLowerCase().includes(q) || (d.nameChinese && d.nameChinese.includes(q)) || (d.idNumber && d.idNumber.toLowerCase().includes(q)));
-    }
-    return { data: { data: list, total: list.length, totalPages: 1, currentPage: 1 } };
-  },
-  getOne: async (id) => {
-    await delay();
-    const d = MOCK_DIRECTORS.find(dd => dd._id === id);
-    if (!d) throw new Error('Director not found');
-    return { data: { data: d } };
-  },
-  create: async (data) => {
-    await delay();
-    const neu = { _id: 'dir' + Date.now(), appointments: [], ...data };
-    MOCK_DIRECTORS.push(neu);
-    return { data: { data: neu } };
-  },
-  update: async (id, data) => {
-    await delay();
-    const idx = MOCK_DIRECTORS.findIndex(d => d._id === id);
-    if (idx >= 0) { MOCK_DIRECTORS[idx] = { ...MOCK_DIRECTORS[idx], ...data }; return { data: { data: MOCK_DIRECTORS[idx] } }; }
-    throw new Error('Director not found');
-  },
-  delete: async (id) => {
-    await delay();
-    const idx = MOCK_DIRECTORS.findIndex(d => d._id === id);
-    if (idx >= 0) MOCK_DIRECTORS.splice(idx, 1);
-    return { data: { data: { _id: id } } };
-  },
-  addAppointment: async (id, data) => {
-    await delay();
-    const d = MOCK_DIRECTORS.find(dd => dd._id === id);
-    if (!d) throw new Error('Director not found');
-    const appt = { _id: 'dappt' + Date.now(), ...data };
-    d.appointments = d.appointments || [];
-    d.appointments.push(appt);
-    return { data: { data: d } };
-  },
-};
+// ====== Directors unified into Personnel + Company.links (single source of truth) ======
+// 原 MOCK_DIRECTORS 冗余数据已并入 MOCK_PERSONNEL + company.links。董事/股东/秘书仅为
+// Personnel 的"角色"，其任职关系统一存于 Company.links（linkModel: Personnel/Company）。
+// 关联关系增删改见 companies.addLink / updateLink / removeLink。人视角由 getReverseLinks/deriveRoles 读时聚合，不物化。
 
 // ====== Meetings Service ======
 export const meetings = {
@@ -753,7 +791,7 @@ export const meetings = {
 };
 
 // ====== Notice HTML Builder ======
-function buildNoticeHtml({ greeting, customNote, dateStr, timeRange, meetingType, agendaItems, locationInfo, meetingId, meetingPassword, meetingLink, isVirtual, location, attendeeNames, signOff, companyName, companyCode }) {
+function buildNoticeHtml({ greeting, customNote, dateStr, timeRange, meetingType, agendaItems, _locationInfo, meetingId, meetingPassword, meetingLink, isVirtual, location, attendeeNames, signOff, companyName, companyCode }) {
   const agendaHtml = (agendaItems || '').split('\n').filter(Boolean).map(line => `<li>${line.replace(/^\d+\.\s*/, '')}</li>`).join('');
   const locationHtml = isVirtual
     ? `<p><strong>会议方式：</strong>腾讯视频会议</p><p><a href="${meetingLink || '#'}">${meetingLink || ''}</a></p><p>#腾讯会议：${meetingId || ''}${meetingPassword ? ` | 密码：${meetingPassword}` : ''}</p>`
@@ -822,11 +860,11 @@ function buildMinutesHtml({ companyName, meetingTitle, dateFull, time, location,
 
 // ====== Mock Data ======
 const MOCK_TASKS = [
-  { _id: 'tt1', title: 'File Annual Return - Easy Rich Corporation', type: 'filing', priority: 'urgent', status: 'pending', dueDate: '2026-04-21', description: 'Submit NAR1 to ICAC.', createdBy: 'u1', createdAt: '2026-03-01', company: { _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)', registrationNumber: '65940948' }, notes: [] },
-  { _id: 'tt2', title: 'Prepare Board Meeting Minutes - CNC', type: 'document', priority: 'high', status: 'completed', dueDate: '2026-03-28', description: 'Draft and sign minutes.', createdBy: 'u1', createdAt: '2026-03-26', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, notes: [{ content: '主席已签署', createdAt: '2026-03-28T14:00:00+08:00' }] },
-  { _id: 'tt3', title: 'Update Director Register - HuiJun', type: 'compliance', priority: 'medium', status: 'in_progress', dueDate: '2026-05-14', description: '', createdBy: 'u1', createdAt: '2026-04-01', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' }, notes: [] },
-  { _id: 'tt4', title: 'Renew Business License Certificate', type: 'filing', priority: 'high', status: 'overdue', dueDate: '2026-06-01', description: ' renewal before expiry.', createdBy: 'u1', createdAt: '2026-04-15', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, notes: [] },
-  { _id: 'tt5', title: 'AGM 年度大会 - 匯駿控股', type: 'meeting_prep', priority: 'high', status: 'pending', dueDate: '2026-05-14', description: '准备并召开匯駿控股周年大会', createdBy: 'u1', createdAt: '2026-04-01', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' }, notes: [] },
+  { _id: 'tt1', title: 'File Annual Return - Easy Rich Corporation', type: 'filing', priority: 'urgent', status: 'pending', dueDate: '2026-04-21', description: 'Submit NAR1 to ICAC.', createdBy: 'u1', createdAt: '2026-03-01', company: { _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)', registrationNumber: '65940948' }, personnel: { _id: 'p1', name: '施金帆' }, notes: [] },
+  { _id: 'tt2', title: 'Prepare Board Meeting Minutes - CNC', type: 'document', priority: 'high', status: 'completed', dueDate: '2026-03-28', description: 'Draft and sign minutes.', createdBy: 'u1', createdAt: '2026-03-26', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: { _id: 'p10', name: '施中安 (SHI ZHONGAN)' }, notes: [{ content: '主席已签署', createdAt: '2026-03-28T14:00:00+08:00' }] },
+  { _id: 'tt3', title: 'Update Director Register - HuiJun', type: 'compliance', priority: 'medium', status: 'in_progress', dueDate: '2026-05-14', description: '', createdBy: 'u1', createdAt: '2026-04-01', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' }, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, notes: [] },
+  { _id: 'tt4', title: 'Renew Business License Certificate', type: 'filing', priority: 'high', status: 'overdue', dueDate: '2026-06-01', description: ' renewal before expiry.', createdBy: 'u1', createdAt: '2026-04-15', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, notes: [] },
+  { _id: 'tt5', title: 'AGM 年度大会 - 匯駿控股', type: 'meeting_prep', priority: 'high', status: 'pending', dueDate: '2026-05-14', description: '准备并召开匯駿控股周年大会', createdBy: 'u1', createdAt: '2026-04-01', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' }, personnel: { _id: 'p3', name: '施中安 (施侃成)' }, notes: [] },
 ];
 
 const MOCK_COMPLIANCE_RULES = [
@@ -902,6 +940,8 @@ export const tasks = {
     throw new Error('Task not found');
   },
   getExpiring: async () => { await delay(); return { data: { data: MOCK_TASKS.filter(t => t.status !== 'completed' && new Date(t.dueDate) < new Date(Date.now() + 7 * 86400000)) } }; },
+  getByCompany: async (companyId) => { await delay(); return { data: { data: MOCK_TASKS.filter(t => t.company?._id === companyId) } }; },
+  getByPersonnel: async (personnelId) => { await delay(); return { data: { data: MOCK_TASKS.filter(t => t.personnel?._id === personnelId) } }; },
 };
 
 // ====== Compliance Rules ======
@@ -948,12 +988,6 @@ export const complianceReminders = {
     const overdue = MOCK_COMPLIANCE_REMINDERS.filter(r => r.status === 'expired').length;
     const upcoming = total - completed - overdue;
     return { data: { data: { total, completed, overdue, upcoming } } };
-  },
-  getOne: async (id) => {
-    await delay();
-    const r = MOCK_COMPLIANCE_REMINDERS.find(rr => rr._id === id);
-    if (!r) throw new Error('Not found');
-    return { data: { data: r } };
   },
   triggerCheck: async () => {
     await delay();
@@ -1016,5 +1050,98 @@ export const signTasks = {
     const inProgress = MOCK_SIGN_TASKS.filter(t => t.status === 'in_progress').length;
     const pending = total - completed - inProgress;
     return { data: { data: { total, completed, inProgress, pending } } };
+  },
+  getByMeeting: async (meetingId) => { await delay(); return { data: { data: MOCK_SIGN_TASKS.filter(t => t.relatedMeeting?._id === meetingId) } }; },
+};
+
+// ====== 跨实体全局搜索（Mock）======
+// 在内存数据集上做跨实体关键词匹配，归一成与后端 /api/search 一致的形状：
+// { type, id, title, subtitle, link }；前端按 type 分组展示并跳转。
+export const search = {
+  globalSearch: async (q) => {
+    await delay();
+    const raw = (q || '').toString().trim();
+    const empty = { data: { data: { results: [], counts: {}, query: '' } } };
+    if (!raw) return empty;
+    const term = raw.toLowerCase();
+
+    const defs = [
+      {
+        type: 'company', arr: MOCK_COMPANIES, limit: 5,
+        fields: ['name', 'nameChinese', 'stockCode', 'registrationNumber'],
+        map: (d) => ({
+          type: 'company', id: d._id,
+          title: d.name || d.nameChinese || '(unnamed)',
+          subtitle: [d.registrationNumber, d.type].filter(Boolean).join(' · '),
+          link: `/companies/${d._id}`,
+        }),
+      },
+      {
+        type: 'personnel', arr: MOCK_PERSONNEL, limit: 5,
+        fields: ['name', 'nameChinese', 'nric', 'email'],
+        map: (d) => ({
+          type: 'personnel', id: d._id,
+          title: d.name || d.nameChinese || '(unnamed)',
+          subtitle: [d.email, d.nationality].filter(Boolean).join(' · '),
+          link: `/personnel/${d._id}`,
+        }),
+      },
+      {
+        type: 'document', arr: MOCK_DOCUMENTS, limit: 5,
+        fields: ['title', 'docNumber', 'description', 'tags', 'keywords'],
+        map: (d) => ({
+          type: 'document', id: d._id,
+          title: d.title || '(untitled)',
+          subtitle: [d.docNumber, d.type].filter(Boolean).join(' · '),
+          link: '/documents',
+        }),
+      },
+      {
+        type: 'meeting', arr: MOCK_MEETINGS, limit: 5,
+        fields: ['title', 'location'],
+        map: (d) => ({
+          type: 'meeting', id: d._id,
+          title: d.title || '(untitled)',
+          subtitle: [d.type, d.location].filter(Boolean).join(' · '),
+          link: `/meetings/${d._id}`,
+        }),
+      },
+      {
+        type: 'task', arr: MOCK_TASKS, limit: 5,
+        fields: ['title', 'description'],
+        map: (d) => ({
+          type: 'task', id: d._id,
+          title: d.title || '(untitled)',
+          subtitle: [d.status, d.priority].filter(Boolean).join(' · '),
+          link: `/tasks/${d._id}`,
+        }),
+      },
+      {
+        type: 'reminder', arr: MOCK_COMPLIANCE_REMINDERS, limit: 5,
+        fields: ['title', 'ruleId', 'category'],
+        map: (d) => ({
+          type: 'reminder', id: d._id,
+          title: d.title || '(untitled)',
+          subtitle: [d.ruleId, d.category, d.status].filter(Boolean).join(' · '),
+          link: `/compliance-reminders/${d._id}`,
+        }),
+      },
+    ]
+
+    const matchFields = (obj, fields) =>
+      fields.some((f) => obj[f] != null && String(obj[f]).toLowerCase().includes(term))
+
+    const results = []
+    const counts = {}
+    defs.forEach((def) => {
+      const hits = def.arr
+        .filter((d) => matchFields(d, def.fields))
+        .slice(0, def.limit)
+        .map(def.map)
+      counts[def.type] = hits.length
+      results.push(...hits)
+    })
+
+    return { data: { data: { results, counts, query: raw } } };
   },
 };
