@@ -99,9 +99,20 @@ router.get('/', auth, async (req, res) => {
     }
 
     const regex = new RegExp(escapeRegex(q), 'i')
+    // 搜索增强 M2.1：优先用 $text 全文索引（相关度排序）；索引未就绪时回退正则匹配
     const queries = ENTITIES.map((e) => {
-      const or = e.fields.map((f) => ({ [f]: regex }))
-      return e.model.find({ $or: or }).limit(limit).lean().then((docs) => docs.map(e.map))
+      const textQuery = e.model.find(
+        { $text: { $search: q } },
+        { score: { $meta: 'textScore' } },
+      ).sort({ score: { $meta: 'textScore' } }).limit(limit).lean().then((docs) => docs.map(e.map))
+      return textQuery.catch((err) => {
+        const msg = String(err && err.message || '')
+        if (msg.includes('text index') || msg.includes('$text') || msg.includes('text search')) {
+          const or = e.fields.map((f) => ({ [f]: regex }))
+          return e.model.find({ $or: or }).limit(limit).lean().then((docs) => docs.map(e.map))
+        }
+        throw err
+      })
     })
 
     const settled = await Promise.all(queries)

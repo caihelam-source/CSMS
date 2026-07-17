@@ -96,5 +96,7 @@ const meetingSchema = new mongoose.Schema({
 meetingSchema.index({ company: 1, scheduledAt: -1 });
 meetingSchema.index({ status: 1 });
 meetingSchema.index({ phase: 1 });
+// 全文本搜索索引（搜索增强 M2.1）
+meetingSchema.index({ title: 'text', location: 'text' });
 
 module.exports = mongoose.model('Meeting', meetingSchema);

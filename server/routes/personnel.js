@@ -386,9 +386,17 @@ router.post('/merge', auth, async (req, res) => {
       { arrayFilters: [{ 'elem.link': sourceObj, 'elem.linkModel': 'Personnel' }] }
     );
 
-    // Merge roles (stored roles 仅作过渡缓存；实际以 Company.links 读时派生为准)
-    const sourceRoles = source.roles || [];
-    target.roles = [...new Set([...(target.roles || []), ...sourceRoles])];
+    // v5.0 读时聚合为事实源：合并后从 Company.links 重算 target.roles，
+    // 不再合并可能过期的 stored 缓存（source 的 links 已重指向 target，故重算即含合并结果）
+    const targetCos = await Company.find(
+      { 'links.link': targetObj, 'links.linkModel': 'Personnel' },
+      'links',
+    )
+    target.roles = [...new Set(
+      targetCos.flatMap((c) => (c.links || [])
+        .filter((l) => l.linkModel === 'Personnel' && l.link?.toString() === targetId)
+        .flatMap((l) => l.roles || [])),
+    )]
 
     // Preserve best data from source
     if (!target.nric && source.nric) target.nric = source.nric;

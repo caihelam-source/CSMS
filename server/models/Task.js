@@ -87,5 +87,7 @@ taskSchema.index({ status: 1 });
 // Dashboard 统计（pending/overdue）/ 公司任务看板
 taskSchema.index({ status: 1, dueDate: 1 });
 taskSchema.index({ company: 1, status: 1 });
+// 全文本搜索索引（搜索增强 M2.1）
+taskSchema.index({ title: 'text', description: 'text' });
 
 module.exports = mongoose.model('Task', taskSchema);

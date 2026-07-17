@@ -39,6 +39,8 @@ documentSchema.index({ renewalDueDate: 1 });
 // 文件到期徽章 / 公司维度到期清单
 documentSchema.index({ expiresAt: 1 });
 documentSchema.index({ company: 1, expiresAt: 1 });
+// 全文本搜索索引（搜索增强 M2.1）
+documentSchema.index({ title: 'text', docNumber: 'text', description: 'text', tags: 'text', keywords: 'text' });
 
 // 自动生成文档编号：<类型缩写>-<年份>-<序号>
 // 使用 counters 集合原子自增，消除 count+1 竞态（DB-AUDIT P1-8）

@@ -27,7 +27,8 @@ const personnelSchema = new mongoose.Schema({
   notes: String,
 }, { timestamps: true });
 
-personnelSchema.index({ name: 'text', nric: 'text', email: 'text' });
+// 全文本搜索索引（搜索增强 M2.1）：覆盖中英文名/证件号/邮箱
+personnelSchema.index({ name: 'text', nameChinese: 'text', nric: 'text', idNumber: 'text', email: 'text' });
 personnelSchema.index({ nric: 1 }, { sparse: true });
 
 module.exports = mongoose.model('Personnel', personnelSchema);

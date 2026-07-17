@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useTheme } from '../contexts/ThemeContext.jsx'
 import toast from 'react-hot-toast'
-import { User, Lock, Bell } from 'lucide-react'
+import { User, Lock, Bell, SunMoon } from 'lucide-react'
 import { PageHeader, FormField, inputClass, TabNav } from '../components/UIHelpers'
 import { validate, required, email as emailValidator, minLength } from '../utils/validators'
 
@@ -18,6 +19,7 @@ const PASSWORD_RULES = {
 
 export default function Settings() {
   const { user, updateProfile, updatePassword } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState('profile')
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
@@ -75,7 +77,14 @@ export default function Settings() {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'password', label: 'Password', icon: Lock },
+    { id: 'appearance', label: 'Appearance', icon: SunMoon },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+  ]
+
+  const themeOptions = [
+    { id: 'light', label: 'Light' },
+    { id: 'dark', label: 'Dark' },
+    { id: 'system', label: 'System' },
   ]
 
   return (
@@ -145,6 +154,31 @@ export default function Settings() {
                 {loading ? 'Updating...' : 'Update Password'}
               </button>
             </form>
+          )}
+
+          {activeTab === 'appearance' && (
+            <div className="space-y-4 max-w-lg">
+              <p className="text-sm text-ink-2">选择浅色、深色，或跟随系统设置。</p>
+              <div className="grid grid-cols-3 gap-3">
+                {themeOptions.map((opt) => {
+                  const active = theme === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setTheme(opt.id)}
+                      className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
+                        active
+                          ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-600/10 dark:text-primary-400'
+                          : 'border-hairline bg-surface text-ink-2 hover:bg-canvas'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           )}
 
           {activeTab === 'notifications' && (

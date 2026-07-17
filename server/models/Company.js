@@ -87,5 +87,7 @@ companySchema.index({ 'links.linkModel': 1, 'links.link': 1 });
 companySchema.index({ 'links.linkModel': 1, 'links.roles': 1 });
 // 状态筛选 / active 统计
 companySchema.index({ status: 1 });
+// 全文本搜索索引（搜索增强 M2.1）
+companySchema.index({ name: 'text', nameChinese: 'text', stockCode: 'text', registrationNumber: 'text' });
 
 module.exports = mongoose.model('Company', companySchema);

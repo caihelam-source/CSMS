@@ -1,4 +1,5 @@
 import api from './api.js'
+import { normalize } from '../utils/responseNormalize.js'
 import {
   auth as mockAuth,
   companies as mockCompanies,
@@ -21,27 +22,7 @@ let useMock = USE_MOCK
 // ====== wrap — unifies API and mock ======
 // Mock 返回 { data: { data: X } }；真实后端返回 { success, entity } 或 { success, count, list }。
 // 统一归一化为前端期望的 { data: { data: X } } 形状，消除 Mock/真实差异。
-const normalize = (body) => {
-  // 统一归一化为前端期望的 { data: { data: X } } 形状，消除 Mock/真实差异。
-  // 1) 后端已双层嵌套 { data: { data: X } } —— 直接透传
-  if (body && typeof body === 'object' && body.data && typeof body.data === 'object' && 'data' in body.data) {
-    return { data: body.data }
-  }
-  // 2) 后端单层嵌套 { success, data: X } —— 包成 { data: { data: X } }
-  if (body && typeof body === 'object' && body.data !== undefined) {
-    return { data: { data: body.data } }
-  }
-  // 3) 扁平响应 { success, personnel } / { success, companies } 等 —— 提取主负载
-  const entityKeys = [
-    'personnel', 'company', 'document', 'meeting', 'task', 'reminder', 'template', 'signTask',
-    'companies', 'documents', 'meetings', 'tasks', 'reminders', 'personnelList', 'links', 'link',
-  ]
-  for (const k of entityKeys) {
-    if (body && body[k] !== undefined) return { data: { data: body[k] } }
-  }
-  // 4) 兜底：整包作为 payload
-  return { data: { data: body } }
-}
+// normalize 逻辑见 ../utils/responseNormalize.js（已抽为可测纯函数）。
 
 const wrap = (apiFn, mockFn) => async (...args) => {
   if (useMock) return mockFn(...args)

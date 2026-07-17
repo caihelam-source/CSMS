@@ -46,5 +46,7 @@ complianceReminderSchema.index({ company: 1, sourceRuleId: 1, year: 1 }, { uniqu
 // Dashboard 过滤 / 公司维度提醒列表
 complianceReminderSchema.index({ status: 1, dueDate: 1 });
 complianceReminderSchema.index({ company: 1, dueDate: 1 });
+// 全文本搜索索引（搜索增强 M2.1）
+complianceReminderSchema.index({ title: 'text', category: 'text', ruleId: 'text' });
 
 module.exports = mongoose.model('ComplianceReminder', complianceReminderSchema);
