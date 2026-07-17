@@ -43,12 +43,19 @@ const COMPANY_MAP = {
   'singapore': 'SG',
 };
 const RULE_MAP = {
+  // 中文
   '香港': 'HK',
   '开曼': 'Cayman',
-  'bvi': 'BVI',
   '新加坡': 'SG',
   '其他': 'OTHER',
   '全部': 'ALL',
+  // 英文（小写键，统一映射到模型 enum 的正确大小写；Cayman 是首字母大写，不能用 toUpperCase）
+  'hk': 'HK',
+  'bvi': 'BVI',
+  'cayman': 'Cayman',
+  'sg': 'SG',
+  'other': 'OTHER',
+  'all': 'ALL',
 };
 
 function mapCompanyJur(raw) {
@@ -58,7 +65,9 @@ function mapCompanyJur(raw) {
 }
 function mapRuleJur(raw) {
   if (!raw) return 'ALL';
-  return RULE_MAP[String(raw).trim()] || (['hk', 'bvi', 'cayman', 'sg', 'other', 'all'].includes(String(raw).trim().toLowerCase()) ? raw.toUpperCase() : 'OTHER');
+  const key = String(raw).trim().toLowerCase();
+  // RULE_MAP 已覆盖全部已知取值（含英文小写），未知一律归 OTHER；不再用 toUpperCase（会破坏 Cayman 大小写）
+  return RULE_MAP[key] || 'OTHER';
 }
 
 // ── 生产库守卫 ─────────────────────────────────────────────
