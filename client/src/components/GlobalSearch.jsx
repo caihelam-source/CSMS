@@ -5,12 +5,12 @@ import { searchService } from '../services'
 
 // 实体类型 → 中文标签 + 徽章配色（分组展示用）
 const TYPE_META = {
-  company:   { label: '公司',   cls: 'bg-blue-100 text-blue-700' },
-  personnel: { label: '人员',   cls: 'bg-purple-100 text-purple-700' },
-  document:  { label: '文档',   cls: 'bg-amber-100 text-amber-700' },
-  meeting:   { label: '会议',   cls: 'bg-green-100 text-green-700' },
-  task:      { label: '任务',   cls: 'bg-indigo-100 text-indigo-700' },
-  reminder:  { label: '合规提醒', cls: 'bg-red-100 text-red-700' },
+  company:   { label: '公司',   cls: 'bg-info/10 text-primary-700' },
+  personnel: { label: '人员',   cls: 'bg-gray-100 text-ink-2' },
+  document:  { label: '文档',   cls: 'bg-warning/10 text-warning' },
+  meeting:   { label: '会议',   cls: 'bg-success/10 text-success' },
+  task:      { label: '任务',   cls: 'bg-gray-100 text-ink-2' },
+  reminder:  { label: '合规提醒', cls: 'bg-danger/10 text-danger' },
 }
 const TYPE_ORDER = ['company', 'personnel', 'document', 'meeting', 'task', 'reminder']
 
@@ -78,7 +78,7 @@ export default function GlobalSearch() {
   return (
     <div ref={containerRef} className="relative px-3 pb-3">
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
         <input
           type="text"
           value={query}
@@ -86,39 +86,39 @@ export default function GlobalSearch() {
           onFocus={() => { if (query.trim()) setOpen(true) }}
           onKeyDown={onKeyDown}
           placeholder="搜索公司 / 人员 / 文件 / 会议…"
-          className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-hairline bg-canvas focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         />
       </div>
 
       {open && query.trim() && (
-        <div className="absolute z-50 left-3 right-3 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-white rounded-xl shadow-lg border border-gray-200 py-2">
-          {loading && <div className="px-4 py-3 text-sm text-gray-400">搜索中…</div>}
+        <div className="absolute z-50 left-3 right-3 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-surface rounded-xl shadow-lg border border-hairline py-2">
+          {loading && <div className="px-4 py-3 text-sm text-ink-3">搜索中…</div>}
 
           {!loading && total === 0 && (
-            <div className="px-4 py-3 text-sm text-gray-400">
+            <div className="px-4 py-3 text-sm text-ink-3">
               未找到与 “{query.trim()}” 相关的结果
             </div>
           )}
 
           {!loading && total > 0 && (
             <>
-              <div className="px-4 pb-1 text-xs text-gray-400">找到 {total} 条结果</div>
+              <div className="px-4 pb-1 text-xs text-ink-3">找到 {total} 条结果</div>
               {grouped.map((g) => (
                 <div key={g.type} className="mb-1">
                   <div className="flex items-center gap-2 px-4 py-1">
                     <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${TYPE_META[g.type].cls}`}>
                       {TYPE_META[g.type].label}
                     </span>
-                    <span className="text-xs text-gray-400">{g.items.length}</span>
+                    <span className="text-xs text-ink-3">{g.items.length}</span>
                   </div>
                   {g.items.map((r) => (
                     <button
                       key={`${r.type}-${r.id}`}
                       onClick={() => go(r.link)}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-50 flex flex-col"
+                      className="w-full text-left px-4 py-2 hover:bg-canvas flex flex-col"
                     >
-                      <span className="text-sm font-medium text-gray-800 truncate">{r.title}</span>
-                      {r.subtitle && <span className="text-xs text-gray-400 truncate">{r.subtitle}</span>}
+                      <span className="text-sm font-medium text-ink truncate">{r.title}</span>
+                      {r.subtitle && <span className="text-xs text-ink-3 truncate">{r.subtitle}</span>}
                     </button>
                   ))}
                 </div>

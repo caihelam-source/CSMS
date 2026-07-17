@@ -23,9 +23,9 @@ const INITIAL_USERS = [
 ]
 
 const ROLES = [
-  { value: 'admin',   label: 'Admin',   icon: Crown,   desc: 'Full access — can manage users, edit & delete anything',   color: 'bg-red-100 text-red-700' },
-  { value: 'manager', label: 'Manager', icon: UserCog, desc: 'Can create & edit records, cannot manage users or delete',  color: 'bg-blue-100 text-blue-700' },
-  { value: 'viewer',  label: 'Viewer',  icon: Eye,     desc: 'Read-only access — cannot create, edit, or delete',         color: 'bg-gray-100 text-gray-600' },
+  { value: 'admin',   label: 'Admin',   icon: Crown,   desc: 'Full access — can manage users, edit & delete anything',   color: 'bg-danger/10 text-danger' },
+  { value: 'manager', label: 'Manager', icon: UserCog, desc: 'Can create & edit records, cannot manage users or delete',  color: 'bg-info/10 text-primary-700' },
+  { value: 'viewer',  label: 'Viewer',  icon: Eye,     desc: 'Read-only access — cannot create, edit, or delete',         color: 'bg-gray-100 text-ink-2' },
 ]
 
 const roleInfo = (role) => ROLES.find(r => r.value === role) || ROLES[2]
@@ -83,7 +83,7 @@ const UserForm = ({ initial = {}, onSave, onCancel, loading, currentUserId }) =>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          {initial.id === currentUserId && <p className="text-xs text-gray-400 mt-1">Cannot change your own status</p>}
+          {initial.id === currentUserId && <p className="text-xs text-ink-3 mt-1">Cannot change your own status</p>}
         </div>
       </div>
 
@@ -95,16 +95,16 @@ const UserForm = ({ initial = {}, onSave, onCancel, loading, currentUserId }) =>
             const Icon = r.icon
             const selected = form.role === r.value
             return (
-              <label key={r.value} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-all ${selected ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+              <label key={r.value} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-all ${selected ? 'border-primary-400 bg-primary-50' : 'border-hairline hover:border-hairline'}`}>
                 <input type="radio" name="role" value={r.value} checked={selected}
                   onChange={() => set('role', r.value)} className="mt-0.5" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <Icon size={15} />
-                    <span className="text-sm font-medium text-gray-900">{r.label}</span>
+                    <span className="text-sm font-medium text-ink">{r.label}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${r.color}`}>{r.value}</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">{r.desc}</p>
+                  <p className="text-xs text-ink-2 mt-0.5">{r.desc}</p>
                 </div>
               </label>
             )
@@ -113,7 +113,7 @@ const UserForm = ({ initial = {}, onSave, onCancel, loading, currentUserId }) =>
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">Cancel</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm border border-hairline rounded-lg hover:bg-canvas text-ink">Cancel</button>
         <button type="submit" disabled={loading} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
           {loading ? 'Saving...' : isEdit ? 'Update User' : 'Create User'}
         </button>
@@ -134,7 +134,7 @@ const PERM_MATRIX = [
 ]
 
 const Tick = ({ ok }) => ok
-  ? <CheckCircle size={18} className="text-green-500 mx-auto" />
+  ? <CheckCircle size={18} className="text-success mx-auto" />
   : <XCircle size={18} className="text-gray-300 mx-auto" />
 
 // ─── Stats banner ─────────────────────────────────────────────────
@@ -162,8 +162,8 @@ const AdminPanel = () => {
     return (
       <div className="flex flex-col items-center justify-center h-96 text-center">
         <Shield size={48} className="text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-        <p className="text-gray-500">Only administrators can access this panel.</p>
+        <h2 className="text-xl font-semibold text-ink mb-2">Access Denied</h2>
+        <p className="text-ink-2">Only administrators can access this panel.</p>
       </div>
     )
   }
@@ -202,19 +202,19 @@ const AdminPanel = () => {
         title="Admin Panel"
         subtitle="System administration and access control"
         icon={Crown}
-        iconColor="text-red-600"
+        iconColor="text-danger"
         actions={
-          <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Admin Only</span>
+          <span className="px-3 py-1 bg-danger/10 text-danger text-xs font-semibold rounded-full">Admin Only</span>
         }
       />
 
       {/* Stats */}
       <div className="flex flex-wrap gap-3">
-        <StatBadge icon={Users} label="Total Users" value={users.length} color="bg-blue-50 text-blue-700" />
-        <StatBadge icon={CheckCircle} label="Active" value={users.filter(u => u.status === 'active').length} color="bg-green-50 text-green-700" />
-        <StatBadge icon={Crown} label="Admins" value={users.filter(u => u.role === 'admin').length} color="bg-red-50 text-red-700" />
-        <StatBadge icon={UserCog} label="Managers" value={users.filter(u => u.role === 'manager').length} color="bg-purple-50 text-purple-700" />
-        <StatBadge icon={Eye} label="Viewers" value={users.filter(u => u.role === 'viewer').length} color="bg-gray-100 text-gray-600" />
+        <StatBadge icon={Users} label="Total Users" value={users.length} color="bg-info/10 text-primary-700" />
+        <StatBadge icon={CheckCircle} label="Active" value={users.filter(u => u.status === 'active').length} color="bg-success/10 text-success" />
+        <StatBadge icon={Crown} label="Admins" value={users.filter(u => u.role === 'admin').length} color="bg-danger/10 text-danger" />
+        <StatBadge icon={UserCog} label="Managers" value={users.filter(u => u.role === 'manager').length} color="bg-info/10 text-ink-2" />
+        <StatBadge icon={Eye} label="Viewers" value={users.filter(u => u.role === 'viewer').length} color="bg-gray-100 text-ink-2" />
       </div>
 
       {/* Tab nav */}
@@ -228,20 +228,20 @@ const AdminPanel = () => {
       {tab === 'users' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <p className="text-sm text-gray-500">{users.length} user{users.length !== 1 ? 's' : ''} registered</p>
+            <p className="text-sm text-ink-2">{users.length} user{users.length !== 1 ? 's' : ''} registered</p>
             <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
               <Plus size={16} /> Add User
             </button>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="bg-surface rounded-xl border border-hairline overflow-hidden shadow-sm">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-canvas border-b border-hairline">
                 <tr>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">User</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Joined</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">User</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">Role</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">Status</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">Joined</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
@@ -251,7 +251,7 @@ const AdminPanel = () => {
                   const RoleIcon = ri.icon
                   const isMe = u.email === currentUser?.email
                   return (
-                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={u.id} className="hover:bg-canvas transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-semibold text-sm shrink-0">
@@ -259,10 +259,10 @@ const AdminPanel = () => {
                           </div>
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-medium text-gray-900">{u.name}</span>
+                              <span className="font-medium text-ink">{u.name}</span>
                               {isMe && <span className="text-xs bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded-full">You</span>}
                             </div>
-                            <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+                            <div className="flex items-center gap-1 text-xs text-ink-3 mt-0.5">
                               <Mail size={11} />{u.email}
                             </div>
                           </div>
@@ -275,17 +275,17 @@ const AdminPanel = () => {
                       </td>
                       <td className="px-5 py-4">
                         {u.status === 'active'
-                          ? <span className="inline-flex items-center gap-1 text-green-700 text-xs"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Active</span>
-                          : <span className="inline-flex items-center gap-1 text-gray-500 text-xs"><span className="w-1.5 h-1.5 rounded-full bg-gray-400" />Inactive</span>}
+                          ? <span className="inline-flex items-center gap-1 text-success text-xs"><span className="w-1.5 h-1.5 rounded-full bg-success" />Active</span>
+                          : <span className="inline-flex items-center gap-1 text-ink-2 text-xs"><span className="w-1.5 h-1.5 rounded-full bg-gray-400" />Inactive</span>}
                       </td>
-                      <td className="px-5 py-4 text-gray-400 text-xs">{u.joined}</td>
+                      <td className="px-5 py-4 text-ink-3 text-xs">{u.joined}</td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-1">
-                          <button onClick={() => openEdit(u)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg">
+                          <button onClick={() => openEdit(u)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg">
                             <Pencil size={15} />
                           </button>
                           {!isMe && (
-                            <button onClick={() => setDeleteTarget(u)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                            <button onClick={() => setDeleteTarget(u)} className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg">
                               <Trash2 size={15} />
                             </button>
                           )}
@@ -302,15 +302,15 @@ const AdminPanel = () => {
 
       {/* ── PERMISSION MATRIX ── */}
       {tab === 'permissions' && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Role Permission Matrix</h3>
-            <p className="text-sm text-gray-500 mt-0.5">What each role can and cannot do</p>
+        <div className="bg-surface rounded-xl border border-hairline shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-hairline">
+            <h3 className="font-semibold text-ink">Role Permission Matrix</h3>
+            <p className="text-sm text-ink-2 mt-0.5">What each role can and cannot do</p>
           </div>
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-canvas border-b border-hairline">
               <tr>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Feature</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">Feature</th>
                 {ROLES.map(r => {
                   const Icon = r.icon
                   return (
@@ -325,8 +325,8 @@ const AdminPanel = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {PERM_MATRIX.map((row, i) => (
-                <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-5 py-3.5 text-gray-700">{row.feature}</td>
+                <tr key={i} className="hover:bg-canvas">
+                  <td className="px-5 py-3.5 text-ink">{row.feature}</td>
                   <td className="px-4 py-3.5 text-center"><Tick ok={row.admin} /></td>
                   <td className="px-4 py-3.5 text-center"><Tick ok={row.manager} /></td>
                   <td className="px-4 py-3.5 text-center"><Tick ok={row.viewer} /></td>
@@ -340,8 +340,8 @@ const AdminPanel = () => {
       {/* ── SYSTEM INFO ── */}
       {tab === 'system' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Activity size={18} className="text-primary-600" />System Overview</h3>
+          <div className="bg-surface rounded-xl border border-hairline shadow-sm p-5">
+            <h3 className="font-semibold text-ink mb-4 flex items-center gap-2"><Activity size={18} className="text-primary-600" />System Overview</h3>
             <div className="space-y-3 text-sm">
               {[
                 { label: 'Application', value: 'CSMS v3.0' },
@@ -352,15 +352,15 @@ const AdminPanel = () => {
                 { label: 'Mode', value: localStorage.getItem('demoEmail') ? '⚡ Demo (no backend)' : '🟢 Live' },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
-                  <span className="text-gray-500">{label}</span>
-                  <span className="font-medium text-gray-900">{value}</span>
+                  <span className="text-ink-2">{label}</span>
+                  <span className="font-medium text-ink">{value}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Building2 size={18} className="text-primary-600" />Module Status</h3>
+          <div className="bg-surface rounded-xl border border-hairline shadow-sm p-5">
+            <h3 className="font-semibold text-ink mb-4 flex items-center gap-2"><Building2 size={18} className="text-primary-600" />Module Status</h3>
             <div className="space-y-2 text-sm">
               {[
                 { icon: Building2, label: 'Companies',  status: 'Active' },
@@ -370,8 +370,8 @@ const AdminPanel = () => {
                 { icon: Users,     label: 'User Mgmt',  status: 'Active' },
               ].map(({ icon: Icon, label, status }) => (
                 <div key={label} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
-                  <div className="flex items-center gap-2 text-gray-700"><Icon size={15} className="text-gray-400" />{label}</div>
-                  <span className="flex items-center gap-1 text-green-700 text-xs font-medium"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />{status}</span>
+                  <div className="flex items-center gap-2 text-ink"><Icon size={15} className="text-ink-3" />{label}</div>
+                  <span className="flex items-center gap-1 text-success text-xs font-medium"><span className="w-1.5 h-1.5 rounded-full bg-success" />{status}</span>
                 </div>
               ))}
             </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Briefcase, Mail, Lock, AlertCircle, Zap, UserPlus, LogIn } from 'lucide-react'
+import { Briefcase, Mail, Lock, AlertCircle, Zap } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { LoadingSpinner, FormField, inputClass } from '../components/UIHelpers'
 import { validate, required, email as emailValidator } from '../utils/validators'
@@ -12,14 +12,14 @@ const LOGIN_RULES = {
 }
 
 const DEMO_ACCOUNTS = [
-  { label: 'Admin', email: 'admin@example.com', password: 'admin123', color: 'bg-blue-100 text-blue-700 hover:bg-blue-200' },
-  { label: 'Secretary', email: 'demo@example.com', password: 'demo123', color: 'bg-green-100 text-green-700 hover:bg-green-200' },
+  { label: 'Admin', email: 'admin@example.com', password: 'admin123', color: 'bg-info/10 text-primary-700 hover:bg-info/20' },
+  { label: 'Secretary', email: 'demo@example.com', password: 'demo123', color: 'bg-success/10 text-success hover:bg-success/20' },
 ]
 
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [confirmPassword] = useState('')
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -73,16 +73,16 @@ const Login = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4 shadow-lg">
             <Briefcase size={30} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">CSMS</h1>
-          <p className="text-gray-500 mt-1 text-sm">Company Secretary Management System</p>
+          <h1 className="text-3xl font-bold text-ink">CSMS</h1>
+          <p className="text-ink-2 mt-1 text-sm">Company Secretary Management System</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in to your account</h2>
+        <div className="bg-surface rounded-2xl shadow-sm border border-hairline p-8">
+          <h2 className="text-xl font-semibold text-ink mb-6">Sign in to your account</h2>
 
           {error && (
-            <div className="mb-5 p-3.5 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5 text-red-700">
+            <div className="mb-5 p-3.5 bg-danger/10 border border-danger/20 rounded-lg flex items-start gap-2.5 text-danger">
               <AlertCircle size={17} className="mt-0.5 shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
@@ -92,7 +92,7 @@ const Login = () => {
             {isRegister && (
               <FormField label="Full Name" required error={errors.name}>
                 <div className="relative">
-                  <Briefcase size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Briefcase size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
                   <input
                     type="text"
                     value={email.split('@')[0]}
@@ -105,7 +105,7 @@ const Login = () => {
             )}
             <FormField label="Email Address" required error={errors.email}>
               <div className="relative">
-                <Mail size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Mail size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
                 <input
                   type="email"
                   value={email}
@@ -119,7 +119,7 @@ const Login = () => {
 
             <FormField label="Password" required error={errors.password}>
               <div className="relative">
-                <Lock size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Lock size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
                 <input
                   type="password"
                   value={password}
@@ -146,8 +146,8 @@ const Login = () => {
           </form>
 
           {/* Demo accounts */}
-          <div className="mt-6 pt-5 border-t border-gray-100">
-            <p className="text-xs text-gray-400 mb-3 flex items-center gap-1.5">
+          <div className="mt-6 pt-5 border-t border-hairline">
+            <p className="text-xs text-ink-3 mb-3 flex items-center gap-1.5">
               <Zap size={13} />
               Quick demo — click to fill credentials:
             </p>
@@ -163,7 +163,7 @@ const Login = () => {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mt-2 text-center">
+            <p className="text-xs text-ink-3 mt-2 text-center">
               Click a role above, then Sign In
             </p>
           </div>

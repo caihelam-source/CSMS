@@ -24,23 +24,23 @@ export const ConfirmDialog = ({ isOpen, onConfirm, onCancel, title = '确认操�
     <Modal isOpen={isOpen} onClose={onCancel} title={title} size="sm">
       <div className="flex items-start gap-3 mb-6">
         {variant === 'danger' ? (
-          <div className="p-2 bg-red-100 rounded-lg shrink-0">
-            <Trash2 size={18} className="text-red-600" />
+          <div className="p-2 bg-danger/10 rounded-lg shrink-0">
+            <Trash2 size={18} className="text-danger" />
           </div>
         ) : (
-          <div className="p-2 bg-amber-100 rounded-lg shrink-0">
-            <AlertTriangle size={18} className="text-amber-600" />
+          <div className="p-2 bg-warning/10 rounded-lg shrink-0">
+            <AlertTriangle size={18} className="text-warning" />
           </div>
         )}
-        <p className="text-gray-600 text-sm leading-relaxed">{message}</p>
+        <p className="text-ink-2 text-sm leading-relaxed">{message}</p>
       </div>
       <div className="flex justify-end gap-3">
-        <button onClick={onCancel} disabled={loading} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        <button onClick={onCancel} disabled={loading} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas disabled:opacity-50">
           {cancelLabel}
         </button>
         <button onClick={handleConfirm} disabled={loading}
           className={`px-4 py-2 text-sm text-white rounded-lg font-medium disabled:opacity-50 ${
-            variant === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'
+            variant === 'danger' ? 'bg-danger hover:opacity-90' : 'bg-primary-600 hover:bg-primary-700'
           }`}>
           {loading ? '处理中...' : confirmLabel}
         </button>

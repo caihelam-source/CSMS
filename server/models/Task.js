@@ -84,5 +84,8 @@ taskSchema.index({ personnel: 1 });
 taskSchema.index({ meeting: 1 });
 taskSchema.index({ dueDate: 1 });
 taskSchema.index({ status: 1 });
+// Dashboard 统计（pending/overdue）/ 公司任务看板
+taskSchema.index({ status: 1, dueDate: 1 });
+taskSchema.index({ company: 1, status: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);

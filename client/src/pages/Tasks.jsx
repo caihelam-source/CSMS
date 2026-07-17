@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   CheckSquare, Plus, Filter, Calendar,
   AlertTriangle, Clock, CheckCircle2, Circle,
-  Pencil, Trash2, MessageSquare, ArrowRight
+  Pencil, Trash2, MessageSquare
 } from 'lucide-react'
 import { taskService, documentService } from '../services/index.js'
 import { fmtDateShort } from '../utils/helpers'
@@ -74,7 +74,7 @@ const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
         </FormField>
       </div>
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-ink border border-hairline rounded-lg hover:bg-canvas">Cancel</button>
         <button type="submit" disabled={loading} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
           {loading ? 'Saving...' : 'Save Task'}
         </button>
@@ -84,12 +84,12 @@ const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
 }
 
 const statusIcon = (s) => {
-  const m = { completed: <CheckCircle2 size={20} className="text-green-500" />, in_progress: <Clock size={20} className="text-blue-500" />, overdue: <AlertTriangle size={20} className="text-red-500" /> }
-  return m[s] || <Circle size={20} className="text-gray-400" />
+  const m = { completed: <CheckCircle2 size={20} className="text-success" />, in_progress: <Clock size={20} className="text-primary-500" />, overdue: <AlertTriangle size={20} className="text-danger" /> }
+  return m[s] || <Circle size={20} className="text-ink-3" />
 }
 
 const Tasks = () => {
-  const { canEdit, canDelete } = useAuth()
+  const { canEdit } = useAuth()
   const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -151,7 +151,7 @@ const Tasks = () => {
 
   const handleDelete = async () => {
     if (!deleteTarget) return
-    try { await taskService.delete(deleteTarget._id) } catch {}
+    try { await taskService.delete(deleteTarget._id) } catch { /* ignore */ }
     setTasks(ts => ts.filter(t => t._id !== deleteTarget._id))
     setDeleteTarget(null)
   }
@@ -159,7 +159,7 @@ const Tasks = () => {
   const handleQuickComplete = async (task) => {
     if (task.status === 'completed') {
       // Un-complete
-      try { await taskService.update(task._id, { status: 'pending' }) } catch {}
+      try { await taskService.update(task._id, { status: 'pending' }) } catch { /* ignore */ }
       setTasks(ts => ts.map(t => t._id === task._id ? { ...t, status: 'pending' } : t))
       return
     }
@@ -198,12 +198,12 @@ const Tasks = () => {
       }
 
       // 3. 自动标记完成
-      try { await taskService.update(noteTarget._id, { status: 'completed' }) } catch {}
+      try { await taskService.update(noteTarget._id, { status: 'completed' }) } catch { /* ignore */ }
       setTasks(ts => ts.map(t => t._id === noteTarget._id
         ? { ...t, notes: noteText.trim() ? [...(t.notes || []), newNote] : (t.notes || []), status: 'completed' }
         : t
       ))
-    } catch {}
+    } catch { /* ignore */ }
     setNoteText('')
     setUploadFile(null)
     setNoteTarget(null)
@@ -225,23 +225,23 @@ const Tasks = () => {
           </button>
         }
       />
-      {!canEdit && <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-lg">You have <strong>view-only</strong> access. Contact an admin to make changes.</div>}
+      {!canEdit && <div className="p-3 bg-warning/10 border border-warning/20 text-warning text-sm rounded-lg">You have <strong>view-only</strong> access. Contact an admin to make changes.</div>}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search tasks..." />
         <div className="relative">
-          <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
           <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
-            className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 appearance-none bg-white">
+            className="pl-10 pr-8 py-2 border border-hairline rounded-lg text-sm focus:ring-2 focus:ring-primary-500 appearance-none bg-surface">
             <option value="all">All Status</option>
             {TASK_STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
           </select>
         </div>
         <div className="relative">
-          <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
           <select value={filters.priority} onChange={e => setFilter('priority', e.target.value)}
-            className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 appearance-none bg-white">
+            className="pl-10 pr-8 py-2 border border-hairline rounded-lg text-sm focus:ring-2 focus:ring-primary-500 appearance-none bg-surface">
             <option value="all">All Priorities</option>
             {TASK_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
@@ -267,7 +267,7 @@ const Tasks = () => {
             const days = getDaysRemaining(task.dueDate)
             const overdue = task.status !== 'completed' && days < 0
             return (
-              <div key={task._id} className={`bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${overdue ? 'border-red-200' : 'border-gray-200'}`}>
+              <div key={task._id} className={`bg-surface rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${overdue ? 'border-danger/20' : 'border-hairline'}`}>
                 <div className="flex items-start gap-4">
                   {/* Quick complete toggle — 保持原有圆圈图标，但加 tooltip */}
                   <button onClick={() => handleQuickComplete(task)} className="mt-0.5 shrink-0 hover:scale-110 transition-transform" title={task.status === 'completed' ? '重新打开' : '标记完成'}>
@@ -279,15 +279,15 @@ const Tasks = () => {
                         {/* 标题可点击 → 进入详情页 */}
                         <h3
                           onClick={() => navigate(`/tasks/${task._id}`)}
-                          className={`font-semibold cursor-pointer hover:text-primary-600 transition-colors ${overdue ? 'text-red-700' : task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}
+                          className={`font-semibold cursor-pointer hover:text-primary-600 transition-colors ${overdue ? 'text-danger' : task.status === 'completed' ? 'line-through text-ink-3' : 'text-ink'}`}
                         >
                           {task.title}
                         </h3>
                         <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${taskPriorityColor(task.priority)}`}>{task.priority}</span>
                         <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${taskStatusColor(overdue ? 'overdue' : task.status)}`}>{(overdue ? 'overdue' : task.status).replace('_', ' ')}</span>
-                        {task.description && <p className="text-sm text-gray-500 line-clamp-2 mb-2">{task.description}</p>}
-                        <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                          <span className={`flex items-center gap-1 ${overdue ? 'text-red-600 font-medium' : days <= 3 ? 'text-orange-600' : ''}`}>
+                        {task.description && <p className="text-sm text-ink-2 line-clamp-2 mb-2">{task.description}</p>}
+                        <div className="flex flex-wrap gap-3 text-xs text-ink-2">
+                          <span className={`flex items-center gap-1 ${overdue ? 'text-danger font-medium' : days <= 3 ? 'text-warning' : ''}`}>
                             <Calendar size={13} />
                             {overdue ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : `${days}d remaining`}
                           </span>
@@ -296,23 +296,23 @@ const Tasks = () => {
                       </div>
                       <div className="flex gap-1 shrink-0">
                         <button onClick={() => { setNoteTarget(task); setNoteText('') }}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="添加备注">
+                          className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-info/10 rounded-lg transition-colors" title="添加备注">
                           <MessageSquare size={15} />
                         </button>
-                        <button onClick={() => openEdit(task)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="编辑任务">
+                        <button onClick={() => openEdit(task)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="编辑任务">
                           <Pencil size={15} />
                         </button>
-                        <button onClick={() => setDeleteTarget(task)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <button onClick={() => setDeleteTarget(task)} className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
                           <Trash2 size={15} />
                         </button>
                       </div>
                     </div>
                     {/* 醒目的完成操作按钮（未完成时显示） */}
                     {task.status !== 'completed' && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="mt-3 pt-3 border-t border-hairline">
                         <button
                           onClick={() => handleQuickComplete(task)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 hover:border-green-300 transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-success/10 text-success border border-success/20 rounded-lg hover:bg-success/10 hover:border-success/30 transition-colors"
                         >
                           <CheckCircle2 size={14} /> 标记完成
                         </button>
@@ -327,7 +327,7 @@ const Tasks = () => {
       )}
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? 'Edit Task' : 'New Task'} size="md">
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{error}</div>}
+        {error && <div className="mb-4 p-3 bg-danger/10 border border-danger/20 text-danger text-sm rounded-lg">{error}</div>}
         <TaskForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModalOpen(false)} loading={saving} />
       </Modal>
 

@@ -15,11 +15,11 @@ import Modal from '../components/Modal'
 const SIGN_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled', 'expired']
 const STATUS_LABELS = { pending: '待签署', in_progress: '签署中', completed: '已完成', cancelled: '已取消', expired: '已过期' }
 const STATUS_COLORS = {
-  pending: 'bg-blue-100 text-blue-700',
-  in_progress: 'bg-yellow-100 text-yellow-700',
-  completed: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-700',
-  expired: 'bg-gray-100 text-gray-500',
+  pending: 'bg-info/10 text-primary-700',
+  in_progress: 'bg-warning/10 text-warning',
+  completed: 'bg-success/10 text-success',
+  cancelled: 'bg-danger/10 text-danger',
+  expired: 'bg-gray-100 text-ink-2',
 }
 
 const SIGN_TASK_RULES = {
@@ -104,16 +104,16 @@ const SignTaskForm = ({ initial = {}, onSave, onCancel, loading, documents, comp
             <Plus size={13} /> 添加签署人
           </button>
         </div>
-        {errors.signers && <p className="text-xs text-red-500 mt-1">{errors.signers}</p>}
+        {errors.signers && <p className="text-xs text-danger mt-1">{errors.signers}</p>}
         <div className="space-y-2">
           {form.signers.map((s, i) => (
             <div key={i} className="flex gap-2 items-start">
-              <span className="mt-2.5 text-xs text-gray-400 w-4 shrink-0">{i + 1}.</span>
+              <span className="mt-2.5 text-xs text-ink-3 w-4 shrink-0">{i + 1}.</span>
               <input className={inputClass + ' flex-1'} value={s.name} onChange={e => setSigner(i, 'name', e.target.value)} placeholder="姓名" />
               <input className={inputClass + ' flex-1'} type="email" value={s.email} onChange={e => setSigner(i, 'email', e.target.value)} placeholder="邮箱" />
               <input className={inputClass + ' w-28'} value={s.role} onChange={e => setSigner(i, 'role', e.target.value)} placeholder="职位" />
               {form.signers.length > 1 && (
-                <button type="button" onClick={() => removeSigner(i)} className="mt-2.5 text-gray-400 hover:text-red-500 shrink-0">
+                <button type="button" onClick={() => removeSigner(i)} className="mt-2.5 text-ink-3 hover:text-danger shrink-0">
                   <XCircle size={16} />
                 </button>
               )}
@@ -123,7 +123,7 @@ const SignTaskForm = ({ initial = {}, onSave, onCancel, loading, documents, comp
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-ink border border-hairline rounded-lg hover:bg-canvas">取消</button>
         <button type="submit" disabled={loading} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
           {loading ? '保存中...' : '创建签署任务'}
         </button>
@@ -205,21 +205,6 @@ const SignTasks = () => {
     }
   }
 
-  const handleSignNow = async () => {
-    if (!detailTarget) return
-    setSaving(true)
-    try {
-      const { data: resData } = await signTaskService.sign(detailTarget._id, detailTarget.signers?.[0]?._id)
-      setTasks(ts => ts.map(t => t._id === detailTarget._id ? (resData.data || t) : t))
-      setDetailTarget(resData.data || detailTarget)
-      fetchAll()
-    } catch (e) {
-      toast.error(e.response?.data?.message || '签署失败')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const getSignedCount = (task) => task.signers?.filter(s => s.status === 'signed').length || 0
 
   return (
@@ -231,7 +216,7 @@ const SignTasks = () => {
         icon={PenLine}
         actions={
           <>
-            <button onClick={fetchAll} className="px-3 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">
+            <button onClick={fetchAll} className="px-3 py-2 border border-hairline text-ink-2 rounded-lg hover:bg-canvas">
               <RefreshCw size={15} />
             </button>
             <button onClick={() => { setEditTarget(null); setError(''); setModal('new') }}
@@ -243,11 +228,11 @@ const SignTasks = () => {
       />
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-surface rounded-xl border border-hairline p-4">
         <div className="flex flex-wrap gap-3">
           <SearchBar value={search} onChange={setSearch} placeholder="搜索签署任务..." />
           <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
+            className="px-3 py-2 border border-hairline rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
             <option value="">全部状态</option>
             {SIGN_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
           </select>
@@ -268,16 +253,16 @@ const SignTasks = () => {
             const total = task.signers?.length || 0
             const progress = total > 0 ? Math.round((signed / total) * 100) : 0
             return (
-              <div key={task._id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow">
+              <div key={task._id} className="bg-surface rounded-xl border border-hairline shadow-sm p-5 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <h3 className="font-semibold text-gray-900">{task.title}</h3>
+                      <h3 className="font-semibold text-ink">{task.title}</h3>
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${STATUS_COLORS[task.status]}`}>
                         {STATUS_LABELS[task.status] || task.status}
                       </span>
                     </div>
-                    <div className="flex flex-wrap gap-4 text-xs text-gray-500 mb-3">
+                    <div className="flex flex-wrap gap-4 text-xs text-ink-2 mb-3">
                       {(task.document || task.relatedMeeting || task.template) && (
                         <span className="flex items-center gap-1">
                           <FileText size={12} /> {task.template?.name || task.document?.title || task.relatedMeeting?.title || '-'}
@@ -298,22 +283,22 @@ const SignTasks = () => {
                     {/* 签署进度 */}
                     {total > 0 && (
                       <div>
-                        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                        <div className="flex items-center justify-between text-xs text-ink-2 mb-1">
                           <span>签署进度</span>
                           <span>{signed} / {total}</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
-                          <div className={`h-1.5 rounded-full transition-all ${task.status === 'completed' ? 'bg-green-500' : 'bg-primary-500'}`} style={{ width: `${progress}%` }} />
+                        <div className="w-full bg-gray-100 rounded-full h-1.5">
+                          <div className={`h-1.5 rounded-full transition-all ${task.status === 'completed' ? 'bg-success' : 'bg-primary-500'}`} style={{ width: `${progress}%` }} />
                         </div>
                         <div className="mt-2 space-y-1.5">
                           {task.signers.slice(0, 3).map((s, i) => (
                             <div key={i} className="flex items-center gap-2 text-sm">
                               {s.status === 'signed'
-                                ? <CheckCircle2 size={16} className="text-green-500 shrink-0" />
-                                : <Clock size={16} className="text-gray-400 shrink-0" />}
-                              <span className="text-gray-700">{s.name || s.email || '待填写'}</span>
-                              {s.role && <span className="text-xs text-gray-400">({s.role})</span>}
-                              <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${s.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                ? <CheckCircle2 size={16} className="text-success shrink-0" />
+                                : <Clock size={16} className="text-ink-3 shrink-0" />}
+                              <span className="text-ink">{s.name || s.email || '待填写'}</span>
+                              {s.role && <span className="text-xs text-ink-3">({s.role})</span>}
+                              <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${s.status === 'signed' ? 'bg-success/10 text-success' : 'bg-gray-100 text-ink-2'}`}>
                                 {s.status === 'signed' ? '已签' : '待签'}
                               </span>
                             </div>
@@ -331,15 +316,15 @@ const SignTasks = () => {
 
                   <div className="flex gap-1 shrink-0">
                     <button onClick={() => { setDetailTarget(task); setModal('detail') }}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="查看详情">
+                      className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-info/10 rounded-lg transition-colors" title="查看详情">
                       <User size={15} />
                     </button>
                     <button onClick={() => { setEditTarget(task); setError(''); setModal('edit') }}
-                      className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+                      className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
                       <Pencil size={15} />
                     </button>
                     <button onClick={() => { setEditTarget(task); setModal('delete') }}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                      className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -353,7 +338,7 @@ const SignTasks = () => {
       {/* 新增/编辑 Modal */}
       <Modal isOpen={modal === 'new' || modal === 'edit'} onClose={() => setModal(null)}
         title={modal === 'edit' ? '编辑签署任务' : '新建签署任务'} size="lg">
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{error}</div>}
+        {error && <div className="mb-4 p-3 bg-danger/10 border border-danger/20 text-danger text-sm rounded-lg">{error}</div>}
         <SignTaskForm
           initial={editTarget || {}}
           onSave={handleSave}
@@ -370,36 +355,36 @@ const SignTasks = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="text-gray-500">状态：</span>
+                <span className="text-ink-2">状态：</span>
                 <span className={`ml-1 px-2 py-0.5 text-xs rounded-full ${STATUS_COLORS[detailTarget.status]}`}>
                   {STATUS_LABELS[detailTarget.status]}
                 </span>
               </div>
-              {detailTarget.dueDate && <div className="text-gray-600">截止：{fmtDateShort(detailTarget.dueDate)}</div>}
+              {detailTarget.dueDate && <div className="text-ink-2">截止：{fmtDateShort(detailTarget.dueDate)}</div>}
             </div>
-            {detailTarget.description && <p className="text-sm text-gray-600">{detailTarget.description}</p>}
+            {detailTarget.description && <p className="text-sm text-ink-2">{detailTarget.description}</p>}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">签署人列表：</p>
-              <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
+              <p className="text-sm font-medium text-ink mb-2">签署人列表：</p>
+              <div className="border border-hairline rounded-lg divide-y divide-gray-100">
                 {detailTarget.signers?.map((s, i) => (
                   <div key={i} className="px-4 py-3">
                     <div className="flex items-center gap-2 text-sm">
                       {s.status === 'signed'
-                        ? <CheckCircle2 size={16} className="text-green-500 shrink-0" />
-                        : <Clock size={16} className="text-gray-400 shrink-0" />}
-                      <span className="text-gray-700">{s.name || s.email || '待填写'}</span>
-                      {s.role && <span className="text-xs text-gray-400">({s.role})</span>}
-                      <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${s.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        ? <CheckCircle2 size={16} className="text-success shrink-0" />
+                        : <Clock size={16} className="text-ink-3 shrink-0" />}
+                      <span className="text-ink">{s.name || s.email || '待填写'}</span>
+                      {s.role && <span className="text-xs text-ink-3">({s.role})</span>}
+                      <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${s.status === 'signed' ? 'bg-success/10 text-success' : 'bg-gray-100 text-ink-2'}`}>
                         {s.status === 'signed' ? '已签' : '待签'}
                       </span>
                     </div>
-                    {s.signedAt && <p className="text-xs text-gray-400 ml-6 mt-0.5">签署于 {fmtDateTimeShort(s.signedAt)}</p>}
+                    {s.signedAt && <p className="text-xs text-ink-3 ml-6 mt-0.5">签署于 {fmtDateTimeShort(s.signedAt)}</p>}
                   </div>
                 ))}
               </div>
             </div>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setModal(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">关闭</button>
+              <button onClick={() => setModal(null)} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">关闭</button>
             </div>
           </div>
         )}

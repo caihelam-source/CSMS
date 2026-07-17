@@ -6,10 +6,10 @@ import {
   FileText, Send, PenLine, Eye, Copy, Pencil,
   Building2, AlertCircle, Download, Printer, Upload
 } from 'lucide-react'
-import { meetingService, companyService, documentService, signTaskService, taskService } from '../services/index.js'
-import { formatDate, MEETING_TYPE_LABELS as TYPES, MEETING_PHASES, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
+import { meetingService, documentService, signTaskService, taskService } from '../services/index.js'
+import { formatDate, MEETING_TYPE_LABELS as TYPES, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
 import { validate, required } from '../utils/validators'
-import { LoadingSpinner, DetailHeader, FormField, inputClass, labelClass, InfoCard, TabNav } from '../components/UIHelpers'
+import { LoadingSpinner, DetailHeader, FormField, inputClass, InfoCard, TabNav } from '../components/UIHelpers'
 import Modal from '../components/Modal'
 
 // Phase icon mapping — uses shared buildPhasesWithIcons
@@ -237,7 +237,7 @@ export default function MeetingDetail() {
   if (!meeting) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-500">会议不存在</p>
+        <p className="text-ink-2">会议不存在</p>
         <button onClick={() => navigate('/meetings')} className="mt-4 text-primary-600 hover:underline">
           返回会议列表
         </button>
@@ -272,8 +272,8 @@ export default function MeetingDetail() {
       />
 
       {/* 会议全流程进度 */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <p className="text-xs text-gray-400 mb-3">会议全流程（通知 → 附件 → 纪要 → 签字 → 归档）</p>
+      <div className="bg-surface rounded-xl border border-hairline p-4">
+        <p className="text-xs text-ink-3 mb-3">会议全流程（通知 → 附件 → 纪要 → 签字 → 归档）</p>
         <div className="flex items-center">
           {MEETING_FLOW.map((step, i) => {
             const done = computeMeetingSteps(meeting, documents)[step.key]
@@ -281,12 +281,12 @@ export default function MeetingDetail() {
             return (
               <div key={step.key} className="flex items-center flex-1">
                 <div className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${done ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${done ? 'bg-success text-white' : 'bg-gray-100 text-ink-2'}`}>
                     {done ? <CheckCircle2 size={16} /> : i + 1}
                   </div>
-                  <span className={`mt-1 text-xs ${done ? 'text-green-700 font-medium' : 'text-gray-400'}`}>{step.label}</span>
+                  <span className={`mt-1 text-xs ${done ? 'text-success font-medium' : 'text-ink-3'}`}>{step.label}</span>
                 </div>
-                {!isLast && <div className={`flex-1 h-0.5 mx-1 mb-5 ${done ? 'bg-green-500' : 'bg-gray-200'}`} />}
+                {!isLast && <div className={`flex-1 h-0.5 mx-1 mb-5 ${done ? 'bg-success' : 'bg-gray-100'}`} />}
               </div>
             )
           })}
@@ -307,7 +307,7 @@ export default function MeetingDetail() {
       />
 
       {/* Tab Content */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-surface rounded-xl border border-hairline p-6">
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
@@ -315,19 +315,19 @@ export default function MeetingDetail() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InfoCard title="基本信息">
                 <dl className="space-y-2 text-sm">
-                  <div className="flex"><dt className="w-20 text-gray-400 shrink-0">类型：</dt><dd>{TYPES[meeting.type] || meeting.type || '-'}</dd></div>
-                  <div className="flex"><dt className="w-20 text-gray-400 shrink-0">日期：</dt><dd>{fmtDate(meeting.scheduledAt)}</dd></div>
-                  <div className="flex"><dt className="w-20 text-gray-400 shrink-0">时间：</dt><dd>{fmtTime(meeting.scheduledAt)}</dd></div>
-                  <div className="flex"><dt className="w-20 text-gray-400 shrink-0">地点：</dt><dd>{meeting.location || '-'}</dd></div>
-                  {meeting.isVirtual && <div className="flex"><dt className="w-20 text-gray-400 shrink-0">会议号：</dt><dd className="font-mono">{meeting.meetingId || '-'}</dd></div>}
-                  {meeting.meetingLink && <div className="flex"><dt className="w-20 text-gray-400 shrink-0">链接：</dt><dd><a href={meeting.meetingLink} target="_blank" rel="noopener" className="text-primary-600 hover:underline text-xs truncate">{meeting.meetingLink}</a></dd></div>}
+                  <div className="flex"><dt className="w-20 text-ink-3 shrink-0">类型：</dt><dd>{TYPES[meeting.type] || meeting.type || '-'}</dd></div>
+                  <div className="flex"><dt className="w-20 text-ink-3 shrink-0">日期：</dt><dd>{fmtDate(meeting.scheduledAt)}</dd></div>
+                  <div className="flex"><dt className="w-20 text-ink-3 shrink-0">时间：</dt><dd>{fmtTime(meeting.scheduledAt)}</dd></div>
+                  <div className="flex"><dt className="w-20 text-ink-3 shrink-0">地点：</dt><dd>{meeting.location || '-'}</dd></div>
+                  {meeting.isVirtual && <div className="flex"><dt className="w-20 text-ink-3 shrink-0">会议号：</dt><dd className="font-mono">{meeting.meetingId || '-'}</dd></div>}
+                  {meeting.meetingLink && <div className="flex"><dt className="w-20 text-ink-3 shrink-0">链接：</dt><dd><a href={meeting.meetingLink} target="_blank" rel="noopener" className="text-primary-600 hover:underline text-xs truncate">{meeting.meetingLink}</a></dd></div>}
                 </dl>
               </InfoCard>
               <InfoCard title="关联信息">
                 <dl className="space-y-2 text-sm">
-                  <div className="flex"><dt className="w-20 text-gray-400 shrink-0">公司：</dt><dd className="font-medium">{meeting.company?.name || '-'}</dd></div>
-                  {meeting.notice?.sentAt && <div className="flex"><dt className="w-20 text-gray-400 shrink-0">通知发送：</dt><dd>{fmtDate(meeting.notice.sentAt)}</dd></div>}
-                  {meeting.minutes?.signedAt && <div className="flex"><dt className="w-20 text-gray-400 shrink-0">纪要签署：</dt><dd className="text-green-600">{fmtDate(meeting.minutes.signedAt)}</dd></div>}
+                  <div className="flex"><dt className="w-20 text-ink-3 shrink-0">公司：</dt><dd className="font-medium">{meeting.company?.name || '-'}</dd></div>
+                  {meeting.notice?.sentAt && <div className="flex"><dt className="w-20 text-ink-3 shrink-0">通知发送：</dt><dd>{fmtDate(meeting.notice.sentAt)}</dd></div>}
+                  {meeting.minutes?.signedAt && <div className="flex"><dt className="w-20 text-ink-3 shrink-0">纪要签署：</dt><dd className="text-success">{fmtDate(meeting.minutes.signedAt)}</dd></div>}
                 </dl>
               </InfoCard>
             </div>
@@ -335,21 +335,21 @@ export default function MeetingDetail() {
             {/* Attendees */}
             {meeting.attendees?.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-500 mb-3">参会人员 ({meeting.attendees.length})</h4>
+                <h4 className="text-sm font-semibold text-ink-2 mb-3">参会人员 ({meeting.attendees.length})</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {meeting.attendees.map((a, i) => (
-                    <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                    <div key={i} className="flex items-center gap-2 p-2 bg-canvas rounded-lg">
                       <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xs">
                         {a.name?.charAt(0) || '?'}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{a.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{a.role || '-'}</p>
+                        <p className="text-xs text-ink-3 truncate">{a.role || '-'}</p>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        a.status === 'attended' ? 'bg-green-100 text-green-700'
-                        : a.status === 'accepted' ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-500'
+                        a.status === 'attended' ? 'bg-success/10 text-success'
+                        : a.status === 'accepted' ? 'bg-info/10 text-primary-700'
+                        : 'bg-gray-100 text-ink-2'
                       }`}>
                         {a.status === 'attended' ? '出席' : a.status === 'accepted' ? '已确认' : a.status === 'declined' ? '已拒绝' : '待确认'}
                       </span>
@@ -362,14 +362,14 @@ export default function MeetingDetail() {
             {/* Agenda */}
             {meeting.agenda?.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-500 mb-3">会议议程</h4>
+                <h4 className="text-sm font-semibold text-ink-2 mb-3">会议议程</h4>
                 <div className="space-y-2">
                   {meeting.agenda.map((a, i) => (
-                    <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-lg text-sm">
-                      <span className="text-gray-400 font-bold w-6 shrink-0 text-right">{i + 1}.</span>
+                    <div key={i} className="flex gap-3 p-3 bg-canvas rounded-lg text-sm">
+                      <span className="text-ink-3 font-bold w-6 shrink-0 text-right">{i + 1}.</span>
                       <span className="flex-1">{a.item || '未填写'}</span>
-                      {a.presenter && <span className="text-gray-400 text-xs">主讲：{a.presenter}</span>}
-                      {a.duration && <span className="text-gray-400 text-xs">{a.duration}分钟</span>}
+                      {a.presenter && <span className="text-ink-3 text-xs">主讲：{a.presenter}</span>}
+                      {a.duration && <span className="text-ink-3 text-xs">{a.duration}分钟</span>}
                     </div>
                   ))}
                 </div>
@@ -379,15 +379,15 @@ export default function MeetingDetail() {
             {/* Resolutions */}
             {meeting.resolutions?.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-500 mb-3">决议</h4>
+                <h4 className="text-sm font-semibold text-ink-2 mb-3">决议</h4>
                 <div className="space-y-2">
                   {meeting.resolutions.map((r, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm">
+                    <div key={i} className="flex items-center justify-between p-3 bg-canvas rounded-lg text-sm">
                       <span>{r.title || '未填写'}</span>
                       <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        r.status === 'approved' ? 'bg-green-100 text-green-700'
-                        : r.status === 'rejected' ? 'bg-red-100 text-red-700'
-                        : 'bg-gray-100 text-gray-500'
+                        r.status === 'approved' ? 'bg-success/10 text-success'
+                        : r.status === 'rejected' ? 'bg-danger/10 text-danger'
+                        : 'bg-gray-100 text-ink-2'
                       }`}>
                         {r.status === 'approved' ? '已通过' : r.status === 'rejected' ? '未通过' : '待决议'}
                       </span>
@@ -405,7 +405,7 @@ export default function MeetingDetail() {
             {!noticeData ? (
               <div className="text-center py-12">
                 <FileText size={48} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500 mb-4">尚未生成会议通知</p>
+                <p className="text-ink-2 mb-4">尚未生成会议通知</p>
                 <button
                   onClick={generateNotice}
                   disabled={generating === 'notice'}
@@ -437,7 +437,7 @@ export default function MeetingDetail() {
                           setEditingNotice(true)
                         }
                       }}
-                      className={`inline-flex items-center gap-1.5 text-sm ${editingNotice ? 'btn-primary' : 'btn-secondary text-blue-600'}`}
+                      className={`inline-flex items-center gap-1.5 text-sm ${editingNotice ? 'btn-primary' : 'btn-secondary text-primary-600'}`}
                     >
                       {editingNotice ? <><CheckCircle2 size={14} /> 完成编辑</> : <><Pencil size={14} /> 编辑</>}
                     </button>
@@ -445,7 +445,7 @@ export default function MeetingDetail() {
                   {!editingNotice && noticeData.html && (
                     <button
                       onClick={() => { const w = window.open(''); w.document.write(noticeData.html); w.document.close() }}
-                      className="btn-secondary inline-flex items-center gap-1.5 text-sm text-blue-600"
+                      className="btn-secondary inline-flex items-center gap-1.5 text-sm text-primary-600"
                     >
                       <Eye size={14} /> 预览HTML
                     </button>
@@ -453,12 +453,12 @@ export default function MeetingDetail() {
                 </div>
                 {editingNotice ? (
                   <div className="space-y-3">
-                    <p className="text-xs text-gray-500">编辑通知内容（修改后可复制或退出编辑预览）：</p>
+                    <p className="text-xs text-ink-2">编辑通知内容（修改后可复制或退出编辑预览）：</p>
                     <textarea
                       value={editedNoticeText}
                       onChange={e => setEditedNoticeText(e.target.value)}
                       rows={16}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-sans leading-relaxed focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
+                      className="w-full px-4 py-3 border border-hairline rounded-lg text-sm font-sans leading-relaxed focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
                     />
                     <div className="flex gap-2">
                       <button onClick={() => { copyText(editedNoticeText) }} className="btn-primary inline-flex items-center gap-1.5 text-sm">
@@ -470,11 +470,11 @@ export default function MeetingDetail() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white p-4 rounded-lg border">
+                  <div className="bg-surface p-4 rounded-lg border">
                     {noticeData.html ? (
                       <iframe srcDoc={noticeData.html} className="w-full min-h-[300px] border-0" title="notice-preview" />
                     ) : (
-                      <pre className="whitespace-pre-wrap text-sm font-sans text-gray-700">{noticeData.text}</pre>
+                      <pre className="whitespace-pre-wrap text-sm font-sans text-ink">{noticeData.text}</pre>
                     )}
                   </div>
                 )}
@@ -489,7 +489,7 @@ export default function MeetingDetail() {
             {!minutesData ? (
               <div className="text-center py-12">
                 <PenLine size={48} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500 mb-4">尚未生成会议纪要</p>
+                <p className="text-ink-2 mb-4">尚未生成会议纪要</p>
                 <button
                   onClick={generateMinutes}
                   disabled={generating === 'minutes'}
@@ -519,7 +519,7 @@ export default function MeetingDetail() {
                           setEditingMinutes(true)
                         }
                       }}
-                      className={`inline-flex items-center gap-1.5 text-sm ${editingMinutes ? 'btn-primary' : 'btn-secondary text-blue-600'}`}
+                      className={`inline-flex items-center gap-1.5 text-sm ${editingMinutes ? 'btn-primary' : 'btn-secondary text-primary-600'}`}
                     >
                       {editingMinutes ? <><CheckCircle2 size={14} /> 完成编辑</> : <><Pencil size={14} /> 编辑</>}
                     </button>
@@ -527,7 +527,7 @@ export default function MeetingDetail() {
                   {!editingMinutes && minutesData.html && (
                     <button
                       onClick={() => { const w = window.open(''); w.document.write(minutesData.html); w.document.close() }}
-                      className="btn-secondary inline-flex items-center gap-1.5 text-sm text-blue-600"
+                      className="btn-secondary inline-flex items-center gap-1.5 text-sm text-primary-600"
                     >
                       <Eye size={14} /> 预览HTML
                     </button>
@@ -535,12 +535,12 @@ export default function MeetingDetail() {
                 </div>
                 {editingMinutes ? (
                   <div className="space-y-3">
-                    <p className="text-xs text-gray-500">编辑纪要内容（修改后可复制或退出编辑预览）：</p>
+                    <p className="text-xs text-ink-2">编辑纪要内容（修改后可复制或退出编辑预览）：</p>
                     <textarea
                       value={editedMinutesText}
                       onChange={e => setEditedMinutesText(e.target.value)}
                       rows={20}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-sans leading-relaxed focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
+                      className="w-full px-4 py-3 border border-hairline rounded-lg text-sm font-sans leading-relaxed focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
                     />
                     <div className="flex gap-2">
                       <button onClick={() => { copyText(editedMinutesText) }} className="btn-primary inline-flex items-center gap-1.5 text-sm">
@@ -552,11 +552,11 @@ export default function MeetingDetail() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white p-4 rounded-lg border">
+                  <div className="bg-surface p-4 rounded-lg border">
                     {minutesData.html ? (
                       <iframe srcDoc={minutesData.html} className="w-full min-h-[300px] border-0" title="minutes-preview" />
                     ) : (
-                      <pre className="whitespace-pre-wrap text-sm font-sans text-gray-700">{minutesData.text}</pre>
+                      <pre className="whitespace-pre-wrap text-sm font-sans text-ink">{minutesData.text}</pre>
                     )}
                   </div>
                 )}
@@ -564,21 +564,21 @@ export default function MeetingDetail() {
                 {/* Signatures */}
                 {minutesData.signatures?.length > 0 && !editingMinutes && (
                   <div className="mt-4">
-                    <h4 className="text-sm font-semibold text-gray-500 mb-2">签署状态</h4>
+                    <h4 className="text-sm font-semibold text-ink-2 mb-2">签署状态</h4>
                     <div className="space-y-2">
                       {minutesData.signatures.map((s, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div key={i} className="flex items-center justify-between p-3 bg-canvas rounded-lg">
                           <div>
                             <p className="font-medium text-sm">{s.name}</p>
-                            <p className="text-xs text-gray-400">{s.title}</p>
+                            <p className="text-xs text-ink-3">{s.title}</p>
                           </div>
                           {s.status === 'signed' ? (
-                            <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                            <span className="text-xs text-success font-medium flex items-center gap-1">
                               <CheckCircle2 size={14} /> 已签署
-                              {s.signedAt && <span className="text-gray-400 ml-1">({fmtDate(s.signedAt)})</span>}
+                              {s.signedAt && <span className="text-ink-3 ml-1">({fmtDate(s.signedAt)})</span>}
                             </span>
                           ) : (
-                            <span className="text-xs text-amber-600 flex items-center gap-1">
+                            <span className="text-xs text-warning flex items-center gap-1">
                               <Clock size={14} /> 待签署
                             </span>
                           )}
@@ -596,7 +596,7 @@ export default function MeetingDetail() {
         {activeTab === 'documents' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-gray-500">相关文档</h4>
+              <h4 className="text-sm font-semibold text-ink-2">相关文档</h4>
               <div className="flex gap-2">
                 <button
                   onClick={() => { setAttachForm({ name: '', type: 'attachment', file: null }); setAttachModal(true) }}
@@ -613,28 +613,28 @@ export default function MeetingDetail() {
               </div>
             </div>
             {documents.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
+              <div className="text-center py-12 text-ink-3">
                 <FileText size={48} className="mx-auto mb-4 opacity-50" />
                 <p>暂无相关文档</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {documents.map(doc => (
-                  <div key={doc._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={doc._id} className="flex items-center justify-between p-3 bg-canvas rounded-lg">
                     <div className="flex items-center gap-3">
-                      <FileText size={16} className="text-gray-400" />
+                      <FileText size={16} className="text-ink-3" />
                       <div>
                         <p className="text-sm font-medium">{doc.name}</p>
-                        <p className="text-xs text-gray-400">{formatDate(doc.createdAt)}</p>
+                        <p className="text-xs text-ink-3">{formatDate(doc.createdAt)}</p>
                       </div>
                     </div>
                     <div className="flex gap-1">
                       {doc.fileUrl && (
-                        <a href={doc.fileUrl} target="_blank" rel="noopener" className="p-1.5 text-gray-400 hover:text-primary-600 rounded">
+                        <a href={doc.fileUrl} target="_blank" rel="noopener" className="p-1.5 text-ink-3 hover:text-primary-600 rounded">
                           <Download size={14} />
                         </a>
                       )}
-                      <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                      <button className="p-1.5 text-ink-3 hover:text-ink-2 rounded">
                         <Printer size={14} />
                       </button>
                     </div>
@@ -649,34 +649,34 @@ export default function MeetingDetail() {
         {activeTab === 'signing' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-gray-500">关联签署任务 ({signTasks.length})</h4>
+              <h4 className="text-sm font-semibold text-ink-2">关联签署任务 ({signTasks.length})</h4>
               <button onClick={openSignModal} className="btn-primary flex items-center gap-1.5 text-sm">
                 <PenLine size={14} /> 发起签署任务
               </button>
             </div>
             {signTasks.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
+              <div className="text-center py-12 text-ink-3">
                 <PenLine size={48} className="mx-auto mb-4 opacity-50" />
                 <p>暂无关联签署任务</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {signTasks.map(st => (
-                  <div key={st._id} className="border border-gray-200 rounded-xl p-4">
+                  <div key={st._id} className="border border-hairline rounded-xl p-4">
                     <div className="flex items-center justify-between">
                       <p className="font-medium">{st.title}</p>
                       <span className={`text-xs px-2 py-1 rounded-full ${
-                        st.status === 'completed' ? 'bg-green-100 text-green-700'
-                        : st.status === 'in_progress' ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-500'
+                        st.status === 'completed' ? 'bg-success/10 text-success'
+                        : st.status === 'in_progress' ? 'bg-info/10 text-primary-700'
+                        : 'bg-gray-100 text-ink-2'
                       }`}>{st.status}</span>
                     </div>
                     {st.signers?.length > 0 && (
                       <div className="mt-3 space-y-1">
                         {st.signers.map((s, i) => (
                           <div key={i} className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">{s.signerName || s.name || '签署人'}</span>
-                            <span className={s.status === 'signed' ? 'text-green-600' : 'text-amber-600'}>
+                            <span className="text-ink-2">{s.signerName || s.name || '签署人'}</span>
+                            <span className={s.status === 'signed' ? 'text-success' : 'text-warning'}>
                               {s.status === 'signed' ? '已签署' : '待签署'}
                             </span>
                           </div>
@@ -729,12 +729,12 @@ export default function MeetingDetail() {
             <input type="file" className={inputClass}
               onChange={e => setAttachForm({ ...attachForm, file: e.target.files[0] || null })} />
           </FormField>
-          <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm text-amber-800 flex items-start gap-2">
+          <div className="bg-warning/10 border border-warning/20 p-3 rounded-lg text-sm text-warning flex items-start gap-2">
             <AlertCircle size={16} className="shrink-0 mt-0.5" />
             <span>附件将自动关联到会议所属公司（{meeting?.company?.name}），并在公司详情页的「文件」中可见。</span>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setAttachModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+            <button onClick={() => setAttachModal(false)} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
             <button onClick={uploadAttachment} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">确认上传</button>
           </div>
         </div>
@@ -764,12 +764,12 @@ export default function MeetingDetail() {
               <option value="other">其他</option>
             </select>
           </FormField>
-          <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm text-amber-800 flex items-start gap-2">
+          <div className="bg-warning/10 border border-warning/20 p-3 rounded-lg text-sm text-warning flex items-start gap-2">
             <AlertCircle size={16} className="shrink-0 mt-0.5" />
             <span>归档后的文档将在公司详情页面的「文档」分类中显示，方便统一管理</span>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setArchiveModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+            <button onClick={() => setArchiveModal(false)} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
             <button onClick={archiveDocument} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">确认归档</button>
           </div>
         </div>
@@ -796,12 +796,12 @@ export default function MeetingDetail() {
             </select>
           </FormField>
           <FormField label="签署人（从参会人员选择）">
-            <div className="space-y-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
+            <div className="space-y-1 max-h-48 overflow-y-auto border border-hairline rounded-lg p-2">
               {(meeting?.attendees || []).length === 0 && (
-                <p className="text-xs text-gray-400">该会议暂无参会人员</p>
+                <p className="text-xs text-ink-3">该会议暂无参会人员</p>
               )}
               {(meeting?.attendees || []).map(a => (
-                <label key={a._id} className="flex items-center gap-2 p-1.5 rounded hover:bg-gray-50 text-sm cursor-pointer">
+                <label key={a._id} className="flex items-center gap-2 p-1.5 rounded hover:bg-canvas text-sm cursor-pointer">
                   <input
                     type="checkbox"
                     checked={signForm.signerIds.includes(a._id)}
@@ -813,17 +813,17 @@ export default function MeetingDetail() {
                     }))}
                   />
                   <span className="flex-1">{a.name}</span>
-                  <span className="text-xs text-gray-400">{a.role || '-'}</span>
+                  <span className="text-xs text-ink-3">{a.role || '-'}</span>
                 </label>
               ))}
             </div>
           </FormField>
-          <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm text-amber-800 flex items-start gap-2">
+          <div className="bg-warning/10 border border-warning/20 p-3 rounded-lg text-sm text-warning flex items-start gap-2">
             <AlertCircle size={16} className="shrink-0 mt-0.5" />
             <span>签署任务将关联至本会议（meetingId: {meeting?._id}），发起后可在「签署任务」列表与会议签署页查看。</span>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setSignModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+            <button onClick={() => setSignModal(false)} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
             <button onClick={createSignTask} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">确认发起</button>
           </div>
         </div>

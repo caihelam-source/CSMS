@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Calendar, FileText, Building2,
   CheckSquare, LogOut, Menu, X, Briefcase, Crown, Zap,
   Bell, ShieldCheck, FileCode, UserCircle, Settings as SettingsIcon,
+  Sun, Moon,
 } from 'lucide-react'
 import { useState, memo } from 'react'
 import GlobalSearch from './GlobalSearch'
@@ -23,9 +24,9 @@ const NAV_ITEMS = [
 ]
 
 const ROLE_BADGE = {
-  admin:   { label: 'Admin',   color: 'bg-red-100 text-red-700'    },
-  manager: { label: 'Manager', color: 'bg-blue-100 text-blue-700'  },
-  viewer:  { label: 'Viewer',  color: 'bg-gray-100 text-gray-600'  },
+  admin:   { label: 'Admin',   color: 'bg-danger/10 text-danger'    },
+  manager: { label: 'Manager', color: 'bg-info/10 text-primary-700'  },
+  viewer:  { label: 'Viewer',  color: 'bg-gray-100 text-ink-2'  },
 }
 
 /**
@@ -39,12 +40,12 @@ const NavItem = memo(({ path, icon: Icon, label, admin, active, onClick }) => (
     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       active
         ? 'bg-primary-50 text-primary-700'
-        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-    } ${admin ? 'border border-dashed border-red-200 hover:border-red-300 hover:bg-red-50 hover:text-red-700' : ''}`}
+        : 'text-ink-2 hover:bg-gray-100 hover:text-ink'
+    } ${admin ? 'border border-dashed border-danger/20 hover:border-danger/20 hover:bg-danger/10 hover:text-danger' : ''}`}
   >
-    <Icon size={18} className={active ? 'text-primary-600' : admin ? 'text-red-400' : 'text-gray-400'} />
+    <Icon size={18} className={active ? 'text-primary-600' : admin ? 'text-danger' : 'text-ink-3'} />
     <span className="flex-1">{label}</span>
-    {admin && <Crown size={13} className="text-red-400" />}
+    {admin && <Crown size={13} className="text-danger" />}
   </Link>
 ))
 
@@ -52,6 +53,13 @@ const Navbar = () => {
   const { user, logout, isAdmin, isDemo } = useAuth()
   const location = useLocation()
   const [open, setOpen] = useState(false)
+  const [theme, setTheme] = useState(() => document.documentElement.classList.contains('dark') ? 'dark' : 'light')
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    document.documentElement.classList.toggle('dark', next === 'dark')
+    try { localStorage.setItem('theme', next) } catch { /* ignore */ }
+  }
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -65,7 +73,7 @@ const Navbar = () => {
     <>
       {/* Mobile toggle */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md border border-gray-200"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-surface rounded-lg shadow-md border border-hairline"
         onClick={() => setOpen(o => !o)}
         aria-label="Toggle menu"
       >
@@ -74,21 +82,28 @@ const Navbar = () => {
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200
+        fixed lg:static inset-y-0 left-0 z-40 w-64 bg-surface border-r border-hairline
         flex flex-col transform transition-transform duration-200 ease-in-out
         ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
       `}>
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-200">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-hairline">
           <div className="p-2 bg-primary-600 rounded-xl shadow-sm">
             <Briefcase size={19} className="text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-bold text-gray-900 leading-none">CSMS</h1>
-            <p className="text-xs text-gray-400 mt-0.5 truncate">Secretary Management</p>
+            <h1 className="text-sm font-bold text-ink leading-none">CSMS</h1>
+            <p className="text-xs text-ink-3 mt-0.5 truncate">Secretary Management</p>
           </div>
+          <button
+            onClick={toggleTheme}
+            aria-label="切换明暗主题"
+            className="ml-auto p-2 rounded-lg text-ink-2 hover:bg-canvas transition-colors shrink-0"
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           {isDemo && (
-            <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium shrink-0">
+            <span className="flex items-center gap-1 text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-medium shrink-0">
               <Zap size={11} />Demo
             </span>
           )}
@@ -108,7 +123,7 @@ const Navbar = () => {
 
           {/* Compliance group */}
           <div className="mt-4">
-            <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-widest pb-1.5">Compliance</p>
+            <p className="px-3 text-xs font-semibold text-ink-3 uppercase tracking-widest pb-1.5">Compliance</p>
             <div className="space-y-0.5">
               {NAV_ITEMS.filter(i => i.group === 'Compliance').map(item => (
                 <NavItem key={item.path} {...item} active={location.pathname === item.path} onClick={closeMobile} />
@@ -120,7 +135,7 @@ const Navbar = () => {
           {isAdmin && (
             <>
               <div className="pt-3 pb-1">
-                <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">Administration</p>
+                <p className="px-3 text-xs font-semibold text-ink-3 uppercase tracking-widest">Administration</p>
               </div>
               <NavItem path="/admin" icon={Crown} label="Admin Panel" admin active={location.pathname === '/admin'} onClick={closeMobile} />
             </>
@@ -128,13 +143,13 @@ const Navbar = () => {
         </nav>
 
         {/* User footer */}
-        <div className="px-3 py-3 border-t border-gray-200 space-y-1">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 mb-1">
+        <div className="px-3 py-3 border-t border-hairline space-y-1">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-canvas mb-1">
             <div className="w-9 h-9 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
               {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{user?.name}</p>
+              <p className="text-sm font-semibold text-ink truncate leading-tight">{user?.name}</p>
               <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${roleBadge.color}`}>
                 {roleBadge.label}
               </span>
@@ -142,9 +157,9 @@ const Navbar = () => {
           </div>
           <button
             onClick={logout}
-            className="flex items-center w-full gap-3 px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+            className="flex items-center w-full gap-3 px-3 py-2.5 text-sm text-ink-2 hover:bg-gray-100 hover:text-ink rounded-lg transition-colors"
           >
-            <LogOut size={17} className="text-gray-400" />
+            <LogOut size={17} className="text-ink-3" />
             Sign Out
           </button>
         </div>

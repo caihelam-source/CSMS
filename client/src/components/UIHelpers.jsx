@@ -281,10 +281,10 @@ export const SectionSkeleton = ({ lines = 3, className = '' }) => (
   <div className={`space-y-2 ${className}`} aria-hidden="true">
     {Array.from({ length: lines }).map((_, i) => (
       <div key={i} className="flex items-center gap-3 p-3 bg-canvas rounded-lg">
-        <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse shrink-0" />
+        <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-3 bg-gray-200 rounded animate-pulse w-1/3" />
-          <div className="h-2.5 bg-gray-200 rounded animate-pulse w-1/2" />
+          <div className="h-3 bg-gray-100 rounded animate-pulse w-1/3" />
+          <div className="h-2.5 bg-gray-100 rounded animate-pulse w-1/2" />
         </div>
       </div>
     ))}
@@ -297,8 +297,8 @@ export const SectionSkeleton = ({ lines = 3, className = '' }) => (
  */
 export const WarningBanner = ({ icon: Icon, title, count, color = 'amber', items = [], renderItem, linkTo, linkLabel }) => {
   const colors = {
-    red: { bg: 'bg-danger/10', border: 'border-danger/20', icon: 'text-danger', title: 'text-danger', count: 'text-red-600', item: 'border-red-100 hover:bg-danger/10', itemTitle: 'text-ink', itemSub: 'text-danger', link: 'text-red-600' },
-    amber: { bg: 'bg-warning/10', border: 'border-warning/20', icon: 'text-warning', title: 'text-warning', count: 'text-warning', item: 'border-amber-100 hover:bg-warning/10', itemTitle: 'text-ink', itemSub: 'text-warning', link: 'text-warning' },
+    red: { bg: 'bg-danger/10', border: 'border-danger/20', icon: 'text-danger', title: 'text-danger', count: 'text-danger', item: 'border-danger/20 hover:bg-danger/10', itemTitle: 'text-ink', itemSub: 'text-danger', link: 'text-danger' },
+    amber: { bg: 'bg-warning/10', border: 'border-warning/20', icon: 'text-warning', title: 'text-warning', count: 'text-warning', item: 'border-warning/20 hover:bg-warning/10', itemTitle: 'text-ink', itemSub: 'text-warning', link: 'text-warning' },
   }
   const c = colors[color] || colors.amber
   return (

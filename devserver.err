@@ -2864,3 +2864,728 @@ AggregateError [ECONNREFUSED]:
       at step (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\gensync\index.js:287:14)
       at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\gensync\index.js:273:13
       at async.call.result.err.err (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\gensync\index.js:223:11)
+[2m下午2:15:19[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:15:19[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:15:50[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:15:50[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:16:11[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:16:11[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:16:25[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:16:25[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:16:37[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:16:37[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:17:49[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:17:49[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:48:54[22m [31m[1m[vite][22m[39m Pre-transform error: [postcss] Unexpected '/'. Escaping special characters with \ may help.
+[2m下午2:48:54[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] Unexpected '/'. Escaping special characters with \ may help.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:undefined:NaN
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:8:22
+      at Root._error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:131:16)
+      at Root.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\selectors\root.js:30:19)
+      at Parser.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:598:21)
+      at Parser.unexpected (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:612:17)
+      at Parser.combinator (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:526:12)
+      at Parser.parse (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:900:14)
+      at Parser.loop (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:856:12)
+      at new Parser (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\parser.js:124:10)
+      at Processor._root (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:40:18)
+      at Processor._runSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:78:21)
+      at Processor.processSync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss-selector-parser\dist\processor.js:164:23)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:39:12
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at extractClasses (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:29:15)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:154:31
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:387:18
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:315:18
+      at Root.each (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:63:16)
+      at Root.walk (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:312:17)
+      at Root.walkRules (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\container.js:385:19)
+      at buildLocalApplyCache (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:143:10)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:550:40
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:205:30)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:49
+      at Array.some (<anonymous>)
+      at Object.has (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:219:29)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:379:34)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m下午2:49:04[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:1:1: The `bg-canvas` class does not exist. If `bg-canvas` is a custom class, make sure it is defined within a `@layer` directive.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:1:0
+[33m  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;[39m
+      at Input.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\input.js:135:16)
+      at AtRule.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\node.js:146:32)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:380:29)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:49:04[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:1:1: The `bg-canvas` class does not exist. If `bg-canvas` is a custom class, make sure it is defined within a `@layer` directive.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:1:0
+[33m  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;[39m
+      at Input.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\input.js:135:16)
+      at AtRule.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\node.js:146:32)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:380:29)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m下午2:54:22[22m [31m[1m[vite][22m[39m Pre-transform error: [postcss] C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:1:1: The `bg-canvas` class does not exist. If `bg-canvas` is a custom class, make sure it is defined within a `@layer` directive.
+[2m下午2:54:22[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:1:1: The `bg-canvas` class does not exist. If `bg-canvas` is a custom class, make sure it is defined within a `@layer` directive.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:1:0
+[33m  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;[39m
+      at Input.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\input.js:135:16)
+      at AtRule.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\node.js:146:32)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:380:29)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m下午2:55:06[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:1:1: The `bg-canvas` class does not exist. If `bg-canvas` is a custom class, make sure it is defined within a `@layer` directive.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:1:0
+[33m  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;[39m
+      at Input.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\input.js:135:16)
+      at AtRule.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\node.js:146:32)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:380:29)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m下午2:55:23[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:1:1: The `bg-canvas` class does not exist. If `bg-canvas` is a custom class, make sure it is defined within a `@layer` directive.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:1:0
+[33m  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;[39m
+      at Input.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\input.js:135:16)
+      at AtRule.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\node.js:146:32)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:380:29)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m下午2:55:27[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:1:1: The `bg-canvas` class does not exist. If `bg-canvas` is a custom class, make sure it is defined within a `@layer` directive.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:1:0
+[33m  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;[39m
+      at Input.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\input.js:135:16)
+      at AtRule.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\node.js:146:32)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:380:29)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m下午3:00:24[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:1:1: The `bg-canvas` class does not exist. If `bg-canvas` is a custom class, make sure it is defined within a `@layer` directive.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:1:0
+[33m  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;[39m
+      at Input.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\input.js:135:16)
+      at AtRule.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\node.js:146:32)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:380:29)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m下午3:01:06[22m [31m[1m[vite][22m[39m [31mInternal server error: [postcss] C:/Users/Vincent/WorkBuddy/Claw/client/src/index.css:1:1: The `bg-canvas` class does not exist. If `bg-canvas` is a custom class, make sure it is defined within a `@layer` directive.[39m
+  Plugin: [35mvite:css[39m
+  File: [36mC:/Users/Vincent/WorkBuddy/Claw/client/src/index.css[39m:1:0
+[33m  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;[39m
+      at Input.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\input.js:135:16)
+      at AtRule.error (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\node.js:146:32)
+      at processApply (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:380:29)
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (C:\Users\Vincent\WorkBuddy\Claw\client\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async compileCSS (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36898:21)
+      at async TransformPluginContext.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36171:11)
+      at async PluginContainer.transform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///C:/Users/Vincent/WorkBuddy/Claw/client/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)

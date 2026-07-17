@@ -244,7 +244,7 @@ export default function Companies() {
               )}
               <div className="flex gap-1 mt-3 pt-2 border-t border-hairline" onClick={e => e.preventDefault()}>
                 <button onClick={() => openEdit(c)} className="p-1.5 text-ink-3 hover:text-primary-600 rounded-lg hover:bg-canvas"><Pencil size={14} /></button>
-                <button onClick={() => setDeleteTarget(c)} className="p-1.5 text-ink-3 hover:text-red-600 rounded-lg hover:bg-canvas"><Trash2 size={14} /></button>
+                <button onClick={() => setDeleteTarget(c)} className="p-1.5 text-ink-3 hover:text-danger rounded-lg hover:bg-canvas"><Trash2 size={14} /></button>
               </div>
             </Link>
           ))}
@@ -335,7 +335,7 @@ export default function Companies() {
             <input ref={importFileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
           </div>
           {importResult && (
-            <div className={`p-4 rounded-lg text-sm ${importResult.success ? 'bg-green-50 border border-success/20 text-success' : 'bg-danger/10 border border-danger/20 text-danger'}`}>
+            <div className={`p-4 rounded-lg text-sm ${importResult.success ? 'bg-success/10 border border-success/20 text-success' : 'bg-danger/10 border border-danger/20 text-danger'}`}>
               {importResult.success
                 ? <><p className="font-medium">导入完成</p><p>新增 {importResult.created} 家，跳过 {importResult.skipped} 家</p>
                   {importResult.errors?.length > 0 && <div className="mt-2 text-warning"><ul className="list-disc list-inside text-xs">{importResult.errors.map((er, i) => <li key={i}>{er}</li>)}</ul></div>}</>

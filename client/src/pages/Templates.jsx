@@ -67,7 +67,7 @@ const TemplateForm = ({ initial = {}, onSave, onCancel, loading }) => {
       <div>
         <label className={labelClass}>
           模板内容
-          <span className="ml-2 text-xs text-gray-400 font-normal">使用 {'{{变量名}}'} 标记变量，如 {'{{公司名称}}'}</span>
+          <span className="ml-2 text-xs text-ink-3 font-normal">使用 {'{{变量名}}'} 标记变量，如 {'{{公司名称}}'}</span>
         </label>
         <textarea
           rows={12}
@@ -78,17 +78,17 @@ const TemplateForm = ({ initial = {}, onSave, onCancel, loading }) => {
         />
       </div>
       {vars.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs font-medium text-blue-700 mb-1.5">检测到变量（{vars.length} 个）：</p>
+        <div className="bg-info/10 border border-info/20 rounded-lg p-3">
+          <p className="text-xs font-medium text-primary-700 mb-1.5">检测到变量（{vars.length} 个）：</p>
           <div className="flex flex-wrap gap-1.5">
             {vars.map(v => (
-              <span key={v} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-mono">{`{{${v}}}`}</span>
+              <span key={v} className="text-xs bg-info/10 text-primary-700 px-2 py-0.5 rounded font-mono">{`{{${v}}}`}</span>
             ))}
           </div>
         </div>
       )}
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-ink border border-hairline rounded-lg hover:bg-canvas">取消</button>
         <button type="submit" disabled={loading} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
           {loading ? '保存中...' : '保存模板'}
         </button>
@@ -160,7 +160,7 @@ const RenderModal = ({ template, companies, onClose }) => {
       for (const k of Object.keys(auto)) delete next[k]
       return next
     })
-  }, [selectedCompany])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedCompany])
 
   // 分离变量：autoVars = 可自动填充, manualOnlyVars = 必须手动填写
   const autoVarNames = vars.filter(v => canAutoFill(v))
@@ -200,14 +200,14 @@ const RenderModal = ({ template, companies, onClose }) => {
 
       {/* 已自动填充的变量（只读展示） */}
       {Object.keys(autoFilledVars).length > 0 && (
-        <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-2">
-          <p className="text-sm font-medium text-green-700 flex items-center gap-1.5">
+        <div className="border border-success/20 bg-success/10 rounded-lg p-4 space-y-2">
+          <p className="text-sm font-medium text-success flex items-center gap-1.5">
             ✓ 已自动填充（{Object.keys(autoFilledVars).length} 个字段来自中央数据库）
           </p>
           {Object.entries(autoFilledVars).map(([key, val]) => (
             <div key={key} className="flex items-center gap-2">
-              <label className="text-xs font-medium text-gray-600 w-32 flex-shrink-0">{key}</label>
-              <span className="flex-1 text-sm text-gray-900 bg-white border border-green-200 rounded px-3 py-1.5 min-h-[34px] leading-[22px]">{val}</span>
+              <label className="text-xs font-medium text-ink-2 w-32 flex-shrink-0">{key}</label>
+              <span className="flex-1 text-sm text-ink bg-surface border border-success/20 rounded px-3 py-1.5 min-h-[34px] leading-[22px]">{val}</span>
             </div>
           ))}
         </div>
@@ -215,8 +215,8 @@ const RenderModal = ({ template, companies, onClose }) => {
 
       {/* 可自动填充但尚未选择公司的提示 */}
       {autoVarNames.length > 0 && !selectedCompany && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <p className="text-xs text-yellow-700">
+        <div className="bg-yellow-50 border border-warning/20 rounded-lg p-3">
+          <p className="text-xs text-warning">
             💡 选择关联公司后可自动填充：{autoVarNames.join('、')}
           </p>
         </div>
@@ -224,11 +224,11 @@ const RenderModal = ({ template, companies, onClose }) => {
 
       {/* 手动填写变量 */}
       {manualOnlyVarNames.length > 0 && (
-        <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-          <p className="text-sm font-medium text-gray-700">手动填写变量：</p>
+        <div className="border border-hairline rounded-lg p-4 space-y-3">
+          <p className="text-sm font-medium text-ink">手动填写变量：</p>
           {manualOnlyVarNames.map(v => (
             <div key={v}>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{v}</label>
+              <label className="block text-xs font-medium text-ink-2 mb-1">{v}</label>
               <input className={inputClass} value={manualVars[v] || ''} onChange={e => setManualVars(m => ({ ...m, [v]: e.target.value }))} placeholder={`填写 ${v}`} />
             </div>
           ))}
@@ -237,22 +237,22 @@ const RenderModal = ({ template, companies, onClose }) => {
 
       {/* 无变量的提示 */}
       {vars.length === 0 && (
-        <div className="text-center py-6 text-sm text-gray-400">此模板无变量，将直接渲染原始内容</div>
+        <div className="text-center py-6 text-sm text-ink-3">此模板无变量，将直接渲染原始内容</div>
       )}
 
-      {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{error}</div>}
+      {error && <div className="p-3 bg-danger/10 border border-danger/20 text-danger text-sm rounded-lg">{error}</div>}
       <div className="flex justify-end gap-3">
-        <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">关闭</button>
+        <button onClick={onClose} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">关闭</button>
         <button onClick={handleRender} disabled={loading} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
           <Play size={14} /> {loading ? '渲染中...' : '渲染预览'}
         </button>
       </div>
       {rendered && (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-600">渲染结果预览</span>
+        <div className="border border-hairline rounded-lg overflow-hidden">
+          <div className="bg-canvas border-b border-hairline px-4 py-2 flex items-center justify-between">
+            <span className="text-xs font-medium text-ink-2">渲染结果预览</span>
             <button onClick={() => navigator.clipboard?.writeText(rendered)}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
+              className="flex items-center gap-1 text-xs text-ink-2 hover:text-ink">
               <Copy size={12} /> 复制 HTML
             </button>
           </div>
@@ -264,12 +264,12 @@ const RenderModal = ({ template, companies, onClose }) => {
 }
 
 const categoryColor = (c) => ({
-  board_resolution: 'bg-purple-100 text-purple-700',
-  agm_resolution: 'bg-green-100 text-green-700',
-  director_change: 'bg-blue-100 text-blue-700',
-  shareholder_notice: 'bg-teal-100 text-teal-700',
-  annual_report: 'bg-orange-100 text-orange-700',
-}[c] || 'bg-gray-100 text-gray-600')
+  board_resolution: 'bg-gray-100 text-ink-2',
+  agm_resolution: 'bg-success/10 text-success',
+  director_change: 'bg-info/10 text-primary-700',
+  shareholder_notice: 'bg-gray-100 text-ink-2',
+  annual_report: 'bg-warning/10 text-warning',
+}[c] || 'bg-gray-100 text-ink-2')
 
 const Templates = () => {
   const { confirm, ConfirmDialogComponent } = useConfirm()
@@ -367,7 +367,7 @@ const Templates = () => {
         actions={
           <>
             <button onClick={handleInitialize} disabled={saving}
-              className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+              className="flex items-center gap-1.5 px-3 py-2 border border-hairline text-ink rounded-lg hover:bg-canvas text-sm font-medium">
               <Zap size={15} /> 初始化预设模板
             </button>
             <button onClick={() => { setEditTarget(null); setError(''); setModal('new') }}
@@ -379,16 +379,16 @@ const Templates = () => {
       />
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-surface rounded-xl border border-hairline p-4">
         <div className="flex flex-wrap gap-3">
           <SearchBar value={search} onChange={setSearch} placeholder="搜索模板名称..." />
           <select value={filters.category} onChange={e => setFilter('category', e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
+            className="px-3 py-2 border border-hairline rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
             <option value="">全部类别</option>
             {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
           </select>
-          <button onClick={fetchAll} className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
-            <RefreshCw size={15} className="text-gray-500" />
+          <button onClick={fetchAll} className="px-3 py-2 border border-hairline rounded-lg hover:bg-canvas">
+            <RefreshCw size={15} className="text-ink-2" />
           </button>
         </div>
       </div>
@@ -405,33 +405,33 @@ const Templates = () => {
           {filtered.map(t => {
             const vars = extractVars(t.content || '')
             return (
-              <div key={t._id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow flex flex-col">
+              <div key={t._id} className="bg-surface rounded-xl border border-hairline shadow-sm p-5 hover:shadow-md transition-shadow flex flex-col">
                 <div className="flex items-start justify-between mb-3">
                   <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${categoryColor(t.category)}`}>
                     {CATEGORY_LABELS[t.category] || t.category}
                   </span>
-                  {t.isPreset && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">预设</span>}
+                  {t.isPreset && <span className="text-xs bg-info/10 text-primary-600 px-1.5 py-0.5 rounded">预设</span>}
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-1">{t.name}</h3>
-                {t.description && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{t.description}</p>}
+                <h3 className="font-semibold text-ink mb-1">{t.name}</h3>
+                {t.description && <p className="text-xs text-ink-2 mb-3 line-clamp-2">{t.description}</p>}
                 {vars.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {vars.slice(0, 4).map(v => <span key={v} className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-mono">{v}</span>)}
-                    {vars.length > 4 && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">+{vars.length - 4}</span>}
+                    {vars.slice(0, 4).map(v => <span key={v} className="text-xs bg-gray-100 text-ink-2 px-1.5 py-0.5 rounded font-mono">{v}</span>)}
+                    {vars.length > 4 && <span className="text-xs bg-gray-100 text-ink-2 px-1.5 py-0.5 rounded">+{vars.length - 4}</span>}
                   </div>
                 )}
-                <div className="flex gap-2 pt-3 border-t border-gray-100 mt-auto">
+                <div className="flex gap-2 pt-3 border-t border-hairline mt-auto">
                   <button onClick={() => { setRenderTarget(t); setModal('render') }}
                     className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 font-medium">
                     <Play size={13} /> 渲染预览
                   </button>
                   <button onClick={() => { setEditTarget(t); setError(''); setModal('edit') }}
-                    className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+                    className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
                     <Pencil size={15} />
                   </button>
                   {!t.isPreset && (
                     <button onClick={() => { setEditTarget(t); setModal('delete') }}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                      className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
                       <Trash2 size={15} />
                     </button>
                   )}
@@ -445,7 +445,7 @@ const Templates = () => {
       {/* 新增/编辑 Modal */}
       <Modal isOpen={modal === 'new' || modal === 'edit'} onClose={() => setModal(null)}
         title={modal === 'edit' ? '编辑模板' : '新建文档模板'} size="xl">
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{error}</div>}
+        {error && <div className="mb-4 p-3 bg-danger/10 border border-danger/20 text-danger text-sm rounded-lg">{error}</div>}
         <TemplateForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModal(null)} loading={saving} />
       </Modal>
 

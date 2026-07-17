@@ -75,7 +75,7 @@ router.put('/:id', auth, async (req, res) => {
 // POST /api/sign-tasks/:id/sign — 提交签名
 router.post('/:id/sign', async (req, res) => {
   try {
-    const { signerId, signatureData, verificationCode } = req.body;
+    const { signerId, signatureData } = req.body;
     const task = await SignTask.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Sign task not found' });
     if (task.status === 'completed' || task.status === 'cancelled') {

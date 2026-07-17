@@ -4,7 +4,7 @@ const react = require('eslint-plugin-react')
 
 module.exports = [
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/.workbuddy/**'],
+    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/.workbuddy/**', '**/client/tmp/**'],
   },
   // ── 后端（Node / CommonJS）──
   {

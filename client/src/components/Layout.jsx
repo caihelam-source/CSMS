@@ -14,7 +14,7 @@ export default function Layout() {
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Demo mode banner */}
         {!user?.token || user?.token?.startsWith('demo-') ? (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-sm text-amber-800">
+          <div className="bg-warning/10 border-b border-warning/20 px-4 py-2 text-center text-sm text-warning">
             🎭 <strong>Demo Mode</strong> — No backend required. All features are interactive.
           </div>
         ) : null}

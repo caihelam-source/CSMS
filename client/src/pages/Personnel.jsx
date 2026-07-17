@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Plus, Users, Pencil, Trash2, Merge, AlertTriangle, Upload, Download, Building2 } from 'lucide-react'
+import { Plus, Users, Pencil, Trash2, Merge, AlertTriangle, Upload, Download } from 'lucide-react'
 import { personnelService, companyService } from '../services/index.js'
-import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, labelClass } from '../components/UIHelpers'
+import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClass } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required, email as emailValidator } from '../utils/validators'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -59,7 +59,7 @@ export default function Personnel() {
       try {
         const dupRes = await personnelService.getDuplicates()
         if (dupRes.success) setDuplicateWarnings(dupRes.duplicates || [])
-      } catch {}
+      } catch { /* 重复检测失败不影响主列表加载 */ }
     } catch {
       toast.error('Failed to load personnel')
     } finally {
@@ -247,7 +247,7 @@ export default function Personnel() {
               </button>
             )}
             <button onClick={() => { setImportResult(null); setImportModal(true) }}
-              className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+              className="flex items-center gap-1.5 px-3 py-2 border border-hairline text-ink rounded-lg hover:bg-canvas text-sm font-medium">
               <Upload size={15} /> Excel 导入
             </button>
             <button onClick={openCreate} className="btn-primary flex items-center gap-2">
@@ -261,7 +261,7 @@ export default function Personnel() {
       <div className="flex gap-2 flex-wrap">
         {[{ key: 'all', label: '全部' }, { key: 'director', label: '董事' }, { key: 'shareholder', label: '股东' }, { key: 'secretary', label: '公司秘书' }].map(t => (
           <button key={t.key} onClick={() => setRoleFilter(t.key)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${roleFilter === t.key ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${roleFilter === t.key ? 'bg-primary-600 text-white border-primary-600' : 'bg-surface text-ink-2 border-hairline hover:bg-canvas'}`}>
             {t.label}
           </button>
         ))}
@@ -269,16 +269,16 @@ export default function Personnel() {
 
       {/* Duplicate warnings */}
       {duplicateWarnings.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="bg-yellow-50 border border-warning/20 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle size={16} className="text-yellow-600" />
-            <h3 className="font-medium text-yellow-800">Duplicate Detection Warning</h3>
+            <h3 className="font-medium text-warning">Duplicate Detection Warning</h3>
             <span className="ml-auto text-sm text-yellow-600">{duplicateWarnings.length} duplicate group{duplicateWarnings.length > 1 ? 's' : ''}</span>
           </div>
           <div className="space-y-1 text-sm">
             {duplicateWarnings.slice(0, 3).map(group => (
               <div key={group.name} className="flex items-center gap-2">
-                <span className="text-yellow-700 font-medium">{group.name}</span>
+                <span className="text-warning font-medium">{group.name}</span>
                 <span className="text-yellow-500">({group.count} records)</span>
               </div>
             ))}
@@ -320,7 +320,7 @@ export default function Personnel() {
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-primary-600 hover:underline">{p.name}</p>
                           {dupGroup && (
-                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full flex items-center gap-1" title="Duplicate detected">
+                            <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full flex items-center gap-1" title="Duplicate detected">
                               <AlertTriangle size={10} /> {dupGroup.count}
                             </span>
                           )}
@@ -332,7 +332,7 @@ export default function Personnel() {
                             ))}
                           </div>
                         )}
-                        <div className="flex gap-2 text-xs text-gray-400">
+                        <div className="flex gap-2 text-xs text-ink-3">
                           {p.nric && <span>{p.nric}</span>}
                           {p.nationality && <span>· {p.nationality}</span>}
                           {p.email && <span>· {p.email}</span>}
@@ -341,8 +341,8 @@ export default function Personnel() {
                     </Link>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => openEdit(p)} className="p-2 text-gray-400 hover:text-blue-600 rounded"><Pencil size={14} /></button>
-                    <button onClick={() => handleDelete(p)} className="p-2 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                    <button onClick={() => openEdit(p)} className="p-2 text-ink-3 hover:text-primary-600 rounded"><Pencil size={14} /></button>
+                    <button onClick={() => handleDelete(p)} className="p-2 text-ink-3 hover:text-danger rounded"><Trash2 size={14} /></button>
                   </div>
                 </div>
               </div>
@@ -366,7 +366,7 @@ export default function Personnel() {
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-primary-600 hover:underline">{p.name}</p>
                         {dupGroup && (
-                          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full flex items-center gap-1" title="Duplicate detected">
+                          <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full flex items-center gap-1" title="Duplicate detected">
                             <AlertTriangle size={10} /> {dupGroup.count}
                           </span>
                         )}
@@ -378,7 +378,7 @@ export default function Personnel() {
                           ))}
                         </div>
                       )}
-                      <div className="flex gap-2 text-xs text-gray-400">
+                      <div className="flex gap-2 text-xs text-ink-3">
                         {p.nric && <span>{p.nric}</span>}
                         {p.nationality && <span>· {p.nationality}</span>}
                         {p.email && <span>· {p.email}</span>}
@@ -387,8 +387,8 @@ export default function Personnel() {
                   </Link>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => openEdit(p)} className="p-2 text-gray-400 hover:text-blue-600 rounded"><Pencil size={14} /></button>
-                  <button onClick={() => handleDelete(p)} className="p-2 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                  <button onClick={() => openEdit(p)} className="p-2 text-ink-3 hover:text-primary-600 rounded"><Pencil size={14} /></button>
+                  <button onClick={() => handleDelete(p)} className="p-2 text-ink-3 hover:text-danger rounded"><Trash2 size={14} /></button>
                 </div>
               </div>
             )
@@ -399,7 +399,7 @@ export default function Personnel() {
       {/* Excel 导入 */}
       <Modal isOpen={importModal} onClose={() => setImportModal(false)} title="Excel 批量导入人员" size="md">
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+          <div className="bg-info/10 border border-info/20 rounded-lg p-4 text-sm text-primary-700">
             <p className="font-medium mb-1">导入说明</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>必填列：姓名</li>
@@ -410,17 +410,17 @@ export default function Personnel() {
           <button onClick={downloadTemplate} className="flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium">
             <Download size={16} /> 下载 Excel 模板
           </button>
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors"
+          <div className="border-2 border-dashed border-hairline rounded-xl p-8 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors"
             onClick={() => importFileRef.current?.click()}>
-            <Upload size={32} className="mx-auto text-gray-400 mb-3" />
-            <p className="text-gray-600 text-sm">点击选择 Excel 文件</p>
+            <Upload size={32} className="mx-auto text-ink-3 mb-3" />
+            <p className="text-ink-2 text-sm">点击选择 Excel 文件</p>
             <input ref={importFileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
           </div>
           {importResult && (
-            <div className={`p-4 rounded-lg text-sm ${importResult.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+            <div className={`p-4 rounded-lg text-sm ${importResult.success ? 'bg-success/10 border border-success/20 text-success' : 'bg-danger/10 border border-danger/20 text-danger'}`}>
               {importResult.success
                 ? <><p className="font-medium">导入完成</p><p>新增 {importResult.created} 人，关联 {importResult.linked} 条任职</p>
-                  {importResult.errors?.length > 0 && <div className="mt-2 text-amber-700"><ul className="list-disc list-inside text-xs">{importResult.errors.map((e, i) => <li key={i}>{e}</li>)}</ul></div>}</>
+                  {importResult.errors?.length > 0 && <div className="mt-2 text-warning"><ul className="list-disc list-inside text-xs">{importResult.errors.map((e, i) => <li key={i}>{e}</li>)}</ul></div>}</>
                 : <p>{importResult.message}</p>}
             </div>
           )}
@@ -463,19 +463,19 @@ export default function Personnel() {
 
       {/* Merge Modal */}
       <Modal isOpen={showMergeModal} onClose={() => { setShowMergeModal(false); setSelectedIds([]); setMergeTargetId('') }} title="Merge Personnel" size="md">
-            <p className="text-sm text-gray-500 mb-4">Select which person to keep as the main record. The other will be deleted and all references (companies, meetings, documents) will be updated.</p>
+            <p className="text-sm text-ink-2 mb-4">Select which person to keep as the main record. The other will be deleted and all references (companies, meetings, documents) will be updated.</p>
             <div className="space-y-3">
               {selectedIds.map(id => {
                 const p = personnel.find(pp => pp._id === id)
                 if (!p) return null
                 return (
-                  <div key={id} className={`p-3 border rounded-lg cursor-pointer ${mergeTargetId === id ? 'border-primary-500 bg-primary-50' : 'border-gray-200'}`}
+                  <div key={id} className={`p-3 border rounded-lg cursor-pointer ${mergeTargetId === id ? 'border-primary-500 bg-primary-50' : 'border-hairline'}`}
                     onClick={() => setMergeTargetId(id)}>
                     <div className="flex items-center gap-3">
                       <input type="radio" checked={mergeTargetId === id} onChange={() => setMergeTargetId(id)} />
                       <div>
                         <p className="font-medium">{p.name}</p>
-                        <p className="text-xs text-gray-400">{p.nric || 'No ID'} · {p.nationality || 'N/A'}</p>
+                        <p className="text-xs text-ink-3">{p.nric || 'No ID'} · {p.nationality || 'N/A'}</p>
                       </div>
                     </div>
                   </div>

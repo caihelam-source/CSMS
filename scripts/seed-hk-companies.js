@@ -8,7 +8,6 @@
 
 const mongoose = require('mongoose')
 const path = require('path')
-const fs = require('fs')
 
 // ====== Seed Data (from NAR1 PDFs) ======
 const companies = [
@@ -323,7 +322,7 @@ async function seed() {
       category: pdf.category,
       company: company._id,
       description: pdf.description,
-      filename: pdf.title.replace(/[^a-zA-Z0-9.\-]/g, '_') + '.pdf',
+      filename: pdf.title.replace(/[^a-zA-Z0-9.-]/g, '_') + '.pdf',
       originalName: pdf.title + '.pdf',
       mimetype: 'application/pdf',
       size: 500000,

@@ -5,9 +5,7 @@ import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLin
 import { companyService, documentService, meetingService, personnelService, complianceReminderService, complianceRuleService, taskService } from '../services/index.js'
 import EquityGraph from './EquityGraph'
 import { formatDate, getStatusColor, DOC_CATEGORY_LABELS, docExpiryStatus, DOC_EXPIRY_BADGE, generateDocFilename, saveBlob } from '../utils/helpers'
-import { buildRomDocxBlob } from '../utils/romDocx'
-import { buildRodDocxBlob } from '../utils/rodDocx'
-import { inferRegion } from '../utils/docxCommon'
+import { inferRegion } from '../utils/regionHelpers'
 import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, TabNav, taskPriorityColor, jurisdictionLabel } from '../components/UIHelpers'
 import Modal from '../components/Modal'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -478,6 +476,8 @@ export default function CompanyDetail() {
     try {
       if (type === 'rom') {
         // 真正的 .docx：香港(8列) / BVI(嵌套19列)，按地区+用途(签字栏)生成
+        // 动态加载 docx 库（~300KB），仅在用户点下载时才拉取
+        const { buildRomDocxBlob } = await import('../utils/romDocx')
         const blob = await buildRomDocxBlob(
           company,
           (company.links || []).filter((l) => l.roles.includes('shareholder')),
@@ -488,6 +488,7 @@ export default function CompanyDetail() {
         toast.success(`ROM downloaded (.docx, ${romRegion}${romPurpose !== 'standard' ? ' / ' + romPurpose : ''})`)
       } else {
         // 真正的 .docx：香港(7列) / BVI(4表)，按地区+用途(签字栏)生成
+        const { buildRodDocxBlob } = await import('../utils/rodDocx')
         const blob = await buildRodDocxBlob(
           company,
           (company.links || []).filter((l) => l.roles.includes('director') || l.roles.includes('alternate_director')),
@@ -536,7 +537,7 @@ export default function CompanyDetail() {
             {link.roles.map(r => <span key={r} className="badge badge-info text-xs">{r}</span>)}
           </div>
           <button onClick={() => openEditLink(link)} className="p-1 text-ink-3 hover:text-primary-600" title="Edit link"><Edit3 size={14} /></button>
-          <button onClick={() => handleRemoveLink(link._id)} className="p-1 text-ink-3 hover:text-red-600" title="Remove"><Trash2 size={14} /></button>
+          <button onClick={() => handleRemoveLink(link._id)} className="p-1 text-ink-3 hover:text-danger" title="Remove"><Trash2 size={14} /></button>
         </div>
       </div>
     )
@@ -578,7 +579,7 @@ export default function CompanyDetail() {
           ))}
           <td className="p-2 text-right">
             {link.ceasedDate ? (
-              <button onClick={() => handleRestoreLink(link._id)} className="text-xs text-green-600 hover:underline font-medium">恢复</button>
+              <button onClick={() => handleRestoreLink(link._id)} className="text-xs text-success hover:underline font-medium">恢复</button>
             ) : (
               <button onClick={() => handleRemoveLink(link._id)} className="text-xs text-danger hover:underline font-medium">标记离任</button>
             )}
@@ -634,7 +635,7 @@ export default function CompanyDetail() {
                 </tr>
               </thead>
             </table>
-            <Section label="现任 (Current)" list={current} bg="bg-green-50" />
+            <Section label="现任 (Current)" list={current} bg="bg-success/10" />
             <Section label="历任 (Former)" list={former} bg="bg-danger/10" />
           </div>
         )}
@@ -754,7 +755,7 @@ export default function CompanyDetail() {
               <div className="flex justify-between"><span className="text-ink-2">成立日期</span><span>{formatDate(company.incorporationDate)}</span></div>
               {company.brExpiryDate && (() => {
                 const days = Math.floor((new Date(company.brExpiryDate) - new Date()) / (1000 * 60 * 60 * 24));
-                const dayColor = days <= 30 ? 'text-red-600' : days <= 90 ? 'text-orange-500' : 'text-green-600';
+                const dayColor = days <= 30 ? 'text-danger' : days <= 90 ? 'text-warning' : 'text-success';
                 return (
                   <div className="flex justify-between">
                     <span className="text-ink-2">商业登记证到期日</span>
@@ -797,7 +798,7 @@ export default function CompanyDetail() {
             <h3 className="font-semibold mb-4">合规日期</h3>
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-ink-2">AGM 到期</span><span>{formatDate(company.compliance?.agmDueDate)}</span></div>
-              <div className="flex justify-between"><span className="text-ink-2">年报到期</span><span className={company.compliance?.arDueDate && new Date(company.compliance.arDueDate) < new Date() ? 'text-red-600 font-medium' : ''}>{formatDate(company.compliance?.arDueDate)}</span></div>
+              <div className="flex justify-between"><span className="text-ink-2">年报到期</span><span className={company.compliance?.arDueDate && new Date(company.compliance.arDueDate) < new Date() ? 'text-danger font-medium' : ''}>{formatDate(company.compliance?.arDueDate)}</span></div>
               <div className="flex justify-between"><span className="text-ink-2">上次 AGM</span><span>{formatDate(company.compliance?.lastAgmDate)}</span></div>
             </dl>
           </div>

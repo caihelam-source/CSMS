@@ -8,7 +8,7 @@ import {
   Send, AlertCircle, FileText, Pencil, Trash2, Eye
 } from 'lucide-react'
 import { meetingService, companyService, personnelService, signTaskService } from '../services/index.js'
-import { MEETING_TYPE_LABELS as TYPES, MEETING_PHASES as PHASES, MEETING_STATUSES as STATUS, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
+import { MEETING_TYPE_LABELS as TYPES, MEETING_STATUSES as STATUS, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClass, labelClass } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
@@ -119,13 +119,6 @@ export default function Meetings() {
     setWizardStep(m.phase === 'setup' || !m.phase ? 1 : m.phase === 'notice-draft' || m.phase === 'notice-sent' ? 3 : m.phase === 'minutes-signed' || m.phase === 'completed' ? 5 : 1)
   }
 
-  // View detail
-  const openDetail = async (m) => {
-    setDetailId(m._id)
-    setDetailTab('overview')
-    try { const { data } = await meetingService.getOne(m._id); setDetailMeeting(data.data) } catch { setDetailMeeting(m) }
-  }
-
   // === Wizard steps ===
   const goStep = (n) => { setWizardStep(n) }
 
@@ -211,7 +204,7 @@ export default function Meetings() {
   const handleSignSubmit = async () => {
     if (!signForm.name) { toast.error('请输入签署人姓名'); return }
     try {
-      const { data } = await meetingService.signMinutes(editMeeting._id, { name: signForm.name, title: signForm.title })
+      await meetingService.signMinutes(editMeeting._id, { name: signForm.name, title: signForm.title })
       await refreshMeetings()
       setWizardStep(0)
       setSignForm({ open: false, name: '', title: '董事会主席' })
@@ -256,7 +249,7 @@ export default function Meetings() {
   }
 
   const refreshMeetings = async () => {
-    try { const { data } = await meetingService.getAll(); setMeetings(data.data || []) } catch {}
+    try { const { data } = await meetingService.getAll(); setMeetings(data.data || []) } catch { /* ignore */ }
   }
 
   // Copy text
@@ -299,33 +292,33 @@ export default function Meetings() {
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h3 className="text-lg font-semibold text-gray-900 truncate">{m.title}</h3>
-                {m.company?.stockCode && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono">{m.company.stockCode}</span>}
+                <h3 className="text-lg font-semibold text-ink truncate">{m.title}</h3>
+                {m.company?.stockCode && <span className="text-xs bg-gray-100 text-ink-2 px-1.5 py-0.5 rounded font-mono">{m.company.stockCode}</span>}
               </div>
-              <p className="text-sm text-gray-500 mb-2">{m.company?.name}</p>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+              <p className="text-sm text-ink-2 mb-2">{m.company?.name}</p>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-ink-2">
                 <span className="flex items-center gap-1"><Calendar size={14} />{fmtDate(m.scheduledAt)}</span>
                 <span className="flex items-center gap-1"><Clock size={14} />{fmtTime(m.scheduledAt)}{m.duration ? ` (${m.duration}分钟)` : ''}</span>
                 <span className="flex items-center gap-1"><Users size={14} />{m.attendees?.length || 0} 人</span>
-                {m.isVirtual && <span className="flex items-center gap-1 text-blue-500"><Video size={14} />{m.meetingId}</span>}
+                {m.isVirtual && <span className="flex items-center gap-1 text-primary-500"><Video size={14} />{m.meetingId}</span>}
               </div>
               {m.agenda?.length > 0 && (
-                <p className="mt-2 text-xs text-gray-400 line-clamp-1">{m.agenda.map(a => a.item).join(' · ')}</p>
+                <p className="mt-2 text-xs text-ink-3 line-clamp-1">{m.agenda.map(a => a.item).join(' · ')}</p>
               )}
             </div>
             <div className="flex items-start gap-2 ml-4 shrink-0" onClick={e => e.stopPropagation()}>
               <PhaseBadge phase={m.phase || 'setup'} />
               {signTaskMap[m._id] ? (
-                <Link to={`/meetings/${m._id}?tab=signing`} className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
+                <Link to={`/meetings/${m._id}?tab=signing`} className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-info/10 text-ink-2 hover:bg-gray-100">
                   <PenLine size={12} /> 签署 {signTaskMap[m._id]}
                 </Link>
               ) : (
-                <Link to={`/meetings/${m._id}?tab=signing`} className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border border-gray-200 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50" title="发起签署任务">
+                <Link to={`/meetings/${m._id}?tab=signing`} className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border border-hairline text-ink-3 hover:text-primary-600 hover:border-hairline hover:bg-info/10" title="发起签署任务">
                   <PenLine size={12} /> 签署
                 </Link>
               )}
-              <button onClick={() => openEdit(m)} className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-gray-100"><Pencil size={14} /></button>
-              <button onClick={() => handleDelete(m)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-100"><Trash2 size={14} /></button>
+              <button onClick={() => openEdit(m)} className="p-1.5 text-ink-3 hover:text-primary-600 rounded-lg hover:bg-gray-100"><Pencil size={14} /></button>
+              <button onClick={() => handleDelete(m)} className="p-1.5 text-ink-3 hover:text-danger rounded-lg hover:bg-gray-100"><Trash2 size={14} /></button>
             </div>
           </div>
         </div>
@@ -334,14 +327,14 @@ export default function Meetings() {
       {/* ========== WIZARD MODAL ========== */}
       {wizardStep > 0 && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setWizardStep(0)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             {/* Wizard Header */}
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
               <h2 className="text-xl font-bold">{editMeeting ? '编辑会议' : '创建新会议'}</h2>
               <div className="flex items-center gap-4">
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map(n => (
-                    <div key={n} className={`w-8 h-1.5 rounded-full ${wizardStep === n ? 'bg-primary-500' : wizardStep > n ? 'bg-primary-300' : 'bg-gray-200'}`} />
+                    <div key={n} className={`w-8 h-1.5 rounded-full ${wizardStep === n ? 'bg-primary-500' : wizardStep > n ? 'bg-primary-300' : 'bg-gray-100'}`} />
                   ))}
                 </div>
                 <button onClick={() => setWizardStep(0)} className="p-1 hover:bg-gray-100 rounded"><X size={20} /></button>
@@ -380,7 +373,7 @@ export default function Meetings() {
                       <label className={labelClass}>时间</label>
                       <div className="flex gap-2">
                         <input type="time" className={`${inputClass} flex-1`} value={step1.time} onChange={e => setStep1({ ...step1, time: e.target.value })} placeholder="开始" />
-                        <span className="py-2 text-gray-400">-</span>
+                        <span className="py-2 text-ink-3">-</span>
                         <input type="time" className={`${inputClass} flex-1`} value={step1.endTime} onChange={e => setStep1({ ...step1, endTime: e.target.value })} placeholder="结束" />
                       </div>
                     </div>
@@ -418,17 +411,17 @@ export default function Meetings() {
                     <h3 className="text-lg font-semibold flex items-center gap-2"><span className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-bold">2</span>参会人员</h3>
                     <Btn onClick={addAttendee} className="text-primary-600 border border-primary-200 hover:bg-primary-50"><Plus size={14} />添加参会人</Btn>
                   </div>
-                  <p className="text-sm text-gray-400">可从人员库中选择，或手动输入外部人员（不同步到人员库）</p>
+                  <p className="text-sm text-ink-3">可从人员库中选择，或手动输入外部人员（不同步到人员库）</p>
 
                   {step2.length === 0 && (
-                    <div className="card text-center py-8 text-gray-400">
+                    <div className="card text-center py-8 text-ink-3">
                       <Users size={40} className="mx-auto mb-2 opacity-50" />
                       <p>尚未添加参会人员</p>
                       <p className="text-xs mt-1">点击「添加参会人」从人员库选择或手动输入</p>
                     </div>
                   )}
                   {step2.map((a, i) => (
-                    <div key={a._id || i} className="flex gap-2 items-start bg-gray-50 rounded-lg p-3">
+                    <div key={a._id || i} className="flex gap-2 items-start bg-canvas rounded-lg p-3">
                       <div className="flex gap-2 flex-1 items-start flex-wrap">
                         {a.isAdHoc ? (
                           <input className={`${inputClass} flex-1 min-w-[120px]`} placeholder="姓名 *" value={a.name} onChange={e => updateAttendee(i, 'name', e.target.value)} />
@@ -448,11 +441,11 @@ export default function Meetings() {
                       </div>
                       <div className="flex gap-1 shrink-0">
                         {a.isAdHoc ? (
-                          <button onClick={() => { const p = personnelList.find(x => x.name === a.name); if (p) updateAttendee(i, 'refId', p._id) }} title="从人员库匹配" className="p-2 text-gray-400 hover:text-blue-600 rounded"><Search size={14} /></button>
+                          <button onClick={() => { const p = personnelList.find(x => x.name === a.name); if (p) updateAttendee(i, 'refId', p._id) }} title="从人员库匹配" className="p-2 text-ink-3 hover:text-primary-600 rounded"><Search size={14} /></button>
                         ) : (
-                          <button onClick={() => updateAttendee(i, 'refId', '')} title="取消关联人员" className="p-2 text-gray-400 hover:text-amber-600 rounded"><X size={14} /></button>
+                          <button onClick={() => updateAttendee(i, 'refId', '')} title="取消关联人员" className="p-2 text-ink-3 hover:text-warning rounded"><X size={14} /></button>
                         )}
-                        <button onClick={() => removeAttendee(i)} className="p-2 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                        <button onClick={() => removeAttendee(i)} className="p-2 text-ink-3 hover:text-danger rounded"><Trash2 size={14} /></button>
                       </div>
                     </div>
                   ))}
@@ -467,17 +460,17 @@ export default function Meetings() {
                     <Btn onClick={addAgendaItem} className="text-primary-600 border border-primary-200 hover:bg-primary-50"><Plus size={14} />添加议题</Btn>
                   </div>
                   {step3.length === 0 && (
-                    <div className="card text-center py-8 text-gray-400">
+                    <div className="card text-center py-8 text-ink-3">
                       <FileText size={40} className="mx-auto mb-2 opacity-50" />
                       <p>尚未添加议程</p>
                     </div>
                   )}
                   {step3.map((a, i) => (
                     <div key={i} className="flex gap-2 items-start">
-                      <span className="mt-2.5 text-sm text-gray-400 font-bold w-6 shrink-0 text-right">{i + 1}.</span>
+                      <span className="mt-2.5 text-sm text-ink-3 font-bold w-6 shrink-0 text-right">{i + 1}.</span>
                       <input className={`${inputClass} flex-1`} placeholder="议题描述" value={a.item} onChange={e => updateAgendaItem(i, 'item', e.target.value)} />
                       <input className={`${inputClass} w-28`} placeholder="主讲人" value={a.presenter} onChange={e => updateAgendaItem(i, 'presenter', e.target.value)} />
-                      <button onClick={() => removeAgendaItem(i)} className="mt-2 text-gray-400 hover:text-red-500"><X size={16} /></button>
+                      <button onClick={() => removeAgendaItem(i)} className="mt-2 text-ink-3 hover:text-danger"><X size={16} /></button>
                     </div>
                   ))}
                 </div>
@@ -492,20 +485,20 @@ export default function Meetings() {
                   ) : (
                     <>
                       <div className="flex gap-2 mb-2">
-                        <Btn onClick={() => copyText(step4.text)} className="border border-gray-200 hover:bg-gray-50"><Copy size={14} />复制文案</Btn>
+                        <Btn onClick={() => copyText(step4.text)} className="border border-hairline hover:bg-canvas"><Copy size={14} />复制文案</Btn>
                         {step4.html && (
-                          <Btn onClick={() => { const w = window.open(''); w.document.write(step4.html); w.document.close() }} className="border border-gray-200 hover:bg-blue-50 text-blue-600"><Eye size={14} />预览HTML</Btn>
+                          <Btn onClick={() => { const w = window.open(''); w.document.write(step4.html); w.document.close() }} className="border border-hairline hover:bg-info/10 text-primary-600"><Eye size={14} />预览HTML</Btn>
                         )}
                       </div>
-                      <div className="card bg-gray-50 max-h-[450px] overflow-y-auto">
-                        <h4 className="text-sm font-semibold text-gray-500 mb-3">会议通知预览</h4>
-                        <div className="bg-white p-5 rounded-lg border shadow-sm">
-                          {step4.html ? <iframe srcDoc={step4.html} className="w-full min-h-[400px] border-0" title="notice-preview" /> : <pre className="whitespace-pre-wrap text-sm font-sans text-gray-700">{step4.text}</pre>}
+                      <div className="card bg-canvas max-h-[450px] overflow-y-auto">
+                        <h4 className="text-sm font-semibold text-ink-2 mb-3">会议通知预览</h4>
+                        <div className="bg-surface p-5 rounded-lg border shadow-sm">
+                          {step4.html ? <iframe srcDoc={step4.html} className="w-full min-h-[400px] border-0" title="notice-preview" /> : <pre className="whitespace-pre-wrap text-sm font-sans text-ink">{step4.text}</pre>}
                         </div>
                       </div>
                     </>
                   )}
-                  {step4 && <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm text-amber-800 flex items-start gap-2"><AlertCircle size={18} className="shrink-0 mt-0.5" /><span>通知文案已自动生成，您可以在上方预览HTML效果，确认无误后可复制使用。</span></div>}
+                  {step4 && <div className="bg-warning/10 border border-warning/20 p-3 rounded-lg text-sm text-warning flex items-start gap-2"><AlertCircle size={18} className="shrink-0 mt-0.5" /><span>通知文案已自动生成，您可以在上方预览HTML效果，确认无误后可复制使用。</span></div>}
                 </div>
               )}
 
@@ -517,19 +510,19 @@ export default function Meetings() {
                     <LoadingSpinner size="sm" text="正在生成纪要..." />
                   ) : (
                     <>
-                      <div className="card bg-gray-50 max-h-[450px] overflow-y-auto">
-                        <h4 className="text-sm font-semibold text-gray-500 mb-3">会议纪要预览</h4>
-                        <div className="bg-white p-5 rounded-lg border shadow-sm">
-                          {step5.html ? <iframe srcDoc={step5.html} className="w-full min-h-[400px] border-0" title="minutes-preview" /> : <pre className="whitespace-pre-wrap text-sm font-sans text-gray-700">{step5.text}</pre>}
+                      <div className="card bg-canvas max-h-[450px] overflow-y-auto">
+                        <h4 className="text-sm font-semibold text-ink-2 mb-3">会议纪要预览</h4>
+                        <div className="bg-surface p-5 rounded-lg border shadow-sm">
+                          {step5.html ? <iframe srcDoc={step5.html} className="w-full min-h-[400px] border-0" title="minutes-preview" /> : <pre className="whitespace-pre-wrap text-sm font-sans text-ink">{step5.text}</pre>}
                         </div>
                       </div>
                       {step5.signatures?.length > 0 && (
                         <div className="card">
-                          <h4 className="text-sm font-semibold text-gray-500 mb-3">签署状态</h4>
+                          <h4 className="text-sm font-semibold text-ink-2 mb-3">签署状态</h4>
                           {step5.signatures.map((s, i) => (
                             <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                              <div><p className="font-medium">{s.name}</p><p className="text-xs text-gray-400">{s.title}</p></div>
-                              {s.status === 'signed' ? <CheckCircle2 size={20} className="text-green-500" /> : <Clock3 size={20} className="text-amber-500" />}
+                              <div><p className="font-medium">{s.name}</p><p className="text-xs text-ink-3">{s.title}</p></div>
+                              {s.status === 'signed' ? <CheckCircle2 size={20} className="text-success" /> : <Clock3 size={20} className="text-warning" />}
                             </div>
                           ))}
                         </div>
@@ -542,10 +535,10 @@ export default function Meetings() {
             </div>
 
             {/* Wizard Footer */}
-            <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between shrink-0">
+            <div className="px-6 py-4 border-t bg-canvas flex items-center justify-between shrink-0">
               <div>
                 {wizardStep > 1 && (
-                  <Btn onClick={() => goStep(wizardStep - 1)} className="border border-gray-200 hover:bg-gray-100"><ChevronLeft size={14} />上一步</Btn>
+                  <Btn onClick={() => goStep(wizardStep - 1)} className="border border-hairline hover:bg-gray-100"><ChevronLeft size={14} />上一步</Btn>
                 )}
               </div>
               <div className="flex gap-3">
@@ -553,19 +546,19 @@ export default function Meetings() {
                 {wizardStep === 2 && <Btn onClick={saveStep2} className="btn-primary">下一步 <ChevronRight size={14} /></Btn>}
                 {wizardStep === 3 && (
                   <>
-                    <Btn onClick={handleSaveMeeting} className="border border-gray-200 hover:bg-gray-100"><Check size={14} />直接保存</Btn>
+                    <Btn onClick={handleSaveMeeting} className="border border-hairline hover:bg-gray-100"><Check size={14} />直接保存</Btn>
                     <Btn onClick={generateNotice} disabled={saving} className="btn-primary">{saving ? '生成中...' : '生成会议通知'} <FileText size={14} /></Btn>
                   </>
                 )}
                 {wizardStep === 4 && (
                   <>
-                    <Btn onClick={() => setWizardStep(0)} className="border border-gray-200 hover:bg-gray-100"><X size={14} />关闭</Btn>
+                    <Btn onClick={() => setWizardStep(0)} className="border border-hairline hover:bg-gray-100"><X size={14} />关闭</Btn>
                     <Btn onClick={sendNotice} className="btn-primary"><Send size={14} />发送通知</Btn>
                   </>
                 )}
                 {wizardStep === 5 && (
                   <>
-                    <Btn onClick={() => generateMinutes()} className="border border-gray-200 hover:bg-gray-100">重新生成</Btn>
+                    <Btn onClick={() => generateMinutes()} className="border border-hairline hover:bg-gray-100">重新生成</Btn>
                     <Btn onClick={signMinutes} className="btn-primary"><PenLine size={14} />签署纪要</Btn>
                   </>
                 )}
@@ -578,7 +571,7 @@ export default function Meetings() {
       {/* ========== DETAIL VIEW MODAL ========== */}
       {detailId && detailMeeting && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setDetailId(null); setDetailMeeting(null) }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
               <h2 className="text-xl font-bold truncate">{detailMeeting.title}</h2>
               <button onClick={() => { setDetailId(null); setDetailMeeting(null) }} className="p-1 hover:bg-gray-100 rounded"><X size={20} /></button>
@@ -591,7 +584,7 @@ export default function Meetings() {
                   setDetailTab(t)
                   if (t === 'notice' && !noticeData) meetingService.getNotice(detailMeeting._id).then(res => setNoticeData(res.data?.data))
                   if (t === 'minutes' && !minutesData) meetingService.getMinutes(detailMeeting._id).then(res => setMinutesData(res.data?.data))
-                }} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${detailTab === t ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                }} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${detailTab === t ? 'border-primary-500 text-primary-600' : 'border-transparent text-ink-2 hover:text-ink'}`}>
                   {t === 'overview' ? '概览' : t === 'notice' ? '会议通知' : '会议纪要'}
                 </button>
               ))}
@@ -602,37 +595,37 @@ export default function Meetings() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="card">
-                      <h4 className="text-sm font-semibold text-gray-500 mb-3">基本信息</h4>
+                      <h4 className="text-sm font-semibold text-ink-2 mb-3">基本信息</h4>
                       <dl className="space-y-2 text-sm">
-                        <div className="flex"><dt className="w-20 text-gray-400">类型：</dt><dd>{TYPES[detailMeeting.type] || detailMeeting.type}</dd></div>
-                        <div className="flex"><dt className="w-20 text-gray-400">日期：</dt><dd>{fmtDate(detailMeeting.scheduledAt)}</dd></div>
-                        <div className="flex"><dt className="w-20 text-gray-400">时间：</dt><dd>{fmtTime(detailMeeting.scheduledAt)} {detailMeeting.duration ? `(${detailMeeting.duration}分钟)` : ''}</dd></div>
-                        <div className="flex"><dt className="w-20 text-gray-400">地点：</dt><dd>{detailMeeting.isVirtual ? `线上：${detailMeeting.location || '腾讯会议'}` : (detailMeeting.location || '-')}</dd></div>
-                        {detailMeeting.isVirtual && detailMeeting.meetingId && <div className="flex"><dt className="w-20 text-gray-400">会议号：</dt><dd className="font-mono">{detailMeeting.meetingId}{detailMeeting.meetingPassword ? ` (密码: ${detailMeeting.meetingPassword})` : ''}</dd></div>}
+                        <div className="flex"><dt className="w-20 text-ink-3">类型：</dt><dd>{TYPES[detailMeeting.type] || detailMeeting.type}</dd></div>
+                        <div className="flex"><dt className="w-20 text-ink-3">日期：</dt><dd>{fmtDate(detailMeeting.scheduledAt)}</dd></div>
+                        <div className="flex"><dt className="w-20 text-ink-3">时间：</dt><dd>{fmtTime(detailMeeting.scheduledAt)} {detailMeeting.duration ? `(${detailMeeting.duration}分钟)` : ''}</dd></div>
+                        <div className="flex"><dt className="w-20 text-ink-3">地点：</dt><dd>{detailMeeting.isVirtual ? `线上：${detailMeeting.location || '腾讯会议'}` : (detailMeeting.location || '-')}</dd></div>
+                        {detailMeeting.isVirtual && detailMeeting.meetingId && <div className="flex"><dt className="w-20 text-ink-3">会议号：</dt><dd className="font-mono">{detailMeeting.meetingId}{detailMeeting.meetingPassword ? ` (密码: ${detailMeeting.meetingPassword})` : ''}</dd></div>}
                       </dl>
                     </div>
                     <div className="card">
-                      <h4 className="text-sm font-semibold text-gray-500 mb-3">关联信息</h4>
+                      <h4 className="text-sm font-semibold text-ink-2 mb-3">关联信息</h4>
                       <dl className="space-y-2 text-sm">
-                        <div className="flex"><dt className="w-20 text-gray-400">公司：</dt><dd className="font-medium">{detailMeeting.company?.name}</dd></div>
-                        <div className="flex"><dt className="w-20 text-gray-400">状态：</dt><dd><PhaseBadge phase={detailMeeting.phase || 'setup'} /></dd></div>
-                        {detailMeeting.notice?.sentAt && <div className="flex"><dt className="w-20 text-gray-400">通知发送：</dt><dd>{fmtDate(detailMeeting.notice.sentAt)}</dd></div>}
-                        {detailMeeting.minutes?.signedAt && <div className="flex"><dt className="w-20 text-gray-400">纪要签署：</dt><dd className="text-green-600">{fmtDate(detailMeeting.minutes.signedAt)}</dd></div>}
+                        <div className="flex"><dt className="w-20 text-ink-3">公司：</dt><dd className="font-medium">{detailMeeting.company?.name}</dd></div>
+                        <div className="flex"><dt className="w-20 text-ink-3">状态：</dt><dd><PhaseBadge phase={detailMeeting.phase || 'setup'} /></dd></div>
+                        {detailMeeting.notice?.sentAt && <div className="flex"><dt className="w-20 text-ink-3">通知发送：</dt><dd>{fmtDate(detailMeeting.notice.sentAt)}</dd></div>}
+                        {detailMeeting.minutes?.signedAt && <div className="flex"><dt className="w-20 text-ink-3">纪要签署：</dt><dd className="text-success">{fmtDate(detailMeeting.minutes.signedAt)}</dd></div>}
                       </dl>
                     </div>
                   </div>
 
                   <div className="card">
-                    <h4 className="text-sm font-semibold text-gray-500 mb-3">参会人员 ({detailMeeting.attendees?.length || 0})</h4>
+                    <h4 className="text-sm font-semibold text-ink-2 mb-3">参会人员 ({detailMeeting.attendees?.length || 0})</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {detailMeeting.attendees?.map((a, i) => (
-                        <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                        <div key={i} className="flex items-center gap-2 p-2 bg-canvas rounded-lg">
                           <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xs">{a.name?.charAt(0)}</div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{a.name}</p>
-                            <p className="text-xs text-gray-400 truncate">{a.role}</p>
+                            <p className="text-xs text-ink-3 truncate">{a.role}</p>
                           </div>
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${a.status === 'attended' ? 'bg-green-100 text-green-700' : a.status === 'accepted' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${a.status === 'attended' ? 'bg-success/10 text-success' : a.status === 'accepted' ? 'bg-info/10 text-primary-700' : 'bg-gray-100 text-ink-2'}`}>
                             {a.status === 'attended' ? '出席' : a.status === 'accepted' ? '已确认' : a.status === 'declined' ? '已拒绝' : '待确认'}
                           </span>
                         </div>
@@ -641,14 +634,14 @@ export default function Meetings() {
                   </div>
 
                   <div className="card">
-                    <h4 className="text-sm font-semibold text-gray-500 mb-3">议程</h4>
-                    {(detailMeeting.agenda || []).length === 0 ? <p className="text-gray-400 text-sm">无议程</p> :
+                    <h4 className="text-sm font-semibold text-ink-2 mb-3">议程</h4>
+                    {(detailMeeting.agenda || []).length === 0 ? <p className="text-ink-3 text-sm">无议程</p> :
                       <div className="space-y-2">
                         {detailMeeting.agenda.map((a, i) => (
-                          <div key={i} className="flex gap-3 p-2 bg-gray-50 rounded-lg text-sm">
-                            <span className="text-gray-400 font-bold">{i + 1}.</span>
+                          <div key={i} className="flex gap-3 p-2 bg-canvas rounded-lg text-sm">
+                            <span className="text-ink-3 font-bold">{i + 1}.</span>
                             <span className="flex-1">{a.item}</span>
-                            {a.presenter && <span className="text-gray-400 text-xs">主讲：{a.presenter}</span>}
+                            {a.presenter && <span className="text-ink-3 text-xs">主讲：{a.presenter}</span>}
                           </div>
                         ))}
                       </div>
@@ -657,12 +650,12 @@ export default function Meetings() {
 
                   {(detailMeeting.resolutions || []).length > 0 && (
                     <div className="card">
-                      <h4 className="text-sm font-semibold text-gray-500 mb-3">决议</h4>
+                      <h4 className="text-sm font-semibold text-ink-2 mb-3">决议</h4>
                       <div className="space-y-2">
                         {detailMeeting.resolutions.map((r, i) => (
-                          <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-sm">
+                          <div key={i} className="flex items-center justify-between p-2 bg-canvas rounded-lg text-sm">
                             <span>{r.title}</span>
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${r.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${r.status === 'approved' ? 'bg-success/10 text-success' : 'bg-gray-100 text-ink-2'}`}>
                               {r.status === 'approved' ? '已通过' : r.status === 'rejected' ? '未通过' : '待决议'}
                             </span>
                           </div>
@@ -680,13 +673,13 @@ export default function Meetings() {
                   ) : (
                     <>
                       <div className="flex gap-2">
-                        <Btn onClick={() => copyText(noticeData.text)} className="border border-gray-200 hover:bg-gray-50"><Copy size={14} />复制文案</Btn>
+                        <Btn onClick={() => copyText(noticeData.text)} className="border border-hairline hover:bg-canvas"><Copy size={14} />复制文案</Btn>
                         {noticeData.html && (
-                          <Btn onClick={() => { const w = window.open(''); w.document.write(noticeData.html); w.document.close() }} className="border border-gray-200 hover:bg-blue-50 text-blue-600"><Eye size={14} />预览HTML</Btn>
+                          <Btn onClick={() => { const w = window.open(''); w.document.write(noticeData.html); w.document.close() }} className="border border-hairline hover:bg-info/10 text-primary-600"><Eye size={14} />预览HTML</Btn>
                         )}
                       </div>
-                      <div className="card bg-gray-50 max-h-[500px] overflow-y-auto">
-                        <div className="bg-white p-5 rounded-lg border shadow-sm">
+                      <div className="card bg-canvas max-h-[500px] overflow-y-auto">
+                        <div className="bg-surface p-5 rounded-lg border shadow-sm">
                           {noticeData.html ? <iframe srcDoc={noticeData.html} className="w-full min-h-[400px] border-0" title="notice" /> : <pre className="whitespace-pre-wrap text-sm font-sans">{noticeData.text}</pre>}
                         </div>
                       </div>
@@ -702,24 +695,24 @@ export default function Meetings() {
                   ) : (
                     <>
                       <div className="flex gap-2">
-                        <Btn onClick={() => copyText(minutesData.text)} className="border border-gray-200 hover:bg-gray-50"><Copy size={14} />复制文案</Btn>
+                        <Btn onClick={() => copyText(minutesData.text)} className="border border-hairline hover:bg-canvas"><Copy size={14} />复制文案</Btn>
                         {minutesData.html && (
-                          <Btn onClick={() => { const w = window.open(''); w.document.write(minutesData.html); w.document.close() }} className="border border-gray-200 hover:bg-blue-50 text-blue-600"><Eye size={14} />预览HTML</Btn>
+                          <Btn onClick={() => { const w = window.open(''); w.document.write(minutesData.html); w.document.close() }} className="border border-hairline hover:bg-info/10 text-primary-600"><Eye size={14} />预览HTML</Btn>
                         )}
                       </div>
-                      <div className="card bg-gray-50 max-h-[500px] overflow-y-auto">
-                        <div className="bg-white p-5 rounded-lg border shadow-sm">
+                      <div className="card bg-canvas max-h-[500px] overflow-y-auto">
+                        <div className="bg-surface p-5 rounded-lg border shadow-sm">
                           {minutesData.html ? <iframe srcDoc={minutesData.html} className="w-full min-h-[400px] border-0" title="minutes" /> : <pre className="whitespace-pre-wrap text-sm font-sans">{minutesData.text}</pre>}
                         </div>
                       </div>
                       <div className="card">
-                        <h4 className="text-sm font-semibold text-gray-500 mb-3">签署状态</h4>
+                        <h4 className="text-sm font-semibold text-ink-2 mb-3">签署状态</h4>
                         {(minutesData.signatures || []).length === 0 ? (
-                          <p className="text-gray-400 text-sm">尚未签署</p>
+                          <p className="text-ink-3 text-sm">尚未签署</p>
                         ) : minutesData.signatures.map((s, i) => (
                           <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                            <div><p className="font-medium">{s.name}</p><p className="text-xs text-gray-400">{s.title}</p></div>
-                            {s.status === 'signed' ? <span className="text-xs text-green-600 font-medium flex items-center gap-1"><CheckCircle2 size={14} />已签署 {s.signedAt ? `(${fmtDate(s.signedAt)})` : ''}</span> : <span className="text-xs text-amber-600 flex items-center gap-1"><Clock3 size={14} />待签署</span>}
+                            <div><p className="font-medium">{s.name}</p><p className="text-xs text-ink-3">{s.title}</p></div>
+                            {s.status === 'signed' ? <span className="text-xs text-success font-medium flex items-center gap-1"><CheckCircle2 size={14} />已签署 {s.signedAt ? `(${fmtDate(s.signedAt)})` : ''}</span> : <span className="text-xs text-warning flex items-center gap-1"><Clock3 size={14} />待签署</span>}
                           </div>
                         ))}
                       </div>
@@ -755,7 +748,7 @@ export default function Meetings() {
             />
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setSignForm({ ...signForm, open: false })} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+            <button onClick={() => setSignForm({ ...signForm, open: false })} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
             <button onClick={handleSignSubmit} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">确认签署</button>
           </div>
         </div>

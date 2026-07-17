@@ -65,7 +65,7 @@ function TreeNode({ node, relationship, depth }) {
           </div>
           {relationship && (
             <div className="shrink-0 text-right">
-              <span className="inline-block px-2 py-1 bg-green-50 text-success border border-success/20 rounded-lg text-xs font-medium">
+              <span className="inline-block px-2 py-1 bg-success/10 text-success border border-success/20 rounded-lg text-xs font-medium">
                 持股 {(relationship.shares || 0).toLocaleString()} {relationship.shareType || '普通'} 股
               </span>
               <p className="text-xs text-ink-3 mt-1">占比 {sharePercent(relationship.shares, totalPaidUp)}</p>

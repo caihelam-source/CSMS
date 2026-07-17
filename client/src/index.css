@@ -2,37 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   设计令牌（单一事实源）
+   - 颜色以 RGB 通道存储，配合 tailwind rgb(var()/alpha) 支持透明度修饰符
+   - 亮色为默认值；.dark 覆盖变量即切换主题（暗色模式已启用）
+   - 组件类（.card / .btn-* / .badge / .input）一律引用这些令牌，保证全局一致
+   ============================================================ */
+:root {
+  --bg: 245 245 247;          /* 画布（Apple 中性灰白 #f5f5f7） */
+  --surface: 255 255 255;     /* 卡片/表面 #ffffff */
+  --text-1: 29 29 31;        /* 主文字（近黑 #1d1d1f） */
+  --text-2: 110 110 115;     /* 次文字 #6e6e73 */
+  --text-3: 134 134 139;     /* 三级/辅助文字 #86868b */
+  --border: 227 227 230;      /* 发丝边框 #e3e3e6 */
+  --c-success: 52 199 89;      /* 绿 #34c759 */
+  --c-warning: 255 159 10;    /* 橙 #ff9f0a */
+  --c-danger: 255 59 48;      /* 红 #ff3b30 */
+  --c-info: 0 113 227;        /* 蓝 #0071e3 */
+}
+
+.dark {
+  --bg: 0 0 0;               /* 画布黑 */
+  --surface: 28 28 30;         /* 卡片深灰 #1c1c1e */
+  --text-1: 245 245 247;      /* 主文字 */
+  --text-2: 152 152 157;      /* 次文字 */
+  --text-3: 99 99 102;        /* 三级文字 */
+  --border: 56 56 58;          /* 发丝边框 #38383a */
+  --c-success: 48 209 88;      /* #30d158 */
+  --c-warning: 255 214 10;     /* #ffd60a */
+  --c-danger: 255 69 58;       /* #ff453a */
+  --c-info: 10 132 255;        /* #0a84ff */
+}
+
 @layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-canvas text-ink antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 }
 
 @layer components {
+  /* 按钮：统一走 token，圆角统一 2xl，悬停仅做色彩/微抬变化 */
   .btn-primary {
-    @apply bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium;
+    @apply bg-primary-600 text-white px-4 py-2 rounded-xl hover:bg-primary-700 transition-colors font-medium;
   }
   .btn-secondary {
-    @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium;
+    @apply bg-surface text-ink px-4 py-2 rounded-xl border border-hairline hover:bg-canvas transition-colors font-medium;
   }
   .btn-danger {
-    @apply bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium;
+    @apply bg-danger text-white px-4 py-2 rounded-xl hover:opacity-90 transition font-medium;
   }
+
+  /* 卡片：单一深度处理（极淡发丝边 + 极柔阴影），不再双重叠加显重 */
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+    @apply bg-surface rounded-2xl border border-hairline shadow-card p-6 transition-shadow;
   }
+
+  /* 输入：引用表面/文字令牌，主题感知 */
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all;
+    @apply w-full px-3 py-2 border border-hairline rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-surface text-ink;
   }
+
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-sm font-medium text-ink-2 mb-1;
   }
+
+  /* 徽章：仅语义色（红/黄/绿/蓝/灰），全部走令牌，暗色自动切换 */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
-  .badge-success { @apply bg-green-100 text-green-800; }
-  .badge-warning { @apply bg-yellow-100 text-yellow-800; }
-  .badge-danger { @apply bg-red-100 text-red-800; }
-  .badge-info { @apply bg-blue-100 text-blue-800; }
-  .badge-gray { @apply bg-gray-100 text-gray-800; }
+  .badge-success { @apply bg-success/10 text-success; }
+  .badge-warning { @apply bg-warning/10 text-warning; }
+  .badge-danger  { @apply bg-danger/10 text-danger; }
+  .badge-info    { @apply bg-info/10 text-info; }
+  .badge-gray    { @apply bg-canvas text-ink-2; }
+
+  /* 字阶与辅助文字：建立清晰层级，全站复用 */
+  .text-muted   { @apply text-sm text-ink-2; }
+  .text-caption { @apply text-xs text-ink-3; }
+  .page-title   { @apply text-2xl font-bold text-ink; }
+  .section-title { @apply text-base font-semibold text-ink; }
 }

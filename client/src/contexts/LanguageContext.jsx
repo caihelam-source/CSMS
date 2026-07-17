@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState } from 'react'
 
 // 翻译字典 — 按需扩展
 const TRANSLATIONS = {
@@ -197,7 +197,7 @@ export function LanguageProvider({ children }) {
 
   const setLocale = (newLocale) => {
     setLocaleState(newLocale)
-    try { localStorage.setItem('claw-locale', newLocale) } catch {}
+    try { localStorage.setItem('claw-locale', newLocale) } catch { /* localStorage 不可用时静默 */ }
   }
 
   const t = (key) => {

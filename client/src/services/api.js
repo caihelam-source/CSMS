@@ -26,9 +26,10 @@ api.interceptors.response.use(
       }
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      // Use path-based routing (not hash-based)
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+      // 应用使用 HashRouter，整页跳 /login 在无 SPA fallback 的静态托管下会 404→白屏。
+      // 只切 hash 让 HashRouter 接管，避免整页刷新与潜在白屏。
+      if (window.location.hash !== '#/login') {
+        window.location.hash = '#/login'
       }
     }
     return Promise.reject(err)

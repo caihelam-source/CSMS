@@ -36,14 +36,27 @@ const documentSchema = new mongoose.Schema({
 documentSchema.index({ company: 1, type: 1 });
 documentSchema.index({ personnel: 1, type: 1 });
 documentSchema.index({ renewalDueDate: 1 });
+// 文件到期徽章 / 公司维度到期清单
+documentSchema.index({ expiresAt: 1 });
+documentSchema.index({ company: 1, expiresAt: 1 });
 
 // 自动生成文档编号：<类型缩写>-<年份>-<序号>
+// 使用 counters 集合原子自增，消除 count+1 竞态（DB-AUDIT P1-8）
 documentSchema.statics.generateDocNumber = async function (company, directorName, type) {
+  const Counter = mongoose.model('Counter');
   const raw = (type || 'doc').toString().toUpperCase().replace(/[^A-Z0-9]/g, '');
   const prefix = raw.slice(0, 4) || 'DOC';
   const year = new Date().getFullYear();
-  const count = await this.countDocuments({ type: type || 'other' });
-  const seq = String(count + 1).padStart(4, '0');
+  const counterKey = `DOC-${prefix}-${year}`;
+
+  // 原子自增：不存在则 upsert 创建 seq=1，已存在则 $inc
+  const counter = await Counter.findByIdAndUpdate(
+    counterKey,
+    { $inc: { seq: 1 } },
+    { upsert: true, new: true },
+  );
+
+  const seq = String(counter.seq).padStart(4, '0');
   return `${prefix}-${year}-${seq}`;
 };
 

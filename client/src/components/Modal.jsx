@@ -31,13 +31,13 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
         onClick={onClose}
       />
       {/* Dialog */}
-      <div className={`relative w-full ${sizeClass} bg-white rounded-2xl shadow-2xl max-h-[90vh] flex flex-col`}>
+      <div className={`relative w-full ${sizeClass} bg-surface rounded-2xl shadow-2xl max-h-[90vh] flex flex-col`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-hairline shrink-0">
+          <h2 className="text-lg font-semibold text-ink">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-ink-3 hover:text-ink-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <X size={20} />
           </button>

@@ -6,6 +6,9 @@ const ShareholderEntry = require('../models/ShareholderEntry');
 const DirectorEntry = require('../models/DirectorEntry');
 const Meeting = require('../models/Meeting');
 const Document = require('../models/Document');
+const Task = require('../models/Task');
+const ComplianceReminder = require('../models/ComplianceReminder');
+const SignTask = require('../models/SignTask');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -14,7 +17,7 @@ const router = express.Router();
 // v5.0 读时聚合：role / company 过滤与 roles 标签均从 Company.links 派生，不依赖 stored appointments
 router.get('/', auth, async (req, res) => {
   try {
-    const { search, role, company } = req.query;
+    const { search, role, company, page, limit } = req.query;
     const query = {};
 
     if (search) {
@@ -43,7 +46,15 @@ router.get('/', auth, async (req, res) => {
       query._id = { $in: agg.map(a => a._id) };
     }
 
-    const personnel = await Personnel.find(query).sort({ name: 1 });
+    // 分页（opt-in：仅当传 page/limit 时启用，兼容旧前端全量拉取）
+    const usePaging = !!(page || limit);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(parseInt(limit, 10) || 25, 100);
+    const total = await Personnel.countDocuments(query);
+
+    let q = Personnel.find(query).sort({ name: 1 });
+    if (usePaging) q = q.skip((pageNum - 1) * limitNum).limit(limitNum);
+    const personnel = await q;
 
     // 读时聚合：派生的 roles（来自 Company.links），覆盖 stored roles
     const roleAgg = await Company.aggregate([
@@ -59,7 +70,14 @@ router.get('/', auth, async (req, res) => {
       return obj;
     });
 
-    res.json({ success: true, count: result.length, personnel: result });
+    res.json({
+      success: true,
+      count: result.length,
+      total,
+      page: usePaging ? pageNum : undefined,
+      pageSize: usePaging ? limitNum : undefined,
+      personnel: result,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -100,8 +118,9 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// GET /api/personnel/:id/aggregate — Person 360° 读时聚合（单一事实源 + $lookup）
-// 用 $lookup 一次性聚合人员关联的公司 / Task / Meeting / Document(Files) / ComplianceReminder
+// GET /api/personnel/:id/aggregate — Person 360° 读时聚合（单一事实源 + 索引友好关联）
+// 公司关联用 localField/foreignField lookup 命中 links.link 索引（避免 $expr 全表扫）；
+// tasks/meetings/reminders/documents 用顶层 $in 走各自索引并行查询。
 async function getByPersonnelAPI(req, res) {
   try {
     const { id } = req.params
@@ -110,135 +129,88 @@ async function getByPersonnelAPI(req, res) {
     }
     const personId = new mongoose.Types.ObjectId(id)
 
+    // 1) 基础人员 + 关联公司：localField/foreignField lookup 命中 links.link 索引
     const [result] = await Personnel.aggregate([
       { $match: { _id: personId } },
-
-      // 1) 关联公司：反向引用 Company.links[].link === 本人员
       {
         $lookup: {
           from: 'companies',
-          let: { pid: '$_id' },
-          pipeline: [
-            { $match: { $expr: { $in: ['$$pid', '$links.link'] } } },
-            { $unwind: '$links' },
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$links.linkModel', 'Personnel'] },
-                    { $eq: ['$links.link', '$$pid'] },
-                  ],
-                },
-              },
-            },
-            {
-              $project: {
-                _id: 0,
-                company: {
-                  _id: '$_id',
-                  name: '$name',
-                  nameChinese: '$nameChinese',
-                  registrationNumber: '$registrationNumber',
-                  type: '$type',
-                  status: '$status',
-                },
-                roles: '$links.roles',
-                shares: '$links.shares',
-                shareType: '$links.shareType',
-                appointmentDate: '$links.appointmentDate',
-                cessationDate: '$links.cessationDate',
-                notes: '$links.notes',
-              },
-            },
-          ],
-          as: 'companies',
+          localField: '_id',
+          foreignField: 'links.link',
+          as: 'companyDocs',
         },
       },
-
-      // 2) 关联 Task（公司引用 ∪ 直接人员引用）
       {
-        $lookup: {
-          from: 'tasks',
-          let: { pid: '$_id', cids: '$companies.company' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $or: [
-                    { $in: ['$company', '$$cids'] },
-                    { $eq: ['$personnel', '$$pid'] },
-                  ],
-                },
+        $addFields: {
+          companies: {
+            $reduce: {
+              input: '$companyDocs',
+              initialValue: [],
+              in: {
+                $concatArrays: [
+                  '$$value',
+                  {
+                    $map: {
+                      input: {
+                        $filter: {
+                          input: '$$this.links',
+                          as: 'l',
+                          cond: {
+                            $and: [
+                              { $eq: ['$$l.linkModel', 'Personnel'] },
+                              { $eq: ['$$l.link', '$_id'] },
+                            ],
+                          },
+                        },
+                      },
+                      as: 'l',
+                      in: {
+                        company: {
+                          _id: '$$this._id',
+                          name: '$$this.name',
+                          nameChinese: '$$this.nameChinese',
+                          registrationNumber: '$$this.registrationNumber',
+                          type: '$$this.type',
+                          status: '$$this.status',
+                        },
+                        roles: '$$l.roles',
+                        shares: '$$l.shares',
+                        shareType: '$$l.shareType',
+                        appointmentDate: '$$l.appointmentDate',
+                        cessationDate: '$$l.cessationDate',
+                        notes: '$$l.notes',
+                      },
+                    },
+                  },
+                ],
               },
             },
-            { $sort: { dueDate: 1 } },
-          ],
-          as: 'tasks',
-        },
-      },
-
-      // 3) 关联 Meeting（公司引用 ∪ 参会人员）
-      {
-        $lookup: {
-          from: 'meetings',
-          let: { pid: '$_id', cids: '$companies.company' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $or: [
-                    { $in: ['$company', '$$cids'] },
-                    { $in: ['$$pid', '$attendees.ref'] },
-                  ],
-                },
-              },
-            },
-            { $sort: { scheduledAt: -1 } },
-          ],
-          as: 'meetings',
-        },
-      },
-
-      // 4) 关联 Files（Document：仅直接人员引用，不含公司全部文件）
-      //     公司文件 ≠ 个人文件：个人 360° 视图只展示与该人直接关联的证件/个人文档
-      {
-        $lookup: {
-          from: 'documents',
-          let: { pid: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$personnel', '$$pid'] },
-              },
-            },
-            { $sort: { createdAt: -1 } },
-          ],
-          as: 'documents',
-        },
-      },
-
-      // 5) 关联 ComplianceReminder（仅公司引用）
-      {
-        $lookup: {
-          from: 'compliancereminders',
-          let: { cids: '$companies.company' },
-          pipeline: [
-            { $match: { $expr: { $in: ['$company', '$$cids'] } } },
-            { $sort: { dueDate: 1 } },
-          ],
-          as: 'reminders',
+          },
         },
       },
     ])
 
     if (!result) return res.status(404).json({ message: 'Personnel not found' })
 
+    // 2) 公司维度关联：顶层 $in 走各自索引（tasks/meetings/reminders.company / documents.personnel）
+    const companyIds = (result.companies || []).map((c) => c.company._id)
+    const [tasks, meetings, reminders, documents] = await Promise.all([
+      Task.find({
+        $or: [{ company: { $in: companyIds } }, { personnel: personId }],
+      }).sort({ dueDate: 1 }),
+      Meeting.find({
+        $or: [{ company: { $in: companyIds } }, { 'attendees.ref': personId }],
+      }).sort({ scheduledAt: -1 }),
+      ComplianceReminder.find({ company: { $in: companyIds } }).sort({ dueDate: 1 }),
+      Document.find({ personnel: personId }).sort({ createdAt: -1 }),
+    ])
+
     // 角色汇总（读时聚合自 Company.links.roles）
     const roleSet = new Set()
     ;(result.companies || []).forEach((c) => (c.roles || []).forEach((r) => roleSet.add(r)))
 
-    // 剥离 $lookup 中间字段，仅保留人员基础字段
-    const { companies, tasks, meetings, documents, reminders, ...personnel } = result
+    // 剥离中间字段 companyDocs，组装响应
+    const { _companyDocs, companies, ...personnel } = result
 
     res.json({
       data: {
@@ -316,6 +288,17 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     const person = await Personnel.findByIdAndDelete(req.params.id);
     if (!person) return res.status(404).json({ message: 'Personnel not found' });
+
+    // 清理反向引用，避免悬空指针
+    const pid = person._id;
+    await Promise.all([
+      Company.updateMany({ 'links.link': pid }, { $pull: { links: { link: pid } } }),
+      Meeting.updateMany({ 'attendees.ref': pid }, { $pull: { attendees: { ref: pid } } }),
+      Document.updateMany({ personnel: pid }, { $unset: { personnel: '' } }),
+      Task.updateMany({ personnel: pid }, { $unset: { personnel: '' } }),
+      SignTask.updateMany({ 'signers.signer': pid }, { $pull: { signers: { signer: pid } } }),
+    ]);
+
     res.json({ success: true, message: 'Personnel deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -417,17 +400,20 @@ router.post('/merge', auth, async (req, res) => {
     else if (source.notes) target.notes += '\n[来自合并] ' + source.notes;
 
     // Move company-level links: update references from sourceId to targetId
-    // Update ShareholderEntry references
-    await ShareholderEntry.updateMany(
-      { personnelRef: sourceId },
-      { $set: { personnelRef: targetId } }
-    );
+    // 迁移完成后遗留表应废弃；默认不再双写，避免与 Company.links 单一事实源漂移
+    if (process.env.KEEP_LEGACY_ENTRIES) {
+      // Update ShareholderEntry references
+      await ShareholderEntry.updateMany(
+        { personnelRef: sourceId },
+        { $set: { personnelRef: targetId } }
+      );
 
-    // Update DirectorEntry references
-    await DirectorEntry.updateMany(
-      { personnelRef: sourceId },
-      { $set: { personnelRef: targetId } }
-    );
+      // Update DirectorEntry references
+      await DirectorEntry.updateMany(
+        { personnelRef: sourceId },
+        { $set: { personnelRef: targetId } }
+      );
+    }
 
     // Update Meeting attendee references
     await Meeting.updateMany(

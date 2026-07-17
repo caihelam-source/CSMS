@@ -15,12 +15,12 @@ import Modal from '../components/Modal'
 
 // ── 分类定义 ──
 const DOC_CATEGORIES = [
-  { key: 'establishment', label: '设立文件', color: 'bg-purple-50 text-purple-700 border-purple-200', icons: ['incorporation_doc', 'certificate', 'form'] },
-  { key: 'government', label: '政府往来', color: 'bg-blue-50 text-blue-700 border-blue-200', icons: ['annual_report', 'return', 'form'] },
-  { key: 'financial', label: '财务税务', color: 'bg-green-50 text-green-700 border-green-200', icons: ['financial_statement', 'annual_report'] },
-  { key: 'banking', label: '银行文件', color: 'bg-amber-50 text-amber-700 border-amber-200', icons: ['agreement', 'form', 'certificate'] },
-  { key: 'meeting', label: '会议文件', color: 'bg-gray-50 text-gray-700 border-gray-200', icons: ['minutes', 'resolution', 'board_resolution', 'notice'] },
-  { key: 'other', label: '其他', color: 'bg-slate-50 text-slate-700 border-slate-200', icons: [] },
+  { key: 'establishment', label: '设立文件', color: 'bg-info/10 text-primary-700 border-info/20', icons: ['incorporation_doc', 'certificate', 'form'] },
+  { key: 'government', label: '政府往来', color: 'bg-info/10 text-primary-700 border-info/20', icons: ['annual_report', 'return', 'form'] },
+  { key: 'financial', label: '财务税务', color: 'bg-success/10 text-success border-success/20', icons: ['financial_statement', 'annual_report'] },
+  { key: 'banking', label: '银行文件', color: 'bg-warning/10 text-warning border-warning/20', icons: ['agreement', 'form', 'certificate'] },
+  { key: 'meeting', label: '会议文件', color: 'bg-canvas text-ink border-hairline', icons: ['minutes', 'resolution', 'board_resolution', 'notice'] },
+  { key: 'other', label: '其他', color: 'bg-gray-50 text-ink-2 border-hairline', icons: [] },
 ]
 
 const DOC_TYPE_LABELS = {
@@ -192,21 +192,21 @@ export default function Documents() {
     <div className="flex gap-6">
       {/* ── Sidebar: Categories ── */}
       <aside className="w-52 shrink-0 space-y-2">
-        <h3 className="text-sm font-semibold text-gray-500 px-2 pb-2">文档分类</h3>
+        <h3 className="text-sm font-semibold text-ink-2 px-2 pb-2">文档分类</h3>
 
         {/* All */}
         <button onClick={() => setFilter('category', 'all')}
           className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${
-            filters.category === 'all' ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-gray-50 text-gray-700'
+            filters.category === 'all' ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-canvas text-ink'
           }`}>
           <span className="flex items-center gap-2"><FileText size={16} /> 全部</span>
-          <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{documents.length}</span>
+          <span className="text-xs bg-gray-100 text-ink-2 rounded-full px-2 py-0.5">{documents.length}</span>
         </button>
 
         {DOC_CATEGORIES.map(cat => (
           <button key={cat.key} onClick={() => setFilter('category', cat.key)}
             className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${
-              filters.category === cat.key ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-gray-50 text-gray-700'
+              filters.category === cat.key ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-canvas text-ink'
             }`}>
             <span className="flex items-center gap-2"><ClipboardCheck size={16} /> {cat.label}</span>
             <span className={`text-xs rounded-full px-2 py-0.5 ${cat.color}`}>{categorisedDocs[cat.key]?.length || 0}</span>
@@ -214,11 +214,11 @@ export default function Documents() {
         ))}
 
         {/* Divider */}
-        <hr className="my-4 border-gray-200" />
+        <hr className="my-4 border-hairline" />
 
         {/* Quick links */}
-        <h4 className="text-xs font-medium text-gray-400 px-2">快速关联</h4>
-        <select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs"
+        <h4 className="text-xs font-medium text-ink-3 px-2">快速关联</h4>
+        <select className="w-full px-3 py-2 border border-hairline rounded-lg text-xs"
           value=""
           onChange={e => {
             if (!e.target.value) return
@@ -256,7 +256,7 @@ export default function Documents() {
         {/* Search + Type filter */}
         <div className="flex flex-wrap gap-3">
           <SearchBar value={search} onChange={setSearch} placeholder="搜索文档名称、编号..." />
-          <select className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+          <select className="px-3 py-2 border border-hairline rounded-lg text-sm"
             value={filters.type} onChange={e => setFilter('type', e.target.value)}>
             <option value="">所有类型</option>
             {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -277,7 +277,7 @@ export default function Documents() {
         ) : (
           <div className="space-y-2">
             {/* Header row */}
-            <div className="hidden md:grid md:grid-cols-12 gap-2 px-4 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">
+            <div className="hidden md:grid md:grid-cols-12 gap-2 px-4 py-2 text-xs font-medium text-ink-3 uppercase tracking-wide">
               <div className="col-span-1 text-center">
                 {selected.size === filtered.length && filtered.length > 0 ? (
                   <CheckSquare size={16} className="mx-auto text-primary-600 cursor-pointer" onClick={toggleAll} />
@@ -303,8 +303,8 @@ export default function Documents() {
                   const isSelected = selected.has(doc._id)
                   return (
                     <div key={doc._id} style={style} className="px-1 py-1">
-                      <div className={`group bg-white rounded-xl border shadow-sm p-4 hover:shadow-md transition-all cursor-pointer ${
-                        isSelected ? 'border-primary-400 bg-primary-50' : 'border-gray-200'
+                      <div className={`group bg-surface rounded-xl border shadow-sm p-4 hover:shadow-md transition-all cursor-pointer ${
+                        isSelected ? 'border-primary-400 bg-primary-50' : 'border-hairline'
                       }`}>
                         <div className="flex items-center gap-3">
                           <div className="shrink-0 no-nav" onClick={e => e.stopPropagation()}>
@@ -314,15 +314,15 @@ export default function Documents() {
                               <Square size={18} className="text-gray-300 cursor-pointer" onClick={() => toggleSelect(doc._id)} />
                             )}
                           </div>
-                          <div className="p-2 bg-gray-50 rounded-lg shrink-0">
-                            <FileText size={18} className="text-gray-400" />
+                          <div className="p-2 bg-canvas rounded-lg shrink-0">
+                            <FileText size={18} className="text-ink-3" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-mono text-gray-400">{doc.docNumber || '-'}</span>
+                              <span className="text-xs font-mono text-ink-3">{doc.docNumber || '-'}</span>
                               <h3 className="font-medium text-sm truncate">{doc.name}</h3>
                             </div>
-                            <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-400">
+                            <div className="flex flex-wrap gap-3 mt-1 text-xs text-ink-3">
                               <span className={`px-2 py-0.5 rounded-full border text-xs ${cat.color}`}>{cat.label}</span>
                               <span>{DOC_TYPE_LABELS[doc.type] || doc.type || '-'}</span>
                             </div>
@@ -338,8 +338,8 @@ export default function Documents() {
               const isSelected = selected.has(doc._id)
               return (
                 <div key={doc._id}
-                  className={`group bg-white rounded-xl border shadow-sm p-4 hover:shadow-md transition-all cursor-pointer ${
-                    isSelected ? 'border-primary-400 bg-primary-50' : 'border-gray-200'
+                  className={`group bg-surface rounded-xl border shadow-sm p-4 hover:shadow-md transition-all cursor-pointer ${
+                    isSelected ? 'border-primary-400 bg-primary-50' : 'border-hairline'
                   }`}
                   onClick={(e) => {
                     if (e.target.closest('.no-nav')) return
@@ -359,17 +359,17 @@ export default function Documents() {
                     </div>
 
                     {/* Doc icon */}
-                    <div className="p-2 bg-gray-50 rounded-lg shrink-0">
-                      <FileText size={18} className="text-gray-400" />
+                    <div className="p-2 bg-canvas rounded-lg shrink-0">
+                      <FileText size={18} className="text-ink-3" />
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-mono text-gray-400">{doc.docNumber || '-'}</span>
+                        <span className="text-xs font-mono text-ink-3">{doc.docNumber || '-'}</span>
                         <h3 className="font-medium text-sm truncate">{doc.name}</h3>
                       </div>
-                      <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-400">
+                      <div className="flex flex-wrap gap-3 mt-1 text-xs text-ink-3">
                         <span className={`px-2 py-0.5 rounded-full border text-xs ${cat.color}`}>{cat.label}</span>
                         <span>{DOC_TYPE_LABELS[doc.type] || doc.type || '-'}</span>
                         {doc.company && (
@@ -387,21 +387,21 @@ export default function Documents() {
 
                     {/* Date + Actions */}
                     <div className="text-right shrink-0 flex items-center gap-2">
-                      <span className="text-xs text-gray-400 hidden sm:block">{formatDate(doc.createdAt)}</span>
+                      <span className="text-xs text-ink-3 hidden sm:block">{formatDate(doc.createdAt)}</span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-nav">
                         {doc.fileUrl && (
                           <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
-                            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="下载">
+                            className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="下载">
                             <Download size={14} />
                           </a>
                         )}
                         <button onClick={() => {
                           setUploadForm({ ...uploadForm, name: doc.name, type: doc.type, companyId: doc.company?._id || doc.company || '', personnelId: doc.personnel?._id || doc.personnel || '', category: doc.category || 'other' })
                           setShowUploadModal(true)
-                        }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="编辑">
+                        }} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-info/10 rounded-lg" title="编辑">
                           <Pencil size={14} />
                         </button>
-                        <button onClick={() => setDeleteTarget(doc)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="删除">
+                        <button onClick={() => setDeleteTarget(doc)} className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg" title="删除">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -461,7 +461,7 @@ export default function Documents() {
               onChange={e => setUploadForm({ ...uploadForm, file: e.target.files[0] })} />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setShowUploadModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+            <button onClick={() => setShowUploadModal(false)} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
             <button onClick={handleUpload} disabled={uploading} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
               {uploading ? '上传中...' : '上传'}
             </button>

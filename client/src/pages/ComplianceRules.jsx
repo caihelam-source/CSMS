@@ -132,9 +132,9 @@ const GenerateModal = ({ rule, companies, onConfirm, onCancel, loading }) => {
 
 const jurisdictionColor = (j) => ({
   'HK': 'bg-info/10 text-primary-700',
-  'BVI': 'bg-purple-100 text-purple-700',
-  'Cayman': 'bg-indigo-100 text-indigo-700',
-  'SG': 'bg-teal-100 text-teal-700',
+  'BVI': 'bg-gray-100 text-ink-2',
+  'Cayman': 'bg-gray-100 text-ink-2',
+  'SG': 'bg-gray-100 text-ink-2',
   'OTHER': 'bg-gray-100 text-ink-2',
 }[j] || 'bg-gray-100 text-ink-2')
 
@@ -356,7 +356,7 @@ const ComplianceRules = () => {
                       </button>
                       {!rule.isPreset && !rule.isPredefined && (
                         <button onClick={() => { setEditTarget(rule); setModal('delete') }}
-                          className="p-1.5 text-ink-3 hover:text-red-600 hover:bg-danger/10 rounded-lg transition-colors">
+                          className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
                           <Trash2 size={15} />
                         </button>
                       )}
@@ -380,7 +380,7 @@ const ComplianceRules = () => {
       <Modal isOpen={modal === 'generate'} onClose={() => { setModal(null); setGenResult(null) }}
         title="生成合规提醒" size="md">
         {genResult ? (
-          <div className={`p-4 rounded-lg text-sm ${genResult.success ? 'bg-green-50 border border-success/20 text-success' : 'bg-danger/10 border border-danger/20 text-danger'}`}>
+          <div className={`p-4 rounded-lg text-sm ${genResult.success ? 'bg-success/10 border border-success/20 text-success' : 'bg-danger/10 border border-danger/20 text-danger'}`}>
             <p className="font-medium">{genResult.success ? '✓ 生成成功' : '✗ 生成失败'}</p>
             <p>{genResult.message}</p>
           </div>

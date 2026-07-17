@@ -3,7 +3,6 @@ const PDFDocument = require('pdfkit');
 const ShareholderEntry = require('../models/ShareholderEntry');
 const DirectorEntry = require('../models/DirectorEntry');
 const Company = require('../models/Company');
-const Personnel = require('../models/Personnel');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router({ mergeParams: true });
@@ -114,6 +113,7 @@ router.get('/rod', auth, async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'application/pdf');
+    // eslint-disable-next-line no-control-regex -- 文件名清洗需去除控制字符（\x00-\x1f），属有意逻辑
     const rodName = `${company.name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim()}_${company.registrationNumber || 'NA'}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_ROD.pdf`;
     res.setHeader('Content-Disposition', `attachment; filename="${rodName}"`);
     doc.pipe(res);
@@ -231,6 +231,7 @@ router.get('/rom', auth, async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'application/pdf');
+    // eslint-disable-next-line no-control-regex -- 文件名清洗需去除控制字符（\x00-\x1f），属有意逻辑
     const romName = `${company.name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim()}_${company.registrationNumber || 'NA'}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_ROM.pdf`;
     res.setHeader('Content-Disposition', `attachment; filename="${romName}"`);
     doc.pipe(res);

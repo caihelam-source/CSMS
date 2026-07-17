@@ -53,9 +53,6 @@ const LIST = has('--list');
 
 const TS = new Date().toISOString().replace(/[:.]/g, '-');
 
-// 角色枚举（需与 Company.links.roles 一致）
-const ROLES = ['director', 'alternate_director', 'shareholder', 'secretary', 'auditor', 'other'];
-
 function classifyRole(position) {
   if (!position) return 'other';
   const p = String(position);

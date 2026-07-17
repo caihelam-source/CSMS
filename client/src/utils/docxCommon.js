@@ -26,7 +26,7 @@ export const fullBorders = (b) => ({
   top: b, left: b, bottom: b, right: b, insideHorizontal: b, insideVertical: b,
 });
 
-export function run(text, { bold = false, size = 16, align, font } = {}) {
+export function run(text, { bold = false, size = 16, font } = {}) {
   return new TextRun({ text: text ?? '', bold, size, font: font || FONT });
 }
 
@@ -74,11 +74,9 @@ export function fmtDate(d) {
 }
 
 // 从公司对象推断地区：BVI / 默认 HK
-export function inferRegion(company) {
-  const j = String(company?.jurisdiction || '').toLowerCase();
-  if (j.includes('bvi') || j.includes('virgin') || j.includes('british')) return 'BVI';
-  return 'HK';
-}
+// inferRegion 已提取到 regionHelpers.js（轻量，无 docx 依赖）
+// 此处 re-export 保持 romDocx/rodDocx 的既有导入路径不变
+export { inferRegion } from './regionHelpers';
 
 // 无边框常量（用于签字栏等不需要框线的区域）
 const noBorder = { style: BorderStyle.NIL, size: 0, color: 'FFFFFF' };

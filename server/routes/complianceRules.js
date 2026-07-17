@@ -1,7 +1,5 @@
 const express = require('express');
 const ComplianceRule = require('../models/ComplianceRule');
-const Company = require('../models/Company');
-const ComplianceReminder = require('../models/ComplianceReminder');
 const { auth } = require('../middleware/auth');
 const { initPresetRules, generateForRule, generateBatch } = require('../services/complianceService');
 

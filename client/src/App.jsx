@@ -1,7 +1,8 @@
-import { lazy, Suspense, Component } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext.jsx'
 import Layout from './components/Layout'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // Lazy-loaded page components
 const Login = lazy(() => import('./pages/Login'))
@@ -26,7 +27,7 @@ const Settings = lazy(() => import('./pages/Settings'))
 
 // Spinner used during auth check and lazy loading
 const Spinner = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+  <div className="min-h-screen flex items-center justify-center bg-canvas">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
   </div>
 )
@@ -61,55 +62,23 @@ const AdminRoute = ({ children }) => {
   return isAdmin ? children : <Navigate to="/dashboard" replace />
 }
 
-// ErrorBoundary — captures rendering errors and displays the error message
-class RouteErrorBoundary extends Component {
-  constructor(props) {
-    super(props)
-    this.state = { error: null, errorInfo: null }
-  }
-  static getDerivedStateFromError(error) { return { error } }
-  componentDidCatch(error, errorInfo) { this.setState({ errorInfo }) }
-  render() {
-    if (this.state.error) {
-      return (
-        <div className="min-h-screen bg-red-50 p-8 font-mono text-sm overflow-auto">
-          <h1 className="text-xl font-bold text-red-700 mb-4">⚠️ 页面渲染错误 (RouteErrorBoundary)</h1>
-          <pre className="bg-white border border-red-200 rounded-lg p-4 text-red-600 whitespace-pre-wrap break-all">
-{this.state.error.message}
-{'\n\n'}
-{this.state.error.stack || ''}
-          </pre>
-          {this.state.errorInfo && (
-            <details className="mt-4">
-              <summary className="cursor-pointer text-red-500 font-semibold">组件堆栈</summary>
-              <pre className="mt-2 bg-white border border-red-200 rounded-lg p-3 text-xs text-gray-600 whitespace-pre-wrap">
-{this.state.errorInfo.componentStack}
-              </pre>
-            </details>
-          )}
-        </div>
-      )
-    }
-    return this.props.children
-  }
-}
-
 function App() {
+  const location = useLocation()
   return (
     <Suspense fallback={<Spinner />}>
       <Routes>
-        {/* Public */}
-        <Route path="/login" element={<LazyPage><Login /></LazyPage>} />
-        <Route path="/register" element={<LazyPage><Register /></LazyPage>} />
+        {/* Public — 同样包边界，避免登录/注册页抛错直接白屏 */}
+        <Route path="/login" element={<ErrorBoundary><LazyPage><Login /></LazyPage></ErrorBoundary>} />
+        <Route path="/register" element={<ErrorBoundary><LazyPage><Register /></LazyPage></ErrorBoundary>} />
 
         {/* Protected — all wrapped in Layout (Outlet renders page) */}
         <Route
           path="/"
           element={
             <ProtectedRoute>
-              <RouteErrorBoundary>
+              <ErrorBoundary resetKey={location.pathname}>
                 <Layout />
-              </RouteErrorBoundary>
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         >

@@ -116,7 +116,7 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, loading, companies }) =>
         <textarea rows={3} className={inputClass} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="其他说明..." />
       </div>
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-ink border border-hairline rounded-lg hover:bg-canvas">取消</button>
         <button type="submit" disabled={loading} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
           {loading ? '保存中...' : '保存'}
         </button>
@@ -274,7 +274,7 @@ const ComplianceReminders = () => {
         icon={Bell}
         actions={
           <>
-            <button onClick={fetchAll} className="px-3 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">
+            <button onClick={fetchAll} className="px-3 py-2 border border-hairline text-ink-2 rounded-lg hover:bg-canvas">
               <RefreshCw size={15} />
             </button>
             <button onClick={openNew} className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
@@ -288,30 +288,30 @@ const ComplianceReminders = () => {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: '全部', value: stats.total, color: 'text-gray-700', bg: 'bg-gray-50' },
-            { label: '即将到期', value: stats.pending, color: 'text-blue-700', bg: 'bg-blue-50' },
-            { label: '已逾期', value: stats.overdue, color: 'text-red-700', bg: 'bg-red-50' },
-            { label: '已完成', value: stats.completed, color: 'text-green-700', bg: 'bg-green-50' },
+            { label: '全部', value: stats.total, color: 'text-ink', bg: 'bg-canvas' },
+            { label: '即将到期', value: stats.pending, color: 'text-primary-700', bg: 'bg-info/10' },
+            { label: '已逾期', value: stats.overdue, color: 'text-danger', bg: 'bg-danger/10' },
+            { label: '已完成', value: stats.completed, color: 'text-success', bg: 'bg-success/10' },
           ].map(s => (
-            <div key={s.label} className={`${s.bg} rounded-xl p-4 border border-gray-100`}>
+            <div key={s.label} className={`${s.bg} rounded-xl p-4 border border-hairline`}>
               <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-              <div className="text-sm text-gray-500 mt-0.5">{s.label}</div>
+              <div className="text-sm text-ink-2 mt-0.5">{s.label}</div>
             </div>
           ))}
         </div>
       )}
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-surface rounded-xl border border-hairline p-4">
         <div className="flex flex-wrap gap-3">
           <SearchBar value={search} onChange={setSearch} placeholder="搜索提醒标题、类别..." />
           <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
+            className="px-3 py-2 border border-hairline rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
             <option value="">全部状态</option>
             {STATUSES_API.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <select value={filters.priority} onChange={e => setFilter('priority', e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
+            className="px-3 py-2 border border-hairline rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
             <option value="">全部优先级</option>
             {PRIORITIES_API.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
@@ -329,40 +329,40 @@ const ComplianceReminders = () => {
             const days = r.dueDate ? getDaysRemaining(r.dueDate) : null
             const isOverdue = r.status !== 'completed' && days !== null && days < 0
             return (
-              <div key={r._id} className={`bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${isOverdue ? 'border-red-200' : 'border-gray-200'}`}>
+              <div key={r._id} className={`bg-surface rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${isOverdue ? 'border-danger/20' : 'border-hairline'}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className={`font-semibold ${isOverdue ? 'text-red-700' : r.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                      <h3 className={`font-semibold ${isOverdue ? 'text-danger' : r.status === 'completed' ? 'text-ink-3 line-through' : 'text-ink'}`}>
                         {r.title}
                       </h3>
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${compliancePriorityColor(r.priority)}`}>{PRIORITY_DISPLAY[r.priority] || r.priority}</span>
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${complianceStatusColor(r.status)}`}>{STATUS_DISPLAY[r.status] || r.status}</span>
                     </div>
-                    <div className="flex flex-wrap gap-4 text-xs text-gray-500 mt-1">
-                      {r.category && <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{r.category}</span>}
-                      {r.company && <span className="text-gray-600">{r.company.name || r.company}</span>}
+                    <div className="flex flex-wrap gap-4 text-xs text-ink-2 mt-1">
+                      {r.category && <span className="bg-gray-100 text-ink-2 px-2 py-0.5 rounded">{r.category}</span>}
+                      {r.company && <span className="text-ink-2">{r.company.name || r.company}</span>}
                       {r.dueDate && (
-                        <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : days <= 7 ? 'text-orange-600' : ''}`}>
+                        <span className={`flex items-center gap-1 ${isOverdue ? 'text-danger font-medium' : days <= 7 ? 'text-warning' : ''}`}>
                           <Clock size={13} />
                           截止：{fmtDateShort(r.dueDate)}
                           {days !== null && ` (${isOverdue ? `逾期${Math.abs(days)}天` : days === 0 ? '今天到期' : `剩余${days}天`})`}
                         </span>
                       )}
                     </div>
-                    {r.notes && <p className="text-xs text-gray-400 mt-2 line-clamp-1">{r.notes}</p>}
+                    {r.notes && <p className="text-xs text-ink-3 mt-2 line-clamp-1">{r.notes}</p>}
                   </div>
                   <div className="flex gap-1 shrink-0">
                     {r.status !== 'completed' && r.status !== 'expired' && (
                       <button onClick={() => handleQuickComplete(r)}
-                        className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="标记完成">
+                        className="p-1.5 text-ink-3 hover:text-success hover:bg-success/10 rounded-lg transition-colors" title="标记完成">
                         <CheckCircle2 size={16} />
                       </button>
                     )}
-                    <button onClick={() => openEdit(r)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+                    <button onClick={() => openEdit(r)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
                       <Pencil size={15} />
                     </button>
-                    <button onClick={() => { setEditTarget(r); setModal('delete') }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    <button onClick={() => { setEditTarget(r); setModal('delete') }} className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -376,7 +376,7 @@ const ComplianceReminders = () => {
       {/* 新增/编辑 Modal */}
       <Modal isOpen={modal === 'new' || modal === 'edit'} onClose={() => setModal(null)}
         title={modal === 'edit' ? '编辑提醒' : '新增合规提醒'} size="lg">
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{error}</div>}
+        {error && <div className="mb-4 p-3 bg-danger/10 border border-danger/20 text-danger text-sm rounded-lg">{error}</div>}
         <ReminderForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModal(null)} loading={saving} companies={companies} />
       </Modal>
 

@@ -1,4 +1,5 @@
-const errorHandler = (err, req, res, next) => {
+// 四个参数必须保留：Express 依据参数个数为 4 来识别"错误处理中间件"
+const errorHandler = (err, req, res, _next) => {
   console.error(err.stack);
 
   let statusCode = err.statusCode || 500;

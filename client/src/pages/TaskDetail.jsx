@@ -9,7 +9,6 @@ import { taskService, documentService, companyService } from '../services/index.
 import { formatDate } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, DetailHeader, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
 
-const TASK_TYPES = ['filing', 'compliance', 'meeting_prep', 'document', 'follow_up', 'other']
 const typeLabel = (t) => ({ filing: '申报', compliance: '合规', meeting_prep: '会议准备', document: '文档', follow_up: '跟进', other: '其他' }[t] || t)
 
 export default function TaskDetail() {
@@ -17,7 +16,7 @@ export default function TaskDetail() {
   const navigate = useNavigate()
   const [task, setTask] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [companies, setCompanies] = useState([])
+  const [, setCompanies] = useState([])
   const [completeOpen, setCompleteOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
   const [uploadFile, setUploadFile] = useState(null)
@@ -128,7 +127,7 @@ export default function TaskDetail() {
           </div>
         }
         initials={task.title?.charAt(0) || 'T'}
-        badges={overdue ? <span className="badge bg-red-100 text-red-700"><AlertTriangle size={12} /> 逾期</span> : null}
+        badges={overdue ? <span className="badge bg-danger/10 text-danger"><AlertTriangle size={12} /> 逾期</span> : null}
       />
 
       {/* 操作栏 */}
@@ -150,19 +149,19 @@ export default function TaskDetail() {
         <div className="card">
           <h3 className="font-semibold mb-3">任务信息</h3>
           <dl className="space-y-3 text-sm">
-            <div className="flex justify-between"><span className="text-gray-500">类型</span><span>{typeLabel(task.type)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">状态</span><span className={`px-2 py-0.5 text-xs rounded-full ${taskStatusColor(task.status)}`}>{task.status.replace('_', ' ')}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">截止日期</span><span>{task.dueDate ? formatDate(task.dueDate) : '-'}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">关联公司</span><span>{task.company ? <Link to={`/companies/${task.company._id}`} className="text-primary-600 hover:underline">{task.company.name}</Link> : '未关联'}</span></div>
+            <div className="flex justify-between"><span className="text-ink-2">类型</span><span>{typeLabel(task.type)}</span></div>
+            <div className="flex justify-between"><span className="text-ink-2">状态</span><span className={`px-2 py-0.5 text-xs rounded-full ${taskStatusColor(task.status)}`}>{task.status.replace('_', ' ')}</span></div>
+            <div className="flex justify-between"><span className="text-ink-2">截止日期</span><span>{task.dueDate ? formatDate(task.dueDate) : '-'}</span></div>
+            <div className="flex justify-between"><span className="text-ink-2">关联公司</span><span>{task.company ? <Link to={`/companies/${task.company._id}`} className="text-primary-600 hover:underline">{task.company.name}</Link> : '未关联'}</span></div>
           </dl>
         </div>
         <div className="card">
           <h3 className="font-semibold mb-3">完成要求</h3>
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm text-ink-2 leading-relaxed">
             任务必须 <strong>填写完成备注</strong> 或 <strong>上传文件</strong> 后才能标记完成。若关联了公司，上传的附件将自动归档到该公司的文档库，确保底层数据联动。
           </p>
           {archivedDoc && (
-            <div className="mt-3 flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            <div className="mt-3 flex items-center gap-2 p-2 bg-success/10 border border-success/20 rounded-lg text-sm text-success">
               <Paperclip size={14} /> 已归档：{archivedDoc.name}（{archivedDoc.docNumber}）
             </div>
           )}
@@ -173,7 +172,7 @@ export default function TaskDetail() {
       {task.description && (
         <div className="card">
           <h3 className="font-semibold mb-2">描述</h3>
-          <p className="text-sm text-gray-600 whitespace-pre-wrap">{task.description}</p>
+          <p className="text-sm text-ink-2 whitespace-pre-wrap">{task.description}</p>
         </div>
       )}
 
@@ -181,13 +180,13 @@ export default function TaskDetail() {
       <div className="card">
         <h3 className="font-semibold mb-3 flex items-center gap-2"><MessageSquare size={16} /> 备注记录（{task.notes?.length || 0}）</h3>
         {!task.notes || task.notes.length === 0 ? (
-          <p className="text-sm text-gray-400">暂无备注</p>
+          <p className="text-sm text-ink-3">暂无备注</p>
         ) : (
           <div className="space-y-2">
             {task.notes.map((n, i) => (
-              <div key={i} className="bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-700">
+              <div key={i} className="bg-canvas rounded-lg px-3 py-2 text-sm text-ink">
                 <p>{n.content}</p>
-                {n.createdAt && <p className="text-xs text-gray-400 mt-1">{formatDate(n.createdAt)}</p>}
+                {n.createdAt && <p className="text-xs text-ink-3 mt-1">{formatDate(n.createdAt)}</p>}
               </div>
             ))}
           </div>

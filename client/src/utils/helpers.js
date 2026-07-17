@@ -16,6 +16,7 @@ export const generateDocFilename = (docType, company, opts = {}) => {
 
   // 公司名：取英文 → 大写 → 去除文件名非法字符 → 截断
   let rawName = (company?.name || company?.nameChinese || 'UNKNOWN').trim()
+  // eslint-disable-next-line no-control-regex -- 文件名清洗需去除控制字符（\x00-\x1f），属有意逻辑
   rawName = rawName.replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim()
   if (rawName.length > maxLength) rawName = rawName.substring(0, maxLength)
 
@@ -150,9 +151,9 @@ export function docExpiryStatus(doc, warnDays = 30) {
 }
 
 export const DOC_EXPIRY_BADGE = {
-  expired: { label: '已过期', cls: 'bg-red-100 text-red-700' },
-  expiring: { label: '即将到期', cls: 'bg-amber-100 text-amber-700' },
-  ok: { label: '有效', cls: 'bg-green-100 text-green-700' },
+  expired: { label: '已过期', cls: 'bg-danger/10 text-danger' },
+  expiring: { label: '即将到期', cls: 'bg-warning/10 text-warning' },
+  ok: { label: '有效', cls: 'bg-success/10 text-success' },
   none: null,
 }
 
@@ -164,13 +165,13 @@ export const MEETING_TYPE_LABELS = {
 }
 
 export const MEETING_PHASES = {
-  setup: { label: '草稿', color: 'bg-gray-200 text-gray-600' },
-  'notice-draft': { label: '通知草稿', color: 'bg-blue-100 text-blue-600' },
-  'notice-sent': { label: '已发通知', color: 'bg-blue-100 text-blue-700' },
-  'meeting-held': { label: '已召开', color: 'bg-green-100 text-green-700' },
-  'minutes-draft': { label: '纪要草稿', color: 'bg-purple-100 text-purple-700' },
-  'minutes-signed': { label: '已签署', color: 'bg-green-100 text-green-800' },
-  completed: { label: '已完成', color: 'bg-green-100 text-green-800' },
+  setup: { label: '草稿', color: 'bg-gray-100 text-ink-2' },
+  'notice-draft': { label: '通知草稿', color: 'bg-info/10 text-primary-700' },
+  'notice-sent': { label: '已发通知', color: 'bg-info/10 text-primary-700' },
+  'meeting-held': { label: '已召开', color: 'bg-success/10 text-success' },
+  'minutes-draft': { label: '纪要草稿', color: 'bg-warning/10 text-warning' },
+  'minutes-signed': { label: '已签署', color: 'bg-success/10 text-success' },
+  completed: { label: '已完成', color: 'bg-success/10 text-success' },
 }
 
 export const MEETING_STATUSES = {

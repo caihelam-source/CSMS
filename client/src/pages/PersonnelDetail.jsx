@@ -9,11 +9,11 @@ import { DetailHeader, EmptyState, SectionSkeleton, taskPriorityColor, FormField
 // 角色元数据：标签 + 图标 + 配色（读时聚合自 Company.links.roles）
 const ROLE_META = {
   director: { label: '董事', color: 'bg-primary-100 text-primary-700' },
-  alternate_director: { label: '替任董事', color: 'bg-blue-100 text-blue-700' },
-  shareholder: { label: '股东', color: 'bg-green-100 text-green-700' },
-  secretary: { label: '公司秘书', color: 'bg-yellow-100 text-yellow-700' },
-  auditor: { label: '审计师', color: 'bg-purple-100 text-purple-700' },
-  other: { label: '其他', color: 'bg-gray-100 text-gray-600' },
+  alternate_director: { label: '替任董事', color: 'bg-info/10 text-primary-700' },
+  shareholder: { label: '股东', color: 'bg-success/10 text-success' },
+  secretary: { label: '公司秘书', color: 'bg-warning/10 text-warning' },
+  auditor: { label: '审计师', color: 'bg-gray-100 text-ink-2' },
+  other: { label: '其他', color: 'bg-gray-100 text-ink-2' },
 }
 
 // 页面级骨架（人员基础信息加载时）
@@ -21,10 +21,10 @@ function PersonnelSkeleton() {
   return (
     <div className="space-y-6" aria-hidden="true">
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />
+        <div className="w-12 h-12 rounded-full bg-gray-100 animate-pulse" />
         <div className="space-y-2">
-          <div className="h-5 bg-gray-200 rounded animate-pulse w-40" />
-          <div className="h-3 bg-gray-200 rounded animate-pulse w-24" />
+          <div className="h-5 bg-gray-100 rounded animate-pulse w-40" />
+          <div className="h-3 bg-gray-100 rounded animate-pulse w-24" />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -42,7 +42,7 @@ function Section({ icon: Icon, title, count, loading, children }) {
     <div className="card">
       <h3 className="font-semibold mb-4 flex items-center gap-2">
         {Icon && <Icon size={18} />} {title}
-        {count !== undefined && <span className="text-gray-400">（{count}）</span>}
+        {count !== undefined && <span className="text-ink-3">（{count}）</span>}
       </h3>
       {loading ? <SectionSkeleton lines={3} /> : children}
     </div>
@@ -162,7 +162,7 @@ export default function PersonnelDetail() {
         badges={
           <>
             {roleSet.map(r => (
-              <span key={r} className={`badge ${ROLE_META[r]?.color || 'bg-gray-100 text-gray-600'}`}>
+              <span key={r} className={`badge ${ROLE_META[r]?.color || 'bg-gray-100 text-ink-2'}`}>
                 {ROLE_META[r]?.label || r}
               </span>
             ))}
@@ -181,7 +181,7 @@ export default function PersonnelDetail() {
               </button>
             ) : (
               <div className="flex gap-2">
-                <button onClick={() => setEditingPersonal(false)} className="text-sm text-gray-500 hover:text-gray-700">取消</button>
+                <button onClick={() => setEditingPersonal(false)} className="text-sm text-ink-2 hover:text-ink">取消</button>
                 <button onClick={savePersonal} disabled={savingPersonal} className="text-sm btn-primary">{savingPersonal ? '保存中...' : '保存'}</button>
               </div>
             )}
@@ -204,28 +204,28 @@ export default function PersonnelDetail() {
             /* 只读模式 */
             <div className="space-y-3 text-sm">
               {person.email && (
-                <div className="flex items-center gap-2 text-gray-600"><Mail size={14} className="text-gray-400" /> {person.email}</div>
+                <div className="flex items-center gap-2 text-ink-2"><Mail size={14} className="text-ink-3" /> {person.email}</div>
               )}
               {person.phone && (
-                <div className="flex items-center gap-2 text-gray-600"><Phone size={14} className="text-gray-400" /> {person.phone}</div>
+                <div className="flex items-center gap-2 text-ink-2"><Phone size={14} className="text-ink-3" /> {person.phone}</div>
               )}
               {person.nric && (
-                <div className="flex items-center gap-2 text-gray-600"><User size={14} className="text-gray-400" /> NRIC: {person.nric}</div>
+                <div className="flex items-center gap-2 text-ink-2"><User size={14} className="text-ink-3" /> NRIC: {person.nric}</div>
               )}
               {person.nationality && (
-                <div className="flex items-center gap-2 text-gray-600"><MapPin size={14} className="text-gray-400" /> {person.nationality}</div>
+                <div className="flex items-center gap-2 text-ink-2"><MapPin size={14} className="text-ink-3" /> {person.nationality}</div>
               )}
               {person.address?.country && (
-                <div className="flex items-center gap-2 text-gray-600"><MapPin size={14} className="text-gray-400" /> {person.address.country}</div>
+                <div className="flex items-center gap-2 text-ink-2"><MapPin size={14} className="text-ink-3" /> {person.address.country}</div>
               )}
               {person.address?.street && (
-                <div className="flex items-start gap-2 text-gray-600"><MapPin size={14} className="text-gray-400 mt-0.5 shrink-0" /> <span>{person.address.street}</span></div>
+                <div className="flex items-start gap-2 text-ink-2"><MapPin size={14} className="text-ink-3 mt-0.5 shrink-0" /> <span>{person.address.street}</span></div>
               )}
             </div>
           )}
           {!editingPersonal && person.notes && (
-            <div className="pt-3 border-t border-gray-100">
-              <p className="text-sm text-gray-500">{person.notes}</p>
+            <div className="pt-3 border-t border-hairline">
+              <p className="text-sm text-ink-2">{person.notes}</p>
             </div>
           )}
         </div>
@@ -241,19 +241,19 @@ export default function PersonnelDetail() {
                   const c = item.company || item.link || {}
                   return (
                     <Link key={item._id || idx} to={`/companies/${c._id}`}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-gray-100 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${ROLE_META[(item.roles || [])[0]]?.color || 'bg-gray-100 text-gray-600'}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${ROLE_META[(item.roles || [])[0]]?.color || 'bg-gray-100 text-ink-2'}`}>
                           {c.name?.charAt(0) || '?'}
                         </div>
                         <div>
                           <p className="font-medium text-primary-600">{c.name}</p>
-                          <p className="text-xs text-gray-400">{c.registrationNumber}</p>
+                          <p className="text-xs text-ink-3">{c.registrationNumber}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-2 text-xs text-ink-2">
                         {(item.roles || []).map(r => (
-                          <span key={r} className={`badge ${ROLE_META[r]?.color || 'bg-gray-100 text-gray-600'}`}>{ROLE_META[r]?.label || r}</span>
+                          <span key={r} className={`badge ${ROLE_META[r]?.color || 'bg-gray-100 text-ink-2'}`}>{ROLE_META[r]?.label || r}</span>
                         ))}
                         {item.shares > 0 && <span>{item.shares?.toLocaleString()} 股</span>}
                         {item.appointmentDate && <span>自 {formatDate(item.appointmentDate)}</span>}
@@ -275,12 +275,12 @@ export default function PersonnelDetail() {
           <div className="space-y-2">
             {meetings.data.map(m => (
               <Link key={m._id} to={`/meetings/${m._id}`}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-gray-100 transition-colors">
                 <div>
                   <p className="font-medium text-primary-600">{m.title}</p>
-                  <p className="text-xs text-gray-400">{m.company?.name} &middot; {m.type}</p>
+                  <p className="text-xs text-ink-3">{m.company?.name} &middot; {m.type}</p>
                 </div>
-                <span className="text-xs text-gray-500">{formatDate(m.scheduledAt)}</span>
+                <span className="text-xs text-ink-2">{formatDate(m.scheduledAt)}</span>
               </Link>
             ))}
           </div>
@@ -296,16 +296,16 @@ export default function PersonnelDetail() {
             {documents.data.map(doc => {
               const badge = DOC_EXPIRY_BADGE[docExpiryStatus(doc)]
               return (
-                <div key={doc._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={doc._id} className="flex items-center justify-between p-3 bg-canvas rounded-lg">
                   <div className="flex items-center gap-3 min-w-0">
                     <FileText size={18} className="text-primary-600 shrink-0" />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {doc.docNumber && <span className="text-xs font-mono text-gray-400">{doc.docNumber}</span>}
+                        {doc.docNumber && <span className="text-xs font-mono text-ink-3">{doc.docNumber}</span>}
                         <p className="font-medium truncate">{doc.name}</p>
                         {badge && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>}
                       </div>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-ink-3">
                         {doc.type && <span className="capitalize">{doc.type.replace(/_/g, ' ')}</span>}
                         {doc.createdAt && <> &middot; {formatDate(doc.createdAt)}</>}
                       </p>
@@ -314,7 +314,7 @@ export default function PersonnelDetail() {
                   {doc.fileUrl ? (
                     <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs shrink-0">Download</a>
                   ) : (
-                    <span className="text-xs text-gray-400 shrink-0">No file</span>
+                    <span className="text-xs text-ink-3 shrink-0">No file</span>
                   )}
                 </div>
               )
@@ -331,13 +331,13 @@ export default function PersonnelDetail() {
           <div className="space-y-2">
             {reminders.map(r => (
               <Link key={r._id} to="/compliance-reminders"
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-gray-100 transition-colors">
                 <div>
                   <p className="font-medium text-primary-600">{r.title}</p>
-                  <p className="text-xs text-gray-400">{r.company?.name}</p>
+                  <p className="text-xs text-ink-3">{r.company?.name}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">{formatDate(r.dueDate)}</span>
+                  <span className="text-xs text-ink-2">{formatDate(r.dueDate)}</span>
                   <span className={`badge ${getStatusColor(r.status)}`}>{r.status}</span>
                 </div>
               </Link>
@@ -354,10 +354,10 @@ export default function PersonnelDetail() {
           <div className="space-y-2">
             {tasks.data.map(t => (
               <Link key={t._id} to={`/tasks/${t._id}`}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-gray-100 transition-colors">
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate">{t.title}</p>
-                  <p className="text-xs text-gray-400">{t.type} &middot; 到期 {formatDate(t.dueDate)}</p>
+                  <p className="text-xs text-ink-3">{t.type} &middot; 到期 {formatDate(t.dueDate)}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${taskPriorityColor(t.priority)}`}>{t.priority}</span>

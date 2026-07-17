@@ -9,7 +9,6 @@ import {
   TextRun,
   Table,
   TableRow,
-  TableCell,
   Footer,
   Header,
   PageNumber,
@@ -132,7 +131,6 @@ function buildBviRodTable(title, headers, widths, rows) {
 }
 
 function buildBviRod(company, directors, placeholderMode, withSignature) {
-  const sysName = company.systemName || 'Claw Company Secretary System';
   const individuals = placeholderMode ? [{ _placeholder: true, kind: 'ind' }] : directors.filter((l) => (l.linkModel || l.link?.linkModel) !== 'Company' && !l.corporateNumber);
   const corporates = placeholderMode ? [{ _placeholder: true, kind: 'corp' }] : directors.filter((l) => (l.linkModel || l.link?.linkModel) === 'Company' || l.corporateNumber);
 

@@ -100,14 +100,14 @@ export default function ComplianceReminderDetail() {
         <button onClick={() => navigate('/compliance-reminders')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><ArrowLeft size={20} /></button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className={`text-2xl font-bold ${reminder.completed ? 'line-through text-gray-400' : ''}`}>{reminder.title}</h1>
-            {isOverdue && <span className="badge bg-red-100 text-red-700"><AlertTriangle size={12} /> 已逾期</span>}
+            <h1 className={`text-2xl font-bold ${reminder.completed ? 'line-through text-ink-3' : ''}`}>{reminder.title}</h1>
+            {isOverdue && <span className="badge bg-danger/10 text-danger"><AlertTriangle size={12} /> 已逾期</span>}
           </div>
-          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
+          <div className="flex items-center gap-3 mt-1 text-sm text-ink-2 flex-wrap">
             <span className={`px-2 py-0.5 text-xs rounded-full border ${compliancePriorityColor(reminder.priority)}`}>{reminder.priority}</span>
             <span className={`px-2 py-0.5 text-xs rounded-full ${complianceStatusColor(reminder.status)}`}>{reminder.status}</span>
             <span className="flex items-center gap-1"><Calendar size={13} />{reminder.dueDate ? formatDate(reminder.dueDate) : '-'}{days !== null && reminder.status !== 'completed' && ` (${days < 0 ? `逾期${Math.abs(days)}天` : days === 0 ? '今天' : `剩${days}天`})`}</span>
-            {reminder.category && <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">{reminder.category}</span>}
+            {reminder.category && <span className="bg-gray-100 text-ink-2 px-2 py-0.5 rounded text-xs">{reminder.category}</span>}
           </div>
         </div>
       </div>
@@ -125,11 +125,11 @@ export default function ComplianceReminderDetail() {
         <div className="card">
           <h3 className="font-semibold mb-3">提醒信息</h3>
           <dl className="space-y-3 text-sm">
-            <div className="flex justify-between"><span className="text-gray-500">类别</span><span>{reminder.category || '-'}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">规则</span><span>{reminder.rule?.name || '-'}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">优先级</span><span className={`px-2 py-0.5 text-xs rounded-full border ${compliancePriorityColor(reminder.priority)}`}>{reminder.priority}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">截止日期</span><span>{reminder.dueDate ? formatDate(reminder.dueDate) : '-'}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">关联公司</span><span>{reminder.company ? <Link to={`/companies/${reminder.company._id}`} className="text-primary-600 hover:underline">{reminder.company.name}</Link> : '未关联'}</span></div>
+            <div className="flex justify-between"><span className="text-ink-2">类别</span><span>{reminder.category || '-'}</span></div>
+            <div className="flex justify-between"><span className="text-ink-2">规则</span><span>{reminder.rule?.name || '-'}</span></div>
+            <div className="flex justify-between"><span className="text-ink-2">优先级</span><span className={`px-2 py-0.5 text-xs rounded-full border ${compliancePriorityColor(reminder.priority)}`}>{reminder.priority}</span></div>
+            <div className="flex justify-between"><span className="text-ink-2">截止日期</span><span>{reminder.dueDate ? formatDate(reminder.dueDate) : '-'}</span></div>
+            <div className="flex justify-between"><span className="text-ink-2">关联公司</span><span>{reminder.company ? <Link to={`/companies/${reminder.company._id}`} className="text-primary-600 hover:underline">{reminder.company.name}</Link> : '未关联'}</span></div>
           </dl>
         </div>
         <div className="card">
@@ -145,10 +145,10 @@ export default function ComplianceReminderDetail() {
           ) : reminder.task ? (
             <Link to={`/tasks/${reminder.task._id}`} className="text-primary-600 hover:underline">前往关联任务 →</Link>
           ) : (
-            <p className="text-sm text-gray-400">未关联任务</p>
+            <p className="text-sm text-ink-3">未关联任务</p>
           )}
           {archivedDoc && (
-            <div className="mt-3 flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            <div className="mt-3 flex items-center gap-2 p-2 bg-success/10 border border-success/20 rounded-lg text-sm text-success">
               <Paperclip size={14} /> 已归档：{archivedDoc.name}（{archivedDoc.docNumber}）
             </div>
           )}
@@ -158,13 +158,13 @@ export default function ComplianceReminderDetail() {
       <div className="card">
         <h3 className="font-semibold mb-3 flex items-center gap-2"><MessageSquare size={16} /> 备注记录（{notesArr.length}）</h3>
         {notesArr.length === 0 ? (
-          <p className="text-sm text-gray-400">暂无备注</p>
+          <p className="text-sm text-ink-3">暂无备注</p>
         ) : (
           <div className="space-y-2">
             {notesArr.map((n, i) => (
-              <div key={i} className="bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-700">
+              <div key={i} className="bg-canvas rounded-lg px-3 py-2 text-sm text-ink">
                 <p>{n.content}</p>
-                {n.createdAt && <p className="text-xs text-gray-400 mt-1">{formatDate(n.createdAt)}</p>}
+                {n.createdAt && <p className="text-xs text-ink-3 mt-1">{formatDate(n.createdAt)}</p>}
               </div>
             ))}
           </div>

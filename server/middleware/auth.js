@@ -18,7 +18,7 @@ const auth = async (req, res, next) => {
 
     req.user = user;
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ message: 'Token is not valid' });
   }
 };
@@ -32,7 +32,7 @@ const adminAuth = async (req, res, next) => {
     }
 
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ message: 'Authentication failed' });
   }
 };

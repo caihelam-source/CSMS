@@ -22,11 +22,16 @@ let useMock = USE_MOCK
 // Mock 返回 { data: { data: X } }；真实后端返回 { success, entity } 或 { success, count, list }。
 // 统一归一化为前端期望的 { data: { data: X } } 形状，消除 Mock/真实差异。
 const normalize = (body) => {
-  if (body && typeof body === 'object' && body.data !== undefined) {
-    // 已是 { data: ... } 形态（mock 的 { data: { data: X } } 或后端嵌套 { data: { data: X } }）
+  // 统一归一化为前端期望的 { data: { data: X } } 形状，消除 Mock/真实差异。
+  // 1) 后端已双层嵌套 { data: { data: X } } —— 直接透传
+  if (body && typeof body === 'object' && body.data && typeof body.data === 'object' && 'data' in body.data) {
     return { data: body.data }
   }
-  // 扁平响应（{ success, personnel } / { success, companies } 等）→ 提取主负载
+  // 2) 后端单层嵌套 { success, data: X } —— 包成 { data: { data: X } }
+  if (body && typeof body === 'object' && body.data !== undefined) {
+    return { data: { data: body.data } }
+  }
+  // 3) 扁平响应 { success, personnel } / { success, companies } 等 —— 提取主负载
   const entityKeys = [
     'personnel', 'company', 'document', 'meeting', 'task', 'reminder', 'template', 'signTask',
     'companies', 'documents', 'meetings', 'tasks', 'reminders', 'personnelList', 'links', 'link',
@@ -34,6 +39,7 @@ const normalize = (body) => {
   for (const k of entityKeys) {
     if (body && body[k] !== undefined) return { data: { data: body[k] } }
   }
+  // 4) 兜底：整包作为 payload
   return { data: { data: body } }
 }
 
@@ -42,8 +48,10 @@ const wrap = (apiFn, mockFn) => async (...args) => {
   try {
     const res = await apiFn(...args)
     return normalize(res.data)
-  } catch {
-    // Any error (network + HTTP errors) — silently fall back to mock
+  } catch (err) {
+    // 任何错误（网络 / HTTP 错误）静默回退 mock，保证演示不中断；
+    // 但打日志，避免生产环境后端报错被完全吞掉、无从排查。
+    console.error('[services] real API failed, falling back to mock:', err?.message || err)
     useMock = true
     return mockFn(...args)
   }

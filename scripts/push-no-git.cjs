@@ -8,7 +8,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat: ROM/ROD 地区化模板 + 无边框签字栏 + 模板自动填充 + 一键部署脚本';
+const COMMIT_MSG = 'feat(backlog): M1.4 序号竞态(counters) + M3.2/M3.5 语义色收敛 + M3.3 docx懒加载';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

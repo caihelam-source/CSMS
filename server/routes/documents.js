@@ -1,5 +1,4 @@
 const express = require('express');
-const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const Document = require('../models/Document');
@@ -80,10 +79,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       if (d) directorName = d.name;
     }
 
-    const docNumber = await Document.generateDocNumber(companyObj, directorName, type);
-
     const docData = {
-      docNumber,
       name: docTitle,
       type: type || 'other',
       category: category || 'other',
@@ -112,7 +108,19 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       docData.size = saved.size;
     }
 
-    const doc = await Document.create(docData);
+    // 生成文档编号并创建（重试 3 次防 unique 索引冲突 — DB-AUDIT P1-8）
+    let doc = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      docData.docNumber = await Document.generateDocNumber(companyObj, directorName, type);
+      try {
+        doc = await Document.create(docData);
+        break;
+      } catch (createErr) {
+        if (createErr.code === 11000 && attempt < 2) continue; // docNumber 冲突，重试
+        throw createErr;
+      }
+    }
+
     const populated = await Document.findById(doc._id)
       .populate('company', 'name').populate('uploadedBy', 'name email');
 
