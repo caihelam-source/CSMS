@@ -64,18 +64,21 @@ function calcDueDate(rule, company) {
     if (baseDate < today) baseDate.setFullYear(year + 1);
     baseDate = addDays(baseDate, (rule.baseDateOffset || 365) - 365);
   } else if (rule.baseDateType === 'financialYearEnd') {
-    if (!company.financialYearEnd) return null;
+    const fye = company.financialYearEnd;
+    if (!fye) return null;
     let mm, dd;
-    if (typeof company.financialYearEnd === 'string') {
-      [mm, dd] = company.financialYearEnd.split('-').map(Number);
-    } else if (company.financialYearEnd && company.financialYearEnd.month != null) {
-      mm = company.financialYearEnd.month;
-      dd = company.financialYearEnd.day;
+    // 主格式：{ day, month } 对象（Company 模型定义）
+    if (fye.month != null && fye.day != null) {
+      mm = fye.month;
+      dd = fye.day;
+    } else if (typeof fye === 'string') {
+      // 向后兼容：旧字符串格式 "MM-DD"
+      [mm, dd] = fye.split('-').map(Number);
     } else {
       return null;
     }
     if (!mm || !dd) return null;
-    baseDate = new Date(year, mm - 1, dd);
+    baseDate = new Date(year, mm - 1, dd); // month 需减 1（JS Date 月份从 0 起）
     if (baseDate < today) baseDate.setFullYear(year + 1);
     baseDate = addDays(baseDate, rule.baseDateOffset || 0);
   } else if (rule.baseDateType === 'fixed') {
