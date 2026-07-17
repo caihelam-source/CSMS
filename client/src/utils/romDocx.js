@@ -9,7 +9,6 @@ import {
   TextRun,
   Table,
   TableRow,
-  TableCell,
   Footer,
   PageNumber,
   PageOrientation,
@@ -19,6 +18,10 @@ import {
   FONT, thin, fullBorders,
   run, headerCell, dataCell, fmtDate, inferRegion, buildSignatureBlock,
 } from './docxCommon.js';
+
+// 与全局英文枚举对齐的属地标签（仅用于成员列 fallback；HK/BVI 文档标题保持原样）
+const JURIS_LABEL = { HK: 'Hong Kong', BVI: 'BVI', Cayman: 'Cayman Islands', SG: 'Singapore', OTHER: 'Other' };
+const jurLabel = (j) => JURIS_LABEL[j] || j || 'Hong Kong';
 
 // ---- 列宽（twips，A4 横向可用约 15200）----
 const COLS = {
@@ -51,23 +54,6 @@ function resolveMember(l) {
   return { name, cnName, address };
 }
 
-// 从 links 提取现任公司秘书（Registered Agent）
-function resolveSecretary(company) {
-  if (!company || !Array.isArray(company.links)) return null;
-  const sec = company.links.find((l) => Array.isArray(l.roles) && l.roles.includes('secretary'));
-  if (!sec) return null;
-  const ref = sec.link || sec.personnelRef || {};
-  const name = sec.name || ref.name || '';
-  let addr = '';
-  if (sec.address && (sec.address.street || sec.address.city || sec.address.country)) {
-    addr = [sec.address.street, sec.address.city, sec.address.country].filter(Boolean).join(', ');
-  } else if (ref.address && (ref.address.street || ref.address.city || ref.address.country)) {
-    addr = [ref.address.street, ref.address.city, ref.address.country].filter(Boolean).join(', ');
-  }
-  addr = addr || sec.registeredAddress || ref.registeredAddress || '';
-  return { name, address: addr };
-}
-
 // ===== 页头（地区相关）=====
 function buildHeader(company, region, placeholderMode) {
   const titleParas = [
@@ -87,7 +73,6 @@ function buildHeader(company, region, placeholderMode) {
     );
   }
 
-  const sysName = company.systemName || 'Claw Company Secretary System';
   const genDate = company.generationDate || fmtDate(new Date()) || '[GENERATION_DATE]';
 
   if (region === 'HK') {
@@ -128,7 +113,7 @@ function buildHeader(company, region, placeholderMode) {
 const HK_ROM_HEADERS = ['Date Entered', 'Member Name', 'Address', 'Jurisdiction', 'No. of Shares', 'Share Type', 'Shareholding %', 'Date Ceased'];
 const HK_ROM_WIDTHS = [1100, 2200, 2600, 1300, 1300, 1300, 1300, 1300];
 
-function buildHkRomTable(company, members, placeholderMode) {
+function buildHkRomTable(company, members) {
   const headerRow = new TableRow({
     tableHeader: true,
     children: HK_ROM_HEADERS.map((h, i) => headerCell(h, { width: HK_ROM_WIDTHS[i] })),
@@ -139,7 +124,7 @@ function buildHkRomTable(company, members, placeholderMode) {
     const ceased = l._placeholder ? '' : fmtDate(l.ceasedDate);
     const shares = l._placeholder ? l.shares : String(l.shares || 0);
     const shareType = l._placeholder ? '[SHARE_TYPE]' : (l.shareType || 'Ordinary');
-    const juris = l._placeholder ? '[JURISDICTION]' : (m.address?.split(',').pop()?.trim() || company.jurisdiction || 'Hong Kong');
+    const juris = l._placeholder ? '[JURISDICTION]' : (m.address?.split(',').pop()?.trim() || jurLabel(company.jurisdiction));
     const pct = l._placeholder ? '[%]' : (company.shareCapital?.paidUp && l.shares ? ((l.shares / company.shareCapital.paidUp) * 100).toFixed(2) + '%' : '-');
     const nameText = m.cnName ? `${m.name}\n${m.cnName}` : m.name;
     return new TableRow({
@@ -164,7 +149,7 @@ function buildHkRomTable(company, members, placeholderMode) {
 }
 
 // ===== BVI ROM 表格（19 列嵌套）=====
-function buildBviRomTable(company, members, placeholderMode) {
+function buildBviRomTable(company, members) {
   const headerRow1 = new TableRow({
     tableHeader: true,
     children: [
@@ -205,7 +190,7 @@ function buildBviRomTable(company, members, placeholderMode) {
         dataCell(entered, { width: COLS.dateEntry, align: 'center' }),
         dataCell(nameText, { width: COLS.name }),
         dataCell(m.address, { width: COLS.address }),
-        dataCell(l._placeholder ? '[JURISDICTION]' : (m.address?.split(',').pop()?.trim() || company.jurisdiction || 'BVI'), { width: COLS.dateCeasing, align: 'center' }),
+        dataCell(l._placeholder ? '[JURISDICTION]' : (m.address?.split(',').pop()?.trim() || jurLabel(company.jurisdiction)), { width: COLS.dateCeasing, align: 'center' }),
         dataCell(entered, { width: COLS.acqDate, align: 'center' }),
         dataCell(cert, { width: COLS.acqCert, align: 'center' }),
         dataCell(l._placeholder ? '1' : '1', { width: COLS.acqFrom, align: 'center' }),
@@ -289,8 +274,8 @@ export function buildRomDocument(company = {}, shareholdersLinks = [], opts = {}
 
   const headerParas = buildHeader(company, region, placeholderMode);
   const table = region === 'HK'
-    ? buildHkRomTable(company, members, placeholderMode)
-    : buildBviRomTable(company, members, placeholderMode);
+    ? buildHkRomTable(company, members)
+    : buildBviRomTable(company, members);
 
   const children = [...headerParas, table];
   if (withSignature) children.push(buildSignatureBlock(region, 'ROM'));

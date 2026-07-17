@@ -4,11 +4,23 @@ import toast from 'react-hot-toast'
 import { Building2, Plus, Pencil, Trash2, Upload, Download } from 'lucide-react'
 import { companyService } from '../services/index.js'
 import { formatDate, getStatusColor } from '../utils/helpers'
-import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, labelClass } from '../components/UIHelpers'
+import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Modal from '../components/Modal'
+
+// jurisdiction 归一化（与服务器端 companies.js 逻辑一致）
+const normalizeJurisdiction = (v) => {
+  const m = {
+    '香港': 'HK', 'Hong Kong': 'HK',
+    'BVI': 'BVI', 'British Virgin Islands': 'BVI',
+    '开曼': 'Cayman', 'Cayman': 'Cayman', 'Cayman Islands': 'Cayman',
+    '新加坡': 'SG', 'Singapore': 'SG',
+    '其他': 'OTHER', 'Other': 'OTHER',
+  };
+  return m[String(v || '').trim()] || 'HK';
+};
 
 const EMPTY_FORM = {
   name: '', registrationNumber: '', type: 'private_limited', status: 'active',
@@ -151,7 +163,7 @@ export default function Companies() {
           name,
           registrationNumber: regNo || undefined,
           type: typeMap[row['类型'] || row['Type']] || 'private_limited',
-          jurisdiction: row['属地'] || row['Jurisdiction'] || undefined,
+          jurisdiction: normalizeJurisdiction(row['属地'] || row['Jurisdiction']),
           status: statusMap[row['状态'] || row['Status']] || 'active',
           incorporationDate: row['成立日期'] || row['Incorporation Date'] || undefined,
         }
@@ -179,7 +191,7 @@ export default function Companies() {
           <>
             {canEdit && (
               <button onClick={() => { setImportResult(null); setImportModal(true) }}
-                className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+                className="btn-secondary flex items-center gap-1.5">
                 <Upload size={15} /> Excel 导入
               </button>
             )}
@@ -219,20 +231,20 @@ export default function Companies() {
                 <h3 className="font-semibold text-primary-600 line-clamp-2">{c.name}</h3>
                 <span className={`badge ${getStatusColor(c.status)}`}>{c.status?.replace(/_/g, ' ')}</span>
               </div>
-              <p className="text-sm text-gray-500">{c.registrationNumber || '-'}</p>
+              <p className="text-sm text-ink-2">{c.registrationNumber || '-'}</p>
               <div className="flex gap-2 mt-2">
-                {c.jurisdiction && <span className="badge badge-info text-xs">{c.jurisdiction}</span>}
+                {c.jurisdiction && <span className="badge badge-info text-xs">{jurisdictionLabel(c.jurisdiction)}</span>}
                 {c.type && <span className="badge badge-gray text-xs capitalize">{c.type?.replace(/_/g, ' ')}</span>}
               </div>
               {c.incorporationDate && (
-                <p className="text-xs text-gray-400 mt-3">Incorporated: {formatDate(c.incorporationDate)}</p>
+                <p className="text-xs text-ink-3 mt-3">Incorporated: {formatDate(c.incorporationDate)}</p>
               )}
               {c.links?.length > 0 && (
-                <p className="text-xs text-gray-400 mt-1">{c.links.length} linked people/companies</p>
+                <p className="text-xs text-ink-3 mt-1">{c.links.length} linked people/companies</p>
               )}
-              <div className="flex gap-1 mt-3 pt-2 border-t border-gray-100" onClick={e => e.preventDefault()}>
-                <button onClick={() => openEdit(c)} className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-gray-50"><Pencil size={14} /></button>
-                <button onClick={() => setDeleteTarget(c)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-50"><Trash2 size={14} /></button>
+              <div className="flex gap-1 mt-3 pt-2 border-t border-hairline" onClick={e => e.preventDefault()}>
+                <button onClick={() => openEdit(c)} className="p-1.5 text-ink-3 hover:text-primary-600 rounded-lg hover:bg-canvas"><Pencil size={14} /></button>
+                <button onClick={() => setDeleteTarget(c)} className="p-1.5 text-ink-3 hover:text-red-600 rounded-lg hover:bg-canvas"><Trash2 size={14} /></button>
               </div>
             </Link>
           ))}
@@ -256,10 +268,9 @@ export default function Companies() {
                   <select className={inputClass} value={form.jurisdiction}
                     onChange={e => setForm({ ...form, jurisdiction: e.target.value })}>
                     <option value="">Select</option>
-                    <option value="Hong Kong">Hong Kong</option>
-                    <option value="BVI">BVI</option>
-                    <option value="Cayman Islands">Cayman Islands</option>
-                    <option value="Singapore">Singapore</option>
+                    {JURISDICTION_OPTIONS.map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
                   </select>
                 </FormField>
               </div>
@@ -306,7 +317,7 @@ export default function Companies() {
       {/* Excel 导入 */}
       <Modal isOpen={importModal} onClose={() => setImportModal(false)} title="Excel 批量导入公司" size="md">
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+          <div className="bg-info/10 border border-info/20 rounded-lg p-4 text-sm text-primary-700">
             <p className="font-medium mb-1">导入说明</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>必填列：公司名称</li>
@@ -317,17 +328,17 @@ export default function Companies() {
           <button onClick={downloadTemplate} className="flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium">
             <Download size={16} /> 下载 Excel 模板
           </button>
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors"
+          <div className="border-2 border-dashed border-hairline rounded-xl p-8 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors"
             onClick={() => importFileRef.current?.click()}>
-            <Upload size={32} className="mx-auto text-gray-400 mb-3" />
-            <p className="text-gray-600 text-sm">点击选择 Excel 文件</p>
+            <Upload size={32} className="mx-auto text-ink-3 mb-3" />
+            <p className="text-ink-2 text-sm">点击选择 Excel 文件</p>
             <input ref={importFileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
           </div>
           {importResult && (
-            <div className={`p-4 rounded-lg text-sm ${importResult.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+            <div className={`p-4 rounded-lg text-sm ${importResult.success ? 'bg-green-50 border border-success/20 text-success' : 'bg-danger/10 border border-danger/20 text-danger'}`}>
               {importResult.success
                 ? <><p className="font-medium">导入完成</p><p>新增 {importResult.created} 家，跳过 {importResult.skipped} 家</p>
-                  {importResult.errors?.length > 0 && <div className="mt-2 text-amber-700"><ul className="list-disc list-inside text-xs">{importResult.errors.map((er, i) => <li key={i}>{er}</li>)}</ul></div>}</>
+                  {importResult.errors?.length > 0 && <div className="mt-2 text-warning"><ul className="list-disc list-inside text-xs">{importResult.errors.map((er, i) => <li key={i}>{er}</li>)}</ul></div>}</>
                 : <p>{importResult.message}</p>}
             </div>
           )}

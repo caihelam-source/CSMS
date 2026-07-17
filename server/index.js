@@ -21,6 +21,7 @@ const personnelRoutes = require('./routes/personnel');
 const companyEntriesRoutes = require('./routes/companyEntries');
 const companyRegisterRoutes = require('./routes/companyRegister');
 const searchRoutes = require('./routes/search');
+const adminRoutes = require('./routes/admin');
 
 // ── Middleware ──────────────────────────────────────────────
 const errorHandler = require('./middleware/errorHandler');
@@ -54,6 +55,7 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/sign-tasks', signTaskRoutes);
 app.use('/api/personnel', personnelRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/companies/:id', companyEntriesRoutes);   // shareholder-entries / director-entries
 app.use('/api/companies/:id', companyRegisterRoutes);  // rom / rod PDF
 
@@ -64,7 +66,12 @@ app.use(errorHandler);
 // ── MongoDB + Start ─────────────────────────────────────────
 async function start() {
   try {
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(MONGO_URI, {
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      socketTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 5000,
+    });
     console.log('✅ MongoDB 连接成功');
 
     // 初始化预设规则

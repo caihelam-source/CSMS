@@ -4,8 +4,17 @@ const Company = require('../models/Company');
 const PRESET_RULES = require('./presetRules');
 
 /**
- * 初始化预设规则（启动时调用，幂等）
+ * 初始化预设规则（启动时调用，upsert 模式）
+ * - 以 ruleId 为唯一键（等价于「ruleName + jurisdiction」的稳定唯一键）
+ * - 仅覆盖预设定义字段，保留用户可能修改的 status / appliedCompanies / customFields 等
  */
+const PRESET_DEFINITION_FIELDS = [
+  'ruleName', 'description', 'category', 'legalReference',
+  'jurisdiction', 'isListedOnly', 'listingLocation',
+  'baseDateType', 'baseDateOffset', 'dueDateOffset', 'anchorPayload', 'condition',
+  'reminderDays', 'priority', 'penaltyNote', 'specialNote', 'isPreset',
+];
+
 async function initPresetRules() {
   let added = 0, updated = 0, skipped = 0;
   for (const rule of PRESET_RULES) {
@@ -14,11 +23,12 @@ async function initPresetRules() {
       await ComplianceRule.create(rule);
       added++;
     } else {
-      // 更新描述/提醒天数等，但保留 appliedCompanies 和 status
-      await ComplianceRule.updateOne(
-        { ruleId: rule.ruleId },
-        { $set: { ...rule, appliedCompanies: existing.appliedCompanies, status: existing.status } }
-      );
+      // 仅覆盖预设定义字段；保留用户自定义字段（status / appliedCompanies / customFields 等）
+      const set = {};
+      for (const k of PRESET_DEFINITION_FIELDS) {
+        if (k in rule) set[k] = rule[k];
+      }
+      await ComplianceRule.updateOne({ ruleId: rule.ruleId }, { $set: set });
       updated++;
     }
   }
@@ -26,52 +36,72 @@ async function initPresetRules() {
 }
 
 /**
- * 根据公司信息计算某条规则的截止日期
+ * 根据公司信息计算某条规则的截止日期（通用版，无硬编码分支）
+ *
+ * 符号约定：
+ *   - incorporationDate / financialYearEnd：dueDateOffset 正数 = 截止日后再加 N 天（相加）
+ *   - fixed / reference(BR)：dueDateOffset 正数 = 提前 N 天（相减）
+ *   - trigger：返回 null（不自动计算）
+ *
+ * anchorPayload：
+ *   - { m, d }             → 每年该月该日（如 {m:1,d:31} = 1月31日）
+ *   - { reference:'brExpiryDate' } → 以公司 brExpiryDate 为基准（BR 续期）
+ *   - HKEX_MONTHLY_RETURN  → 特殊：每月第 5 个营业日，保持原「相加」语义
  */
 function calcDueDate(rule, company) {
   if (rule.baseDateType === 'trigger') return null;
 
   const today = new Date();
   const year = today.getFullYear();
-  let baseDate;
+  const ap = rule.anchorPayload;
+  let baseDate = null;
 
   if (rule.baseDateType === 'incorporationDate') {
     if (!company.incorporationDate) return null;
     const inc = new Date(company.incorporationDate);
-    // 找到今年的周年日
+    if (isNaN(inc.getTime())) return null;
     baseDate = new Date(year, inc.getMonth(), inc.getDate());
     if (baseDate < today) baseDate.setFullYear(year + 1);
-    baseDate = addDays(baseDate, rule.baseDateOffset - 365); // baseDateOffset=365 表示周年日本身
+    baseDate = addDays(baseDate, (rule.baseDateOffset || 365) - 365);
   } else if (rule.baseDateType === 'financialYearEnd') {
     if (!company.financialYearEnd) return null;
-    const [mm, dd] = company.financialYearEnd.split('-').map(Number);
+    let mm, dd;
+    if (typeof company.financialYearEnd === 'string') {
+      [mm, dd] = company.financialYearEnd.split('-').map(Number);
+    } else if (company.financialYearEnd && company.financialYearEnd.month != null) {
+      mm = company.financialYearEnd.month;
+      dd = company.financialYearEnd.day;
+    } else {
+      return null;
+    }
+    if (!mm || !dd) return null;
     baseDate = new Date(year, mm - 1, dd);
     if (baseDate < today) baseDate.setFullYear(year + 1);
-    baseDate = addDays(baseDate, rule.baseDateOffset);
+    baseDate = addDays(baseDate, rule.baseDateOffset || 0);
   } else if (rule.baseDateType === 'fixed') {
-    // CAY_ANNUAL_RETURN: 每年1月31日
-    baseDate = new Date(year + 1, 0, 31);
-
-    // HKEX_MONTHLY_RETURN: 下月第5天
-    if (rule.ruleId === 'HKEX_MONTHLY_RETURN') {
+    if (ap && ap.reference === 'brExpiryDate') {
+      // BR 续期：以公司 brExpiryDate 为基准，不滚动到次年
+      if (!company.brExpiryDate) return null;
+      const d = new Date(company.brExpiryDate);
+      if (isNaN(d.getTime())) return null;
+      baseDate = d;
+    } else if (ap && ap.m && ap.d) {
+      baseDate = new Date(year, ap.m - 1, ap.d);
+      if (baseDate < today) baseDate.setFullYear(year + 1);
+    } else if (rule.ruleId === 'HKEX_MONTHLY_RETURN') {
+      // 月报：下月第 5 天（保留特殊逻辑）
       baseDate = new Date(today.getFullYear(), today.getMonth() + 1, 5);
+    } else {
+      return null;
     }
   }
 
   if (!baseDate) return null;
 
-  // BVI_ANNUAL_FEE 特殊处理
-  if (rule.ruleId === 'BVI_ANNUAL_FEE') {
-    if (!company.incorporationDate) return null;
-    const incMonth = new Date(company.incorporationDate).getMonth() + 1;
-    baseDate = incMonth <= 6
-      ? new Date(year, 4, 31)   // 5月31日
-      : new Date(year, 10, 30); // 11月30日
-    if (baseDate < today) baseDate.setFullYear(year + 1);
-    return baseDate;
-  }
-
-  return addDays(baseDate, rule.dueDateOffset);
+  const offset = rule.dueDateOffset || 0;
+  // fixed 类（除 HKEX 月报）提前 N 天 → 相减；其余（含 HKEX 月报）截止日后再加 N 天 → 相加
+  const sign = (rule.baseDateType === 'fixed' && rule.ruleId !== 'HKEX_MONTHLY_RETURN') ? -1 : 1;
+  return addDays(baseDate, sign * offset);
 }
 
 function addDays(date, days) {
@@ -138,7 +168,7 @@ async function generateBatch(ruleIds, companyIds) {
   for (const rule of rules) {
     for (const company of companies) {
       // 检查规则适用性
-      if (rule.jurisdiction !== '全部' && rule.jurisdiction !== company.jurisdiction) continue;
+      if (rule.jurisdiction !== 'ALL' && rule.jurisdiction !== company.jurisdiction) continue;
       if (rule.isListedOnly && !company.isListed) continue;
       if (rule.listingLocation && company.listingLocation !== rule.listingLocation) continue;
 

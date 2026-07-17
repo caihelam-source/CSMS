@@ -7,7 +7,7 @@ const companySchema = new mongoose.Schema({
   registrationNumber: { type: String, unique: true, trim: true },
   type: { type: String, enum: ['private_limited', 'public_limited', 'llp', 'sole_proprietorship', 'partnership', 'other'], default: 'private_limited' },
   status: { type: String, enum: ['active', 'dormant', 'struck_off', 'winding_up', 'dissolved'], default: 'active' },
-  jurisdiction: { type: String, default: 'Hong Kong' },
+  jurisdiction: { type: String, enum: ['HK', 'BVI', 'Cayman', 'SG', 'OTHER'], default: 'HK' },
   incorporationDate: { type: Date },
 
   // Addresses
@@ -59,6 +59,10 @@ const companySchema = new mongoose.Schema({
     taxFilingDue: Date,
   },
 
+  // 属地特有合规字段（v5.0 按 jurisdiction 扩展）
+  brExpiryDate: { type: Date },          // 香港：商业登记证到期日
+  bviRelevantActivity: { type: String }, // BVI：经济实质相关活动分类（如 fund_management / finance_leasing / holding / ip / shipping / distribution / service_center / holding_only 等）
+
   // Legacy fields
   isListed: { type: Boolean, default: false },
   listingLocation: { type: String },
@@ -81,5 +85,7 @@ companySchema.index({ 'links.link': 1 });
 // v5.0 读时聚合索引：加速 reverse-links 与按角色/公司筛选
 companySchema.index({ 'links.linkModel': 1, 'links.link': 1 });
 companySchema.index({ 'links.linkModel': 1, 'links.roles': 1 });
+// 状态筛选 / active 统计
+companySchema.index({ status: 1 });
 
 module.exports = mongoose.model('Company', companySchema);

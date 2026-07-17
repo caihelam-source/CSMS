@@ -63,7 +63,7 @@ const MOCK_COMPANIES = [
   // === 运营公司 ===
   {
     _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)', registrationNumber: '65940948',
-    type: 'private_limited', status: 'active', jurisdiction: 'Hong Kong',
+    type: 'private_limited', status: 'active', jurisdiction: 'HK',
     incorporationDate: '2017-04-21',
     registeredAddress: { country: '中国香港' },
     shareCapital: { issued: 1, paidUp: 1, currency: 'HKD' },
@@ -77,7 +77,7 @@ const MOCK_COMPANIES = [
   },
   {
     _id: 'c2', name: 'Zhong An Travel Ltd (眾安旅遊)', registrationNumber: '69459923',
-    type: 'private_limited', status: 'active', jurisdiction: 'Hong Kong',
+    type: 'private_limited', status: 'active', jurisdiction: 'HK',
     incorporationDate: '2018-09-28',
     registeredAddress: { country: '中国香港' },
     shareCapital: { issued: 1, paidUp: 1, currency: 'HKD' },
@@ -90,7 +90,7 @@ const MOCK_COMPANIES = [
   },
   {
     _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857',
-    type: 'private_limited', status: 'active', jurisdiction: 'Hong Kong',
+    type: 'private_limited', status: 'active', jurisdiction: 'HK',
     incorporationDate: '2010-05-14',
     registeredAddress: { country: '中国香港' },
     shareCapital: { issued: 1, paidUp: 1, currency: 'HKD' },
@@ -103,7 +103,7 @@ const MOCK_COMPANIES = [
   },
   {
     _id: 'c4', name: 'Hong Kong Time Honour Property Ltd (香港時駿地産)', registrationNumber: '63822186',
-    type: 'private_limited', status: 'active', jurisdiction: 'Hong Kong',
+    type: 'private_limited', status: 'active', jurisdiction: 'HK',
     incorporationDate: '2021-12-14',
     registeredAddress: { country: '中国香港' },
     shareCapital: { issued: 1, paidUp: 1, currency: 'HKD' },
@@ -116,7 +116,7 @@ const MOCK_COMPANIES = [
   },
   {
     _id: 'c5', name: 'Pannix Industrial (Hong Kong) Ltd (佳穎實業)', registrationNumber: '63822047',
-    type: 'private_limited', status: 'active', jurisdiction: 'Hong Kong',
+    type: 'private_limited', status: 'active', jurisdiction: 'HK',
     incorporationDate: '2021-12-14',
     registeredAddress: { country: '中国香港' },
     shareCapital: { issued: 1, paidUp: 1, currency: 'HKD' },
@@ -132,7 +132,7 @@ const MOCK_COMPANIES = [
   { _id: 'c7', name: 'Beyond Horizon Investments Ltd (BVI)', registrationNumber: 'N/A', type: 'private_limited', status: 'active', jurisdiction: 'BVI', links: [] },
   {
     _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234',
-    type: 'public_limited', status: 'active', jurisdiction: 'Cayman Islands',
+    type: 'public_limited', status: 'active', jurisdiction: 'Cayman',
     incorporationDate: '2013-11-01',
     stockCode: '1321.HK', isListed: true,
     registeredAddress: { country: 'Cayman Islands', fullAddress: 'Cricket Square, Hutchins Drive, P.O. Box 2681, Grand Cayman, KY1-1111' },
@@ -153,7 +153,7 @@ const MOCK_COMPANIES = [
   },
   { _id: 'c9', name: 'Time Honour Global Ltd (BVI)', registrationNumber: 'N/A', type: 'private_limited', status: 'active', jurisdiction: 'BVI', links: [] },
   { _id: 'c10', name: 'First Achiever Holdings Ltd (BVI)', registrationNumber: 'N/A', type: 'private_limited', status: 'active', jurisdiction: 'BVI', links: [] },
-  { _id: 'c12', name: 'Conyers Trust Company (Cayman) Ltd', registrationNumber: 'N/A', type: 'service_provider', status: 'active', jurisdiction: 'Cayman Islands', links: [] },
+  { _id: 'c12', name: 'Conyers Trust Company (Cayman) Ltd', registrationNumber: 'N/A', type: 'service_provider', status: 'active', jurisdiction: 'Cayman', links: [] },
 ];
 
 // ====== 文档数据（含文档编号 + 分类，支撑编档/批量下载） ======
@@ -868,12 +868,12 @@ const MOCK_TASKS = [
 ];
 
 const MOCK_COMPLIANCE_RULES = [
-  { _id: 'r1', name: '周年申报表 NAR1', category: 'annual_return', description: '公司须在成立后第15个月及之后每15个月提交', jurisdiction: 'Hong Kong', frequency: '15 months', dueDaysBefore: 30, isPreset: true },
-  { _id: 'r2', name: '周年大会 AGM', category: 'general_meeting', description: '每财政年度内举行', jurisdiction: 'Hong Kong', frequency: '12 months', dueDaysBefore: 60, isPreset: true },
-  { _id: 'r3', name: '董事变更申报 NDAC1', category: 'director_change', description: '董事变动后60天内申报', jurisdiction: 'Hong Kong', frequency: 'event_driven', dueDaysBefore: 30, isPreset: true },
-  { _id: 'r4', name: '商业登记证续期', category: 'license_renewal', description: '每12个月续期商业登记', jurisdiction: 'Hong Kong', frequency: '12 months', dueDaysBefore: 30, isPreset: true },
-  { _id: 'r5', name: '审计师任命申报', category: 'auditor', description: '周年大会上任命审计师', jurisdiction: 'Hong Kong', frequency: '12 months', dueDaysBefore: 30, isPreset: true },
-  { _id: 'r6', name: '帐目备案（注册非香港公司）', category: 'annual_return', description: '每12个月内备案经审计帐目', jurisdiction: 'Cayman Islands', frequency: '12 months', dueDaysBefore: 90, isPreset: true },
+  { _id: 'r1', name: '周年申报表 NAR1', category: 'annual_return', description: '公司须在成立后第15个月及之后每15个月提交', jurisdiction: 'HK', frequency: '15 months', dueDaysBefore: 30, isPreset: true },
+  { _id: 'r2', name: '周年大会 AGM', category: 'general_meeting', description: '每财政年度内举行', jurisdiction: 'HK', frequency: '12 months', dueDaysBefore: 60, isPreset: true },
+  { _id: 'r3', name: '董事变更申报 NDAC1', category: 'director_change', description: '董事变动后60天内申报', jurisdiction: 'HK', frequency: 'event_driven', dueDaysBefore: 30, isPreset: true },
+  { _id: 'r4', name: '商业登记证续期', category: 'license_renewal', description: '每12个月续期商业登记', jurisdiction: 'HK', frequency: '12 months', dueDaysBefore: 30, isPreset: true },
+  { _id: 'r5', name: '审计师任命申报', category: 'auditor', description: '周年大会上任命审计师', jurisdiction: 'HK', frequency: '12 months', dueDaysBefore: 30, isPreset: true },
+  { _id: 'r6', name: '帐目备案（注册非香港公司）', category: 'annual_return', description: '每12个月内备案经审计帐目', jurisdiction: 'Cayman', frequency: '12 months', dueDaysBefore: 90, isPreset: true },
 ];
 
 const MOCK_COMPLIANCE_REMINDERS = [

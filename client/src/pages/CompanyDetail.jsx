@@ -8,10 +8,76 @@ import { formatDate, getStatusColor, DOC_CATEGORY_LABELS, docExpiryStatus, DOC_E
 import { buildRomDocxBlob } from '../utils/romDocx'
 import { buildRodDocxBlob } from '../utils/rodDocx'
 import { inferRegion } from '../utils/docxCommon'
-import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, labelClass, TabNav, taskPriorityColor } from '../components/UIHelpers'
+import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, TabNav, taskPriorityColor, jurisdictionLabel } from '../components/UIHelpers'
 import Modal from '../components/Modal'
 import { useConfirm } from '../components/ConfirmDialog'
 import { validate, required } from '../utils/validators'
+
+// 校验是否为有效 Date 对象（排除 invalid date 与 NaN）
+const isValidDate = (d) => d instanceof Date && !isNaN(d)
+
+// 日期偏移（天）
+const shiftDays = (date, days) => {
+  const d = new Date(date)
+  d.setDate(d.getDate() + days)
+  return d
+}
+
+/**
+ * 前端轻量 calcDueDate（与后端 complianceService.calcDueDate 逻辑一致）：
+ * 根据规则 baseDateType + anchorPayload 计算提醒到期日预览。
+ *  - incorporationDate / financialYearEnd：dueDateOffset 正数 = 截止日后再加 N 天（相加）
+ *  - fixed / reference(BR)：dueDateOffset 正数 = 提前 N 天（相减）
+ *  - trigger：返回 ''（不自动计算）
+ * 返回 YYYY-MM-DD 或 ''（无法计算时）
+ */
+function calcRuleDueDate(rule, company) {
+  if (!rule || !company || rule.baseDateType === 'trigger') return ''
+  const today = new Date()
+  const year = today.getFullYear()
+  const ap = rule.anchorPayload
+  let base = null
+
+  if (rule.baseDateType === 'incorporationDate') {
+    if (!company.incorporationDate) return ''
+    const inc = new Date(company.incorporationDate)
+    if (!isValidDate(inc)) return ''
+    base = new Date(year, inc.getMonth(), inc.getDate())
+    if (base < today) base.setFullYear(year + 1)
+    base = shiftDays(base, (rule.baseDateOffset || 365) - 365)
+  } else if (rule.baseDateType === 'financialYearEnd') {
+    if (!company.financialYearEnd) return ''
+    let mm, dd
+    if (typeof company.financialYearEnd === 'string') {
+      [mm, dd] = company.financialYearEnd.split('-').map(Number)
+    } else if (company.financialYearEnd && company.financialYearEnd.month != null) {
+      mm = company.financialYearEnd.month
+      dd = company.financialYearEnd.day
+    } else return ''
+    if (!mm || !dd) return ''
+    base = new Date(year, mm - 1, dd)
+    if (base < today) base.setFullYear(year + 1)
+    base = shiftDays(base, rule.baseDateOffset || 0)
+  } else if (rule.baseDateType === 'fixed') {
+    if (ap && ap.reference === 'brExpiryDate') {
+      if (!company.brExpiryDate) return ''
+      const d = new Date(company.brExpiryDate)
+      if (!isValidDate(d)) return ''
+      base = d
+    } else if (ap && ap.m && ap.d) {
+      base = new Date(year, ap.m - 1, ap.d)
+      if (base < today) base.setFullYear(year + 1)
+    } else return ''
+  }
+
+  if (!base) return ''
+  const offset = rule.dueDateOffset || 0
+  // fixed 类提前 N 天 → 相减；其余（含 HKEX 月报）相加
+  const sign = (rule.baseDateType === 'fixed' && rule.ruleId !== 'HKEX_MONTHLY_RETURN') ? -1 : 1
+  const due = shiftDays(base, sign * offset)
+  if (!isValidDate(due)) return ''
+  return due.toISOString().substring(0, 10)
+}
 
 const LINK_FORM_RULES = {
   name: [required('名称为必填')],
@@ -47,6 +113,11 @@ export default function CompanyDetail() {
 
   // 合规规则库（用于新增提醒时联动选择 + 自定义沉淀）
   const [rules, setRules] = useState([])
+  // 适配当前公司的规则（jurisdiction 匹配 或 ALL），供弹窗/快捷区过滤
+  const applicableRules = useMemo(
+    () => rules.filter(r => r.jurisdiction === company?.jurisdiction || r.jurisdiction === 'ALL'),
+    [rules, company]
+  )
   // 新增合规提醒
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [reminderForm, setReminderForm] = useState({
@@ -54,7 +125,7 @@ export default function CompanyDetail() {
     ruleId: '',
     title: '',
     description: '',
-    priority: 'medium',
+    priority: '中',
     dueDate: '',
     saveAsRule: false,
     ruleName: '',
@@ -294,11 +365,13 @@ export default function CompanyDetail() {
       name: company?.name || '',
       registrationNumber: company?.registrationNumber || '',
       type: company?.type || 'private_limited',
-      jurisdiction: company?.jurisdiction || 'Hong Kong',
+      jurisdiction: company?.jurisdiction || 'HK',
       incorporationDate: company?.incorporationDate ? company.incorporationDate.substring(0, 10) : '',
       issuedShares: company?.shareCapital?.issued || '',
       paidUpCapital: company?.shareCapital?.paidUp || '',
       currency: company?.shareCapital?.currency || 'HKD',
+      brExpiryDate: company?.brExpiryDate?.substring?.(0, 10) || '',
+      bviRelevantActivity: company?.bviRelevantActivity || '',
       street: company?.registeredAddress?.street || '',
       city: company?.registeredAddress?.city || '',
       state: company?.registeredAddress?.state || '',
@@ -327,6 +400,8 @@ export default function CompanyDetail() {
           state: infoForm.state,
           country: infoForm.addressCountry,
         },
+        brExpiryDate: infoForm.brExpiryDate || undefined,
+        bviRelevantActivity: infoForm.bviRelevantActivity || undefined,
       })
       toast.success('公司信息已更新')
       setEditingInfo(false)
@@ -338,37 +413,28 @@ export default function CompanyDetail() {
   const openAddReminder = () => {
     setReminderForm({
       mode: 'rule', ruleId: '', title: '', description: '',
-      priority: 'medium', dueDate: '',
+      priority: '中', dueDate: '',
       saveAsRule: false, ruleName: '', ruleCategory: 'other', ruleFrequency: 'annual',
     })
     setShowReminderModal(true)
   }
 
-  // 选择 Rule 时自动填充
+  // 选择 Rule 时自动填充（标题/描述/优先级 + 按规则类型计算到期日预览）
   const handleRuleSelect = useCallback((ruleId) => {
     if (!ruleId) {
-      setReminderForm(f => ({ ...f, ruleId: '', title: '', description: '', priority: 'medium' }))
+      setReminderForm(f => ({ ...f, ruleId: '', title: '', description: '', priority: '中' }))
       return
     }
     const rule = rules.find(r => r._id === ruleId)
     if (rule) {
-      // 根据频率计算默认到期日
-      let defaultDue = ''
-      if (company?.inccorporationDate) {
-        const inc = new Date(company.incorporationDate)
-        const now = new Date()
-        // 简单策略：规则描述的 dueDaysBefore 或默认30天后的同月同日
-        defaultDue = new Date(now.getTime() + (rule.dueDaysBefore || 30) * 86400000).toISOString().substring(0, 10)
-      } else {
-        defaultDue = new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10)
-      }
+      const due = calcRuleDueDate(rule, company)
       setReminderForm(f => ({
         ...f,
         ruleId,
-        title: `${rule.name} - ${company?.name || ''}`,
+        title: `${rule.ruleName || rule.name || '规则'} - ${company?.name || ''}`,
         description: rule.description || '',
-        priority: rule.category === 'annual_return' ? 'high' : rule.category === 'license_renewal' ? 'critical' : 'medium',
-        dueDate: f.dueDate || defaultDue,
+        priority: rule.priority || '中',
+        dueDate: f.dueDate || due || '',
       }))
     }
   }, [rules, company])
@@ -394,7 +460,7 @@ export default function CompanyDetail() {
           name: reminderForm.ruleName,
           category: reminderForm.ruleCategory || 'other',
           description: reminderForm.description,
-          jurisdiction: company?.jurisdiction || 'Hong Kong',
+          jurisdiction: company?.jurisdiction || 'HK',
           frequency: reminderForm.ruleFrequency || 'event_driven',
           isPreset: false,
         })
@@ -442,9 +508,9 @@ export default function CompanyDetail() {
   const renderLinkRow = (link) => {
     const p = resolveLinkDisplay(link)
     return (
-      <div key={link._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div key={link._id} className="flex items-center justify-between p-3 bg-canvas rounded-lg">
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${link.roles.includes('director') ? 'bg-primary-100 text-primary-700' : link.roles.includes('shareholder') ? 'bg-green-100 text-green-700' : link.roles.includes('secretary') ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${link.roles.includes('director') ? 'bg-primary-100 text-primary-700' : link.roles.includes('shareholder') ? 'bg-success/10 text-success' : link.roles.includes('secretary') ? 'bg-warning/10 text-warning' : 'bg-gray-100 text-ink'}`}>
             {p.name?.charAt(0) || '?'}
           </div>
           <div>
@@ -457,9 +523,9 @@ export default function CompanyDetail() {
                 {p.name || link.link?.name || 'Unknown'} <ExternalLink size={12} />
               </Link>
             )}
-            <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+            <div className="flex items-center gap-2 text-xs text-ink-3 mt-0.5">
               {link.appointedDate && <span>Since {formatDate(link.appointedDate)}</span>}
-              {link.ceasedDate && <span className="text-red-500">Ceased {formatDate(link.ceasedDate)}</span>}
+              {link.ceasedDate && <span className="text-danger">Ceased {formatDate(link.ceasedDate)}</span>}
               {p.nric && <span>{p.nric}</span>}
               {link.shares > 0 && <span>{link.shares.toLocaleString()} {link.shareType}</span>}
             </div>
@@ -469,8 +535,8 @@ export default function CompanyDetail() {
           <div className="flex gap-1">
             {link.roles.map(r => <span key={r} className="badge badge-info text-xs">{r}</span>)}
           </div>
-          <button onClick={() => openEditLink(link)} className="p-1 text-gray-400 hover:text-blue-600" title="Edit link"><Edit3 size={14} /></button>
-          <button onClick={() => handleRemoveLink(link._id)} className="p-1 text-gray-400 hover:text-red-600" title="Remove"><Trash2 size={14} /></button>
+          <button onClick={() => openEditLink(link)} className="p-1 text-ink-3 hover:text-primary-600" title="Edit link"><Edit3 size={14} /></button>
+          <button onClick={() => handleRemoveLink(link._id)} className="p-1 text-ink-3 hover:text-red-600" title="Remove"><Trash2 size={14} /></button>
         </div>
       </div>
     )
@@ -487,12 +553,12 @@ export default function CompanyDetail() {
     { value: 'audit', label: '审计' },
   ]
   const RegSelect = ({ label, value, onChange, options }) => (
-    <label className="flex items-center gap-1 text-xs text-gray-500">
+    <label className="flex items-center gap-1 text-xs text-ink-2">
       {label}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border rounded px-1.5 py-1 text-xs bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-400"
+        className="border rounded px-1.5 py-1 text-xs bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-primary-400"
       >
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -506,7 +572,7 @@ export default function CompanyDetail() {
     const renderRows = (list) => list.map(link => {
       const p = resolveLinkDisplay(link)
       return (
-        <tr key={link._id} className={`border-b hover:bg-gray-50 ${link.ceasedDate ? 'bg-red-50/40' : ''}`}>
+        <tr key={link._id} className={`border-b hover:bg-canvas ${link.ceasedDate ? 'bg-danger/10/40' : ''}`}>
           {columns.map(col => (
             <td key={col.key} className={col.tdClass || 'p-2'}>{col.cell(link, p)}</td>
           ))}
@@ -514,7 +580,7 @@ export default function CompanyDetail() {
             {link.ceasedDate ? (
               <button onClick={() => handleRestoreLink(link._id)} className="text-xs text-green-600 hover:underline font-medium">恢复</button>
             ) : (
-              <button onClick={() => handleRemoveLink(link._id)} className="text-xs text-red-500 hover:underline font-medium">标记离任</button>
+              <button onClick={() => handleRemoveLink(link._id)} className="text-xs text-danger hover:underline font-medium">标记离任</button>
             )}
           </td>
         </tr>
@@ -524,10 +590,10 @@ export default function CompanyDetail() {
       <div className="mb-3">
         <div className={`flex items-center gap-2 px-2 py-1.5 rounded-t ${bg}`}>
           <span className="text-sm font-semibold">{label}</span>
-          <span className="text-xs text-gray-500">({list.length})</span>
+          <span className="text-xs text-ink-2">({list.length})</span>
         </div>
         {list.length === 0 ? (
-          <p className="text-xs text-gray-400 px-2 py-2">—</p>
+          <p className="text-xs text-ink-3 px-2 py-2">—</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -542,7 +608,7 @@ export default function CompanyDetail() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-semibold text-lg">{title}</h3>
-            <p className="text-sm text-gray-500">{subtitle}</p>
+            <p className="text-sm text-ink-2">{subtitle}</p>
           </div>
           <div className="flex items-center gap-2">
             {extraControls}
@@ -555,21 +621,21 @@ export default function CompanyDetail() {
           </div>
         </div>
         {links.length === 0 ? (
-          <p className="text-gray-400 text-sm py-4">{emptyText}</p>
+          <p className="text-ink-3 text-sm py-4">{emptyText}</p>
         ) : (
           <div className="border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b">
+                <tr className="bg-canvas border-b">
                   {columns.map(col => (
-                    <th key={col.key} className={col.thClass || 'text-left p-2 font-medium text-gray-600'}>{col.header}</th>
+                    <th key={col.key} className={col.thClass || 'text-left p-2 font-medium text-ink-2'}>{col.header}</th>
                   ))}
-                  <th className="text-right p-2 font-medium text-gray-600">操作</th>
+                  <th className="text-right p-2 font-medium text-ink-2">操作</th>
                 </tr>
               </thead>
             </table>
             <Section label="现任 (Current)" list={current} bg="bg-green-50" />
-            <Section label="历任 (Former)" list={former} bg="bg-red-50" />
+            <Section label="历任 (Former)" list={former} bg="bg-danger/10" />
           </div>
         )}
       </div>
@@ -596,7 +662,7 @@ export default function CompanyDetail() {
         badges={
           <>
             <span className={`badge ${getStatusColor(company.status)}`}>{company.status}</span>
-            {company.jurisdiction && <span className="badge badge-info">{company.jurisdiction}</span>}
+            {company.jurisdiction && <span className="badge badge-info">{jurisdictionLabel(company.jurisdiction)}</span>}
           </>
         }
       />
@@ -628,7 +694,7 @@ export default function CompanyDetail() {
                 </button>
               ) : (
                 <div className="flex gap-2">
-                  <button onClick={() => setEditingInfo(false)} className="text-sm text-gray-500 hover:text-gray-700">取消</button>
+                  <button onClick={() => setEditingInfo(false)} className="text-sm text-ink-2 hover:text-ink">取消</button>
                   <button onClick={saveInfo} disabled={savingInfo} className="text-sm btn-primary">{savingInfo ? '保存中...' : '保存'}</button>
                 </div>
               )}
@@ -654,6 +720,18 @@ export default function CompanyDetail() {
                   <FormField label="属地"><input className={inputClass} value={infoForm.jurisdiction} onChange={e => setInfoForm(f => ({ ...f, jurisdiction: e.target.value }))} /></FormField>
                   <FormField label="成立日期"><input type="date" className={inputClass} value={infoForm.incorporationDate} onChange={e => setInfoForm(f => ({ ...f, incorporationDate: e.target.value }))} /></FormField>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {infoForm.jurisdiction === 'HK' && (
+                    <FormField label="商业登记证到期日">
+                      <input type="date" className={inputClass} value={infoForm.brExpiryDate} onChange={e => setInfoForm(f => ({ ...f, brExpiryDate: e.target.value }))} />
+                    </FormField>
+                  )}
+                  {infoForm.jurisdiction === 'BVI' && (
+                    <FormField label="经济实质相关业务">
+                      <input className={inputClass} value={infoForm.bviRelevantActivity} onChange={e => setInfoForm(f => ({ ...f, bviRelevantActivity: e.target.value }))} placeholder="如 holding / finance_leasing ..." />
+                    </FormField>
+                  )}
+                </div>
                 <div className="grid grid-cols-3 gap-3">
                   <FormField label="已发行股份"><input type="number" className={inputClass} value={infoForm.issuedShares} onChange={e => setInfoForm(f => ({ ...f, issuedShares: e.target.value }))} /></FormField>
                   <FormField label="已缴股本"><input type="number" className={inputClass} value={infoForm.paidUpCapital} onChange={e => setInfoForm(f => ({ ...f, paidUpCapital: e.target.value }))} /></FormField>
@@ -670,14 +748,25 @@ export default function CompanyDetail() {
             ) : (
               /* 只读模式 */
             <dl className="space-y-3 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">注册号</span><span>{company.registrationNumber || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">类型</span><span className="capitalize">{company.type?.replace(/_/g, ' ') || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">属地</span><span>{company.jurisdiction || company.registeredAddress?.country || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">成立日期</span><span>{formatDate(company.incorporationDate)}</span></div>
+              <div className="flex justify-between"><span className="text-ink-2">注册号</span><span>{company.registrationNumber || '-'}</span></div>
+              <div className="flex justify-between"><span className="text-ink-2">类型</span><span className="capitalize">{company.type?.replace(/_/g, ' ') || '-'}</span></div>
+              <div className="flex justify-between"><span className="text-ink-2">属地</span><span>{jurisdictionLabel(company.jurisdiction) || company.registeredAddress?.country || '-'}</span></div>
+              <div className="flex justify-between"><span className="text-ink-2">成立日期</span><span>{formatDate(company.incorporationDate)}</span></div>
+              {company.brExpiryDate && (() => {
+                const days = Math.floor((new Date(company.brExpiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                const dayColor = days <= 30 ? 'text-red-600' : days <= 90 ? 'text-orange-500' : 'text-green-600';
+                return (
+                  <div className="flex justify-between">
+                    <span className="text-ink-2">商业登记证到期日</span>
+                    <span>{formatDate(company.brExpiryDate)} <span className={dayColor}>（剩 {days} 天）</span></span>
+                  </div>
+                );
+              })()}
+              {company.bviRelevantActivity && <div className="flex justify-between"><span className="text-ink-2">经济实质</span><span>{company.bviRelevantActivity}</span></div>}
               {company.shareCapital && (
                 <>
-                  <div className="flex justify-between"><span className="text-gray-500">已发行股份</span><span>{company.shareCapital.issued?.toLocaleString()} {company.shareCapital.currency}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">已缴股本</span><span>{company.shareCapital.paidUp?.toLocaleString()} {company.shareCapital.currency}</span></div>
+                  <div className="flex justify-between"><span className="text-ink-2">已发行股份</span><span>{company.shareCapital.issued?.toLocaleString()} {company.shareCapital.currency}</span></div>
+                  <div className="flex justify-between"><span className="text-ink-2">已缴股本</span><span>{company.shareCapital.paidUp?.toLocaleString()} {company.shareCapital.currency}</span></div>
                 </>
               )}
             </dl>
@@ -698,18 +787,18 @@ export default function CompanyDetail() {
                 <FormField label="国家/地区"><input className={inputClass} value={infoForm.addressCountry} onChange={e => setInfoForm(f => ({ ...f, addressCountry: e.target.value }))} /></FormField>
               </div>
             ) : company.registeredAddress ? (
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-ink-2">
                 {[company.registeredAddress.street, company.registeredAddress.city, company.registeredAddress.state, company.registeredAddress.country].filter(Boolean).join(', ') || company.registeredAddress.country || '-'}
               </p>
-            ) : <p className="text-sm text-gray-400">-</p>}
+            ) : <p className="text-sm text-ink-3">-</p>}
           </div>
           {/* Compliance dates */}
           <div className="card">
             <h3 className="font-semibold mb-4">合规日期</h3>
             <dl className="space-y-3 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">AGM 到期</span><span>{formatDate(company.compliance?.agmDueDate)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">年报到期</span><span className={company.compliance?.arDueDate && new Date(company.compliance.arDueDate) < new Date() ? 'text-red-600 font-medium' : ''}>{formatDate(company.compliance?.arDueDate)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">上次 AGM</span><span>{formatDate(company.compliance?.lastAgmDate)}</span></div>
+              <div className="flex justify-between"><span className="text-ink-2">AGM 到期</span><span>{formatDate(company.compliance?.agmDueDate)}</span></div>
+              <div className="flex justify-between"><span className="text-ink-2">年报到期</span><span className={company.compliance?.arDueDate && new Date(company.compliance.arDueDate) < new Date() ? 'text-red-600 font-medium' : ''}>{formatDate(company.compliance?.arDueDate)}</span></div>
+              <div className="flex justify-between"><span className="text-ink-2">上次 AGM</span><span>{formatDate(company.compliance?.lastAgmDate)}</span></div>
             </dl>
           </div>
           {meetings.length > 0 && (
@@ -717,9 +806,9 @@ export default function CompanyDetail() {
               <h3 className="font-semibold mb-4 flex items-center gap-2"><Calendar size={16} /> 近期会议</h3>
               <div className="space-y-2">
                 {meetings.slice(0, 3).map(m => (
-                  <Link key={m._id} to={`/meetings/${m._id}`} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-sm">
+                  <Link key={m._id} to={`/meetings/${m._id}`} className="flex items-center justify-between p-2 rounded-lg hover:bg-canvas text-sm">
                     <span className="text-primary-600">{m.title}</span>
-                    <span className="text-gray-400">{formatDate(m.scheduledAt)}</span>
+                    <span className="text-ink-3">{formatDate(m.scheduledAt)}</span>
                   </Link>
                 ))}
               </div>
@@ -731,7 +820,7 @@ export default function CompanyDetail() {
               <h3 className="font-semibold mb-4 flex items-center gap-2"><CheckSquare size={16} /> 近期任务</h3>
               <div className="space-y-2">
                 {tasks.slice(0, 3).map(t => (
-                  <div key={t._id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-sm">
+                  <div key={t._id} className="flex items-center justify-between p-2 rounded-lg hover:bg-canvas text-sm">
                     <span className="text-primary-600 truncate">{t.title}</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${taskPriorityColor(t.priority)}`}>{t.priority}</span>
                   </div>
@@ -756,7 +845,7 @@ export default function CompanyDetail() {
           <div className="card">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><Users size={18} /> 董事 ({directors.length})</h3>
             {directors.length === 0 ? (
-              <p className="text-gray-400 text-sm">暂无董事</p>
+              <p className="text-ink-3 text-sm">暂无董事</p>
             ) : (
               <div className="space-y-2">
                 {directors.map(link => renderLinkRow(link))}
@@ -768,7 +857,7 @@ export default function CompanyDetail() {
           <div className="card">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><Building2 size={18} /> 股东 ({shareholders.length})</h3>
             {shareholders.length === 0 ? (
-              <p className="text-gray-400 text-sm">暂无股东</p>
+              <p className="text-ink-3 text-sm">暂无股东</p>
             ) : (
               <div className="space-y-2">
                 {shareholders.map(link => renderLinkRow(link))}
@@ -780,7 +869,7 @@ export default function CompanyDetail() {
           <div className="card">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><Shield size={18} /> 公司秘书 ({secretaries.length})</h3>
             {secretaries.length === 0 ? (
-              <p className="text-gray-400 text-sm">暂无公司秘书</p>
+              <p className="text-ink-3 text-sm">暂无公司秘书</p>
             ) : (
               <div className="space-y-2">
                 {secretaries.map(link => renderLinkRow(link))}
@@ -795,19 +884,19 @@ export default function CompanyDetail() {
         <div className="flex gap-6">
           {/* 侧栏：分类 */}
           <aside className="w-48 shrink-0 space-y-1">
-            <h3 className="text-sm font-semibold text-gray-500 px-2 pb-2">文档分类</h3>
+            <h3 className="text-sm font-semibold text-ink-2 px-2 pb-2">文档分类</h3>
             <button onClick={() => setDocFilterCategory('all')}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${docFilterCategory === 'all' ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-gray-50 text-gray-700'}`}>
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${docFilterCategory === 'all' ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-canvas text-ink'}`}>
               <span>全部</span>
-              <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{documents.length}</span>
+              <span className="text-xs bg-gray-100 text-ink-2 rounded-full px-2 py-0.5">{documents.length}</span>
             </button>
             {Object.entries(DOC_CATEGORY_LABELS).map(([key, label]) => {
               const count = documents.filter(d => (d.category || 'other') === key).length
               return (
                 <button key={key} onClick={() => setDocFilterCategory(key)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${docFilterCategory === key ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-gray-50 text-gray-700'}`}>
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${docFilterCategory === key ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-canvas text-ink'}`}>
                   <span className="flex items-center gap-2"><ClipboardCheck size={14} /> {label}</span>
-                  <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{count}</span>
+                  <span className="text-xs bg-gray-100 text-ink-2 rounded-full px-2 py-0.5">{count}</span>
                 </button>
               )
             })}
@@ -817,7 +906,7 @@ export default function CompanyDetail() {
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold mb-4">关联文件</h2>
             {documents.length === 0 ? (
-              <div className="card text-center py-12 text-gray-400">
+              <div className="card text-center py-12 text-ink-3">
                 <FileText size={48} className="mx-auto mb-4 opacity-50" />
                 <p>暂无关联文件</p>
               </div>
@@ -831,7 +920,7 @@ export default function CompanyDetail() {
                         <FileText size={20} className="text-primary-600 shrink-0" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            {doc.docNumber && <span className="text-xs font-mono text-gray-400">{doc.docNumber}</span>}
+                            {doc.docNumber && <span className="text-xs font-mono text-ink-3">{doc.docNumber}</span>}
                             <p className="font-medium truncate">{doc.name}</p>
                             {/* v5.0: isExpiring 徽章逻辑（红=已过期 / 橙=即将到期 / 绿=有效） */}
                             {(() => {
@@ -842,8 +931,8 @@ export default function CompanyDetail() {
                               ) : null
                             })()}
                           </div>
-                          <p className="text-xs text-gray-400">
-                            <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{DOC_CATEGORY_LABELS[doc.category] || '其他'}</span>
+                          <p className="text-xs text-ink-3">
+                            <span className="bg-gray-100 text-ink-2 px-1.5 py-0.5 rounded">{DOC_CATEGORY_LABELS[doc.category] || '其他'}</span>
                             {doc.type && <> &middot; {doc.type.replace(/_/g, ' ')}</>}
                             {doc.fileSize && <> &middot; {(doc.fileSize / 1024).toFixed(0)} KB</>}
                             {doc.createdAt && <> &middot; {formatDate(doc.createdAt)}</>}
@@ -853,7 +942,7 @@ export default function CompanyDetail() {
                       {doc.fileUrl ? (
                         <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm shrink-0">Download</a>
                       ) : (
-                        <span className="text-xs text-gray-400 shrink-0">无文件</span>
+                        <span className="text-xs text-ink-3 shrink-0">无文件</span>
                       )}
                     </div>
                   ))}
@@ -893,9 +982,9 @@ export default function CompanyDetail() {
             columns={[
               { key: 'appointed', header: 'Date Appointed', tdClass: 'p-2 text-xs', cell: (l) => formatDate(l.appointedDate) },
               { key: 'name', header: 'Full Name', tdClass: 'p-2', cell: (l, p) => p.name || '-' },
-              { key: 'nric', header: 'NRIC / Passport', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.nric || '-' },
-              { key: 'nationality', header: 'Nationality', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.nationality || '-' },
-              { key: 'address', header: 'Address', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.address?.country || '-' },
+              { key: 'nric', header: 'NRIC / Passport', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.nric || '-' },
+              { key: 'nationality', header: 'Nationality', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.nationality || '-' },
+              { key: 'address', header: 'Address', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.address?.country || '-' },
               { key: 'role', header: 'Role', tdClass: 'p-2', cell: (l) => l.roles.map(r => <span key={r} className="badge badge-info text-xs mr-1">{r}</span>) },
               { key: 'ceased', header: 'Date Ceased', tdClass: 'p-2 text-xs', cell: (l) => l.ceasedDate ? formatDate(l.ceasedDate) : 'Present' },
             ]}
@@ -919,7 +1008,7 @@ export default function CompanyDetail() {
             columns={[
               { key: 'entered', header: 'Date Entered', tdClass: 'p-2 text-xs', cell: (l) => formatDate(l.appointedDate) },
               { key: 'name', header: 'Member Name', tdClass: 'p-2', cell: (l, p) => p.name || '-' },
-              { key: 'address', header: 'Address / Jurisdiction', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.address?.country || p.registrationNumber || '-' },
+              { key: 'address', header: 'Address / Jurisdiction', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.address?.country || p.registrationNumber || '-' },
               { key: 'shares', header: 'No. of Shares', tdClass: 'p-2 text-right text-xs', cell: (l) => (l.shares || 0).toLocaleString() },
               { key: 'type', header: 'Type', tdClass: 'p-2 text-xs', cell: (l) => l.shareType || 'Ordinary' },
               { key: 'pct', header: '%', tdClass: 'p-2 text-right text-xs', cell: (l) => company.shareCapital?.paidUp && l.shares ? ((l.shares / company.shareCapital.paidUp * 100).toFixed(2) + '%') : '-' },
@@ -939,8 +1028,8 @@ export default function CompanyDetail() {
             columns={[
               { key: 'appointed', header: 'Date Appointed', tdClass: 'p-2 text-xs', cell: (l) => formatDate(l.appointedDate) },
               { key: 'name', header: 'Name', tdClass: 'p-2', cell: (l, p) => p.name || '-' },
-              { key: 'nric', header: 'NRIC / Passport', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.nric || '-' },
-              { key: 'address', header: 'Address', tdClass: 'p-2 text-xs text-gray-500', cell: (l, p) => p.address?.country || '-' },
+              { key: 'nric', header: 'NRIC / Passport', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.nric || '-' },
+              { key: 'address', header: 'Address', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.address?.country || '-' },
               { key: 'ceased', header: 'Date Ceased', tdClass: 'p-2 text-xs', cell: (l) => l.ceasedDate ? formatDate(l.ceasedDate) : 'Present' },
             ]}
           />
@@ -952,7 +1041,7 @@ export default function CompanyDetail() {
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">关联任务 ({tasks.length})</h2>
           {tasks.length === 0 ? (
-            <div className="card text-center py-10 text-gray-400">
+            <div className="card text-center py-10 text-ink-3">
               <CheckSquare size={40} className="mx-auto mb-3 opacity-50" />
               <p>暂无关联任务</p>
             </div>
@@ -962,7 +1051,7 @@ export default function CompanyDetail() {
                 <div key={t._id} className="card flex items-center justify-between">
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">{t.title}</p>
-                    <p className="text-xs text-gray-400">{t.type} &middot; 到期 {formatDate(t.dueDate)}</p>
+                    <p className="text-xs text-ink-3">{t.type} &middot; 到期 {formatDate(t.dueDate)}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${taskPriorityColor(t.priority)}`}>{t.priority}</span>
@@ -990,14 +1079,14 @@ export default function CompanyDetail() {
               </div>
             </div>
             {reminders.length === 0 ? (
-              <p className="text-sm text-gray-400">暂无与该公司的合规提醒，点击"新增提醒"添加</p>
+              <p className="text-sm text-ink-3">暂无与该公司的合规提醒，点击"新增提醒"添加</p>
             ) : (
               <div className="space-y-2">
                 {reminders.map(r => (
                   <div key={r._id} className="flex items-center justify-between border rounded-lg p-3">
                     <div>
                       <p className="font-medium text-sm">{r.title}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-ink-2">
                         到期: {formatDate(r.dueDate)} · 优先级: {r.priority}
                         {r.rule?.name && <> · 规则: <span className="text-primary-600">{r.rule.name}</span></>}
                       </p>
@@ -1009,24 +1098,24 @@ export default function CompanyDetail() {
             )}
           </div>
 
-          {/* 可用规则库（快捷参考） */}
-          {rules.length > 0 && (
+          {/* 可用规则库（快捷参考，仅显示适配本公司的规则） */}
+          {applicableRules.length > 0 && (
             <div className="card">
-              <h3 className="font-semibold mb-3">可用规则 ({rules.length})</h3>
+              <h3 className="font-semibold mb-3">可用规则 ({applicableRules.length})</h3>
               <div className="flex flex-wrap gap-2">
-                {rules.map(r => (
+                {applicableRules.map(r => (
                   <button
                     key={r._id}
                     onClick={() => {
-                      setReminderForm({ mode: 'rule', ruleId: r._id, title: '', description: '', priority: 'medium', dueDate: '', saveAsRule: false, ruleName: '', ruleCategory: r.category, ruleFrequency: r.frequency })
+                      setReminderForm({ mode: 'rule', ruleId: r._id, title: '', description: '', priority: '中', dueDate: '', saveAsRule: false, ruleName: '', ruleCategory: r.category, ruleFrequency: r.frequency })
                       handleRuleSelect(r._id)
                       setShowReminderModal(true)
                     }}
                     className="text-xs px-3 py-1.5 rounded-full border transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
                     title={`${r.description || ''} (${r.frequency})`}
                   >
-                    {r.name}
-                    {r.isPreset && <span className="ml-1 text-[10px] bg-blue-100 text-blue-600 px-1 rounded">预设</span>}
+                    {r.ruleName || r.name}
+                    {r.isPreset && <span className="ml-1 text-[10px] bg-info/10 text-primary-600 px-1 rounded">预设</span>}
                   </button>
                 ))}
               </div>
@@ -1039,17 +1128,17 @@ export default function CompanyDetail() {
               <div className="card">
                 <h3 className="font-semibold mb-3">统计</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="p-3 bg-gray-50 rounded-lg text-center">
+                  <div className="p-3 bg-canvas rounded-lg text-center">
                     <p className="text-2xl font-bold text-primary-600">{compliance.links?.active || 0}</p>
-                    <p className="text-gray-500">Active Links</p>
+                    <p className="text-ink-2">Active Links</p>
                   </div>
-                  <div className="p-3 bg-gray-50 rounded-lg text-center">
+                  <div className="p-3 bg-canvas rounded-lg text-center">
                     <p className="text-2xl font-bold text-primary-600">{compliance.items?.length || 0}</p>
-                    <p className="text-gray-500">Items</p>
+                    <p className="text-ink-2">Items</p>
                   </div>
                 </div>
                 {compliance.links?.roles && (
-                  <div className="mt-3 space-y-1 text-xs text-gray-500">
+                  <div className="mt-3 space-y-1 text-xs text-ink-2">
                     <p>董事: {compliance.links.roles.director || 0}</p>
                     <p>股东: {compliance.links.roles.shareholder || 0}</p>
                     <p>秘书: {compliance.links.roles.secretary || 0}</p>
@@ -1061,7 +1150,7 @@ export default function CompanyDetail() {
                 <div key={`${item.type}-${item.dueDate}`} className="card flex items-center justify-between">
                   <div>
                     <p className="font-medium">{item.type}</p>
-                    <p className="text-sm text-gray-500">Due: {formatDate(item.dueDate)}</p>
+                    <p className="text-sm text-ink-2">Due: {formatDate(item.dueDate)}</p>
                   </div>
                   <span className={`badge ${getStatusColor(item.status)}`}>{item.status}</span>
                 </div>
@@ -1076,13 +1165,13 @@ export default function CompanyDetail() {
       {/* ====== Cease/Restore Modal ====== */}
       <Modal isOpen={showCeaseModal} onClose={() => { setShowCeaseModal(false); setCeasingLink(null) }} title="标记离任" size="sm">
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">此成员将标记为「历任」，记录保留在登记册中（可随时恢复）。</p>
+          <p className="text-sm text-ink-2">此成员将标记为「历任」，记录保留在登记册中（可随时恢复）。</p>
           <FormField label="离任日期" required>
             <input type="date" className={inputClass} value={ceasedDateInput} onChange={e => setCeasedDateInput(e.target.value)} />
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => { setShowCeaseModal(false); setCeasingLink(null) }} className="btn-secondary">取消</button>
-            <button onClick={handleConfirmCease} className="btn-primary bg-red-600 hover:bg-red-700">确认离任</button>
+            <button onClick={handleConfirmCease} className="btn-primary bg-danger hover:opacity-90">确认离任</button>
           </div>
         </div>
       </Modal>
@@ -1137,7 +1226,7 @@ export default function CompanyDetail() {
                 <div className="flex flex-wrap gap-2">
                   {['director', 'shareholder', 'secretary', 'other'].map(r => (
                     <label key={r} className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm cursor-pointer border ${
-                      linkForm.roles.includes(r) ? 'bg-primary-50 border-primary-300 text-primary-700' : 'border-gray-200 text-gray-500'
+                      linkForm.roles.includes(r) ? 'bg-primary-50 border-primary-300 text-primary-700' : 'border-hairline text-ink-2'
                     }`}>
                       <input type="checkbox" className="hidden" checked={linkForm.roles.includes(r)}
                         onChange={() => {
@@ -1192,13 +1281,13 @@ export default function CompanyDetail() {
           <div className="flex gap-2">
             <button
               onClick={() => setReminderForm(f => ({ ...f, mode: 'rule' }))}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${reminderForm.mode === 'rule' ? 'bg-primary-50 border-primary-300 text-primary-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${reminderForm.mode === 'rule' ? 'bg-primary-50 border-primary-300 text-primary-700' : 'border-hairline text-ink-2 hover:bg-canvas'}`}
             >
               📋 从规则库选择
             </button>
             <button
               onClick={() => setReminderForm(f => ({ ...f, mode: 'custom', ruleId: '', title: f.title }))}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${reminderForm.mode === 'custom' ? 'bg-primary-50 border-primary-300 text-primary-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${reminderForm.mode === 'custom' ? 'bg-primary-50 border-primary-300 text-primary-700' : 'border-hairline text-ink-2 hover:bg-canvas'}`}
             >
               ✏️ 自定义填写
             </button>
@@ -1210,12 +1299,12 @@ export default function CompanyDetail() {
               <FormField label="选择合规规则" required>
                 <select className={inputClass} value={reminderForm.ruleId} onChange={e => handleRuleSelect(e.target.value)}>
                   <option value="">-- 选择规则 --</option>
-                  {rules.map(r => (
-                    <option key={r._id} value={r._id}>{r.name} ({r.frequency}){r.isPreset ? ' ★' : ''}</option>
+                  {applicableRules.map(r => (
+                    <option key={r._id} value={r._id}>{r.ruleName || r.name} ({r.frequency}){r.isPreset ? ' ★' : ''}</option>
                   ))}
                 </select>
               </FormField>
-              {rules.length === 0 && <p className="text-xs text-amber-600">暂无可用规则，请先在「合规规则」页面创建</p>}
+              {rules.length === 0 && <p className="text-xs text-warning">暂无可用规则，请先在「合规规则」页面创建</p>}
             </>
           ) : null}
 
@@ -1226,10 +1315,10 @@ export default function CompanyDetail() {
           <div className="grid grid-cols-2 gap-3">
             <FormField label="优先级">
               <select className={inputClass} value={reminderForm.priority} onChange={e => setReminderForm(f => ({ ...f, priority: e.target.value }))}>
-                <option value="low">低</option>
-                <option value="medium">中</option>
-                <option value="high">高</option>
-                <option value="critical">紧急</option>
+                <option value="低">低</option>
+                <option value="中">中</option>
+                <option value="高">高</option>
+                <option value="紧急">紧急</option>
               </select>
             </FormField>
             <FormField label="到期日期" required>
@@ -1239,10 +1328,10 @@ export default function CompanyDetail() {
 
           {/* 自定义模式：保存为规则选项 */}
           {reminderForm.mode === 'custom' && (
-            <div className="border border-dashed border-gray-300 rounded-lg p-3 space-y-3 bg-gray-50/50">
+            <div className="border border-dashed border-hairline rounded-lg p-3 space-y-3 bg-canvas/50">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={reminderForm.saveAsRule} onChange={e => setReminderForm(f => ({ ...f, saveAsRule: e.target.checked }))} className="rounded" />
-                <span className="font-medium text-gray-700">💾 保存为规则（沉淀到规则库，供其他公司复用）</span>
+                <span className="font-medium text-ink">💾 保存为规则（沉淀到规则库，供其他公司复用）</span>
               </label>
               {reminderForm.saveAsRule && (
                 <>

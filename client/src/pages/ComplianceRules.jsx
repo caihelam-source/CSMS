@@ -5,13 +5,13 @@ import {
   Pencil, Trash2
 } from 'lucide-react'
 import { complianceRuleService, companyService } from '../services/index.js'
-import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField } from '../components/UIHelpers'
+import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
 import Modal from '../components/Modal'
 import { useConfirm } from '../components/ConfirmDialog'
 
-const JURISDICTIONS = ['香港', 'BVI', '开曼', '新加坡', '其他']
+const JURISDICTIONS = ['HK', 'BVI', 'Cayman', 'SG', 'OTHER']
 const CATEGORIES = ['周年申报', '税务申报', '合规报告', '董事变更', '股份变更', '会议召开', '其他']
 const FREQ = ['一次性', '每月', '每季度', '每半年', '每年']
 
@@ -25,7 +25,7 @@ const RuleForm = ({ initial = {}, onSave, onCancel, loading }) => {
     ruleName: initial.ruleName || '',
     ruleId: initial.ruleId || '',
     category: initial.category || '其他',
-    jurisdiction: initial.jurisdiction || '香港',
+    jurisdiction: initial.jurisdiction || 'HK',
     isListedOnly: initial.isListedOnly || false,
     frequency: initial.frequency || '每年',
     daysBefore: initial.daysBefore || 30,
@@ -83,7 +83,7 @@ const RuleForm = ({ initial = {}, onSave, onCancel, loading }) => {
           </select>
         </div>
         <div className="flex items-end pb-2">
-          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-ink cursor-pointer">
             <input type="checkbox" checked={form.isListedOnly} onChange={e => set('isListedOnly', e.target.checked)} className="w-4 h-4 rounded text-primary-600" />
             仅适用于上市公司
           </label>
@@ -94,7 +94,7 @@ const RuleForm = ({ initial = {}, onSave, onCancel, loading }) => {
         <textarea rows={3} className={inputClass} value={form.description} onChange={e => set('description', e.target.value)} placeholder="详细说明此合规规则的要求..." />
       </div>
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">取消</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-ink border border-hairline rounded-lg hover:bg-canvas">取消</button>
         <button type="submit" disabled={loading} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
           {loading ? '保存中...' : '保存规则'}
         </button>
@@ -108,20 +108,20 @@ const GenerateModal = ({ rule, companies, onConfirm, onCancel, loading }) => {
   const toggle = (id) => setSelected(s => s.includes(id) ? s.filter(i => i !== id) : [...s, id])
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">为 <strong>{rule?.ruleName}</strong> 选择要生成提醒的公司：</p>
-      <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+      <p className="text-sm text-ink-2">为 <strong>{rule?.ruleName}</strong> 选择要生成提醒的公司：</p>
+      <div className="max-h-64 overflow-y-auto border border-hairline rounded-lg divide-y divide-gray-100">
         {companies.length === 0 ? (
-          <p className="text-center py-6 text-gray-400 text-sm">暂无公司数据</p>
+          <p className="text-center py-6 text-ink-3 text-sm">暂无公司数据</p>
         ) : companies.map(c => (
-          <label key={c._id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer">
+          <label key={c._id} className="flex items-center gap-3 px-4 py-3 hover:bg-canvas cursor-pointer">
             <input type="checkbox" checked={selected.includes(c._id)} onChange={() => toggle(c._id)} className="w-4 h-4 rounded text-primary-600" />
-            <span className="text-sm text-gray-900">{c.name}</span>
-            {c.nameChinese && <span className="text-xs text-gray-400">{c.nameChinese}</span>}
+            <span className="text-sm text-ink">{c.name}</span>
+            {c.nameChinese && <span className="text-xs text-ink-3">{c.nameChinese}</span>}
           </label>
         ))}
       </div>
       <div className="flex justify-end gap-3">
-        <button onClick={onCancel} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+        <button onClick={onCancel} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
         <button onClick={() => onConfirm(selected)} disabled={loading || selected.length === 0} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
           {loading ? '生成中...' : `生成提醒（已选 ${selected.length} 家）`}
         </button>
@@ -131,11 +131,12 @@ const GenerateModal = ({ rule, companies, onConfirm, onCancel, loading }) => {
 }
 
 const jurisdictionColor = (j) => ({
-  '香港': 'bg-blue-100 text-blue-700',
+  'HK': 'bg-info/10 text-primary-700',
   'BVI': 'bg-purple-100 text-purple-700',
-  '开曼': 'bg-indigo-100 text-indigo-700',
-  '新加坡': 'bg-teal-100 text-teal-700',
-}[j] || 'bg-gray-100 text-gray-600')
+  'Cayman': 'bg-indigo-100 text-indigo-700',
+  'SG': 'bg-teal-100 text-teal-700',
+  'OTHER': 'bg-gray-100 text-ink-2',
+}[j] || 'bg-gray-100 text-ink-2')
 
 const ComplianceRules = () => {
   const { confirm, ConfirmDialogComponent } = useConfirm()
@@ -146,6 +147,7 @@ const ComplianceRules = () => {
   const [modal, setModal] = useState(null)
   const [editTarget, setEditTarget] = useState(null)
   const [genResult, setGenResult] = useState(null)
+  const [activeTab, setActiveTab] = useState('')  // '' = 全部
 
   const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
     rules,
@@ -157,6 +159,11 @@ const ComplianceRules = () => {
     },
     { jurisdiction: '', status: '' }
   )
+
+  // 分组显示：选中某注册地时只显示该 jurisdiction（含 'ALL' 规则），否则显示全部
+  const displayRules = activeTab
+    ? filtered.filter(r => r.jurisdiction === activeTab || r.jurisdiction === 'ALL')
+    : filtered
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -250,7 +257,7 @@ const ComplianceRules = () => {
         actions={
           <>
             <button onClick={handleInitialize} disabled={saving}
-              className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+              className="flex items-center gap-1.5 px-3 py-2 border border-hairline text-ink rounded-lg hover:bg-canvas text-sm font-medium">
               <Zap size={15} /> 初始化预设规则
             </button>
             <button onClick={() => { setEditTarget(null); setModal('new') }}
@@ -262,22 +269,24 @@ const ComplianceRules = () => {
       />
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-surface rounded-xl border border-hairline p-4 space-y-3">
+        {/* jurisdiction 分组 tabs */}
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setActiveTab('')} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${activeTab === '' ? 'bg-primary-600 text-white border-primary-600' : 'border-hairline text-ink-2 hover:bg-canvas'}`}>全部</button>
+          {JURISDICTION_OPTIONS.map(o => (
+            <button key={o.value} onClick={() => setActiveTab(o.value)} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${activeTab === o.value ? 'bg-primary-600 text-white border-primary-600' : 'border-hairline text-ink-2 hover:bg-canvas'}`}>{o.label}</button>
+          ))}
+        </div>
         <div className="flex flex-wrap gap-3">
           <SearchBar value={search} onChange={setSearch} placeholder="搜索规则名称、编号..." />
-          <select value={filters.jurisdiction} onChange={e => setFilter('jurisdiction', e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
-            <option value="">全部注册地</option>
-            {JURISDICTIONS.map(j => <option key={j}>{j}</option>)}
-          </select>
           <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
+            className="px-3 py-2 border border-hairline rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
             <option value="">全部状态</option>
             <option value="active">启用</option>
             <option value="inactive">停用</option>
           </select>
-          <button onClick={fetchAll} className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
-            <RefreshCw size={15} className="text-gray-500" />
+          <button onClick={fetchAll} className="px-3 py-2 border border-hairline rounded-lg hover:bg-canvas">
+            <RefreshCw size={15} className="text-ink-2" />
           </button>
         </div>
       </div>
@@ -285,62 +294,69 @@ const ComplianceRules = () => {
       {/* List */}
       {loading ? (
         <LoadingSpinner />
-      ) : filtered.length === 0 ? (
+      ) : displayRules.length === 0 ? (
         <EmptyState icon={ShieldCheck} title="暂无合规规则" action={
           <button onClick={handleInitialize} className="mt-4 text-primary-600 hover:underline text-sm">点击初始化预设规则</button>
         } />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="space-y-4">
+          {activeTab && (
+            <div className="text-sm font-medium text-ink-2">
+              {jurisdictionLabel(activeTab)} Rules ({displayRules.length})
+              <span className="ml-2 text-xs text-ink-3 font-normal">含全局（ALL）规则</span>
+            </div>
+          )}
+          <div className="bg-surface rounded-xl border border-hairline overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-canvas border-b border-hairline">
               <tr>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">规则</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium hidden md:table-cell">注册地</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium hidden lg:table-cell">频率</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium hidden lg:table-cell">提前天数</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">状态</th>
+                <th className="text-left px-4 py-3 text-ink-2 font-medium">规则</th>
+                <th className="text-left px-4 py-3 text-ink-2 font-medium hidden md:table-cell">注册地</th>
+                <th className="text-left px-4 py-3 text-ink-2 font-medium hidden lg:table-cell">频率</th>
+                <th className="text-left px-4 py-3 text-ink-2 font-medium hidden lg:table-cell">提前天数</th>
+                <th className="text-left px-4 py-3 text-ink-2 font-medium">状态</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map(rule => (
-                <tr key={rule._id} className="hover:bg-gray-50">
+              {displayRules.map(rule => (
+                <tr key={rule._id} className="hover:bg-canvas">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900 flex items-center gap-1.5">
+                    <div className="font-medium text-ink flex items-center gap-1.5">
                       {rule.name || rule.ruleName}
-                      {(rule.isPreset || rule.isPredefined) && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-normal">预设</span>}
-                      {rule.isListedOnly && <span className="text-xs bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-normal">上市</span>}
+                      {(rule.isPreset || rule.isPredefined) && <span className="text-xs bg-info/10 text-primary-600 px-1.5 py-0.5 rounded font-normal">预设</span>}
+                      {rule.isListedOnly && <span className="text-xs bg-warning/10 text-warning px-1.5 py-0.5 rounded font-normal">上市</span>}
                     </div>
-                    <div className="text-xs text-gray-400 mt-0.5 flex gap-2">
+                    <div className="text-xs text-ink-3 mt-0.5 flex gap-2">
                       {rule.ruleId && <span className="font-mono">{rule.ruleId}</span>}
                       {rule.category && <span>{rule.category}</span>}
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${jurisdictionColor(rule.jurisdiction)}`}>
-                      {rule.jurisdiction || '—'}
+                      {jurisdictionLabel(rule.jurisdiction) || '—'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-gray-600">{rule.frequency || '—'}</td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-gray-600">{rule.dueDaysBefore ?? rule.daysBefore ? `${rule.dueDaysBefore ?? rule.daysBefore} 天` : '—'}</td>
+                  <td className="px-4 py-3 hidden lg:table-cell text-ink-2">{rule.frequency || '—'}</td>
+                  <td className="px-4 py-3 hidden lg:table-cell text-ink-2">{rule.dueDaysBefore ?? rule.daysBefore ? `${rule.dueDaysBefore ?? rule.daysBefore} 天` : '—'}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${rule.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${rule.status === 'active' ? 'bg-success/10 text-success' : 'bg-gray-100 text-ink-2'}`}>
                       {rule.status === 'active' ? '启用' : '停用'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1 justify-end">
                       <button onClick={() => { setEditTarget(rule); setGenResult(null); setModal('generate') }}
-                        className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="生成提醒">
+                        className="p-1.5 text-ink-3 hover:text-info hover:bg-info/10 rounded-lg transition-colors" title="生成提醒">
                         <Zap size={15} />
                       </button>
                       <button onClick={() => { setEditTarget(rule); setModal('edit') }}
-                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+                        className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
                         <Pencil size={15} />
                       </button>
                       {!rule.isPreset && !rule.isPredefined && (
                         <button onClick={() => { setEditTarget(rule); setModal('delete') }}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          className="p-1.5 text-ink-3 hover:text-red-600 hover:bg-danger/10 rounded-lg transition-colors">
                           <Trash2 size={15} />
                         </button>
                       )}
@@ -350,6 +366,7 @@ const ComplianceRules = () => {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       )}
 
@@ -363,7 +380,7 @@ const ComplianceRules = () => {
       <Modal isOpen={modal === 'generate'} onClose={() => { setModal(null); setGenResult(null) }}
         title="生成合规提醒" size="md">
         {genResult ? (
-          <div className={`p-4 rounded-lg text-sm ${genResult.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+          <div className={`p-4 rounded-lg text-sm ${genResult.success ? 'bg-green-50 border border-success/20 text-success' : 'bg-danger/10 border border-danger/20 text-danger'}`}>
             <p className="font-medium">{genResult.success ? '✓ 生成成功' : '✗ 生成失败'}</p>
             <p>{genResult.message}</p>
           </div>

@@ -10,7 +10,7 @@ const complianceRuleSchema = new mongoose.Schema({
   // 适用范围
   jurisdiction: {
     type: String,
-    enum: ['香港', 'BVI', '开曼', '新加坡', '其他', '全部'],
+    enum: ['HK', 'BVI', 'Cayman', 'SG', 'OTHER', 'ALL'],
     required: true
   },
   isListedOnly: { type: Boolean, default: false },          // 仅上市公司
@@ -24,6 +24,8 @@ const complianceRuleSchema = new mongoose.Schema({
   },
   baseDateOffset: { type: Number, default: 0 },             // 基准日偏移天数（年为单位用365）
   dueDateOffset: { type: Number, default: 0 },              // 在周年日/财年结束日基础上再加N天
+  anchorPayload: { type: mongoose.Schema.Types.Mixed, default: null }, // fixed 基准：{month,day} 或 {reference:'brExpiryDate'}（BR 续期）
+  condition: { type: String },                              // 补充条件说明（如BVI年费按注册月份分两档截止）
 
   // 多级提醒天数（提前N天）
   reminderDays: [{ type: Number }],

@@ -13,10 +13,22 @@ const multer = require('multer');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
+// jurisdiction 归一化：兼容中文/旧英文/英文，未知值归为 'HK'（与模型 enum 对齐）
+const normalizeJurisdiction = (v) => {
+  const m = {
+    '香港': 'HK', 'Hong Kong': 'HK',
+    'BVI': 'BVI', 'British Virgin Islands': 'BVI',
+    '开曼': 'Cayman', 'Cayman': 'Cayman', 'Cayman Islands': 'Cayman',
+    '新加坡': 'SG', 'Singapore': 'SG',
+    '其他': 'OTHER', 'Other': 'OTHER',
+  };
+  return m[String(v || '').trim()] || 'HK';
+};
+
 // GET /api/companies
 router.get('/', auth, async (req, res) => {
   try {
-    const { status, jurisdiction, isListed, search } = req.query;
+    const { status, jurisdiction, isListed, search, page, limit } = req.query;
     const query = {};
 
     if (status) query.status = status;
@@ -31,8 +43,24 @@ router.get('/', auth, async (req, res) => {
       ];
     }
 
-    const companies = await Company.find(query).sort({ name: 1 });
-    res.json({ success: true, count: companies.length, companies });
+    // 分页（opt-in：仅当传 page/limit 时启用，兼容旧前端全量拉取）
+    const usePaging = !!(page || limit);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(parseInt(limit, 10) || 25, 100);
+    const total = await Company.countDocuments(query);
+
+    let q = Company.find(query).sort({ name: 1 });
+    if (usePaging) q = q.skip((pageNum - 1) * limitNum).limit(limitNum);
+    const companies = await q;
+
+    res.json({
+      success: true,
+      count: companies.length,
+      total,
+      page: usePaging ? pageNum : undefined,
+      pageSize: usePaging ? limitNum : undefined,
+      companies,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -127,28 +155,6 @@ router.get('/reverse-links/:personnelId', auth, async (req, res) => {
   }
 });
 
-// GET /api/companies/reverse-links/:personnelId — 反查某人关联的所有公司（读时聚合自 Company.links）
-router.get('/reverse-links/:personnelId', auth, async (req, res) => {
-  try {
-    const pid = req.params.personnelId;
-    const companies = await Company.find({ 'links.link': pid, 'links.linkModel': 'Personnel' })
-      .select('name nameChinese registrationNumber type status links');
-    const links = [];
-    companies.forEach(c => (c.links || []).forEach(l => {
-      if (l.linkModel === 'Personnel' && l.link?.toString() === pid) {
-        links.push({
-          company: { _id: c._id, name: c.name, nameChinese: c.nameChinese, registrationNumber: c.registrationNumber, type: c.type, status: c.status },
-          roles: l.roles || [], shares: l.shares, shareType: l.shareType,
-          appointmentDate: l.appointmentDate, cessationDate: l.cessationDate, notes: l.notes,
-        });
-      }
-    }));
-    res.json({ success: true, count: links.length, links });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 // POST /api/companies
 router.post('/', auth, async (req, res) => {
   try {
@@ -175,6 +181,17 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     const company = await Company.findByIdAndDelete(req.params.id);
     if (!company) return res.status(404).json({ message: 'Company not found' });
+
+    // 清理反向引用，避免悬空指针
+    const cid = company._id;
+    await Promise.all([
+      Document.updateMany({ company: cid }, { $unset: { company: '' } }),
+      Meeting.updateMany({ company: cid }, { $unset: { company: '' } }),
+      Task.updateMany({ company: cid }, { $unset: { company: '' } }),
+      ComplianceReminder.deleteMany({ company: cid }),
+      SignTask.updateMany({ company: cid }, { $unset: { company: '' } }),
+    ]);
+
     res.json({ success: true, message: 'Company deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -222,14 +239,15 @@ router.post('/import/excel', auth, upload.single('file'), async (req, res) => {
         incorporationDate,
         registeredAddress: String(row['注册地址'] || '').trim(),
         businessAddress: String(row['营业地址'] || '').trim(),
-        region: String(row['地区'] || '').trim(),
-        jurisdiction: ['香港', 'BVI', '开曼', '新加坡', '其他'].includes(String(row['地区'] || '').trim())
-          ? String(row['地区']).trim() : '香港',
+        jurisdiction: normalizeJurisdiction(row['地区']),
         businessNature: String(row['业务性质'] || '').trim(),
         industry: String(row['行业'] || '').trim(),
         phone: String(row['电话'] || '').trim(),
         email: String(row['邮箱'] || '').trim(),
-        financialYearEnd: String(row['财务年度结束'] || '').trim(),
+        financialYearEnd: (() => {
+          const m = String(row['财务年度结束'] || '').match(/(\d{1,2})[-/](\d{1,2})/);
+          return m ? { month: parseInt(m[1], 10), day: parseInt(m[2], 10) } : undefined;
+        })(),
         companySecretary: String(row['公司秘书'] || '').trim(),
         status: String(row['状态'] || '活跃').trim(),
         notes: String(row['备注'] || '').trim(),
