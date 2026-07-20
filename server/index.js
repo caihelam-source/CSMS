@@ -23,6 +23,7 @@ const companyRegisterRoutes = require('./routes/companyRegister');
 const searchRoutes = require('./routes/search');
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
+const auditRoutes = require('./routes/audit');
 
 // ── Middleware ──────────────────────────────────────────────
 const errorHandler = require('./middleware/errorHandler');
@@ -58,6 +59,7 @@ app.use('/api/personnel', personnelRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/audit', auditRoutes);   // Wave 0 rev2 — 审计日志（admin/auditor 可查）
 app.use('/api/companies/:id', companyEntriesRoutes);   // shareholder-entries / director-entries
 app.use('/api/companies/:id', companyRegisterRoutes);  // rom / rod PDF
 

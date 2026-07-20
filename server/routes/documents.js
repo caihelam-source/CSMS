@@ -5,6 +5,8 @@ const Document = require('../models/Document');
 const Company = require('../models/Company');
 const Personnel = require('../models/Personnel');
 const { auth } = require('../middleware/auth');
+const { scopeMiddleware, applyListScope, inScope } = require('../middleware/scope');
+const { logAudit } = require('../utils/audit');
 const { storage: fileStorage } = require('../storage/r2');
 
 const router = express.Router();
@@ -16,7 +18,7 @@ const upload = multer({
 });
 
 // GET /api/documents
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, scopeMiddleware, async (req, res) => {
   try {
     const { type, company, companyId, personnelId, meetingId, signStatus, search } = req.query;
     const query = {};
@@ -36,6 +38,9 @@ router.get('/', auth, async (req, res) => {
       ];
     }
 
+    // Wave 0 rev2 — 行级权限：非 admin/auditor 仅见 accessibleCompanies 内的公司文档
+    applyListScope(query, req, 'company');
+
     const documents = await Document.find(query)
       .populate('company', 'name nameChinese stockCode')
       .populate('uploadedBy', 'name email')
@@ -48,11 +53,15 @@ router.get('/', auth, async (req, res) => {
 });
 
 // GET /api/documents/:id
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, scopeMiddleware, async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id)
       .populate('company').populate('uploadedBy', 'name email');
     if (!doc) return res.status(404).json({ message: 'Document not found' });
+    // Wave 0 rev2 — 行级权限：越权访问返回 403
+    if (!inScope(req, doc.company?._id || doc.company)) {
+      return res.status(403).json({ message: 'Access denied: document not in your accessible scope' });
+    }
     res.json({ success: true, document: doc });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -149,6 +158,13 @@ router.put('/:id', auth, async (req, res) => {
       { new: true }
     ).populate('company', 'name');
     if (!doc) return res.status(404).json({ message: 'Document not found' });
+    // Wave 0 rev2 — 审计：归档 / 锁定 动作留痕
+    if (req.body.signStatus === 'archived') {
+      logAudit(req, { action: 'archive', entityType: 'Document', entityId: doc._id, detail: `归档文档「${doc.name}」${doc.company ? ' · ' + doc.company.name : ''}` });
+    }
+    if (req.body.locked === true || req.body.locked === 'true') {
+      logAudit(req, { action: 'lock', entityType: 'Document', entityId: doc._id, detail: `锁定文档「${doc.name}」${doc.company ? ' · ' + doc.company.name : ''}` });
+    }
     res.json({ success: true, document: doc });
   } catch (err) {
     res.status(500).json({ message: err.message });

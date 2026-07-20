@@ -13,6 +13,7 @@ import {
   templates as mockTemplates,
   signTasks as mockSignTasks,
   search as mockSearch,
+  audit as mockAudit,
 } from './mock.js'
 
 // 生产环境通过 VITE_USE_MOCK=false 注入真实 API 模式
@@ -532,5 +533,14 @@ export const searchService = {
   globalSearch: wrap(
     (q) => api.get('/api/search', { params: { q } }),
     mockSearch.globalSearch,
+  ),
+}
+
+// ====== Audit Log Service (Wave 0 rev2) ======
+// 真实后端：GET /api/audit（仅 admin / auditor）；mock：mockAudit.getAll
+export const auditService = {
+  getAll: wrap(
+    (params) => api.get('/api/audit', { params }),
+    mockAudit.getAll,
   ),
 }

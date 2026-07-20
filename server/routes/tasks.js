@@ -2,13 +2,14 @@ const express = require('express');
 const Task = require('../models/Task');
 const Document = require('../models/Document');
 const { auth } = require('../middleware/auth');
+const { scopeMiddleware, applyListScope, inScope } = require('../middleware/scope');
 
 const router = express.Router();
 
 // @route   GET /api/tasks
 // @desc    Get all tasks
 // @access  Private
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, scopeMiddleware, async (req, res) => {
   try {
     const { status, priority, type, assignedTo, company, companyId, personnel, personnelId, dueDate } = req.query;
     const query = {};
@@ -29,6 +30,9 @@ router.get('/', auth, async (req, res) => {
         $gte: new Date(date.setHours(0, 0, 0, 0))
       };
     }
+
+    // Wave 0 rev2 — 行级权限：非 admin/auditor 仅见 accessibleCompanies 内的公司任务
+    applyListScope(query, req, 'company');
 
     const tasks = await Task.find(query)
       .populate('company', 'name')
@@ -51,7 +55,7 @@ router.get('/', auth, async (req, res) => {
 // @route   GET /api/tasks/:id
 // @desc    Get single task
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, scopeMiddleware, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
       .populate('company')
@@ -62,6 +66,10 @@ router.get('/:id', auth, async (req, res) => {
 
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
+    }
+    // Wave 0 rev2 — 行级权限：越权访问返回 403
+    if (!inScope(req, task.company?._id || task.company)) {
+      return res.status(403).json({ message: 'Access denied: task not in your accessible scope' });
     }
 
     res.json({

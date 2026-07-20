@@ -8,6 +8,7 @@ const Task = require('../models/Task');
 const ComplianceReminder = require('../models/ComplianceReminder');
 const SignTask = require('../models/SignTask');
 const { auth } = require('../middleware/auth');
+const { scopeMiddleware, applyListScope, inScope } = require('../middleware/scope');
 const multer = require('multer');
 
 const router = express.Router();
@@ -26,7 +27,7 @@ const normalizeJurisdiction = (v) => {
 };
 
 // GET /api/companies
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, scopeMiddleware, async (req, res) => {
   try {
     const { status, jurisdiction, isListed, search, page, limit } = req.query;
     const query = {};
@@ -42,6 +43,9 @@ router.get('/', auth, async (req, res) => {
         { registrationNumber: { $regex: search, $options: 'i' } },
       ];
     }
+
+    // Wave 0 rev2 — 行级权限：非 admin/auditor 仅见 accessibleCompanies 内的公司
+    applyListScope(query, req, '_id');
 
     // 分页（opt-in：仅当传 page/limit 时启用，兼容旧前端全量拉取）
     const usePaging = !!(page || limit);
@@ -123,10 +127,14 @@ router.get('/stats/dashboard', auth, async (req, res) => {
 });
 
 // GET /api/companies/:id
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, scopeMiddleware, async (req, res) => {
   try {
     const company = await Company.findById(req.params.id);
     if (!company) return res.status(404).json({ message: 'Company not found' });
+    // Wave 0 rev2 — 行级权限：越权访问返回 403
+    if (!inScope(req, company._id)) {
+      return res.status(403).json({ message: 'Access denied: company not in your accessible scope' });
+    }
     res.json({ success: true, company });
   } catch (err) {
     res.status(500).json({ message: err.message });

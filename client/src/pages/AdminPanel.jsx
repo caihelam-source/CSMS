@@ -3,10 +3,10 @@ import {
   Users, Shield, Settings, Plus, Pencil, Trash2,
   CheckCircle, XCircle, Crown, Eye, UserCog, Mail,
   Activity, Building2, Calendar, FileText, CheckSquare,
-  Loader2
+  Loader2, ScrollText, Lock, ShieldCheck
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { userService } from '../services/index.js'
+import { userService, companyService, auditService } from '../services/index.js'
 import { validate, required, email as emailValidator, minLength } from '../utils/validators'
 import { inputClass, labelClass, PageHeader, DeleteConfirmModal, FormField, TabNav } from '../components/UIHelpers'
 import Modal from '../components/Modal'
@@ -17,9 +17,10 @@ const USER_FORM_RULES = {
   password: [minLength(8, '密码至少8位')],
 }
 
-// 角色定义（4 角色 RBAC，与后端一致）
+// 角色定义（5 角色 RBAC，与后端一致；rev2 新增 auditor）
 const ROLES = [
   { value: 'admin',    label: 'Admin',    icon: Crown,   desc: 'Full access — can manage users, edit & delete anything',   color: 'bg-danger/10 text-danger' },
+  { value: 'auditor',  label: 'Auditor',  icon: ShieldCheck, desc: 'Read-only across all companies — for compliance audit', color: 'bg-warning/10 text-warning' },
   { value: 'secretary',label: 'Secretary',icon: UserCog, desc: 'Can create & edit records and upload documents',            color: 'bg-info/10 text-primary-700' },
   { value: 'manager',  label: 'Manager',  icon: UserCog, desc: 'Can create & edit records, cannot manage users or delete',  color: 'bg-info/10 text-primary-700' },
   { value: 'viewer',   label: 'Viewer',   icon: Eye,     desc: 'Read-only access — cannot create, edit, or delete',         color: 'bg-gray-100 text-ink-2' },
@@ -131,13 +132,13 @@ const UserForm = ({ initial = {}, onSave, onCancel, loading, currentUserId }) =>
 
 // ─── Permission Matrix ────────────────────────────────────────────
 const PERM_MATRIX = [
-  { feature: 'View Dashboard & Reports', admin: true,  secretary: true,  manager: true,  viewer: true  },
-  { feature: 'View Companies / Meetings / Documents / Tasks', admin: true, secretary: true, manager: true, viewer: true },
-  { feature: 'Create & Edit Records', admin: true,  secretary: true,  manager: true,  viewer: false },
-  { feature: 'Delete Records',         admin: true,  secretary: false, manager: false, viewer: false },
-  { feature: 'Upload Documents',       admin: true,  secretary: true,  manager: true,  viewer: false },
-  { feature: 'Manage Users',           admin: true,  secretary: false, manager: false, viewer: false },
-  { feature: 'Access Admin Panel',     admin: true,  secretary: false, manager: false, viewer: false },
+  { feature: 'View Dashboard & Reports', admin: true,  auditor: true,  secretary: true,  manager: true,  viewer: true  },
+  { feature: 'View Companies / Meetings / Documents / Tasks', admin: true, auditor: true, secretary: true, manager: true, viewer: true },
+  { feature: 'Create & Edit Records', admin: true,  auditor: false, secretary: true,  manager: true,  viewer: false },
+  { feature: 'Delete Records',         admin: true,  auditor: false, secretary: false, manager: false, viewer: false },
+  { feature: 'Upload Documents',       admin: true,  auditor: false, secretary: true,  manager: true,  viewer: false },
+  { feature: 'Manage Users',           admin: true,  auditor: false, secretary: false, manager: false, viewer: false },
+  { feature: 'Access Admin Panel',     admin: true,  auditor: false, secretary: false, manager: false, viewer: false },
 ]
 
 const Tick = ({ ok }) => ok
@@ -158,19 +159,27 @@ const StatBadge = ({ icon: Icon, label, value, color }) => (
 // ─── Main Component ───────────────────────────────────────────────
 const AdminPanel = () => {
   const { user: currentUser, isAdmin } = useAuth()
-  const [tab, setTab] = useState('users')
+  const [tab, setTab] = useState(isAdmin ? 'users' : 'audit')
   const [users, setUsers] = useState([])
   const [listLoading, setListLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [saving, setSaving] = useState(false)
+  // Wave 0 rev2 — 数据权限分配
+  const [companies, setCompanies] = useState([])
+  const [scopeUserId, setScopeUserId] = useState(null)
+  const [scopeSel, setScopeSel] = useState([])
+  const [scopeSaving, setScopeSaving] = useState(false)
+  // Wave 0 rev2 — 审计日志
+  const [auditLogs, setAuditLogs] = useState([])
+  const [auditLoading, setAuditLoading] = useState(false)
 
   const loadUsers = async () => {
     setListLoading(true)
     try {
       const res = await userService.getAll()
-      const list = (res.data?.data || res.data || []).map(normalizeUser)
+      const list = (res.data?.data || res.data || []).map(u => ({ ...u, accessibleCompanies: u.accessibleCompanies || [] }))
       setUsers(list)
     } catch (err) {
       console.error('[AdminPanel] load users failed:', err)
@@ -179,16 +188,38 @@ const AdminPanel = () => {
     }
   }
 
+  const loadCompanies = async () => {
+    try {
+      const res = await companyService.getAll()
+      const list = res.data?.data || res.data || []
+      setCompanies(Array.isArray(list) ? list : (list.data || []))
+    } catch (err) { console.error('[AdminPanel] load companies failed:', err) }
+  }
+
+  const loadAudit = async () => {
+    setAuditLoading(true)
+    try {
+      const res = await auditService.getAll()
+      const list = res.data?.data || res.data || []
+      setAuditLogs(Array.isArray(list) ? list : (list.data || []))
+    } catch (err) { console.error('[AdminPanel] load audit failed:', err) }
+    finally { setAuditLoading(false) }
+  }
+
   useEffect(() => {
     if (tab === 'users') loadUsers()
+    if (tab === 'scope') { loadUsers(); loadCompanies() }
+    if (tab === 'audit') loadAudit()
   }, [tab])
 
-  if (!isAdmin) {
+  const canViewAudit = isAdmin || currentUser?.role === 'auditor'
+
+  if (!isAdmin && !canViewAudit) {
     return (
       <div className="flex flex-col items-center justify-center h-96 text-center">
         <Shield size={48} className="text-gray-300 mb-4" />
         <h2 className="text-xl font-semibold text-ink mb-2">Access Denied</h2>
-        <p className="text-ink-2">Only administrators can access this panel.</p>
+        <p className="text-ink-2">Only administrators or auditors can access this panel.</p>
       </div>
     )
   }
@@ -230,10 +261,37 @@ const AdminPanel = () => {
     setDeleteTarget(null)
   }
 
+  // Wave 0 rev2 — 数据权限：为某用户分配可访问公司
+  const openScope = (u) => {
+    setScopeUserId(u.id)
+    setScopeSel(u.accessibleCompanies || [])
+  }
+  const saveScope = async () => {
+    setScopeSaving(true)
+    try {
+      const res = await userService.update(scopeUserId, { accessibleCompanies: scopeSel })
+      const updated = res.data?.data || res.data
+      const uid = updated?._id || updated?.id || scopeUserId
+      setUsers(us => us.map(u => u.id === uid ? { ...u, accessibleCompanies: scopeSel } : u))
+      setScopeUserId(null)
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Save scope failed'
+      alert(msg)
+    } finally {
+      setScopeSaving(false)
+    }
+  }
+
   const TABS = [
-    { id: 'users', label: 'User Management', icon: Users },
-    { id: 'permissions', label: 'Permission Matrix', icon: Shield },
-    { id: 'system', label: 'System Info', icon: Settings },
+    ...(isAdmin ? [
+      { id: 'users', label: 'User Management', icon: Users },
+      { id: 'permissions', label: 'Permission Matrix', icon: Shield },
+      { id: 'scope', label: '数据权限', icon: Building2 },
+      { id: 'system', label: 'System Info', icon: Settings },
+    ] : []),
+    ...(canViewAudit ? [
+      { id: 'audit', label: '审计日志', icon: ScrollText },
+    ] : []),
   ]
 
   return (
@@ -368,11 +426,12 @@ const AdminPanel = () => {
                 })}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100">
               {PERM_MATRIX.map((row, i) => (
                 <tr key={i} className="hover:bg-canvas">
                   <td className="px-5 py-3.5 text-ink">{row.feature}</td>
                   <td className="px-4 py-3.5 text-center"><Tick ok={row.admin} /></td>
+                  <td className="px-4 py-3.5 text-center"><Tick ok={row.auditor} /></td>
                   <td className="px-4 py-3.5 text-center"><Tick ok={row.secretary} /></td>
                   <td className="px-4 py-3.5 text-center"><Tick ok={row.manager} /></td>
                   <td className="px-4 py-3.5 text-center"><Tick ok={row.viewer} /></td>
@@ -394,7 +453,7 @@ const AdminPanel = () => {
                 { label: 'Framework', value: 'React 18 + Vite' },
                 { label: 'Backend', value: 'Node.js / Express' },
                 { label: 'Database', value: 'MongoDB' },
-                { label: 'Auth', value: 'JWT Tokens (4-role RBAC)' },
+                { label: 'Auth', value: 'JWT Tokens (5-role RBAC + row-level)' },
                 { label: 'Mode', value: localStorage.getItem('demoEmail') ? '⚡ Demo (no backend)' : '🟢 Live' },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
@@ -421,6 +480,119 @@ const AdminPanel = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DATA SCOPE (Wave 0 rev2) ── */}
+      {tab === 'scope' && (
+        <div className="space-y-4">
+          <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 text-sm text-primary-700">
+            为每位非 admin/auditor 用户分配其可访问的公司范围。admin 与 auditor 默认跨公司可见（不受限）。未分配的用户将看不到任何公司数据。
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* 用户列表 */}
+            <div className="bg-surface rounded-xl border border-hairline shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b border-hairline font-medium text-ink text-sm">用户</div>
+              <div className="divide-y divide-gray-100 max-h-[60vh] overflow-auto">
+                {users.filter(u => u.role !== 'admin' && u.role !== 'auditor').map(u => (
+                  <button key={u.id} onClick={() => openScope(u)}
+                    className={`w-full text-left px-4 py-3 flex items-center justify-between hover:bg-canvas transition-colors ${scopeUserId === u.id ? 'bg-primary-50' : ''}`}>
+                    <div>
+                      <div className="text-sm font-medium text-ink">{u.name}</div>
+                      <div className="text-xs text-ink-3">{u.email}</div>
+                    </div>
+                    <span className="text-xs text-ink-2">{(u.accessibleCompanies || []).length} 家</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 公司多选 */}
+            <div className="lg:col-span-2 bg-surface rounded-xl border border-hairline shadow-sm p-5">
+              {scopeUserId ? (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-ink">分配可访问公司</h3>
+                    <span className="text-sm text-ink-2">已选 {scopeSel.length} 家</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[50vh] overflow-auto">
+                    {companies.map(c => {
+                      const cid = c._id || c.id
+                      const checked = scopeSel.includes(cid)
+                      return (
+                        <label key={cid} className={`flex items-start gap-2 p-3 border rounded-lg cursor-pointer ${checked ? 'border-primary-400 bg-primary-50' : 'border-hairline hover:border-hairline'}`}>
+                          <input type="checkbox" checked={checked} onChange={() => setScopeSel(s => s.includes(cid) ? s.filter(x => x !== cid) : [...s, cid])} className="mt-0.5" />
+                          <div className="min-w-0">
+                            <div className="text-sm text-ink truncate">{c.name}</div>
+                            <div className="text-xs text-ink-3">{c.registrationNumber}</div>
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button onClick={() => setScopeUserId(null)} className="px-4 py-2 text-sm border border-hairline rounded-lg hover:bg-canvas text-ink">取消</button>
+                    <button onClick={saveScope} disabled={scopeSaving} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
+                      {scopeSaving ? '保存中…' : '保存权限'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-center text-ink-3">
+                  <Building2 size={40} className="mb-3 opacity-40" />
+                  <p className="text-sm">从左侧选择一位用户以分配公司数据权限</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── AUDIT LOG (Wave 0 rev2) ── */}
+      {tab === 'audit' && (
+        <div className="bg-surface rounded-xl border border-hairline shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-hairline flex items-center gap-2">
+            <ScrollText size={18} className="text-primary-600" />
+            <div>
+              <h3 className="font-semibold text-ink">审计日志</h3>
+              <p className="text-sm text-ink-2 mt-0.5">归档 / 锁定 / 权限分配等敏感操作的留痕记录</p>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-canvas border-b border-hairline">
+                <tr>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">时间</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">操作者</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">动作</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">对象</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">说明</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {auditLoading ? (
+                  <tr><td colSpan={5} className="px-5 py-10 text-center text-ink-3"><Loader2 className="inline animate-spin" size={18} /> 加载中…</td></tr>
+                ) : auditLogs.length === 0 ? (
+                  <tr><td colSpan={5} className="px-5 py-10 text-center text-ink-3">暂无审计记录</td></tr>
+                ) : auditLogs.map(a => (
+                  <tr key={a._id} className="hover:bg-canvas">
+                    <td className="px-5 py-3 text-ink-3 text-xs whitespace-nowrap">{String(a.createdAt).slice(0, 19).replace('T', ' ')}</td>
+                    <td className="px-5 py-3 text-ink">{a.actorName}</td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${a.action === 'archive' ? 'bg-success/10 text-success' : a.action === 'lock' ? 'bg-warning/10 text-warning' : 'bg-info/10 text-primary-700'}`}>
+                        {a.action === 'archive' && <CheckSquare size={11} />}
+                        {a.action === 'lock' && <Lock size={11} />}
+                        {a.action === 'assign_scope' && <Building2 size={11} />}
+                        {a.action}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-ink-2 text-xs">{a.entityType}</td>
+                    <td className="px-5 py-3 text-ink-2">{a.detail}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

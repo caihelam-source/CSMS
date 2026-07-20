@@ -23,9 +23,15 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'secretary', 'manager', 'viewer'],
+    enum: ['admin', 'secretary', 'manager', 'viewer', 'auditor'],
     default: 'viewer'
   },
+  // Wave 0 rev2 — 行级权限：该登录用户可访问的公司范围（公司秘书多集团场景下按集团隔离数据）
+  // admin / auditor 免过滤（见 middleware/scope.js）；其余角色只看 accessibleCompanies 内的公司数据
+  accessibleCompanies: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company'
+  }],
   phone: {
     type: String,
     trim: true

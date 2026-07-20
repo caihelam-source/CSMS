@@ -2,13 +2,15 @@ const express = require('express');
 const Meeting = require('../models/Meeting');
 const Company = require('../models/Company');
 const { auth } = require('../middleware/auth');
+const { scopeMiddleware, applyListScope, inScope } = require('../middleware/scope');
+const { logAudit } = require('../utils/audit');
 
 const router = express.Router();
 
 // @route   GET /api/meetings
 // @desc    Get all meetings
 // @access  Private
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, scopeMiddleware, async (req, res) => {
   try {
     const { status, type, company, personnelId, startDate, endDate } = req.query;
     const query = {};
@@ -30,6 +32,9 @@ router.get('/', auth, async (req, res) => {
       if (endDate) query.date.$lte = new Date(endDate);
     }
 
+    // Wave 0 rev2 — 行级权限：非 admin/auditor 仅见 accessibleCompanies 内的公司会议
+    applyListScope(query, req, 'company');
+
     const meetings = await Meeting.find(query)
       .populate('company', ' name')
       .populate('attendees.ref', 'name email')
@@ -49,7 +54,7 @@ router.get('/', auth, async (req, res) => {
 // @route   GET /api/meetings/:id
 // @desc    Get single meeting
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, scopeMiddleware, async (req, res) => {
   try {
     const meeting = await Meeting.findById(req.params.id)
       .populate('company')
@@ -59,6 +64,10 @@ router.get('/:id', auth, async (req, res) => {
 
     if (!meeting) {
       return res.status(404).json({ message: 'Meeting not found' });
+    }
+    // Wave 0 rev2 — 行级权限：越权访问返回 403
+    if (!inScope(req, meeting.company?._id || meeting.company)) {
+      return res.status(403).json({ message: 'Access denied: meeting not in your accessible scope' });
     }
 
     res.json({
@@ -164,6 +173,11 @@ router.patch('/:id/status', auth, async (req, res) => {
 
     if (!meeting) {
       return res.status(404).json({ message: 'Meeting not found' });
+    }
+
+    // Wave 0 rev2 — 审计：会议归档（phase=completed）留痕
+    if (phase === 'completed') {
+      logAudit(req, { action: 'archive', entityType: 'Meeting', entityId: meeting._id, detail: `归档会议「${meeting.title}」${meeting.company ? ' · ' + meeting.company.name : ''}` });
     }
 
     res.json({

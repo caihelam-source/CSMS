@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const { auth, adminAuth } = require('../middleware/auth');
+const { logAudit } = require('../utils/audit');
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ router.post('/', async (req, res) => {
     if (existing) {
       return res.status(400).json({ success: false, message: 'User already exists with this email' });
     }
-    const validRoles = ['admin', 'secretary', 'manager', 'viewer'];
+    const validRoles = ['admin', 'secretary', 'manager', 'viewer', 'auditor'];
     const safeRole = validRoles.includes(role) ? role : 'viewer';
     const user = await User.create({
       name,
@@ -50,12 +51,12 @@ router.post('/', async (req, res) => {
 // PUT /api/users/:id — 管理员更新角色 / 状态 / 资料
 router.put('/:id', async (req, res) => {
   try {
-    const { name, role, phone, isActive } = req.body;
+    const { name, role, phone, isActive, accessibleCompanies } = req.body;
     const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ success: false, message: 'User not found' });
 
     if (role !== undefined) {
-      const validRoles = ['admin', 'secretary', 'manager', 'viewer'];
+      const validRoles = ['admin', 'secretary', 'manager', 'viewer', 'auditor'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({ success: false, message: 'Invalid role' });
       }
@@ -64,8 +65,26 @@ router.put('/:id', async (req, res) => {
     if (name !== undefined) target.name = name;
     if (phone !== undefined) target.phone = phone;
     if (isActive !== undefined) target.isActive = isActive;
+    // Wave 0 rev2 — 行级权限：管理员为该用户分配可访问的公司范围
+    if (accessibleCompanies !== undefined) {
+      if (!Array.isArray(accessibleCompanies)) {
+        return res.status(400).json({ success: false, message: 'accessibleCompanies must be an array' });
+      }
+      target.accessibleCompanies = accessibleCompanies;
+    }
 
     await target.save();
+
+    // Wave 0 rev2 — 审计：权限范围分配留痕
+    if (accessibleCompanies !== undefined) {
+      logAudit(req, {
+        action: 'assign_scope',
+        entityType: 'User',
+        entityId: target._id,
+        detail: `为用户「${target.name}」分配 ${accessibleCompanies.length} 家可访问公司`,
+      });
+    }
+
     const { password: _pw, ...safe } = target.toObject();
     res.json({ success: true, data: safe });
   } catch (err) {

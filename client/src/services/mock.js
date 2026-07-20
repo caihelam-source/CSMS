@@ -358,9 +358,10 @@ export const auth = {
 
 // ====== Users Service (Admin — mock) ======
 let MOCK_USERS = [
-  { _id: 'u1', name: 'Admin User',    email: 'admin@example.com',   role: 'admin',   isActive: true, joined: '2024-01-01' },
-  { _id: 'u2', name: 'Sarah Manager', email: 'manager@example.com', role: 'manager', isActive: true, joined: '2024-03-15' },
-  { _id: 'u3', name: 'View Only',     email: 'viewer@example.com',  role: 'viewer',  isActive: true, joined: '2024-06-20' },
+  { _id: 'u1', name: 'Admin User',    email: 'admin@example.com',   role: 'admin',   isActive: true, joined: '2024-01-01', accessibleCompanies: [] },
+  { _id: 'u2', name: 'Sarah Manager', email: 'manager@example.com', role: 'manager', isActive: true, joined: '2024-03-15', accessibleCompanies: ['c1', 'c2'] },
+  { _id: 'u3', name: 'View Only',     email: 'viewer@example.com',  role: 'viewer',  isActive: true, joined: '2024-06-20', accessibleCompanies: [] },
+  { _id: 'u4', name: 'Audit Only',    email: 'auditor@example.com', role: 'auditor', isActive: true, joined: '2024-07-01', accessibleCompanies: [] },
 ]
 export const users = {
   getAll: async () => { await delay(80); return { data: { data: MOCK_USERS.map(u => ({ ...u })) } }; },
@@ -381,6 +382,24 @@ export const users = {
     MOCK_USERS = MOCK_USERS.filter(u => u._id !== id);
     return { data: { data: { success: true } } };
   },
+};
+
+// ====== Audit Log Service (Wave 0 rev2) ======
+let MOCK_AUDIT = [
+  { _id: 'a1', actorName: 'Admin User', action: 'archive', entityType: 'Meeting', entityId: 'm1', detail: '归档会议「2026-07-10 董事会例會」· Easy Rich Corporation Ltd', createdAt: '2026-07-18T09:30:00.000Z' },
+  { _id: 'a2', actorName: 'Admin User', action: 'lock', entityType: 'Document', entityId: 'd1', detail: '锁定文档「公司章程 2026」· Easy Rich Corporation Ltd', createdAt: '2026-07-18T09:31:00.000Z' },
+  { _id: 'a3', actorName: 'Admin User', action: 'assign_scope', entityType: 'User', entityId: 'u2', detail: '为用户「Sarah Manager」分配 2 家可访问公司', createdAt: '2026-07-19T14:05:00.000Z' },
+];
+export const audit = {
+  getAll: async (filters = {}) => {
+    await delay(80);
+    let list = [...MOCK_AUDIT];
+    if (filters.action) list = list.filter(a => a.action === filters.action);
+    if (filters.entityType) list = list.filter(a => a.entityType === filters.entityType);
+    return { data: { data: list, total: list.length } };
+  },
+  // 演示用：归档/锁定动作发生时追加一条（供前端审计 Tab 即时刷新）
+  push: async (entry) => { await delay(20); MOCK_AUDIT = [{ _id: 'a' + Date.now(), createdAt: new Date().toISOString(), ...entry }, ...MOCK_AUDIT]; return { data: { data: MOCK_AUDIT[0] } }; },
 };
 
 // ====== Companies Service ======
