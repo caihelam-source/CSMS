@@ -41,6 +41,9 @@ const documentSchema = new mongoose.Schema({
   // locked: 归档锁定 → 只读（无法删除/修改），公司档案展示"已归档"印章
   locked: { type: Boolean, default: false },
   lockedAt: { type: Date },
+  // v5.2 会议暂存（模块1）：签署文件先暂存至会议子目录（与 Meeting ID 绑定），
+  // 不直接进入公司文件库；会议归档时才批量移入公司档案库（staged=false）。
+  staged: { type: Boolean, default: false },
 }, { timestamps: true });
 
 documentSchema.index({ company: 1, type: 1 });

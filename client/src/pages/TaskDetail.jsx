@@ -6,7 +6,7 @@ import {
   MessageSquare, AlertTriangle, Paperclip,
 } from 'lucide-react'
 import { taskService, documentService, companyService } from '../services/index.js'
-import { formatDate, taskRequiresAttachment } from '../utils/helpers'
+import { formatDate, taskRequiresAttachment, buildCtcDocName } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, DetailHeader, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
 
 const typeLabel = (t) => ({ filing: '申报', compliance: '合规', meeting_prep: '会议准备', document: '文档', follow_up: '跟进', other: '其他' }[t] || t)
@@ -63,19 +63,21 @@ export default function TaskDetail() {
       if (hasFile || task.company) {
         const company = task.company
         const { data: docRes } = await documentService.create({
-          name: hasFile ? uploadFile.name : `任务完成附件 - ${task.title}`,
+          name: hasFile ? buildCtcDocName(uploadFile.name, task.isCTC) : `任务完成附件 - ${task.title}`,
           type: 'task_attachment',
           category: 'other',
           company: company ? { _id: company._id, name: company.name, registrationNumber: company.registrationNumber } : undefined,
           meeting: task.meeting ? (task.meeting._id || task.meeting) : undefined,
           fileName: hasFile ? uploadFile.name : undefined,
           fileSize: hasFile ? uploadFile.size : undefined,
-          note: hasFile ? '由任务完成自动归档' : undefined,
-          // v5.1 #3.1 / #3.2 来源追溯：标注来源 → 公司档案可点击跳回
+          // v5.2 模块4：签署类任务归档时标记签署状态（CTC / 普通签署）
+          signStatus: hasFile && task.type === 'signing' ? (task.isCTC ? 'ctc' : 'fully_signed') : undefined,
+          note: hasFile ? (task.taskSource === 'dashboard' ? '由 Dashboard 签署任务完成自动归档' : '由任务完成自动归档') : undefined,
+          // v5.2 模块4：来源追溯区分会议衍生 / Dashboard 发起
           source: hasFile ? {
-            kind: 'signing_scan',
+            kind: task.taskSource === 'dashboard' ? 'dashboard_sign' : 'signing_scan',
             refId: task._id,
-            label: `来自签署任务：${task.title}`,
+            label: task.taskSource === 'dashboard' ? '来自 [Dashboard 签署任务]' : `来自签署任务：${task.title}`,
           } : undefined,
           createdAt: new Date().toISOString().split('T')[0],
         }).catch(() => ({ data: { data: null } }))
@@ -144,7 +146,14 @@ export default function TaskDetail() {
           </div>
         }
         initials={task.title?.charAt(0) || 'T'}
-        badges={overdue ? <span className="badge bg-danger/10 text-danger"><AlertTriangle size={12} /> 逾期</span> : null}
+        badges={
+          <>
+            {overdue && <span className="badge bg-danger/10 text-danger"><AlertTriangle size={12} /> 逾期</span>}
+            {task.taskSource === 'dashboard' && <span className="badge bg-primary/10 text-primary-700">Dashboard 发起</span>}
+            {task.taskSource === 'meeting' && <span className="badge bg-info/10 text-primary-700">会议衍生</span>}
+            {task.isCTC && <span className="badge bg-danger/10 text-danger">CTC 文件</span>}
+          </>
+        }
       />
 
       {/* 操作栏 */}
@@ -184,6 +193,12 @@ export default function TaskDetail() {
             <div className="flex justify-between"><span className="text-ink-2">关联公司</span><span>{task.company ? <Link to={`/companies/${task.company._id}`} className="text-primary-600 hover:underline">{task.company.name}</Link> : '未关联'}</span></div>
             {task.meeting && (task.meeting._id || task.meeting) && (
               <div className="flex justify-between"><span className="text-ink-2">关联会议</span><span><Link to={`/meetings/${task.meeting._id || task.meeting}`} className="text-primary-600 hover:underline">查看会议纪要</Link></span></div>
+            )}
+            {task.taskSource && (
+              <div className="flex justify-between"><span className="text-ink-2">来源</span><span>{task.taskSource === 'dashboard' ? 'Dashboard 发起' : task.taskSource === 'meeting' ? '会议衍生' : task.taskSource}</span></div>
+            )}
+            {task.isCTC && (
+              <div className="flex justify-between"><span className="text-ink-2">CTC 文件</span><span className="text-danger font-medium">是</span></div>
             )}
           </dl>
         </div>

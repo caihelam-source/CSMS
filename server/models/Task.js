@@ -50,6 +50,11 @@ const taskSchema = new mongoose.Schema({
   responsiblePerson: { type: String },
   // hasAttachment: 是否已有上传的签署/扫描附件——signing 类 Task 必须此为真方可标记完成
   hasAttachment: { type: Boolean, default: false },
+  // v5.2 双来源签署任务（模块4）：
+  // taskSource: 'meeting' = 会议衍生（关联 meetingId）；'dashboard' = Dashboard 直接发起（无会议）
+  taskSource: { type: String, enum: ['meeting', 'dashboard'], default: undefined },
+  // isCTC: 是否为 CTC 文件（认证副本）——Dashboard 发起签署任务时勾选，归档命名 (ctc).pdf
+  isCTC: { type: Boolean, default: false },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

@@ -178,34 +178,24 @@ export const MEETING_PHASES = {
 // 按会议类型给出应归档的文件集合；用户在"相关文件"中可逐项查看已上传/待上传并补齐。
 // 每项：{ type: 对应 Document.type, label: 中文名, nameIncludes?: 按文件名包含匹配（用于签到表等无专属 type 的文件） }
 export const MEETING_ARCHIVE_CHECKLIST = {
-  board: [
+  // v5.2 统一归档清单：所有会议类型共享 5 类（决议含在纪要内，不单独列项）
+  _shared: [
     { type: 'notice', label: '会议通知' },
-    { type: 'minutes', label: '会议纪要（签字版）' },
-    { type: 'board_resolution', label: '董事会决议' },
-    { type: 'other', label: '出席签到表', nameIncludes: '签到' },
+    { type: 'materials', label: '会议资料' },
+    { type: 'attendance', label: '出席签到表' },
+    { type: 'minutes', label: '会议纪要（含决议）' },
+    { type: 'other', label: '其他' },
   ],
-  agm: [
-    { type: 'notice', label: '会议通知' },
-    { type: 'minutes', label: '会议纪要（签字版）' },
-    { type: 'resolution', label: '股东决议' },
-    { type: 'annual_report', label: '周年申报表' },
-    { type: 'other', label: '出席签到表', nameIncludes: '签到' },
-  ],
-  egm: [
-    { type: 'notice', label: '会议通知' },
-    { type: 'minutes', label: '会议纪要（签字版）' },
-    { type: 'resolution', label: '特别决议' },
-    { type: 'other', label: '出席签到表', nameIncludes: '签到' },
-  ],
-  committee: [
-    { type: 'notice', label: '会议通知' },
-    { type: 'minutes', label: '会议纪要（签字版）' },
-    { type: 'resolution', label: '委员会决议' },
-  ],
-  other: [
-    { type: 'notice', label: '会议通知' },
-    { type: 'minutes', label: '会议纪要（签字版）' },
-  ],
+  board: null,   // ← 用 _shared
+  agm: null,
+  egm: null,
+  committee: null,
+  other: null,
+}
+
+/** 获取某会议类型的归档清单（统一返回 _shared） */
+export function getMeetingChecklist(_meetingType) {
+  return MEETING_ARCHIVE_CHECKLIST._shared
 }
 
 // 判断某文档是否已满足归档清单某一项
@@ -246,6 +236,85 @@ export function taskRequiresAttachment(task) {
   return !!task && TASK_ATTACHMENT_REQUIRED.includes(task.type)
 }
 
+
+// ── v5.2 模块2：文件库多级筛选（大类 → 子类型 → 年份）──
+// 大类 = category（与 DOC_CATEGORY_LABELS 一致）；子类型 = 该大类下的 doc.type 集合。
+export const DOC_SUBTYPE_MAP = {
+  government: [
+    { value: 'return', label: '周年申报表' },
+    { value: 'notice', label: '政府通知' },
+    { value: 'certificate', label: '政府证书' },
+    { value: 'other', label: '其他政府文件' },
+  ],
+  establishment: [
+    { value: 'incorporation_doc', label: '成立文件' },
+    { value: 'certificate', label: '注册证书' },
+    { value: 'memo', label: '备忘录' },
+    { value: 'other', label: '其他设立文件' },
+  ],
+  financial: [
+    { value: 'annual_report', label: '年度财报' },
+    { value: 'financial_statement', label: '财务报表' },
+    { value: 'other', label: '其他财务文件' },
+  ],
+  banking: [
+    { value: 'bank_account', label: '银行账户' },
+    { value: 'other', label: '其他银行文件' },
+  ],
+  meeting: [
+    { value: 'minutes', label: '会议纪要' },
+    { value: 'resolution', label: '决议' },
+    { value: 'board_resolution', label: '董事会决议' },
+    { value: 'notice', label: '会议通知' },
+    { value: 'agreement', label: '协议' },
+    { value: 'other', label: '其他会议文件' },
+  ],
+  other: [
+    { value: 'agreement', label: '协议' },
+    { value: 'memo', label: '备忘录' },
+    { value: 'id_document', label: '身份证件' },
+    { value: 'passport', label: '护照' },
+    { value: 'other', label: '其他' },
+  ],
+}
+
+// 文档年份（用于年份筛选器）：优先 documentYear，否则从 createdAt 取
+export function docYear(doc) {
+  if (doc?.documentYear) return String(doc.documentYear)
+  if (doc?.createdAt) return String(new Date(doc.createdAt).getFullYear())
+  return ''
+}
+
+// ── v5.2 模块1 / 模块4：归档命名规则 ──
+// 会议归档：[会议日期] 公司名称_文件类型_来源(可选).pdf
+//   例：[2026-07-17] Easy Rich Corporation_股东大会纪要.pdf
+// Dashboard 签署任务：原文件名 (ctc).pdf / 原文件名 (signed).pdf
+const DOC_ARCHIVE_TYPE_LABEL = {
+  notice: '会议通知', materials: '会议资料', attendance: '出席签到表',
+  minutes: '会议纪要', other: '文件',
+  return: '申报表', certificate: '证书',
+}
+
+// 根据会议类型 + 文档类型给出归档"文件类型"中文标签
+export function archiveTypeLabel(meeting, doc) {
+  if (doc?.source?.kind === 'signing_scan') return '股东签署件'
+  if (doc?.type === 'minutes') return '会议纪要'  // 决议含在纪要内
+  return DOC_ARCHIVE_TYPE_LABEL[doc?.type] || '文件'
+}
+
+// 会议归档命名：[YYYY-MM-DD] 公司_类型_来源(可选).pdf
+export function buildArchiveDocName(meeting, company, typeLabel, sourceOpt) {
+  const date = meeting?.scheduledAt ? fmtDateShort(meeting.scheduledAt) : fmtDateShort(new Date())
+  const co = (company?.name || '未知公司').toString().replace(/[<>:"/\\|?*]/g, '').trim()
+  const base = `[${date}] ${co}_${typeLabel || '文件'}`
+  return sourceOpt ? `${base}_${sourceOpt}.pdf` : `${base}.pdf`
+}
+
+// Dashboard 签署任务归档命名：原文件名 (ctc).pdf / 原文件名 (signed).pdf
+export function buildCtcDocName(origName, isCTC) {
+  const base = (origName || '签署文件').toString().replace(/\.pdf$/i, '').replace(/[<>:"/\\|?*]/g, '').trim()
+  return isCTC ? `${base} (ctc).pdf` : `${base} (signed).pdf`
+}
 
 export const MEETING_STATUSES = {
   draft: '草稿', scheduled: '已排期', in_progress: '进行中',

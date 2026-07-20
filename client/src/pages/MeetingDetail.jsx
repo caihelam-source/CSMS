@@ -4,10 +4,10 @@ import toast from 'react-hot-toast'
 import {
   Calendar, Clock, ArrowLeft, CheckCircle2,
   FileText, Send, PenLine, Eye, Copy, Pencil,
-  Building2, AlertCircle, Download, Printer, Upload, Archive, ClipboardCheck
+  Building2, AlertCircle, Download, Printer, Upload, Archive, ClipboardCheck, Lock
 } from 'lucide-react'
 import { meetingService, documentService, signTaskService, taskService } from '../services/index.js'
-import { formatDate, MEETING_TYPE_LABELS as TYPES, fmtDate, fmtTime, buildPhasesWithIcons, MEETING_ARCHIVE_CHECKLIST, docMatchesChecklistItem, detectMinutesKeywords, buildSignTaskTitle, buildSourceLabel } from '../utils/helpers'
+import { formatDate, MEETING_TYPE_LABELS as TYPES, fmtDate, fmtTime, buildPhasesWithIcons, getMeetingChecklist, docMatchesChecklistItem, detectMinutesKeywords, buildSignTaskTitle, buildSourceLabel, buildArchiveDocName, archiveTypeLabel } from '../utils/helpers'
 import { validate, required } from '../utils/validators'
 import { LoadingSpinner, DetailHeader, FormField, inputClass, InfoCard, TabNav } from '../components/UIHelpers'
 import Modal from '../components/Modal'
@@ -188,6 +188,8 @@ export default function MeetingDetail() {
           : undefined,
         fileName: attachForm.file?.name,
         fileSize: attachForm.file?.size,
+        // v5.2 模块1：会议上传文件先"暂存"于会议子目录（staged=true），不进入公司库
+        staged: true,
         createdAt: new Date().toISOString().split('T')[0],
       })
       toast.success('文件已上传并归入会议相关文件（同时归属公司）')
@@ -222,6 +224,8 @@ export default function MeetingDetail() {
         fileName: scanModal.file.name,
         fileSize: scanModal.file.size,
         fileUrl: '/scan/' + encodeURIComponent(scanModal.file.name),
+        // v5.2 模块1：签署扫描件同样暂存于会议子目录
+        staged: true,
         // v5.1 #3.1 来源追溯：扫描件标注来源 → 公司档案可点击跳回本会议
         source: {
           kind: 'signing_scan',
@@ -251,7 +255,7 @@ export default function MeetingDetail() {
     }
   }, [scanModal, meeting, id, fetchMeeting])
 
-  // 一键归档：本会议所有相关文件标记 archived + 锁定只读 + 会议推进到 completed
+  // 一键归档：本会议所有暂存文件批量移入公司档案库（重命名 + 解除暂存 + 锁定只读）
   const archiveAll = useCallback(async () => {
     if (documents.length === 0) { toast.error('暂无相关文件可归档'); return }
     // v5.1 #2.4 防呆：存在签署 Task 但均未完成 → 禁止归档会议
@@ -264,18 +268,25 @@ export default function MeetingDetail() {
     try {
       const lockedAt = new Date().toISOString()
       for (const d of documents) {
-        if (d.signStatus !== 'archived' || !d.locked) {
-          // v5.1 #3.4 归档锁定：文件变为只读（无法删除/修改）
-          await documentService.update(d._id, { signStatus: 'archived', locked: true, lockedAt }).catch(() => {})
-        }
+        if (!d.staged && d.locked) continue // 已归档锁定，跳过
+        // v5.2 模块1：按命名规则重命名 → 解除暂存（移入公司库）→ 锁定只读
+        const typeLabel = archiveTypeLabel(meeting, d)
+        const newName = buildArchiveDocName(meeting, meeting?.company, typeLabel)
+        await documentService.update(d._id, {
+          name: newName,
+          staged: false,
+          locked: true,
+          lockedAt,
+          signStatus: 'archived',
+        }).catch(() => {})
       }
-      await meetingService.updateStatus(id, { phase: 'completed', status: 'completed' })
-      toast.success('已全部归档，会议完成（相关文件已锁定为只读）')
+      await meetingService.updateStatus(id, { phase: 'completed', status: 'completed', archivedAt: new Date().toISOString() })
+      toast.success('已全部归档并移入公司档案库，会议完成（文件只读）')
       fetchMeeting()
     } catch {
       toast.error('归档失败')
     }
-  }, [documents, meetingTasks, id, fetchMeeting])
+  }, [documents, meetingTasks, meeting, id, fetchMeeting])
 
   // 发起签署任务（关联本会议 meetingId）→ 同步创建对应 signing Task
   const openSignModal = useCallback(() => {
@@ -310,12 +321,14 @@ export default function MeetingDetail() {
       })
       // 同步创建对应 Task（type: signing），让签署任务在 Task 列表中可追踪、可完成
       try {
-        const { data: tRes } = await taskService.create({
+        const { data: tRes } =         await taskService.create({
           title: `签署：${signForm.title}`,
           type: 'signing',
           priority: signForm.priority,
           status: 'pending',
           meeting: { _id: id },
+          // v5.2 模块4：标记来源为会议衍生，便于 Dashboard 统计区分
+          taskSource: 'meeting',
           dueDate: meeting?.scheduledAt || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
           description: `从会议「${meeting?.title || ''}」发起的签署任务，需 ${signers.length} 人签署。`,
           company: meeting?.company
@@ -354,7 +367,9 @@ export default function MeetingDetail() {
 
   const phase = PHASES[meeting.phase] || PHASES.setup
   const PhaseIcon = phase.icon
-  const checklist = MEETING_ARCHIVE_CHECKLIST[meeting.type] || MEETING_ARCHIVE_CHECKLIST.other
+  // v5.2 模块1：归档后会议与关联文件为只读
+  const isArchived = meeting?.phase === 'completed' || !!meeting?.archivedAt
+  const checklist = getMeetingChecklist(meeting.type)
 
   return (
     <div className="space-y-6">
@@ -362,6 +377,9 @@ export default function MeetingDetail() {
       <DetailHeader
         onBack={() => navigate('/meetings')}
         title={meeting.title}
+        badges={isArchived ? (
+          <span className="badge bg-danger/10 text-danger flex items-center gap-1"><Archive size={12} /> 已归档</span>
+        ) : null}
         subtitle={
           <div className="flex items-center gap-4 flex-wrap">
             <span className={`inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full ${phase.color}`}>
@@ -378,6 +396,14 @@ export default function MeetingDetail() {
         }
         initials={meeting.title?.charAt(0) || 'M'}
       />
+
+      {/* v5.2 模块1：已归档只读横幅 */}
+      {isArchived && (
+        <div className="flex items-center gap-2 rounded-xl border border-hairline bg-gray-50 px-4 py-3 text-sm text-ink-2">
+          <Lock size={16} className="text-danger shrink-0" />
+          <span>会议已归档，会议及关联文件为<strong className="text-danger">只读状态</strong>（不可删除 / 修改）。如需变更，请重新发起会议或联系管理员。</span>
+        </div>
+      )}
 
       {/* 会议全流程进度 */}
       <div className="bg-surface rounded-xl border border-hairline p-4">
@@ -625,7 +651,8 @@ export default function MeetingDetail() {
                           setEditingMinutes(true)
                         }
                       }}
-                      className={`inline-flex items-center gap-1.5 text-sm ${editingMinutes ? 'btn-primary' : 'btn-secondary text-primary-600'}`}
+                      disabled={isArchived}
+                      className={`inline-flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed ${editingMinutes ? 'btn-primary' : 'btn-secondary text-primary-600'}`}
                     >
                       {editingMinutes ? <><CheckCircle2 size={14} /> 完成编辑</> : <><Pencil size={14} /> 编辑</>}
                     </button>
@@ -704,7 +731,7 @@ export default function MeetingDetail() {
                         <p className="text-xs text-ink-3 mt-0.5">签署将形成一项 Task，签署人完成签署并上传扫描件后该任务方可标记完成。</p>
                       </div>
                     </div>
-                    <button onClick={openSignModal} className="btn-primary inline-flex items-center gap-1.5 text-sm shrink-0">
+                    <button onClick={openSignModal} disabled={isArchived} className="btn-primary inline-flex items-center gap-1.5 text-sm shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
                       <PenLine size={14} /> 发起签署
                     </button>
                   </div>
@@ -749,41 +776,42 @@ export default function MeetingDetail() {
         {/* DOCUMENTS TAB — 相关文件（按会议归属） */}
         {activeTab === 'documents' && (
           <div className="space-y-5">
-            {/* 会议归档清单 */}
+            {/* 会议归档清单 — v5.2 统一5类，支持多文件 */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-semibold text-ink-2">会议归档清单</h4>
                 <button
                   onClick={archiveAll}
-                  disabled={documents.length === 0}
-                  className="btn-primary inline-flex items-center gap-1.5 text-sm disabled:opacity-50"
+                  disabled={documents.length === 0 || isArchived}
+                  className="btn-primary inline-flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Archive size={14} /> 全部归档
+                  <Archive size={14} /> {isArchived ? '已归档' : '全部归档'}
                 </button>
               </div>
               <p className="text-xs text-ink-3 mb-3">
-                按会议类型应归档的文件；缺失项请上传补齐，全部上传后可一键归档。归档后文件仍归属公司，可在公司详情页「文件」中查看。
+                按会议类型应归档的文件；每类可上传多个文件。全部上传后可一键归档，归档后文件归属公司。
               </p>
               <div className="space-y-2">
                 {checklist.map((item, i) => {
-                  const uploaded = documents.some(d => docMatchesChecklistItem(d, item))
+                  const matched = documents.filter(d => docMatchesChecklistItem(d, item))
+                  const count = matched.length
+                  const hasAny = count > 0
                   return (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-hairline">
+                    <div key={i} className={`flex items-center justify-between p-3 rounded-lg border ${hasAny ? 'border-success/30 bg-success/5' : 'border-hairline'}`}>
                       <div className="flex items-center gap-2">
-                        {uploaded
+                        {hasAny
                           ? <CheckCircle2 size={16} className="text-success" />
                           : <Clock size={16} className="text-warning" />}
-                        <span className={`text-sm ${uploaded ? 'text-ink' : 'text-ink-2'}`}>{item.label}</span>
-                        {uploaded && <span className="text-xs text-success">已上传</span>}
+                        <span className={`text-sm ${hasAny ? 'text-ink' : 'text-ink-2'}`}>{item.label}</span>
+                        {hasAny && <span className="text-xs text-success font-medium">已上传 {count} 件</span>}
                       </div>
-                      {!uploaded && (
-                        <button
-                          onClick={() => { setAttachForm({ name: item.label, type: item.type, file: null }); setAttachModal(true) }}
-                          className="btn-secondary inline-flex items-center gap-1 text-xs"
-                        >
-                          <Upload size={12} /> 上传
-                        </button>
-                      )}
+                      <button
+                        onClick={() => { setAttachForm({ name: '', type: item.type, file: null }); setAttachModal(true) }}
+                        disabled={isArchived}
+                        className="btn-secondary inline-flex items-center gap-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Upload size={12} /> 上传
+                      </button>
                     </div>
                   )
                 })}
@@ -832,7 +860,8 @@ export default function MeetingDetail() {
               )}
               <button
                 onClick={() => { setAttachForm({ name: '', type: 'minutes', file: null }); setAttachModal(true) }}
-                className="btn-secondary inline-flex items-center gap-1.5 text-sm mt-3"
+                disabled={isArchived}
+                className="btn-secondary inline-flex items-center gap-1.5 text-sm mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload size={14} /> 上传其他文件
               </button>
@@ -845,7 +874,7 @@ export default function MeetingDetail() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold text-ink-2">关联签署任务 ({signTasks.length})</h4>
-              <button onClick={openSignModal} className="btn-primary flex items-center gap-1.5 text-sm">
+              <button onClick={openSignModal} disabled={isArchived} className="btn-primary flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                 <PenLine size={14} /> 发起签署任务
               </button>
             </div>
@@ -885,7 +914,8 @@ export default function MeetingDetail() {
                       {canUpload && (
                         <button
                           onClick={() => openScanModal(st)}
-                          className="mt-3 btn-primary inline-flex items-center gap-1.5 text-sm"
+                          disabled={isArchived}
+                          className="mt-3 btn-primary inline-flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Upload size={14} /> 上传签署扫描件
                         </button>
@@ -926,12 +956,10 @@ export default function MeetingDetail() {
               value={attachForm.type}
               onChange={e => setAttachForm({ ...attachForm, type: e.target.value })}
             >
-              <option value="minutes">纪要</option>
-              <option value="resolution">决议</option>
-              <option value="board_resolution">董事会决议</option>
-              <option value="notice">通知</option>
-              <option value="annual_report">周年申报表</option>
-              <option value="agreement">协议</option>
+              <option value="notice">会议通知</option>
+              <option value="materials">会议资料</option>
+              <option value="attendance">出席签到表</option>
+              <option value="minutes">会议纪要（含决议）</option>
               <option value="other">其他</option>
             </select>
           </FormField>

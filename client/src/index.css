@@ -91,8 +91,8 @@
 }
 
 @layer utilities {
-  /* 安全区适配（刘海/主页指示器）：手机端底部 Tab 与抽屉用 */
-  .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem); }
+  /* 安全区适配（刘海/主页指示器）：手机端底部 Tab 与抽屉用，≥20px 防遮挡（模块3） */
+  .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); }
   .pt-safe { padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem); }
   /* 触控目标最小高度 44pt（WCAG / 移动可用性，T-3.6.5） */
   .tap-target { @apply min-h-[44px]; }

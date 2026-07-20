@@ -28,6 +28,12 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
     if (personnelId) query.personnel = personnelId;
     if (meetingId) query.meeting = meetingId;
     if (signStatus) query.signStatus = signStatus;
+    // v5.2 模块1：公司文件库 / 全局列表默认排除"会议暂存"文件
+    // （staged=true 的文件仅停留在会议子目录，归档后才进入公司库）。
+    // 仅当显式请求 meetingId（会议视图自身）或 includeStaged 时才包含。
+    if (!meetingId && req.query.includeStaged !== 'true') {
+      query.staged = { $ne: true };
+    }
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -71,7 +77,7 @@ router.get('/:id', auth, scopeMiddleware, async (req, res) => {
 // POST /api/documents — 上传文件
 router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
-    const { title, name, type, company, personnel, meeting, description, category, note, tags, keywords, isConfidential, source, locked } = req.body;
+    const { title, name, type, company, personnel, meeting, description, category, note, tags, keywords, isConfidential, source, locked, staged } = req.body;
 
     // 兼容前端自动归档：company / personnel / meeting 可能是 { _id, name } 对象，也可能直接是 ObjectId
     const companyVal = (company && typeof company === 'object' && company._id) ? company._id : company;
@@ -109,6 +115,8 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
         label: source.label || undefined,
       } : undefined,
       locked: locked === true || locked === 'true' || false,
+      // v5.2 会议暂存（模块1）：会议视图上传时携带 staged=true，归档时由前端置 false
+      staged: staged === true || staged === 'true' || false,
       uploadedBy: req.user._id,
     };
 

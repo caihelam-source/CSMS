@@ -14,7 +14,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat: Wave1 移动端硬化+PWA + 会议业务流闭环 + #2/#3 纪要闭环强化与文件管理中心';
+const COMMIT_MSG = 'feat: 会议归档清单精简为5类+多文件上传 + v5.2 纪要闭环/文件管理/Dashboard签署任务/移动端适配';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

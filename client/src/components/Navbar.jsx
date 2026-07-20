@@ -65,7 +65,7 @@ const BottomTab = memo(({ path, icon: Icon, label, active, onClick }) => (
     to={path}
     onClick={onClick}
     className={`tap-target flex-1 flex flex-col items-center justify-center gap-0.5 border-t-2 transition-colors ${
-      active ? 'text-primary-700 font-semibold border-primary-600' : 'text-ink-3 border-transparent'
+      active ? 'text-primary-700 font-semibold border-primary-700' : 'text-ink-3 border-transparent'
     }`}
   >
     <Icon size={20} />
@@ -196,7 +196,7 @@ const Navbar = () => {
         <button
           onClick={openMobile}
           className={`tap-target flex-1 flex flex-col items-center justify-center gap-0.5 border-t-2 transition-colors ${
-            open ? 'text-primary-700 font-semibold border-primary-600' : 'text-ink-3 border-transparent'
+            open ? 'text-primary-700 font-semibold border-primary-700' : 'text-ink-3 border-transparent'
           }`}
           aria-label="更多菜单"
         >

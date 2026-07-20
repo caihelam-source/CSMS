@@ -176,6 +176,9 @@ const MOCK_DOCUMENTS = [
   { _id: 'd10', docNumber: 'GOV-NN3-0010', name: 'NAR1 NN3 周年申报表 2025', type: 'return', category: 'government', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_NAR1_NN3_2025.pdf', fileSize: 1024000, createdAt: '2025-11-01', notes: '注册非香港公司周年申报表' },
   { _id: 'd11', docNumber: 'EST-COI-0011', name: 'Certificate of Incumbency 2026-01-08', type: 'certificate', category: 'establishment', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_COI_20260108.pdf', fileSize: 512000, createdAt: '2026-01-08', notes: '在职证明', expiresAt: '2027-01-08' },
   { _id: 'd12', docNumber: 'EST-CGS-0012', name: 'Certificate of Good Standing 2026-01-07', type: 'certificate', category: 'establishment', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_CGS_20260107.pdf', fileSize: 512000, createdAt: '2026-01-07', notes: '存续证明 / 良好存续证书', expiresAt: '2026-12-07' },
+  // v5.2 模块1 演示：会议暂存文件（staged=true）→ 仅停留在会议视图，归档后进入公司库
+  { _id: 'd13', docNumber: 'MET-MIN-0013', name: '中国新城市集团2025年度董事会会议纪要（草稿）', type: 'minutes', category: 'meeting', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, meeting: { _id: 'm3' }, personnel: null, fileUrl: '', fileName: 'CNC_2025_board_minutes_draft.pdf', fileSize: 320000, createdAt: '2026-03-26', staged: true, source: { kind: 'meeting_minutes', refId: 'm3', label: '来自 [2026-03-26 董事会纪要]' } },
+  { _id: 'd14', docNumber: 'MET-SIG-0014', name: '中国新城市集团2025年度董事会纪要签字版扫描件', type: 'minutes', category: 'meeting', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, meeting: { _id: 'm3' }, personnel: null, fileUrl: '', fileName: 'CNC_2025_board_minutes_signed_scan.pdf', fileSize: 480000, createdAt: '2026-03-28', staged: true, signStatus: 'fully_signed', source: { kind: 'signing_scan', refId: 'm3', label: '来自 [2026-03-26 董事会纪要]' } },
 ];
 
 // ====== 会议数据 ======
@@ -662,6 +665,9 @@ export const documents = {
     if (filters.companyId) list = list.filter(d => d.company?._id === filters.companyId);
     if (filters.personnelId) list = list.filter(d => d.personnel?._id === filters.personnelId);
     if (filters.meetingId) list = list.filter(d => d.meeting?._id === filters.meetingId);
+    // v5.2 模块1：公司文件库 / 全局列表默认排除"会议暂存"文件（staged=true）。
+    // 仅当显式 meetingId（会议视图自身）或 includeStaged 时才包含。
+    if (!filters.meetingId && !filters.includeStaged) list = list.filter(d => !d.staged);
     return { data: { data: list, total: list.length, totalPages: 1, currentPage: 1 } };
   },
   getOne: async (id) => {
@@ -671,7 +677,8 @@ export const documents = {
   },
   getByCompany: async (companyId) => {
     await delay();
-    return { data: { data: MOCK_DOCUMENTS.filter(d => d.company?._id === companyId) } };
+    // v5.2 模块1：公司文件库排除会议暂存文件（staged=true 的仅停留在会议视图）
+    return { data: { data: MOCK_DOCUMENTS.filter(d => d.company?._id === companyId && !d.staged) } };
   },
   getByPersonnel: async (personnelId) => {
     await delay();
@@ -913,6 +920,10 @@ const MOCK_TASKS = [
   { _id: 'tt3', title: 'Update Director Register - HuiJun', type: 'compliance', priority: 'medium', status: 'in_progress', dueDate: '2026-05-14', description: '', createdBy: 'u1', createdAt: '2026-04-01', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' }, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, notes: [] },
   { _id: 'tt4', title: 'Renew Business License Certificate', type: 'filing', priority: 'high', status: 'overdue', dueDate: '2026-06-01', description: ' renewal before expiry.', createdBy: 'u1', createdAt: '2026-04-15', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, notes: [] },
   { _id: 'tt5', title: 'AGM 年度大会 - 匯駿控股', type: 'meeting_prep', priority: 'high', status: 'pending', dueDate: '2026-05-14', description: '准备并召开匯駿控股周年大会', createdBy: 'u1', createdAt: '2026-04-01', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' }, personnel: { _id: 'p3', name: '施中安 (施侃成)' }, notes: [] },
+  // v5.2 模块4 演示：Dashboard 直接发起的签署任务（无会议）
+  { _id: 'tt6', title: '签署 NAR1 申报表 - Easy Rich', type: 'signing', taskSource: 'dashboard', isCTC: false, priority: 'high', status: 'pending', dueDate: '2026-08-15', description: '由 Dashboard 发起的签署任务；关联文件：NAR1 周年申报表 2026。', createdBy: 'u1', createdAt: '2026-07-18', company: { _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)', registrationNumber: '65940948' }, responsiblePerson: '施金帆', notes: [] },
+  // v5.2 模块4 演示：会议衍生的签署任务（关联会议 m1 Easy Rich AGM）
+  { _id: 'tt7', title: '签署：Easy Rich 2026周年股东大会纪要', type: 'signing', taskSource: 'meeting', isCTC: false, priority: 'urgent', status: 'pending', dueDate: '2026-07-22', description: '从会议「Easy Rich 2026年周年股东大会」衍生的签署任务。', createdBy: 'u1', createdAt: '2026-07-15', company: { _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)', registrationNumber: '65940948' }, meeting: { _id: 'm1', title: 'Easy Rich 2026年周年股东大会' }, responsiblePerson: '施金帆', notes: [] },
 ];
 
 const MOCK_COMPLIANCE_RULES = [

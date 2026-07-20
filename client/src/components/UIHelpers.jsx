@@ -116,7 +116,7 @@ export const DetailHeader = ({ onBack, title, subtitle = '', initials = '?', ava
     </div>
     <div>
       <h1 className="text-2xl font-bold flex items-center gap-2">
-        <span className="line-clamp-2 break-words" title={title}>{title}</span>
+        <span className="break-words" title={title}>{title}</span>
         {badges}
       </h1>
       {subtitle && <p className="text-ink-2 mt-0.5">{subtitle}</p>}
@@ -262,7 +262,7 @@ export const TabNav = ({ tabs, active, onChange }) => (
     {tabs.map(({ key, label, icon: Icon }) => (
       <button key={key} onClick={() => onChange(key)}
         className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-          active === key ? 'border-primary-600 text-primary-600' : 'border-transparent text-ink-2 hover:text-ink'
+          active === key ? 'border-primary-700 text-primary-700 font-semibold' : 'border-transparent text-ink-2 hover:text-ink'
         }`}>
         {Icon && <Icon size={16} />}
         {label}
