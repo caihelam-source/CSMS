@@ -116,7 +116,7 @@ export const DetailHeader = ({ onBack, title, subtitle = '', initials = '?', ava
     </div>
     <div>
       <h1 className="text-2xl font-bold flex items-center gap-2">
-        {title}
+        <span className="line-clamp-2 break-words" title={title}>{title}</span>
         {badges}
       </h1>
       {subtitle && <p className="text-ink-2 mt-0.5">{subtitle}</p>}

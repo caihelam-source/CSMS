@@ -6,7 +6,7 @@ import {
   MessageSquare, AlertTriangle, Paperclip,
 } from 'lucide-react'
 import { taskService, documentService, companyService } from '../services/index.js'
-import { formatDate } from '../utils/helpers'
+import { formatDate, taskRequiresAttachment } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, DetailHeader, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
 
 const typeLabel = (t) => ({ filing: '申报', compliance: '合规', meeting_prep: '会议准备', document: '文档', follow_up: '跟进', other: '其他' }[t] || t)
@@ -46,7 +46,13 @@ export default function TaskDetail() {
     if (!task) return
     const hasNote = noteText.trim().length > 0
     const hasFile = !!uploadFile
-    if (!hasNote && !hasFile) {
+    // v5.1 #2.2 / #2.3 附件强控：签署类任务必须上传附件方可标记完成
+    const requiresAttach = taskRequiresAttachment(task)
+    if (requiresAttach && !hasFile) {
+      toast.error('请先上传签署文件后再标记完成')
+      return
+    }
+    if (!requiresAttach && !hasNote && !hasFile) {
       toast.error('请填写完成备注或上传文件后才能标记完成')
       return
     }
@@ -61,9 +67,16 @@ export default function TaskDetail() {
           type: 'task_attachment',
           category: 'other',
           company: company ? { _id: company._id, name: company.name, registrationNumber: company.registrationNumber } : undefined,
+          meeting: task.meeting ? (task.meeting._id || task.meeting) : undefined,
           fileName: hasFile ? uploadFile.name : undefined,
           fileSize: hasFile ? uploadFile.size : undefined,
           note: hasFile ? '由任务完成自动归档' : undefined,
+          // v5.1 #3.1 / #3.2 来源追溯：标注来源 → 公司档案可点击跳回
+          source: hasFile ? {
+            kind: 'signing_scan',
+            refId: task._id,
+            label: `来自签署任务：${task.title}`,
+          } : undefined,
           createdAt: new Date().toISOString().split('T')[0],
         }).catch(() => ({ data: { data: null } }))
         doc = docRes.data
@@ -72,12 +85,16 @@ export default function TaskDetail() {
       if (hasNote) {
         await taskService.addNote(task._id, { content: noteText }).catch(() => {})
       }
-      // 标记完成
-      const { data: upd } = await taskService.update(task._id, { status: 'completed' }).catch(() => ({ data: { data: task } }))
+      // 标记完成（携带 hasAttachment 以满足后端完成门禁 #2.3）
+      const { data: upd } = await taskService.update(task._id, {
+        status: 'completed',
+        hasAttachment: hasFile ? true : task.hasAttachment,
+      }).catch(() => ({ data: { data: task } }))
       const newNote = hasNote ? { content: noteText, createdAt: new Date().toISOString() } : null
       setTask(prev => ({
         ...(upd.data || prev),
         status: 'completed',
+        hasAttachment: hasFile ? true : prev.hasAttachment,
         notes: [...(prev.notes || []), ...(newNote ? [newNote] : [])],
       }))
       setArchivedDoc(doc)
@@ -131,16 +148,28 @@ export default function TaskDetail() {
       />
 
       {/* 操作栏 */}
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-1.5">
         {task.status !== 'completed' ? (
-          <button onClick={() => { setNoteText(''); setUploadFile(null); setCompleteOpen(true) }}
-            className="btn-primary flex items-center gap-2">
-            <CheckCircle2 size={16} /> 标记完成（需备注或附件）
+          <button
+            disabled={taskRequiresAttachment(task) && !task.hasAttachment && !uploadFile}
+            onClick={() => {
+              if (taskRequiresAttachment(task) && !task.hasAttachment && !uploadFile) {
+                toast.error('请先上传签署文件后再标记完成')
+                return
+              }
+              setNoteText(''); setUploadFile(null); setCompleteOpen(true)
+            }}
+            className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <CheckCircle2 size={16} /> {taskRequiresAttachment(task) ? '上传签署文件并标记完成' : '标记完成（需备注或附件）'}
           </button>
         ) : (
           <button onClick={handleReopen} className="btn-secondary flex items-center gap-2">
             <Circle size={16} /> 重新打开
           </button>
+        )}
+        {taskRequiresAttachment(task) && !task.hasAttachment && !uploadFile && (
+          <p className="text-xs text-warning flex items-center gap-1"><AlertTriangle size={12} /> 该任务为签署类，必须先上传签署文件方可标记完成</p>
         )}
       </div>
 
@@ -153,6 +182,9 @@ export default function TaskDetail() {
             <div className="flex justify-between"><span className="text-ink-2">状态</span><span className={`px-2 py-0.5 text-xs rounded-full ${taskStatusColor(task.status)}`}>{task.status.replace('_', ' ')}</span></div>
             <div className="flex justify-between"><span className="text-ink-2">截止日期</span><span>{task.dueDate ? formatDate(task.dueDate) : '-'}</span></div>
             <div className="flex justify-between"><span className="text-ink-2">关联公司</span><span>{task.company ? <Link to={`/companies/${task.company._id}`} className="text-primary-600 hover:underline">{task.company.name}</Link> : '未关联'}</span></div>
+            {task.meeting && (task.meeting._id || task.meeting) && (
+              <div className="flex justify-between"><span className="text-ink-2">关联会议</span><span><Link to={`/meetings/${task.meeting._id || task.meeting}`} className="text-primary-600 hover:underline">查看会议纪要</Link></span></div>
+            )}
           </dl>
         </div>
         <div className="card">

@@ -20,6 +20,9 @@ const signTaskSchema = new mongoose.Schema({
   description: { type: String },
   deadline: { type: Date },
 
+  // 关联的"签署 Task"（从会议发起签署时同步创建，用于标记完成 / 在 Task 列表追踪）
+  taskId: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
+
   status: {
     type: String,
     enum: ['draft', 'in_progress', 'completed', 'expired', 'cancelled'],

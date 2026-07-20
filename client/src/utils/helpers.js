@@ -174,6 +174,79 @@ export const MEETING_PHASES = {
   completed: { label: '已完成', color: 'bg-success/10 text-success' },
 }
 
+// ── 会议归档清单（相关文件 Tab 的"应归档文件"检查表）──
+// 按会议类型给出应归档的文件集合；用户在"相关文件"中可逐项查看已上传/待上传并补齐。
+// 每项：{ type: 对应 Document.type, label: 中文名, nameIncludes?: 按文件名包含匹配（用于签到表等无专属 type 的文件） }
+export const MEETING_ARCHIVE_CHECKLIST = {
+  board: [
+    { type: 'notice', label: '会议通知' },
+    { type: 'minutes', label: '会议纪要（签字版）' },
+    { type: 'board_resolution', label: '董事会决议' },
+    { type: 'other', label: '出席签到表', nameIncludes: '签到' },
+  ],
+  agm: [
+    { type: 'notice', label: '会议通知' },
+    { type: 'minutes', label: '会议纪要（签字版）' },
+    { type: 'resolution', label: '股东决议' },
+    { type: 'annual_report', label: '周年申报表' },
+    { type: 'other', label: '出席签到表', nameIncludes: '签到' },
+  ],
+  egm: [
+    { type: 'notice', label: '会议通知' },
+    { type: 'minutes', label: '会议纪要（签字版）' },
+    { type: 'resolution', label: '特别决议' },
+    { type: 'other', label: '出席签到表', nameIncludes: '签到' },
+  ],
+  committee: [
+    { type: 'notice', label: '会议通知' },
+    { type: 'minutes', label: '会议纪要（签字版）' },
+    { type: 'resolution', label: '委员会决议' },
+  ],
+  other: [
+    { type: 'notice', label: '会议通知' },
+    { type: 'minutes', label: '会议纪要（签字版）' },
+  ],
+}
+
+// 判断某文档是否已满足归档清单某一项
+export function docMatchesChecklistItem(doc, item) {
+  if (doc.type === item.type) return true
+  if (item.nameIncludes && doc.name && doc.name.includes(item.nameIncludes)) return true
+  return false
+}
+
+// ── v5.1 会议纪要闭环：关键词自动识别生成签署 Task（#2.1） ──
+// 系统扫描纪要正文，命中以下关键词即自动生成一条签署类待办事项
+export const MINUTES_SIGN_KEYWORDS = ['签署', '签字', '盖章', '签章', '落款']
+
+// 返回命中的关键词数组（空数组表示无需生成签署 Task）
+export function detectMinutesKeywords(text) {
+  if (!text || typeof text !== 'string') return []
+  return MINUTES_SIGN_KEYWORDS.filter(k => text.includes(k))
+}
+
+// 根据命中关键词生成签署 Task 的标题
+export function buildSignTaskTitle(meetingTitle, keywords) {
+  const kw = (keywords || [])[0] || '签署'
+  return `${kw}：${meetingTitle || '会议纪要'}`
+}
+
+// 来源标签（公司档案文件列表展示"来自 [会议纪要]"并跳回，#3.2）
+export function buildSourceLabel(meeting) {
+  if (!meeting) return '来自会议纪要'
+  const date = meeting.scheduledAt ? fmtDate(meeting.scheduledAt) : ''
+  const type = (MEETING_TYPE_LABELS && MEETING_TYPE_LABELS[meeting.type]) || meeting.type || '会议'
+  return `来自 [${date} ${type}纪要]`
+}
+
+// 哪些 Task 类型必须上传附件方可标记完成（#2.2 / #2.3）
+export const TASK_ATTACHMENT_REQUIRED = ['signing', 'document_review']
+
+export function taskRequiresAttachment(task) {
+  return !!task && TASK_ATTACHMENT_REQUIRED.includes(task.type)
+}
+
+
 export const MEETING_STATUSES = {
   draft: '草稿', scheduled: '已排期', in_progress: '进行中',
   completed: '已完成', cancelled: '已取消',

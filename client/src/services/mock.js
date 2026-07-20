@@ -642,6 +642,7 @@ export const documents = {
     if (filters.type) list = list.filter(d => d.type === filters.type);
     if (filters.companyId) list = list.filter(d => d.company?._id === filters.companyId);
     if (filters.personnelId) list = list.filter(d => d.personnel?._id === filters.personnelId);
+    if (filters.meetingId) list = list.filter(d => d.meeting?._id === filters.meetingId);
     return { data: { data: list, total: list.length, totalPages: 1, currentPage: 1 } };
   },
   getOne: async (id) => {
@@ -808,11 +809,12 @@ export const meetings = {
     m.phase = 'minutes-signed';
     return { data: { data: m } };
   },
-  updateStatus: async (id, { status }) => {
+  updateStatus: async (id, { status, phase }) => {
     await delay();
     const idx = MOCK_MEETINGS.findIndex(m => m._id === id);
     if (idx < 0) throw new Error('Meeting not found');
-    MOCK_MEETINGS[idx].status = status;
+    if (status) MOCK_MEETINGS[idx].status = status;
+    if (phase) MOCK_MEETINGS[idx].phase = phase;
     return { data: { data: MOCK_MEETINGS[idx] } };
   },
 };
@@ -939,6 +941,8 @@ export const tasks = {
     if (filters.status && filters.status !== 'all') list = list.filter(t => t.status === filters.status);
     if (filters.priority && filters.priority !== 'all') list = list.filter(t => t.priority === filters.priority);
     if (filters.search) list = list.filter(t => t.title.toLowerCase().includes(filters.search.toLowerCase()));
+    // v5.1 会议闭环：按会议过滤关联 Task
+    if (filters.meetingId) list = list.filter(t => (t.meeting && (t.meeting._id === filters.meetingId || t.meeting === filters.meetingId)));
     return { data: { data: list, total: list.length } };
   },
   getOne: async (id) => {

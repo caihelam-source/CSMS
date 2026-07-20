@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Calendar, FileText, Building2,
   CheckSquare, LogOut, Menu, X, Briefcase, Crown, Zap,
   Bell, ShieldCheck, FileCode, UserCircle, Settings as SettingsIcon,
-  Sun, Moon,
+  Sun, Moon, MoreHorizontal,
 } from 'lucide-react'
 import { useState, memo } from 'react'
 import GlobalSearch from './GlobalSearch'
@@ -23,6 +23,15 @@ const NAV_ITEMS = [
   { path: '/settings',              icon: SettingsIcon,     label: 'Settings',    group: null },
 ]
 
+// 手机端底部 Tab 栏主项（最多 5 个，其余走"更多"抽屉）
+const BOTTOM_TABS = [
+  { path: '/dashboard',  icon: LayoutDashboard, label: '首页' },
+  { path: '/companies',  icon: Building2,       label: '公司' },
+  { path: '/documents',  icon: FileText,        label: '文档' },
+  { path: '/meetings',   icon: Calendar,        label: '会议' },
+  { path: '/tasks',      icon: CheckSquare,     label: '任务' },
+]
+
 const ROLE_BADGE = {
   admin:   { label: 'Admin',   color: 'bg-danger/10 text-danger'    },
   manager: { label: 'Manager', color: 'bg-info/10 text-primary-700'  },
@@ -30,22 +39,37 @@ const ROLE_BADGE = {
 }
 
 /**
- * NavItem — extracted outside Navbar to avoid re-creating component on every render.
- * Wrapped in memo to prevent unnecessary re-renders when parent state changes.
+ * NavItem — 侧边栏导航项。选中态：左侧 accent 条 + 加粗（T-3.6.4 一眼可辨）。
  */
 const NavItem = memo(({ path, icon: Icon, label, admin, active, onClick }) => (
   <Link
     to={path}
     onClick={onClick}
-    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+    className={`tap-target flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors border-l-2 ${
       active
-        ? 'bg-primary-50 text-primary-700'
-        : 'text-ink-2 hover:bg-gray-100 hover:text-ink'
-    } ${admin ? 'border border-dashed border-danger/20 hover:border-danger/20 hover:bg-danger/10 hover:text-danger' : ''}`}
+        ? 'bg-primary-50 text-primary-700 font-semibold border-primary-600'
+        : 'text-ink-2 hover:bg-gray-100 hover:text-ink border-transparent'
+    } ${admin ? 'border-dashed border-danger/30 hover:border-danger/30 hover:bg-danger/10 hover:text-danger' : ''}`}
   >
     <Icon size={18} className={active ? 'text-primary-600' : admin ? 'text-danger' : 'text-ink-3'} />
     <span className="flex-1">{label}</span>
     {admin && <Crown size={13} className="text-danger" />}
+  </Link>
+))
+
+/**
+ * BottomTab — 手机端底部 Tab。选中态：加粗 + 顶部指示条（对比度达标，T-3.6.4）。
+ */
+const BottomTab = memo(({ path, icon: Icon, label, active, onClick }) => (
+  <Link
+    to={path}
+    onClick={onClick}
+    className={`tap-target flex-1 flex flex-col items-center justify-center gap-0.5 border-t-2 transition-colors ${
+      active ? 'text-primary-700 font-semibold border-primary-600' : 'text-ink-3 border-transparent'
+    }`}
+  >
+    <Icon size={20} />
+    <span className="text-[11px] leading-none">{label}</span>
   </Link>
 ))
 
@@ -66,8 +90,9 @@ const Navbar = () => {
     : '??'
 
   const roleBadge = ROLE_BADGE[user?.role] || ROLE_BADGE.viewer
-
   const closeMobile = () => setOpen(false)
+  const openMobile = () => setOpen(true)
+  const isActive = (p) => location.pathname === p
 
   return (
     <>
@@ -109,41 +134,36 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Global search — 跨实体结构化关联搜索入口 */}
+        {/* Global search */}
         <GlobalSearch />
 
         {/* Nav items */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          {/* Main items (no group) */}
           <div className="space-y-0.5">
             {NAV_ITEMS.filter(i => !i.group).map(item => (
-              <NavItem key={item.path} {...item} active={location.pathname === item.path} onClick={closeMobile} />
+              <NavItem key={item.path} {...item} active={isActive(item.path)} onClick={closeMobile} />
             ))}
           </div>
-
-          {/* Compliance group */}
           <div className="mt-4">
             <p className="px-3 text-xs font-semibold text-ink-3 uppercase tracking-widest pb-1.5">Compliance</p>
             <div className="space-y-0.5">
               {NAV_ITEMS.filter(i => i.group === 'Compliance').map(item => (
-                <NavItem key={item.path} {...item} active={location.pathname === item.path} onClick={closeMobile} />
+                <NavItem key={item.path} {...item} active={isActive(item.path)} onClick={closeMobile} />
               ))}
             </div>
           </div>
-
-          {/* Admin section — only visible to admins */}
           {isAdmin && (
             <>
               <div className="pt-3 pb-1">
                 <p className="px-3 text-xs font-semibold text-ink-3 uppercase tracking-widest">Administration</p>
               </div>
-              <NavItem path="/admin" icon={Crown} label="Admin Panel" admin active={location.pathname === '/admin'} onClick={closeMobile} />
+              <NavItem path="/admin" icon={Crown} label="Admin Panel" admin active={isActive('/admin')} onClick={closeMobile} />
             </>
           )}
         </nav>
 
         {/* User footer */}
-        <div className="px-3 py-3 border-t border-hairline space-y-1">
+        <div className="px-3 py-3 border-t border-hairline space-y-1 pb-safe">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-canvas mb-1">
             <div className="w-9 h-9 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
               {initials}
@@ -157,7 +177,7 @@ const Navbar = () => {
           </div>
           <button
             onClick={logout}
-            className="flex items-center w-full gap-3 px-3 py-2.5 text-sm text-ink-2 hover:bg-gray-100 hover:text-ink rounded-lg transition-colors"
+            className="tap-target flex items-center w-full gap-3 px-3 py-2.5 text-sm text-ink-2 hover:bg-gray-100 hover:text-ink rounded-lg transition-colors"
           >
             <LogOut size={17} className="text-ink-3" />
             Sign Out
@@ -167,6 +187,23 @@ const Navbar = () => {
 
       {/* Mobile overlay */}
       {open && <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={closeMobile} />}
+
+      {/* 手机端底部 Tab 栏 — 主项直达，更多走抽屉（含 safe-area 适配，T-3.6.1） */}
+      <nav className={`lg:hidden fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-hairline flex pb-safe ${open ? 'hidden' : 'flex'}`}>
+        {BOTTOM_TABS.map(item => (
+          <BottomTab key={item.path} {...item} active={isActive(item.path)} onClick={closeMobile} />
+        ))}
+        <button
+          onClick={openMobile}
+          className={`tap-target flex-1 flex flex-col items-center justify-center gap-0.5 border-t-2 transition-colors ${
+            open ? 'text-primary-700 font-semibold border-primary-600' : 'text-ink-3 border-transparent'
+          }`}
+          aria-label="更多菜单"
+        >
+          <MoreHorizontal size={20} />
+          <span className="text-[11px] leading-none">更多</span>
+        </button>
+      </nav>
     </>
   )
 }

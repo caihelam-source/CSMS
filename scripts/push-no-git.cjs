@@ -3,12 +3,18 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const TOKEN = process.env.GITHUB_TOKEN;
+const TOKEN = process.env.GITHUB_TOKEN || (() => {
+  try {
+    const s = fs.readFileSync('C:\\Users\\Vincent\\WorkBuddy\\Claw\\.workbuddy\\memory\\SECRETS.md', 'utf8');
+    const m = s.match(/github_pat_[A-Za-z0-9_]+/);
+    return m ? m[0] : null;
+  } catch { return null; }
+})();
 const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat(Wave0): 安全地基 P0 — 4角色RBAC + live权限修复 + seed-admin + 关闭公开注册 + AdminPanel API驱动';
+const COMMIT_MSG = 'feat: Wave1 移动端硬化+PWA + 会议业务流闭环 + #2/#3 纪要闭环强化与文件管理中心';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 
@@ -132,6 +138,11 @@ function walk(dir, rel, rules) {
 
   console.log(`→ changed: ${changed}, added: ${added}, deleted: ${deleted}`);
   if (entries.length === 0) { console.log('Nothing to push.'); return; }
+
+  if (process.env.DRY_RUN) {
+    console.log('DRY_RUN: 未实际推送。确认 deleted 数量正常后去掉 DRY_RUN 再运行。');
+    return;
+  }
 
   const newTree = await api('POST', '/git/trees', { base_tree: baseTreeSha, tree: entries });
   const newCommit = await api('POST', '/git/commits', { message: COMMIT_MSG, tree: newTree.sha, parents: [baseSha] });

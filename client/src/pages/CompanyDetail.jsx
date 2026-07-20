@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, ClipboardCheck, CheckSquare } from 'lucide-react'
+import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, ClipboardCheck, CheckSquare, Lock, AlertTriangle } from 'lucide-react'
 import { companyService, documentService, meetingService, personnelService, complianceReminderService, complianceRuleService, taskService } from '../services/index.js'
 import EquityGraph from './EquityGraph'
 import { formatDate, getStatusColor, DOC_CATEGORY_LABELS, docExpiryStatus, DOC_EXPIRY_BADGE, generateDocFilename, saveBlob } from '../utils/helpers'
@@ -108,6 +108,26 @@ export default function CompanyDetail() {
   // 所有 personnel 和 companies（用于联动显示最新数据）
   const [allPersonnel, setAllPersonnel] = useState([])
   const [allCompanies, setAllCompanies] = useState([])
+
+  // v5.1 文件管理中心：补充上传相关文件（关联会议/事项）
+  const [uploadRelOpen, setUploadRelOpen] = useState(false)
+  const [relForm, setRelForm] = useState({ name: '', type: 'other', meetingId: '', file: null })
+  // 按会议分组（用于归档锁定：该次会议的所有关联文件变为只读 #3.4）
+  const groupedDocs = useMemo(() => {
+    const map = new Map()
+    const orphan = { meetingId: null, docs: [] }
+    documents.forEach(d => {
+      const mid = d.meeting?._id || d.meeting
+      if (mid) {
+        const key = String(mid)
+        if (!map.has(key)) map.set(key, { meetingId: key, docs: [] })
+        map.get(key).docs.push(d)
+      } else {
+        orphan.docs.push(d)
+      }
+    })
+    return [...map.values(), orphan].filter(g => g.docs.length)
+  }, [documents])
 
   // 合规规则库（用于新增提醒时联动选择 + 自定义沉淀）
   const [rules, setRules] = useState([])
@@ -903,50 +923,103 @@ export default function CompanyDetail() {
             })}
           </aside>
 
-          {/* 主区：文件列表 */}
+          {/* 主区：文件列表（分组 + 来源追溯 + 归档锁定） */}
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold mb-4">关联文件</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">关联文件</h2>
+              <button onClick={() => { setRelForm({ name: '', type: 'other', meetingId: '', file: null }); setUploadRelOpen(true) }}
+                className="btn-secondary flex items-center gap-1.5 text-sm">
+                <Upload size={14} /> 上传相关文件
+              </button>
+            </div>
             {documents.length === 0 ? (
               <div className="card text-center py-12 text-ink-3">
                 <FileText size={48} className="mx-auto mb-4 opacity-50" />
                 <p>暂无关联文件</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {documents
-                  .filter(d => docFilterCategory === 'all' || (d.category || 'other') === docFilterCategory)
-                  .map(doc => (
-                    <div key={doc._id} className="card flex items-center justify-between">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <FileText size={20} className="text-primary-600 shrink-0" />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {doc.docNumber && <span className="text-xs font-mono text-ink-3">{doc.docNumber}</span>}
-                            <p className="font-medium truncate">{doc.name}</p>
-                            {/* v5.0: isExpiring 徽章逻辑（红=已过期 / 橙=即将到期 / 绿=有效） */}
-                            {(() => {
-                              const st = docExpiryStatus(doc)
-                              const badge = DOC_EXPIRY_BADGE[st]
-                              return badge ? (
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
-                              ) : null
-                            })()}
-                          </div>
-                          <p className="text-xs text-ink-3">
-                            <span className="bg-gray-100 text-ink-2 px-1.5 py-0.5 rounded">{DOC_CATEGORY_LABELS[doc.category] || '其他'}</span>
-                            {doc.type && <> &middot; {doc.type.replace(/_/g, ' ')}</>}
-                            {doc.fileSize && <> &middot; {(doc.fileSize / 1024).toFixed(0)} KB</>}
-                            {doc.createdAt && <> &middot; {formatDate(doc.createdAt)}</>}
-                          </p>
-                        </div>
+              <div className="space-y-5">
+                {groupedDocs.map((group, gi) => {
+                  const mid = group.meetingId
+                  const mTitle = mid ? (meetings.find(m => m._id === mid)?.title || '关联会议') : '未关联会议的文件'
+                  const docsInGroup = group.docs.filter(d => docFilterCategory === 'all' || (d.category || 'other') === docFilterCategory)
+                  if (docsInGroup.length === 0) return null
+                  const allLocked = docsInGroup.every(d => d.locked)
+                  return (
+                    <div key={gi}>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold text-ink-2 flex items-center gap-2">
+                          {mid ? <Link to={`/meetings/${mid}`} className="text-primary-600 hover:underline">{mTitle}</Link> : mTitle}
+                          <span className="text-xs text-ink-3">({docsInGroup.length})</span>
+                        </h3>
+                        {/* v5.1 #3.4 一键归档锁定：该次会议的所有关联文件变为只读 */}
+                        <button
+                          disabled={allLocked}
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: '归档锁定',
+                              message: `确定锁定「${mTitle}」的全部 ${docsInGroup.length} 个文件？锁定后文件将变为只读（无法删除/修改）。`,
+                              confirmLabel: '确认归档锁定',
+                            })
+                            if (!ok) return
+                            for (const d of docsInGroup) {
+                              await documentService.update(d._id, { locked: true, lockedAt: new Date().toISOString() }).catch(() => {})
+                            }
+                            toast.success('已归档锁定，文件变为只读')
+                            loadAll()
+                          }}
+                          className="btn-secondary flex items-center gap-1.5 text-xs disabled:opacity-50"
+                        >
+                          <Lock size={12} /> {allLocked ? '已归档' : '一键归档锁定'}
+                        </button>
                       </div>
-                      {doc.fileUrl ? (
-                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm shrink-0">Download</a>
-                      ) : (
-                        <span className="text-xs text-ink-3 shrink-0">无文件</span>
-                      )}
+                      <div className="space-y-2">
+                        {docsInGroup.map(doc => (
+                          <div key={doc._id} className={`card flex items-center justify-between ${doc.locked ? 'opacity-80' : ''}`}>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <FileText size={20} className={doc.locked ? 'text-ink-3 shrink-0' : 'text-primary-600 shrink-0'} />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {doc.docNumber && <span className="text-xs font-mono text-ink-3">{doc.docNumber}</span>}
+                                  <p className="font-medium truncate">{doc.name}</p>
+                                  {/* v5.1 #3.4 归档锁定印章 */}
+                                  {doc.locked && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-danger/10 text-danger flex items-center gap-0.5"><Lock size={10} /> 已归档</span>
+                                  )}
+                                  {/* v5.1 #3.2 来源追溯：可点击跳回会议纪要 */}
+                                  {doc.source?.label && (
+                                    <Link to={doc.source.refId ? `/meetings/${doc.source.refId}` : '#'} className="text-[10px] px-1.5 py-0.5 rounded-full bg-info/10 text-primary-700 hover:underline flex items-center gap-0.5">
+                                      <ExternalLink size={10} /> {doc.source.label}
+                                    </Link>
+                                  )}
+                                  {(() => {
+                                    const st = docExpiryStatus(doc)
+                                    const badge = DOC_EXPIRY_BADGE[st]
+                                    return badge ? (
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+                                    ) : null
+                                  })()}
+                                </div>
+                                <p className="text-xs text-ink-3">
+                                  <span className="bg-gray-100 text-ink-2 px-1.5 py-0.5 rounded">{DOC_CATEGORY_LABELS[doc.category] || '其他'}</span>
+                                  {doc.type && <> &middot; {doc.type.replace(/_/g, ' ')}</>}
+                                  {doc.fileSize && <> &middot; {(doc.fileSize / 1024).toFixed(0)} KB</>}
+                                  {doc.createdAt && <> &middot; {formatDate(doc.createdAt)}</>}
+                                  {doc.locked && <span className="text-danger"> &middot; 只读</span>}
+                                </p>
+                              </div>
+                            </div>
+                            {doc.fileUrl ? (
+                              <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm shrink-0">Download</a>
+                            ) : (
+                              <span className="text-xs text-ink-3 shrink-0">无文件</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -1359,6 +1432,71 @@ export default function CompanyDetail() {
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowReminderModal(false)} className="btn-secondary">取消</button>
             <button onClick={handleSaveReminder} disabled={savingReminder || !reminderForm.title || !reminderForm.dueDate} className="btn-primary">{savingReminder ? '添加中...' : '添加提醒'}</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ====== v5.1 上传相关文件 Modal（关联会议/事项，#3.3） ====== */}
+      <Modal isOpen={uploadRelOpen} onClose={() => setUploadRelOpen(false)} title="上传相关文件" size="md">
+        <div className="space-y-4">
+          <FormField label="文件名称" required>
+            <input className={inputClass} value={relForm.name}
+              onChange={e => setRelForm(f => ({ ...f, name: e.target.value }))} placeholder="例如：合同草案 / 法律意见书" />
+          </FormField>
+          <FormField label="文件类型">
+            <select className={inputClass} value={relForm.type} onChange={e => setRelForm(f => ({ ...f, type: e.target.value }))}>
+              <option value="other">其他</option>
+              <option value="agreement">协议</option>
+              <option value="resolution">决议</option>
+              <option value="board_resolution">董事会决议</option>
+              <option value="notice">通知</option>
+              <option value="annual_report">周年申报表</option>
+              <option value="certificate">证书</option>
+              <option value="memo">备忘录</option>
+            </select>
+          </FormField>
+          <FormField label="关联到会议 / 事项">
+            <select className={inputClass} value={relForm.meetingId} onChange={e => setRelForm(f => ({ ...f, meetingId: e.target.value }))}>
+              <option value="">不关联（仅归入公司）</option>
+              {meetings.map(m => (
+                <option key={m._id} value={m._id}>{m.title}（{formatDate(m.scheduledAt)}）</option>
+              ))}
+            </select>
+          </FormField>
+          <FormField label="选择文件">
+            <input type="file" className={inputClass} onChange={e => setRelForm(f => ({ ...f, file: e.target.files[0] || null }))} />
+          </FormField>
+          <div className="bg-warning/10 border border-warning/20 p-3 rounded-lg text-sm text-warning flex items-start gap-2">
+            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+            <span>上传的文件将归入「{company?.name}」文档库{relForm.meetingId ? '，并关联所选会议（可在会议页查看）' : ''}。</span>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setUploadRelOpen(false)} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
+            <button onClick={async () => {
+              if (!relForm.name) { toast.error('请填写文件名称'); return }
+              try {
+                const mTitle = relForm.meetingId ? (meetings.find(m => m._id === relForm.meetingId)?.title || '关联会议') : null
+                await documentService.create({
+                  name: relForm.name,
+                  type: relForm.type,
+                  category: 'other',
+                  company: { _id: id, name: company?.name, registrationNumber: company?.registrationNumber },
+                  meeting: relForm.meetingId || undefined,
+                  fileName: relForm.file?.name,
+                  fileSize: relForm.file?.size,
+                  // v5.1 #3.1 / #3.2 来源追溯：标注关联会议，公司档案可点击跳回
+                  source: {
+                    kind: relForm.meetingId ? 'manual_upload' : 'other',
+                    refId: relForm.meetingId || undefined,
+                    label: relForm.meetingId ? `来自 [${mTitle}]` : '手动上传',
+                  },
+                  createdAt: new Date().toISOString().split('T')[0],
+                })
+                toast.success('相关文件已上传并归入公司文档库')
+                setUploadRelOpen(false)
+                loadAll()
+              } catch { toast.error('上传失败') }
+            }} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">确认上传</button>
           </div>
         </div>
       </Modal>

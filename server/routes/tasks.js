@@ -1,5 +1,6 @@
 const express = require('express');
 const Task = require('../models/Task');
+const Document = require('../models/Document');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -101,11 +102,34 @@ router.post('/', auth, async (req, res) => {
 // @access  Private
 router.put('/:id', auth, async (req, res) => {
   try {
+    const existing = await Task.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
     const updateData = { ...req.body };
 
     // If status is being set to completed, add completedDate
     if (req.body.status === 'completed' && !req.body.completedDate) {
       updateData.completedDate = new Date();
+    }
+
+    // v5.1 完成门禁：签署类 / 文档审阅类 Task 必须已有附件方可标记完成（#2.3 状态流转）
+    const REQUIRE_ATTACH = ['signing', 'document_review'];
+    if (req.body.status === 'completed' && REQUIRE_ATTACH.includes(existing.type)) {
+      const hasAtt = existing.hasAttachment === true || req.body.hasAttachment === true;
+      if (!hasAtt) {
+        // 兜底：检查是否已存在关联该 Task 的签署扫描件文档
+        const linked = await Document.findOne({
+          $or: [
+            { 'source.refId': existing._id },
+            { 'source.kind': 'signing_scan', refId: existing._id },
+          ],
+        });
+        if (!linked) {
+          return res.status(400).json({ message: '请先上传签署文件后再标记完成' });
+        }
+      }
     }
 
     const task = await Task.findByIdAndUpdate(

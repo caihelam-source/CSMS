@@ -151,11 +151,14 @@ router.delete('/:id', auth, async (req, res) => {
 // @access  Private
 router.patch('/:id/status', auth, async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, phase } = req.body;
+    const update = {};
+    if (status) update.status = status;
+    if (phase) update.phase = phase;
 
     const meeting = await Meeting.findByIdAndUpdate(
       req.params.id,
-      { status },
+      update,
       { new: true }
     ).populate('company', 'name');
 

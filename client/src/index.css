@@ -14,7 +14,7 @@
   --text-1: 29 29 31;        /* 主文字（近黑 #1d1d1f） */
   --text-2: 110 110 115;     /* 次文字 #6e6e73 */
   --text-3: 134 134 139;     /* 三级/辅助文字 #86868b */
-  --border: 227 227 230;      /* 发丝边框 #e3e3e6 */
+  --border: 227 227 230;     /* 发丝边框 #e3e3e6 */
   --c-success: 52 199 89;      /* 绿 #34c759 */
   --c-warning: 255 159 10;    /* 橙 #ff9f0a */
   --c-danger: 255 59 48;      /* 红 #ff3b30 */
@@ -42,29 +42,31 @@
   body {
     @apply bg-canvas text-ink antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    /* T-3.6.5 禁止横向滚动：手机端小屏不再错位焦虑 */
+    overflow-x: hidden;
   }
 }
 
 @layer components {
   /* 按钮：统一走 token，圆角统一 2xl，悬停仅做色彩/微抬变化 */
   .btn-primary {
-    @apply bg-primary-600 text-white px-4 py-2 rounded-xl hover:bg-primary-700 transition-colors font-medium;
+    @apply bg-primary-600 text-white px-4 py-2 rounded-xl hover:bg-primary-700 transition-colors font-medium tap-target;
   }
   .btn-secondary {
-    @apply bg-surface text-ink px-4 py-2 rounded-xl border border-hairline hover:bg-canvas transition-colors font-medium;
+    @apply bg-surface text-ink px-4 py-2 rounded-xl border border-hairline hover:bg-canvas transition-colors font-medium tap-target;
   }
   .btn-danger {
-    @apply bg-danger text-white px-4 py-2 rounded-xl hover:opacity-90 transition font-medium;
+    @apply bg-danger text-white px-4 py-2 rounded-xl hover:opacity-90 transition font-medium tap-target;
   }
 
   /* 卡片：单一深度处理（极淡发丝边 + 极柔阴影），不再双重叠加显重 */
   .card {
-    @apply bg-surface rounded-2xl border border-hairline shadow-card p-6 transition-shadow;
+    @apply bg-surface rounded-2xl border border-hairline shadow-card p-4 lg:p-6 transition-shadow;
   }
 
   /* 输入：引用表面/文字令牌，主题感知 */
   .input-field {
-    @apply w-full px-3 py-2 border border-hairline rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-surface text-ink;
+    @apply w-full px-3 py-2 border border-hairline rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-surface text-ink tap-target;
   }
 
   .label {
@@ -84,6 +86,14 @@
   /* 字阶与辅助文字：建立清晰层级，全站复用 */
   .text-muted   { @apply text-sm text-ink-2; }
   .text-caption { @apply text-xs text-ink-3; }
-  .page-title   { @apply text-2xl font-bold text-ink; }
+  .page-title   { @apply text-2xl font-bold text-ink break-words; }
   .section-title { @apply text-base font-semibold text-ink; }
+}
+
+@layer utilities {
+  /* 安全区适配（刘海/主页指示器）：手机端底部 Tab 与抽屉用 */
+  .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem); }
+  .pt-safe { padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem); }
+  /* 触控目标最小高度 44pt（WCAG / 移动可用性，T-3.6.5） */
+  .tap-target { @apply min-h-[44px]; }
 }

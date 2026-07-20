@@ -18,12 +18,13 @@ const upload = multer({
 // GET /api/documents
 router.get('/', auth, async (req, res) => {
   try {
-    const { type, company, companyId, personnelId, signStatus, search } = req.query;
+    const { type, company, companyId, personnelId, meetingId, signStatus, search } = req.query;
     const query = {};
     if (type) query.type = type;
     if (company) query.company = company;
     if (companyId) query.company = companyId;
     if (personnelId) query.personnel = personnelId;
+    if (meetingId) query.meeting = meetingId;
     if (signStatus) query.signStatus = signStatus;
     if (search) {
       query.$or = [
@@ -61,11 +62,12 @@ router.get('/:id', auth, async (req, res) => {
 // POST /api/documents — 上传文件
 router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
-    const { title, name, type, company, personnel, description, category, note, tags, keywords, isConfidential } = req.body;
+    const { title, name, type, company, personnel, meeting, description, category, note, tags, keywords, isConfidential, source, locked } = req.body;
 
-    // 兼容前端自动归档：company / personnel 可能是 { _id, name } 对象，也可能直接是 ObjectId
+    // 兼容前端自动归档：company / personnel / meeting 可能是 { _id, name } 对象，也可能直接是 ObjectId
     const companyVal = (company && typeof company === 'object' && company._id) ? company._id : company;
     const personnelVal = (personnel && typeof personnel === 'object' && personnel._id) ? personnel._id : personnel;
+    const meetingVal = (meeting && typeof meeting === 'object' && meeting._id) ? meeting._id : meeting;
 
     // 文档标题：优先 title，其次 name（前端自动归档使用 name 字段）
     const docTitle = title || name || req.file?.originalname || 'Untitled';
@@ -85,11 +87,19 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       category: category || 'other',
       company: companyVal || undefined,
       personnel: personnelVal || undefined,
+      meeting: meetingVal || undefined,
       description: description || note || undefined,
       note: note || undefined,
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : [],
       keywords: keywords ? (Array.isArray(keywords) ? keywords : keywords.split(',').map(k => k.trim())) : [],
       isConfidential: isConfidential === 'true' || isConfidential === true,
+      // v5.1 来源追溯 + 归档锁定：前端自动归集（纪要/签署扫描）或手动补充上传时携带
+      source: (source && typeof source === 'object') ? {
+        kind: source.kind || 'other',
+        refId: source.refId || undefined,
+        label: source.label || undefined,
+      } : undefined,
+      locked: locked === true || locked === 'true' || false,
       uploadedBy: req.user._id,
     };
 

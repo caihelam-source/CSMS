@@ -31,6 +31,16 @@ const documentSchema = new mongoose.Schema({
   // Legacy fields
   docNumber: { type: String, unique: true, sparse: true },
   signStatus: { type: String, enum: ['draft', 'pending_sign', 'partially_signed', 'fully_signed', 'archived'], default: 'draft' },
+  // v5.1 来源追溯 + 归档锁定（会议纪要闭环 / 文件管理中心）
+  // source: 记录文件从何处自动归集而来，便于公司档案展示"来自 [会议纪要]"并可跳回
+  source: {
+    kind: { type: String, enum: ['meeting_minutes', 'signing_scan', 'task_attachment', 'manual_upload', 'other'] },
+    refId: { type: mongoose.Schema.Types.ObjectId }, // 关联 Meeting / Task
+    label: { type: String }, // 人类可读来源标签，如 "来自 [2026-07-17 董事会纪要]"
+  },
+  // locked: 归档锁定 → 只读（无法删除/修改），公司档案展示"已归档"印章
+  locked: { type: Boolean, default: false },
+  lockedAt: { type: Date },
 }, { timestamps: true });
 
 documentSchema.index({ company: 1, type: 1 });

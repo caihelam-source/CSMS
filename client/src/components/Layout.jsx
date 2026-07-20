@@ -19,8 +19,8 @@ export default function Layout() {
           </div>
         ) : null}
 
-        {/* Page content */}
-        <main className="flex-1 p-4 lg:p-6">
+        {/* Page content — pb-24 给手机端底部 Tab 栏留位（lg 以上无 Tab，恢复 pb-6） */}
+        <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6">
           <Outlet />
         </main>
       </div>
