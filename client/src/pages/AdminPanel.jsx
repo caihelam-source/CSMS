@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Users, Shield, Settings, Plus, Pencil, Trash2,
   CheckCircle, XCircle, Crown, Eye, UserCog, Mail,
-  Activity, Building2, Calendar, FileText, CheckSquare
+  Activity, Building2, Calendar, FileText, CheckSquare,
+  Loader2
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { userService } from '../services/index.js'
 import { validate, required, email as emailValidator, minLength } from '../utils/validators'
 import { inputClass, labelClass, PageHeader, DeleteConfirmModal, FormField, TabNav } from '../components/UIHelpers'
 import Modal from '../components/Modal'
@@ -15,20 +17,25 @@ const USER_FORM_RULES = {
   password: [minLength(8, '密码至少8位')],
 }
 
-// ─── Demo user list ───────────────────────────────────────────────
-const INITIAL_USERS = [
-  { id: 'u1', name: 'Admin User',   email: 'admin@example.com',   role: 'admin',   status: 'active',   joined: '2024-01-01' },
-  { id: 'u2', name: 'Sarah Manager',email: 'manager@example.com', role: 'manager', status: 'active',   joined: '2024-03-15' },
-  { id: 'u3', name: 'View Only',    email: 'viewer@example.com',  role: 'viewer',  status: 'active',   joined: '2024-06-20' },
-]
-
+// 角色定义（4 角色 RBAC，与后端一致）
 const ROLES = [
-  { value: 'admin',   label: 'Admin',   icon: Crown,   desc: 'Full access — can manage users, edit & delete anything',   color: 'bg-danger/10 text-danger' },
-  { value: 'manager', label: 'Manager', icon: UserCog, desc: 'Can create & edit records, cannot manage users or delete',  color: 'bg-info/10 text-primary-700' },
-  { value: 'viewer',  label: 'Viewer',  icon: Eye,     desc: 'Read-only access — cannot create, edit, or delete',         color: 'bg-gray-100 text-ink-2' },
+  { value: 'admin',    label: 'Admin',    icon: Crown,   desc: 'Full access — can manage users, edit & delete anything',   color: 'bg-danger/10 text-danger' },
+  { value: 'secretary',label: 'Secretary',icon: UserCog, desc: 'Can create & edit records and upload documents',            color: 'bg-info/10 text-primary-700' },
+  { value: 'manager',  label: 'Manager',  icon: UserCog, desc: 'Can create & edit records, cannot manage users or delete',  color: 'bg-info/10 text-primary-700' },
+  { value: 'viewer',   label: 'Viewer',   icon: Eye,     desc: 'Read-only access — cannot create, edit, or delete',         color: 'bg-gray-100 text-ink-2' },
 ]
 
-const roleInfo = (role) => ROLES.find(r => r.value === role) || ROLES[2]
+const roleInfo = (role) => ROLES.find(r => r.value === role) || ROLES[3]
+
+// 后端用户 → 前端展示模型
+const normalizeUser = (u) => ({
+  id: u._id || u.id,
+  name: u.name,
+  email: u.email,
+  role: u.role || 'viewer',
+  status: u.isActive === false ? 'inactive' : 'active',
+  joined: u.joined || (u.createdAt ? String(u.createdAt).slice(0, 10) : '—'),
+})
 
 // ─── User Form ────────────────────────────────────────────────────
 const UserForm = ({ initial = {}, onSave, onCancel, loading, currentUserId }) => {
@@ -124,13 +131,13 @@ const UserForm = ({ initial = {}, onSave, onCancel, loading, currentUserId }) =>
 
 // ─── Permission Matrix ────────────────────────────────────────────
 const PERM_MATRIX = [
-  { feature: 'View Dashboard & Reports', admin: true,  manager: true,  viewer: true  },
-  { feature: 'View Companies / Meetings / Documents / Tasks', admin: true, manager: true, viewer: true },
-  { feature: 'Create & Edit Records', admin: true,  manager: true,  viewer: false },
-  { feature: 'Delete Records',         admin: true,  manager: false, viewer: false },
-  { feature: 'Upload Documents',       admin: true,  manager: true,  viewer: false },
-  { feature: 'Manage Users',           admin: true,  manager: false, viewer: false },
-  { feature: 'Access Admin Panel',     admin: true,  manager: false, viewer: false },
+  { feature: 'View Dashboard & Reports', admin: true,  secretary: true,  manager: true,  viewer: true  },
+  { feature: 'View Companies / Meetings / Documents / Tasks', admin: true, secretary: true, manager: true, viewer: true },
+  { feature: 'Create & Edit Records', admin: true,  secretary: true,  manager: true,  viewer: false },
+  { feature: 'Delete Records',         admin: true,  secretary: false, manager: false, viewer: false },
+  { feature: 'Upload Documents',       admin: true,  secretary: true,  manager: true,  viewer: false },
+  { feature: 'Manage Users',           admin: true,  secretary: false, manager: false, viewer: false },
+  { feature: 'Access Admin Panel',     admin: true,  secretary: false, manager: false, viewer: false },
 ]
 
 const Tick = ({ ok }) => ok
@@ -152,11 +159,29 @@ const StatBadge = ({ icon: Icon, label, value, color }) => (
 const AdminPanel = () => {
   const { user: currentUser, isAdmin } = useAuth()
   const [tab, setTab] = useState('users')
-  const [users, setUsers] = useState(INITIAL_USERS)
+  const [users, setUsers] = useState([])
+  const [listLoading, setListLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [saving, setSaving] = useState(false)
+
+  const loadUsers = async () => {
+    setListLoading(true)
+    try {
+      const res = await userService.getAll()
+      const list = (res.data?.data || res.data || []).map(normalizeUser)
+      setUsers(list)
+    } catch (err) {
+      console.error('[AdminPanel] load users failed:', err)
+    } finally {
+      setListLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (tab === 'users') loadUsers()
+  }, [tab])
 
   if (!isAdmin) {
     return (
@@ -171,21 +196,37 @@ const AdminPanel = () => {
   const openNew = () => { setEditTarget(null); setModalOpen(true) }
   const openEdit = (u) => { setEditTarget(u); setModalOpen(true) }
 
-  const handleSave = (form) => {
+  const handleSave = async (form) => {
     setSaving(true)
-    setTimeout(() => {
+    try {
       if (editTarget) {
-        setUsers(us => us.map(u => u.id === editTarget.id ? { ...u, ...form } : u))
+        const payload = { name: form.name, email: form.email, role: form.role, isActive: form.status === 'active' }
+        const res = await userService.update(editTarget.id, payload)
+        const updated = normalizeUser(res.data?.data || res.data)
+        setUsers(us => us.map(u => u.id === editTarget.id ? updated : u))
       } else {
-        setUsers(us => [...us, { ...form, id: 'u' + Date.now(), joined: new Date().toISOString().slice(0, 10) }])
+        const payload = { name: form.name, email: form.email, password: form.password, role: form.role }
+        const res = await userService.create(payload)
+        const created = normalizeUser(res.data?.data || res.data)
+        setUsers(us => [...us, created])
       }
       setModalOpen(false)
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Save failed'
+      alert(msg)
+    } finally {
       setSaving(false)
-    }, 400)
+    }
   }
 
-  const handleDelete = () => {
-    setUsers(us => us.filter(u => u.id !== deleteTarget.id))
+  const handleDelete = async () => {
+    try {
+      await userService.remove(deleteTarget.id)
+      setUsers(us => us.filter(u => u.id !== deleteTarget.id))
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Delete failed'
+      alert(msg)
+    }
     setDeleteTarget(null)
   }
 
@@ -213,7 +254,7 @@ const AdminPanel = () => {
         <StatBadge icon={Users} label="Total Users" value={users.length} color="bg-info/10 text-primary-700" />
         <StatBadge icon={CheckCircle} label="Active" value={users.filter(u => u.status === 'active').length} color="bg-success/10 text-success" />
         <StatBadge icon={Crown} label="Admins" value={users.filter(u => u.role === 'admin').length} color="bg-danger/10 text-danger" />
-        <StatBadge icon={UserCog} label="Managers" value={users.filter(u => u.role === 'manager').length} color="bg-info/10 text-ink-2" />
+        <StatBadge icon={UserCog} label="Managers" value={users.filter(u => u.role === 'manager' || u.role === 'secretary').length} color="bg-info/10 text-ink-2" />
         <StatBadge icon={Eye} label="Viewers" value={users.filter(u => u.role === 'viewer').length} color="bg-gray-100 text-ink-2" />
       </div>
 
@@ -228,7 +269,7 @@ const AdminPanel = () => {
       {tab === 'users' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <p className="text-sm text-ink-2">{users.length} user{users.length !== 1 ? 's' : ''} registered</p>
+            <p className="text-sm text-ink-2">{listLoading ? 'Loading…' : `${users.length} user${users.length !== 1 ? 's' : ''} registered`}</p>
             <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
               <Plus size={16} /> Add User
             </button>
@@ -246,7 +287,11 @@ const AdminPanel = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {users.map(u => {
+                {listLoading ? (
+                  <tr><td colSpan={5} className="px-5 py-10 text-center text-ink-3"><Loader2 className="inline animate-spin" size={18} /> Loading users…</td></tr>
+                ) : users.length === 0 ? (
+                  <tr><td colSpan={5} className="px-5 py-10 text-center text-ink-3">No users found.</td></tr>
+                ) : users.map(u => {
                   const ri = roleInfo(u.role)
                   const RoleIcon = ri.icon
                   const isMe = u.email === currentUser?.email
@@ -328,6 +373,7 @@ const AdminPanel = () => {
                 <tr key={i} className="hover:bg-canvas">
                   <td className="px-5 py-3.5 text-ink">{row.feature}</td>
                   <td className="px-4 py-3.5 text-center"><Tick ok={row.admin} /></td>
+                  <td className="px-4 py-3.5 text-center"><Tick ok={row.secretary} /></td>
                   <td className="px-4 py-3.5 text-center"><Tick ok={row.manager} /></td>
                   <td className="px-4 py-3.5 text-center"><Tick ok={row.viewer} /></td>
                 </tr>
@@ -344,11 +390,11 @@ const AdminPanel = () => {
             <h3 className="font-semibold text-ink mb-4 flex items-center gap-2"><Activity size={18} className="text-primary-600" />System Overview</h3>
             <div className="space-y-3 text-sm">
               {[
-                { label: 'Application', value: 'CSMS v3.0' },
+                { label: 'Application', value: 'CSMS v5.0' },
                 { label: 'Framework', value: 'React 18 + Vite' },
                 { label: 'Backend', value: 'Node.js / Express' },
                 { label: 'Database', value: 'MongoDB' },
-                { label: 'Auth', value: 'JWT Tokens' },
+                { label: 'Auth', value: 'JWT Tokens (4-role RBAC)' },
                 { label: 'Mode', value: localStorage.getItem('demoEmail') ? '⚡ Demo (no backend)' : '🟢 Live' },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
@@ -381,7 +427,7 @@ const AdminPanel = () => {
 
       {/* Modals */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? 'Edit User' : 'Add New User'} size="md">
-        <UserForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModalOpen(false)} loading={saving} currentUserId={currentUser?._id} />
+        <UserForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModalOpen(false)} loading={saving} currentUserId={currentUser?.id} />
       </Modal>
 
       <DeleteConfirmModal

@@ -2,6 +2,7 @@ import api from './api.js'
 import { normalize } from '../utils/responseNormalize.js'
 import {
   auth as mockAuth,
+  users as mockUsers,
   companies as mockCompanies,
   personnel as mockPersonnel,
   meetings as mockMeetings,
@@ -48,27 +49,97 @@ const buildParams = (params) => {
   return s ? `?${s}` : ''
 }
 
+// ====== Auth payload 展平（Wave 0 — 修复 live 权限失效）======
+// 真实后端登录/me 返回 { success, token, user } / { success, user }，
+// 而 mock 返回扁平的 { id, name, email, role, token }。
+// 统一展平为前端期望的用户对象，确保 isAdmin/canEdit 在真实登录后正确生效。
+const extractUser = (payload) => {
+  if (payload && payload.user) {
+    const u = payload.user
+    return {
+      ...u,
+      id: u.id || (u._id && (u._id.toString ? u._id.toString() : u._id)),
+      token: payload.token || undefined,
+    }
+  }
+  return payload
+}
+
+// 直接打真实 API 的鉴权端点（不走 wrap，便于在失败时空格回退 mock）
+const apiAuth = {
+  login: (email, password) => api.post('/api/auth/login', { email, password }),
+  register: (data) => api.post('/api/auth/register', data),
+  getMe: () => api.get('/api/auth/me'),
+  updateProfile: (data) => api.put('/api/auth/me', data),
+}
+
+const fallbackToMock = (fn, ...args) => {
+  console.warn('[auth] real API failed, falling back to mock')
+  useMock = true
+  return fn(...args)
+}
+
 // ====== Auth Service ======
 export const authService = {
-  login: wrap(
-    (email, password) => api.post('/api/auth/login', { email, password }),
-    mockAuth.login,
-  ),
-  register: wrap(
-    (data) => api.post('/api/auth/register', data),
-    mockAuth.register,
-  ),
-  getMe: wrap(
-    () => api.get('/api/auth/me'),
-    mockAuth.getMe,
-  ),
-  updateProfile: wrap(
-    (data) => api.put('/api/auth/me', data),
-    mockAuth.updateProfile,
-  ),
+  login: async (email, password) => {
+    if (useMock) return mockAuth.login(email, password)
+    try {
+      const res = await apiAuth.login(email, password)
+      return { data: { data: extractUser(res.data) } }
+    } catch {
+      return fallbackToMock(mockAuth.login, email, password)
+    }
+  },
+  register: async (data) => {
+    if (useMock) return mockAuth.register(data)
+    try {
+      const res = await apiAuth.register(data)
+      return { data: { data: extractUser(res.data) } }
+    } catch {
+      return fallbackToMock(mockAuth.register, data)
+    }
+  },
+  getMe: async () => {
+    if (useMock) return mockAuth.getMe()
+    try {
+      const res = await apiAuth.getMe()
+      return { data: { data: extractUser(res.data) } }
+    } catch {
+      return fallbackToMock(mockAuth.getMe)
+    }
+  },
+  updateProfile: async (data) => {
+    if (useMock) return mockAuth.updateProfile(data)
+    try {
+      const res = await apiAuth.updateProfile(data)
+      return { data: { data: extractUser(res.data) } }
+    } catch {
+      return fallbackToMock(mockAuth.updateProfile, data)
+    }
+  },
   updatePassword: wrap(
     (data) => api.put('/api/auth/password', data),
     mockAuth.updatePassword,
+  ),
+}
+
+// ====== User Management Service (Admin) ======
+export const userService = {
+  getAll: wrap(
+    () => api.get('/api/users'),
+    mockUsers.getAll,
+  ),
+  create: wrap(
+    (data) => api.post('/api/users', data),
+    mockUsers.create,
+  ),
+  update: wrap(
+    (id, data) => api.put(`/api/users/${id}`, data),
+    mockUsers.update,
+  ),
+  remove: wrap(
+    (id) => api.delete(`/api/users/${id}`),
+    mockUsers.remove,
   ),
 }
 

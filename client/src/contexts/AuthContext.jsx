@@ -16,6 +16,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // 显式 demo 模式：仅在 VITE_USE_MOCK==='true' 时自动以 demo 账号登录。
+  // 生产环境（VITE_USE_MOCK==='false'）绝不自动 demo，必须走真实登录页。
+  const DEMO_MODE = import.meta.env.VITE_USE_MOCK === 'true'
+
   useEffect(() => {
     const token = localStorage.getItem('token')
     const savedUser = localStorage.getItem('user')
@@ -30,30 +34,24 @@ export function AuthProvider({ children }) {
       }
     }
 
-    // Auto demo mode: try health check against real backend, fall back to demo
-    const autoDemo = async () => {
-      try {
-        // Use VITE_API_BASE if set, otherwise fall back to root-relative
-        const baseUrl = import.meta.env.VITE_API_BASE || ''
-        const healthUrl = baseUrl ? `${baseUrl}/api/health` : '/api/health'
-        await fetch(healthUrl, { signal: AbortSignal.timeout(3000) })
-        setLoading(false)
-        // Health check succeeded — user stays unauthenticated
-      } catch {
-        localStorage.setItem('token', DEMO_USER.token)
-        localStorage.setItem('user', JSON.stringify(DEMO_USER))
-        setUser(DEMO_USER)
-        setLoading(false)
-      }
+    // 显式 demo：直接登录 demo 账号（无需后端）
+    if (DEMO_MODE) {
+      localStorage.setItem('token', DEMO_USER.token)
+      localStorage.setItem('user', JSON.stringify(DEMO_USER))
+      setUser(DEMO_USER)
+      setLoading(false)
+      return
     }
-    autoDemo()
+
+    // 生产模式：不自动登录，显示登录页
+    setLoading(false)
   }, [])
 
   // Known demo accounts (work without backend)
   const DEMO_ACCOUNTS = [
     { email: 'admin@example.com', password: 'admin123', name: 'Admin User', role: 'admin' },
     { email: 'demo@example.com', password: 'demo123', name: 'Demo Secretary', role: 'secretary' },
-    { email: 'manager@example.com', password: 'manager123', name: 'Manager User', role: 'secretary' },
+    { email: 'manager@example.com', password: 'manager123', name: 'Manager User', role: 'manager' },
     { email: 'viewer@example.com', password: 'viewer123', name: 'Viewer User', role: 'viewer' },
   ]
 
@@ -144,9 +142,10 @@ export function AuthProvider({ children }) {
   const canEdit = isAdmin || user?.role === 'secretary'
   const canDelete = isAdmin
   const isDemo = !!user?.token?.startsWith('demo-')
+  const isDemoMode = DEMO_MODE
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, updatePassword, isAdmin, canEdit, canDelete, isDemo }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, updatePassword, isAdmin, canEdit, canDelete, isDemo, isDemoMode }}>
       {children}
     </AuthContext.Provider>
   )

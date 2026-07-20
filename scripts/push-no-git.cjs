@@ -8,7 +8,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat(backlog): M3.1 暗色模式 + M3.4 单测(vitest+node:test) + M1.3 roles同步 + M2.1 $text搜索';
+const COMMIT_MSG = 'feat(Wave0): 安全地基 P0 — 4角色RBAC + live权限修复 + seed-admin + 关闭公开注册 + AdminPanel API驱动';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

@@ -10,7 +10,16 @@ const router = express.Router();
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, phone, company } = req.body;
+    const { name, email, password, phone, company, inviteToken } = req.body
+
+    // Wave 0 安全：关闭公开自封，仅允许持有有效邀请令牌注册
+    const REQUIRED_TOKEN = process.env.REGISTER_INVITE_TOKEN
+    if (REQUIRED_TOKEN && inviteToken !== REQUIRED_TOKEN) {
+      return res.status(403).json({ message: 'Registration is invite-only. Contact an administrator for an invite token.' })
+    }
+    if (!REQUIRED_TOKEN) {
+      return res.status(403).json({ message: 'Open registration is disabled. Users are created by an administrator.' })
+    };
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -18,12 +27,12 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    // Create user
+    // Create user (self-register via invite → 默认 viewer，角色由管理员在 /api/users 调整)
     const user = await User.create({
       name,
       email,
       password,
-      role: role || 'user',
+      role: 'viewer',
       phone,
       company
     });

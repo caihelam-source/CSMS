@@ -344,7 +344,7 @@ export const auth = {
     if (email === demoEmail && password === demoPass) return { data: { data: DEMO_USER } };
     if (email === 'admin@example.com' && password === 'admin123') return { data: { data: { ...DEMO_USER, role: 'admin' } } };
     if (email === 'secretary@example.com' && password === 'secretary123') return { data: { data: { ...DEMO_USER, role: 'secretary' } } };
-    if (email === 'manager@example.com' && password === 'manager123') return { data: { data: { ...DEMO_USER, role: 'secretary' } } };
+    if (email === 'manager@example.com' && password === 'manager123') return { data: { data: { ...DEMO_USER, role: 'manager' } } };
     if (email === 'viewer@example.com' && password === 'viewer123') return { data: { data: { ...DEMO_USER, role: 'viewer' } } };
     const err = new Error('Invalid credentials');
     err.response = { data: { message: 'Invalid credentials' } };
@@ -354,6 +354,33 @@ export const auth = {
   getMe: async () => { await delay(); return { data: { data: DEMO_USER } }; },
   updateProfile: async () => { await delay(); return { data: { data: DEMO_USER } }; },
   updatePassword: async () => { await delay(); return { data: { data: { token: 'new-token' } } }; },
+};
+
+// ====== Users Service (Admin — mock) ======
+let MOCK_USERS = [
+  { _id: 'u1', name: 'Admin User',    email: 'admin@example.com',   role: 'admin',   isActive: true, joined: '2024-01-01' },
+  { _id: 'u2', name: 'Sarah Manager', email: 'manager@example.com', role: 'manager', isActive: true, joined: '2024-03-15' },
+  { _id: 'u3', name: 'View Only',     email: 'viewer@example.com',  role: 'viewer',  isActive: true, joined: '2024-06-20' },
+]
+export const users = {
+  getAll: async () => { await delay(80); return { data: { data: MOCK_USERS.map(u => ({ ...u })) } }; },
+  create: async (data) => {
+    await delay(120);
+    const u = { _id: 'u' + Date.now(), name: data.name, email: data.email, role: data.role || 'viewer', isActive: data.isActive !== false, joined: new Date().toISOString().slice(0, 10) };
+    MOCK_USERS = [...MOCK_USERS, u];
+    return { data: { data: { ...u } } };
+  },
+  update: async (id, data) => {
+    await delay(120);
+    MOCK_USERS = MOCK_USERS.map(u => u._id === id ? { ...u, ...data, _id: u._id } : u);
+    const updated = MOCK_USERS.find(u => u._id === id);
+    return { data: { data: { ...updated } } };
+  },
+  remove: async (id) => {
+    await delay(120);
+    MOCK_USERS = MOCK_USERS.filter(u => u._id !== id);
+    return { data: { data: { success: true } } };
+  },
 };
 
 // ====== Companies Service ======
