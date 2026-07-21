@@ -160,31 +160,56 @@ export default function TaskDetail() {
         }
       />
 
-      {/* 操作栏 */}
-      <div className="flex flex-col gap-1.5">
-        {task.status !== 'completed' ? (
+      {/* ====== 操作栏：完成任务 ====== */}
+      {task.status !== 'completed' ? (
+        <div className="card border-2 border-primary/20 bg-primary/[0.02]">
+          {/* 主按钮 —— 简短、醒目、明确是按钮 */}
           <button
-            disabled={taskRequiresAttachment(task) && !task.hasAttachment && !uploadFile}
-            onClick={() => {
-              if (taskRequiresAttachment(task) && !task.hasAttachment && !uploadFile) {
-                toast.error('请先上传签署文件后再标记完成')
-                return
-              }
-              setNoteText(''); setUploadFile(null); setCompleteOpen(true)
-            }}
-            className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => { setNoteText(''); setUploadFile(null); setCompleteOpen(true) }}
+            className="w-full btn-primary flex items-center justify-center gap-2 py-3 text-base font-semibold"
           >
-            <CheckCircle2 size={16} /> {taskRequiresAttachment(task) ? '上传签署文件并标记完成' : '标记完成（需备注或附件）'}
+            <CheckCircle2 size={20} /> 完成此任务
           </button>
-        ) : (
-          <button onClick={handleReopen} className="btn-secondary flex items-center gap-2">
-            <Circle size={16} /> 重新打开
-          </button>
-        )}
-        {taskRequiresAttachment(task) && !task.hasAttachment && !uploadFile && (
-          <p className="text-xs text-warning flex items-center gap-1"><AlertTriangle size={12} /> 该任务为签署类，必须先上传签署文件方可标记完成</p>
-        )}
-      </div>
+
+          {/* 步骤引导卡片 —— 告诉用户点了按钮后要做什么 */}
+          <div className="mt-3 p-3 bg-canvas rounded-lg text-sm space-y-2">
+            <p className="font-medium text-ink flex items-center gap-1.5">
+              <AlertTriangle size={14} className="text-info" /> 完成前需要：
+            </p>
+            <ol className="list-decimal list-inside space-y-1 text-ink-2 ml-1">
+              {taskRequiresAttachment(task) ? (
+                <>
+                  <li>点击上方按钮，在弹窗中<strong className="text-ink">上传签署文件</strong></li>
+                  <li>（可选）填写完成备注说明</li>
+                  <li>确认完成后文件将自动归档{task.company ? `至「${task.company.name}」文档库` : ''}</li>
+                </>
+              ) : (
+                <>
+                  <li>点击上方按钮，<strong className="text-ink">填写完成备注</strong>或上传附件（至少一项）</li>
+                  {task.company && <li>如上传附件将自动归档至「{task.company.name}」文档库</li>}
+                </>
+              )}
+            </ol>
+          </div>
+        </div>
+      ) : (
+        /* 已完成状态 */
+        <div className="card border-success/30 bg-success/[0.03]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-success font-semibold">
+              <CheckCircle2 size={20} /> 任务已完成
+            </div>
+            <button onClick={handleReopen} className="btn-secondary flex items-center gap-1.5 text-sm">
+              <Circle size={14} /> 重新打开
+            </button>
+          </div>
+          {archivedDoc && (
+            <p className="mt-2 text-sm text-ink-2 flex items-center gap-1.5">
+              <Paperclip size={13} /> 归档文件：{archivedDoc.name}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* 详情卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -249,7 +274,8 @@ export default function TaskDetail() {
         isOpen={completeOpen}
         onClose={() => setCompleteOpen(false)}
         title="标记任务完成"
-        warningText={`必须填写完成备注或上传文件才能确认完成。${task.company ? '上传的附件将自动归档至「' + task.company.name + '」的文档库。' : ''}`}
+        warningText={`完成此任务需要${taskRequiresAttachment(task) ? '上传签署文件' : '填写备注或上传附件'}。${task.company ? '上传的附件将自动归档至「' + task.company.name + '」文档库。' : ''}`}
+        requireAttachment={taskRequiresAttachment(task)}
         noteText={noteText}
         onNoteChange={setNoteText}
         uploadFile={uploadFile}

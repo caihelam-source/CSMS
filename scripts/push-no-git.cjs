@@ -14,7 +14,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: CompanyDetail Upload 图标未导入导致 ReferenceError 崩溃';
+const COMMIT_MSG = 'fix: TaskDetail 完成任务按钮UX重做——清晰主按钮+步骤引导+Modal必传标记';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

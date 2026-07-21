@@ -144,20 +144,27 @@ export const CompleteWithAttachmentModal = ({
   warningText = '', noteText, onNoteChange,
   uploadFile, onFileChange, onFileRemove,
   saving = false, fileInputRef,
+  requireAttachment = false,
 }) => (
   <Modal isOpen={isOpen} onClose={onClose} title={title} size="md">
     <div className="space-y-4">
       {warningText && (
-        <div className="bg-warning/10 border border-warning/20 p-3 rounded-lg text-sm text-warning flex items-start gap-2">
+        <div className="bg-info/10 border border-info/20 p-3 rounded-lg text-sm text-primary-700 flex items-start gap-2">
           <AlertTriangle size={16} className="shrink-0 mt-0.5" />
           <span>{warningText}</span>
         </div>
       )}
-      <FormField label="完成备注">
+      {requireAttachment && (
+        <div className="bg-primary/5 border border-primary/15 p-2.5 rounded-lg text-sm text-primary-700 flex items-center gap-2">
+          <Paperclip size={15} className="shrink-0" />
+          <span>此任务<strong>必须上传文件</strong>才能完成</span>
+        </div>
+      )}
+      <FormField label={requireAttachment ? '完成备注（可选）' : '完成备注'}>
         <textarea rows={3} className={INP}
           value={noteText} onChange={e => onNoteChange(e.target.value)} placeholder="请输入完成说明..." />
       </FormField>
-      <FormField label="上传附件（可选，将归档到公司文档）">
+      <FormField label={requireAttachment ? '上传附件（必须）' : '上传附件（可选，将归档到公司文档）'} required={requireAttachment}>
         <input type="file" ref={fileInputRef} className={INP}
           onChange={e => onFileChange(e.target.files[0] || null)} />
         {uploadFile && (
@@ -169,7 +176,7 @@ export const CompleteWithAttachmentModal = ({
       </FormField>
       <div className="flex justify-end gap-3 pt-2">
         <button onClick={onClose} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
-        <button onClick={onConfirm} disabled={saving || (!noteText.trim() && !uploadFile)}
+        <button onClick={onConfirm} disabled={saving || (requireAttachment ? !uploadFile : (!noteText.trim() && !uploadFile))}
           className="px-4 py-2 text-sm bg-success text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-medium">
           {saving ? '处理中...' : '确认完成'}
         </button>
