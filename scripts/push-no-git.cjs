@@ -14,7 +14,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat: v5.2 增量收尾 - 会议全生命周期闭环 + 通知/纪要Tab完善(编辑预览/重生成/保存Word) + M2全文搜索索引 + M3暗色模式令牌对齐 + 归档清单5类多文件 + 5项回归修复';
+const COMMIT_MSG = 'fix: 公司详情页非法ObjectId致后端500+前端误踢回列表；GET /companies/:id 加ObjectId校验返400；CompanyDetail 加载失败改显空状态';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

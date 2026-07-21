@@ -10,6 +10,7 @@ const SignTask = require('../models/SignTask');
 const { auth } = require('../middleware/auth');
 const { scopeMiddleware, applyListScope, inScope } = require('../middleware/scope');
 const multer = require('multer');
+const mongoose = require('mongoose');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -128,6 +129,9 @@ router.get('/stats/dashboard', auth, async (req, res) => {
 
 // GET /api/companies/:id
 router.get('/:id', auth, scopeMiddleware, async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: 'Invalid company id' });
+  }
   try {
     const company = await Company.findById(req.params.id);
     if (!company) return res.status(404).json({ message: 'Company not found' });

@@ -197,9 +197,14 @@ export default function CompanyDetail() {
       setAllPersonnel(persRes?.data?.data || [])
       setAllCompanies(compsRes?.data?.data || [])
       setRules(rulesRes?.data?.data || [])
-    } catch {
-      toast.error('Failed to load company')
-      navigate('/companies')
+    } catch (err) {
+      // 公司不存在或 id 无效：显示空状态而非强制跳回列表
+      setCompany(null)
+      const status = err?.response?.status
+      if (status && status !== 404 && status !== 400) {
+        toast.error('Failed to load company')
+        navigate('/companies')
+      }
     } finally {
       setLoading(false)
     }
