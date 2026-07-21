@@ -9,7 +9,7 @@ import {
 import { meetingService, documentService, signTaskService, taskService } from '../services/index.js'
 import { formatDate, MEETING_TYPE_LABELS as TYPES, fmtDate, fmtTime, buildPhasesWithIcons, getMeetingChecklist, docMatchesChecklistItem, detectMinutesKeywords, buildSignTaskTitle, buildSourceLabel, buildArchiveDocName, archiveTypeLabel } from '../utils/helpers'
 import { validate, required } from '../utils/validators'
-import { LoadingSpinner, DetailHeader, FormField, inputClass, InfoCard, TabNav } from '../components/UIHelpers'
+import { LoadingSpinner, DetailHeader, FormField, inputClass, InfoCard, TabNav, CompleteWithAttachmentModal } from '../components/UIHelpers'
 import Modal from '../components/Modal'
 
 // Phase icon mapping — uses shared buildPhasesWithIcons

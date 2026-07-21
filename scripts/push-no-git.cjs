@@ -14,7 +14,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: v6.2 文件可删除+会议归档状态统一+Checklist增强+签署任务去重';
+const COMMIT_MSG = 'fix: v6.3 MeetingDetail CompleteWithAttachmentModal import遗漏导致白屏崩溃';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 
