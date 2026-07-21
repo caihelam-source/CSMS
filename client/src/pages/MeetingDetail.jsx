@@ -35,11 +35,14 @@ const SIGN_STATUS_BADGE = {
 
 const ATTACH_FORM_RULES = { name: [required('文件名称为必填')] }
 
-function computeMeetingSteps(meeting, documents) {
+function computeMeetingSteps(meeting, documents, tasks) {
   const phase = meeting?.phase || 'setup'
   const noticeDone = ['notice-sent', 'meeting-held', 'minutes-draft', 'minutes-signed', 'completed'].includes(phase) || !!meeting?.notice
   const minutesDone = meeting?.minutes?.status === 'final' || meeting?.minutes?.status === 'signed' || !!meeting?.resolutions?.length
-  const signDone = (meeting?.signatures?.length || 0) > 0 || (meeting?.signTasks || []).some(st => st.status === 'completed')
+  // v6.0 增强：同时检查 meeting 嵌入的 signTasks 和本地 meetingTasks（Task 记录）
+  const signFromSignTasks = (meeting?.signTasks || []).some(st => st.status === 'completed')
+  const signFromTasks = (tasks || []).some(t => t.type === 'signing' && t.status === 'completed')
+  const signDone = (meeting?.signatures?.length || 0) > 0 || signFromSignTasks || signFromTasks
   const archiveDone = meeting?.phase === 'completed'
   return {
     notice: !!noticeDone,
@@ -64,6 +67,12 @@ export default function MeetingDetail() {
   const [signTasks, setSignTasks] = useState([])
   // v5.1 纪要闭环：关联签署 Task（用于纪要页状态面板 + 归档防呆门禁）
   const [meetingTasks, setMeetingTasks] = useState([])
+  // v6.0 内联完成：签署 Tab 不再外跳 /tasks/:id（避免 mock ID 在真实 Atlas 404）
+  const [inlineCompleteOpen, setInlineCompleteOpen] = useState(false)
+  const [inlineTargetTask, setInlineTargetTask] = useState(null)
+  const [inlineNote, setInlineNote] = useState('')
+  const [inlineFile, setInlineFile] = useState(null)
+  const [inlineSaving, setInlineSaving] = useState(false)
 
   // 编辑模式状态（通知 / 纪要）
   const [editingNotice, setEditingNotice] = useState(false)
@@ -426,6 +435,74 @@ export default function MeetingDetail() {
     }
   }, [signForm, meeting, id, fetchMeeting])
 
+  // ===== v6.0 内联完成：签署 Tab 内直接完成任务（不外跳 /tasks/:id）=====
+  const openInlineComplete = useCallback((task) => {
+    setInlineTargetTask(task)
+    setInlineNote('')
+    setInlineFile(null)
+    setInlineCompleteOpen(true)
+  }, [])
+
+  const handleInlineComplete = useCallback(async () => {
+    if (!inlineTargetTask) return
+    const hasNote = inlineNote.trim().length > 0
+    const hasFile = !!inlineFile
+    if (!hasNote && !hasFile) {
+      toast.error('请填写备注或上传文件')
+      return
+    }
+    setInlineSaving(true)
+    try {
+      // 1. 上传文件（如有）
+      if (hasFile) {
+        await documentService.create({
+          name: `${meeting?.title || '会议'}_签署文件`,
+          type: 'minutes',
+          category: 'meeting',
+          meeting: { _id: id },
+          company: meeting?.company?._id
+            ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
+            : undefined,
+          signStatus: inlineTargetTask.isCTC ? 'ctc' : 'fully_signed',
+          fileName: inlineFile.name,
+          fileSize: inlineFile.size,
+          staged: true,
+          source: { kind: 'signing_scan', refId: inlineTargetTask._id, label: `来自签署任务：${inlineTargetTask.title}` },
+          note: '由会议签署 Tab 完成',
+          createdAt: new Date().toISOString().split('T')[0],
+        })
+      }
+      // 2. 标记 Task 完成
+      await taskService.update(inlineTargetTask._id, {
+        status: 'completed',
+        hasAttachment: hasFile || inlineTargetTask.hasAttachment,
+      }).catch(() => {})
+      // 3. 同步 SignTask（如有）
+      const linkedST = signTasks.find(st => st.taskId === inlineTargetTask._id)
+      if (linkedST?._id) {
+        await signTaskService.update(linkedST._id, { status: 'completed', completedAt: new Date().toISOString() }).catch(() => {})
+      }
+      // 4. 立即更新本地状态（不等 fetchMeeting）
+      setMeetingTasks(prev => prev.map(t =>
+        t._id === inlineTargetTask._id ? { ...t, status: 'completed', hasAttachment: true } : t
+      ))
+      setSignTasks(prev => prev.map(st =>
+        st.taskId === inlineTargetTask._id ? { ...st, status: 'completed' } : st
+      ))
+      // 5. 刷新会议数据（更新 checklist 等）
+      fetchMeeting()
+      setInlineCompleteOpen(false)
+      setInlineTargetTask(null)
+      setInlineNote('')
+      setInlineFile(null)
+      toast.success('✅ 签署任务已完成')
+    } catch {
+      toast.error('操作失败，请重试')
+    } finally {
+      setInlineSaving(false)
+    }
+  }, [inlineTargetTask, inlineNote, inlineFile, meeting, id, signTasks, fetchMeeting])
+
   // ===== v6.0 定稿功能：通知/纪要 → 创建 Document 记录（staged）→ 出现在相关文件 Tab =====
   const finalizeNotice = useCallback(async () => {
     if (!noticeData) return
@@ -535,7 +612,7 @@ export default function MeetingDetail() {
         <p className="text-xs text-ink-3 mb-3">会议全流程（通知 → 附件 → 纪要 → 签字 → 归档）</p>
         <div className="flex items-center">
           {MEETING_FLOW.map((step, i) => {
-            const done = computeMeetingSteps(meeting, documents)[step.key]
+            const done = computeMeetingSteps(meeting, documents, meetingTasks)[step.key]
             const isLast = i === MEETING_FLOW.length - 1
             return (
               <div key={step.key} className="flex items-center flex-1">
@@ -1124,9 +1201,9 @@ export default function MeetingDetail() {
                           </div>
                         </div>
                         {!isCompleted && (
-                          <a href={`/tasks/${t._id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline shrink-0 whitespace-nowrap">
-                            查看详情 →
-                          </a>
+                          <button onClick={() => openInlineComplete(t)} className="text-xs text-primary-600 hover:underline shrink-0 whitespace-nowrap">
+                            完成任务 →
+                          </button>
                         )}
                       </div>
 
@@ -1157,17 +1234,15 @@ export default function MeetingDetail() {
                         </div>
                       )}
 
-                      {/* 操作按钮 —— 未完成任务可内联操作 */}
+                      {/* 操作按钮 —— 未完成任务内联操作（不外跳，避免 mock ID 404） */}
                       {!isCompleted && !isArchived && (
-                        <div className="mt-3 pt-3 border-t border-hairline flex gap-2">
-                          <a
-                            href={`/tasks/${t._id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <div className="mt-3 pt-3 border-t border-hairline flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => openInlineComplete(t)}
                             className="btn-primary inline-flex items-center gap-1.5 text-xs"
                           >
-                            <Upload size={12} /> 去完成任务
-                          </a>
+                            <CheckCircle2 size={12} /> 完成此任务
+                          </button>
                           {/* 内联快速上传 */}
                           <label className="btn-secondary inline-flex items-center gap-1.5 text-xs cursor-pointer">
                             <Upload size={12} />
@@ -1200,7 +1275,11 @@ export default function MeetingDetail() {
                                 if (linkedST?._id) {
                                   await signTaskService.update(linkedST._id, { status: 'completed', completedAt: new Date().toISOString() }).catch(() => {})
                                 }
-                                toast.success('签署文件已上传，任务已标记完成')
+                                // 立即更新本地状态（不等 fetchMeeting）
+                                setMeetingTasks(prev => prev.map(mt =>
+                                  mt._id === t._id ? { ...mt, status: 'completed', hasAttachment: true } : mt
+                                ))
+                                toast.success('✅ 签署文件已上传，任务已标记完成')
                                 fetchMeeting()
                               } catch {
                                 toast.error('上传失败')
@@ -1219,14 +1298,30 @@ export default function MeetingDetail() {
             <div className="bg-info/5 border border-info/15 p-3 rounded-lg text-xs text-primary-700 space-y-1">
               <p className="font-medium">💡 签署流程说明</p>
               <ol className="list-decimal list-inside ml-1 space-y-0.5 text-ink-2">
-                <li>点击「去完成任务」跳转至任务页面上传签字扫描件</li>
-                <li>或直接在此处「上传签署文件」快速完成</li>
-                <li>完成后附件自动关联至「相关文件」Tab</li>
-                <li>所有签署任务完成后，前往「相关文件」Tab 一键归档</li>
+                <li>点击「完成此任务」在弹窗中上传签字文件或填写备注</li>
+                <li>或直接「上传签署文件」一键完成</li>
+                <li>完成后附件自动关联至「相关文件」Tab（暂存状态）</li>
+                <li>所有签署任务完成后，前往「相关文件」Tab 一键归档至公司文档</li>
               </ol>
             </div>
           </div>
         )}
+
+        {/* ===== v6.0 内联完成 Modal（签署任务不外跳 /tasks/:id）===== */}
+        <CompleteWithAttachmentModal
+          isOpen={inlineCompleteOpen}
+          onClose={() => { setInlineCompleteOpen(false); setInlineTargetTask(null) }}
+          title={`完成任务：${inlineTargetTask?.title || ''}`}
+          warningText="请上传签字扫描件或填写完成备注（至少一项），完成后附件将关联到会议相关文件。"
+          requireAttachment={inlineTargetTask?.type === 'signing'}
+          noteText={inlineNote}
+          onNoteChange={setInlineNote}
+          uploadFile={inlineFile}
+          onFileChange={f => setInlineFile(f)}
+          onFileRemove={() => setInlineFile(null)}
+          onConfirm={handleInlineComplete}
+          saving={inlineSaving}
+        />
       </div>
 
       {/* Action Buttons */}

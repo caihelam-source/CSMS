@@ -14,7 +14,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: 合规闭环修复——Reminder可跳Task+来源清晰化+近期任务可点+合规日期完成标注';
+const COMMIT_MSG = 'fix: 签署Task跳转404修复——内联完成Modal替代外跳+状态实时更新+Checklist签字步骤联动';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 
