@@ -264,12 +264,12 @@ const RenderModal = ({ template, companies, onClose }) => {
 }
 
 const categoryColor = (c) => ({
-  board_resolution: 'bg-gray-100 text-ink-2',
+  board_resolution: 'bg-canvas text-ink-2',
   agm_resolution: 'bg-success/10 text-success',
   director_change: 'bg-info/10 text-primary-700',
-  shareholder_notice: 'bg-gray-100 text-ink-2',
+  shareholder_notice: 'bg-canvas text-ink-2',
   annual_report: 'bg-warning/10 text-warning',
-}[c] || 'bg-gray-100 text-ink-2')
+}[c] || 'bg-canvas text-ink-2')
 
 const Templates = () => {
   const { confirm, ConfirmDialogComponent } = useConfirm()
@@ -416,8 +416,8 @@ const Templates = () => {
                 {t.description && <p className="text-xs text-ink-2 mb-3 line-clamp-2">{t.description}</p>}
                 {vars.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {vars.slice(0, 4).map(v => <span key={v} className="text-xs bg-gray-100 text-ink-2 px-1.5 py-0.5 rounded font-mono">{v}</span>)}
-                    {vars.length > 4 && <span className="text-xs bg-gray-100 text-ink-2 px-1.5 py-0.5 rounded">+{vars.length - 4}</span>}
+                    {vars.slice(0, 4).map(v => <span key={v} className="text-xs bg-canvas text-ink-2 px-1.5 py-0.5 rounded font-mono">{v}</span>)}
+                    {vars.length > 4 && <span className="text-xs bg-canvas text-ink-2 px-1.5 py-0.5 rounded">+{vars.length - 4}</span>}
                   </div>
                 )}
                 <div className="flex gap-2 pt-3 border-t border-hairline mt-auto">

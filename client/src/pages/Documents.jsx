@@ -10,7 +10,6 @@ import { formatDate } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, labelClass } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
-import { VirtualList } from '../components/VirtualList'
 import Modal from '../components/Modal'
 
 // ── 分类定义 ──
@@ -20,7 +19,7 @@ const DOC_CATEGORIES = [
   { key: 'financial', label: '财务税务', color: 'bg-success/10 text-success border-success/20', icons: ['financial_statement', 'annual_report'] },
   { key: 'banking', label: '银行文件', color: 'bg-warning/10 text-warning border-warning/20', icons: ['agreement', 'form', 'certificate'] },
   { key: 'meeting', label: '会议文件', color: 'bg-canvas text-ink border-hairline', icons: ['minutes', 'resolution', 'board_resolution', 'notice'] },
-  { key: 'other', label: '其他', color: 'bg-gray-50 text-ink-2 border-hairline', icons: [] },
+  { key: 'other', label: '其他', color: 'bg-canvas text-ink-2 border-hairline', icons: [] },
 ]
 
 const DOC_TYPE_LABELS = {
@@ -200,7 +199,7 @@ export default function Documents() {
             filters.category === 'all' ? 'bg-primary-50 text-primary-700 font-medium' : 'hover:bg-canvas text-ink'
           }`}>
           <span className="flex items-center gap-2"><FileText size={16} /> 全部</span>
-          <span className="text-xs bg-gray-100 text-ink-2 rounded-full px-2 py-0.5">{documents.length}</span>
+          <span className="text-xs bg-canvas text-ink-2 rounded-full px-2 py-0.5">{documents.length}</span>
         </button>
 
         {DOC_CATEGORIES.map(cat => (
@@ -282,7 +281,7 @@ export default function Documents() {
                 {selected.size === filtered.length && filtered.length > 0 ? (
                   <CheckSquare size={16} className="mx-auto text-primary-600 cursor-pointer" onClick={toggleAll} />
                 ) : (
-                  <Square size={16} className="mx-auto text-gray-300 cursor-pointer" onClick={toggleAll} />
+                  <Square size={16} className="mx-auto text-ink-3 cursor-pointer" onClick={toggleAll} />
                 )}
               </div>
               <div className="col-span-2">编号</div>
@@ -293,47 +292,7 @@ export default function Documents() {
               <div className="col-span-1 text-right">日期</div>
             </div>
 
-            {filtered.length > 100 ? (
-              <VirtualList
-                items={filtered}
-                itemHeight={80}
-                maxHeight={600}
-                renderItem={(doc, _idx, style) => {
-                  const cat = DOC_CATEGORIES.find(c => c.key === doc.category) || DOC_CATEGORIES[DOC_CATEGORIES.length - 1]
-                  const isSelected = selected.has(doc._id)
-                  return (
-                    <div key={doc._id} style={style} className="px-1 py-1">
-                      <div className={`group bg-surface rounded-xl border shadow-sm p-4 hover:shadow-md transition-all cursor-pointer ${
-                        isSelected ? 'border-primary-400 bg-primary-50' : 'border-hairline'
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <div className="shrink-0 no-nav" onClick={e => e.stopPropagation()}>
-                            {isSelected ? (
-                              <CheckSquare size={18} className="text-primary-600 cursor-pointer" onClick={() => toggleSelect(doc._id)} />
-                            ) : (
-                              <Square size={18} className="text-gray-300 cursor-pointer" onClick={() => toggleSelect(doc._id)} />
-                            )}
-                          </div>
-                          <div className="p-2 bg-canvas rounded-lg shrink-0">
-                            <FileText size={18} className="text-ink-3" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-mono text-ink-3">{doc.docNumber || '-'}</span>
-                              <h3 className="font-medium text-sm truncate">{doc.name}</h3>
-                            </div>
-                            <div className="flex flex-wrap gap-3 mt-1 text-xs text-ink-3">
-                              <span className={`px-2 py-0.5 rounded-full border text-xs ${cat.color}`}>{cat.label}</span>
-                              <span>{DOC_TYPE_LABELS[doc.type] || doc.type || '-'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                }}
-              />
-            ) : filtered.map(doc => {
+            {filtered.map(doc => {
               const cat = DOC_CATEGORIES.find(c => c.key === doc.category) || DOC_CATEGORIES[DOC_CATEGORIES.length - 1]
               const isSelected = selected.has(doc._id)
               return (
@@ -354,7 +313,7 @@ export default function Documents() {
                       {isSelected ? (
                         <CheckSquare size={18} className="text-primary-600 cursor-pointer" onClick={() => toggleSelect(doc._id)} />
                       ) : (
-                        <Square size={18} className="text-gray-300 cursor-pointer" onClick={() => toggleSelect(doc._id)} />
+                        <Square size={18} className="text-ink-3 cursor-pointer" onClick={() => toggleSelect(doc._id)} />
                       )}
                     </div>
 

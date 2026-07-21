@@ -97,7 +97,7 @@ export default function ComplianceReminderDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <button onClick={() => navigate('/compliance-reminders')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><ArrowLeft size={20} /></button>
+        <button onClick={() => navigate('/compliance-reminders')} className="p-2 hover:bg-canvas rounded-lg transition-colors"><ArrowLeft size={20} /></button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className={`text-2xl font-bold ${reminder.completed ? 'line-through text-ink-3' : ''}`}>{reminder.title}</h1>
@@ -107,7 +107,7 @@ export default function ComplianceReminderDetail() {
             <span className={`px-2 py-0.5 text-xs rounded-full border ${compliancePriorityColor(reminder.priority)}`}>{reminder.priority}</span>
             <span className={`px-2 py-0.5 text-xs rounded-full ${complianceStatusColor(reminder.status)}`}>{reminder.status}</span>
             <span className="flex items-center gap-1"><Calendar size={13} />{reminder.dueDate ? formatDate(reminder.dueDate) : '-'}{days !== null && reminder.status !== 'completed' && ` (${days < 0 ? `逾期${Math.abs(days)}天` : days === 0 ? '今天' : `剩${days}天`})`}</span>
-            {reminder.category && <span className="bg-gray-100 text-ink-2 px-2 py-0.5 rounded text-xs">{reminder.category}</span>}
+            {reminder.category && <span className="bg-canvas text-ink-2 px-2 py-0.5 rounded text-xs">{reminder.category}</span>}
           </div>
         </div>
       </div>

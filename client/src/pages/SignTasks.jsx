@@ -19,7 +19,7 @@ const STATUS_COLORS = {
   in_progress: 'bg-warning/10 text-warning',
   completed: 'bg-success/10 text-success',
   cancelled: 'bg-danger/10 text-danger',
-  expired: 'bg-gray-100 text-ink-2',
+  expired: 'bg-canvas text-ink-2',
 }
 
 const SIGN_TASK_RULES = {
@@ -287,7 +287,7 @@ const SignTasks = () => {
                           <span>签署进度</span>
                           <span>{signed} / {total}</span>
                         </div>
-                        <div className="w-full bg-gray-100 rounded-full h-1.5">
+                        <div className="w-full bg-canvas rounded-full h-1.5">
                           <div className={`h-1.5 rounded-full transition-all ${task.status === 'completed' ? 'bg-success' : 'bg-primary-500'}`} style={{ width: `${progress}%` }} />
                         </div>
                         <div className="mt-2 space-y-1.5">
@@ -298,7 +298,7 @@ const SignTasks = () => {
                                 : <Clock size={16} className="text-ink-3 shrink-0" />}
                               <span className="text-ink">{s.name || s.email || '待填写'}</span>
                               {s.role && <span className="text-xs text-ink-3">({s.role})</span>}
-                              <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${s.status === 'signed' ? 'bg-success/10 text-success' : 'bg-gray-100 text-ink-2'}`}>
+                              <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${s.status === 'signed' ? 'bg-success/10 text-success' : 'bg-canvas text-ink-2'}`}>
                                 {s.status === 'signed' ? '已签' : '待签'}
                               </span>
                             </div>
@@ -374,7 +374,7 @@ const SignTasks = () => {
                         : <Clock size={16} className="text-ink-3 shrink-0" />}
                       <span className="text-ink">{s.name || s.email || '待填写'}</span>
                       {s.role && <span className="text-xs text-ink-3">({s.role})</span>}
-                      <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${s.status === 'signed' ? 'bg-success/10 text-success' : 'bg-gray-100 text-ink-2'}`}>
+                      <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${s.status === 'signed' ? 'bg-success/10 text-success' : 'bg-canvas text-ink-2'}`}>
                         {s.status === 'signed' ? '已签' : '待签'}
                       </span>
                     </div>

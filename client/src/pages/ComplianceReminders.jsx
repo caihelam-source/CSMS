@@ -340,7 +340,7 @@ const ComplianceReminders = () => {
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${complianceStatusColor(r.status)}`}>{STATUS_DISPLAY[r.status] || r.status}</span>
                     </div>
                     <div className="flex flex-wrap gap-4 text-xs text-ink-2 mt-1">
-                      {r.category && <span className="bg-gray-100 text-ink-2 px-2 py-0.5 rounded">{r.category}</span>}
+                      {r.category && <span className="bg-canvas text-ink-2 px-2 py-0.5 rounded">{r.category}</span>}
                       {r.company && <span className="text-ink-2">{r.company.name || r.company}</span>}
                       {r.dueDate && (
                         <span className={`flex items-center gap-1 ${isOverdue ? 'text-danger font-medium' : days <= 7 ? 'text-warning' : ''}`}>

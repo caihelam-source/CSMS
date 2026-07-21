@@ -59,25 +59,29 @@ export default function TaskDetail() {
     setSaving(true)
     try {
       let doc = null
-      // 若上传了文件（或要求归档），生成一条关联到公司的文档
-      if (hasFile || task.company) {
+      // v5.2 修复：关联会议的签署任务，其扫描件暂存于会议（staged），待会议最终归档后才统一进入公司库
+      const meetingRef = task.meeting ? (task.meeting._id || task.meeting) : null
+      const stageUnderMeeting = !!meetingRef
+      // 仅当：① 上传了文件；或 ② 有公司且无关联会议（直接归档到公司库）
+      if (hasFile || (task.company && !stageUnderMeeting)) {
         const company = task.company
         const { data: docRes } = await documentService.create({
           name: hasFile ? buildCtcDocName(uploadFile.name, task.isCTC) : `任务完成附件 - ${task.title}`,
-          type: 'task_attachment',
-          category: 'other',
+          type: stageUnderMeeting ? 'minutes' : 'task_attachment',
+          category: stageUnderMeeting ? 'meeting' : 'other',
+          meeting: stageUnderMeeting ? { _id: meetingRef } : undefined,
           company: company ? { _id: company._id, name: company.name, registrationNumber: company.registrationNumber } : undefined,
-          meeting: task.meeting ? (task.meeting._id || task.meeting) : undefined,
           fileName: hasFile ? uploadFile.name : undefined,
           fileSize: hasFile ? uploadFile.size : undefined,
           // v5.2 模块4：签署类任务归档时标记签署状态（CTC / 普通签署）
           signStatus: hasFile && task.type === 'signing' ? (task.isCTC ? 'ctc' : 'fully_signed') : undefined,
-          note: hasFile ? (task.taskSource === 'dashboard' ? '由 Dashboard 签署任务完成自动归档' : '由任务完成自动归档') : undefined,
-          // v5.2 模块4：来源追溯区分会议衍生 / Dashboard 发起
+          staged: stageUnderMeeting,
+          note: hasFile ? (stageUnderMeeting ? '由会议签署任务完成暂存，待会议最终归档' : (task.taskSource === 'dashboard' ? '由 Dashboard 签署任务完成自动归档' : '由任务完成自动归档')) : undefined,
+          // v5.2 修复：来源统一指向签署任务（会议衍生 / Dashboard 发起均归会议或公司追溯）
           source: hasFile ? {
-            kind: task.taskSource === 'dashboard' ? 'dashboard_sign' : 'signing_scan',
+            kind: 'signing_scan',
             refId: task._id,
-            label: task.taskSource === 'dashboard' ? '来自 [Dashboard 签署任务]' : `来自签署任务：${task.title}`,
+            label: `来自签署任务：${task.title}`,
           } : undefined,
           createdAt: new Date().toISOString().split('T')[0],
         }).catch(() => ({ data: { data: null } }))
@@ -103,7 +107,7 @@ export default function TaskDetail() {
       setCompleteOpen(false)
       setNoteText('')
       setUploadFile(null)
-      toast.success(doc ? '任务已完成，附件已归档至公司文档' : '任务已完成')
+      toast.success(doc ? (stageUnderMeeting ? '签署文件已归入会议相关文件，待会议最终归档后进入公司库' : '任务已完成，附件已归档至公司文档') : '任务已完成')
     } catch {
       toast.error('操作失败')
     } finally {
@@ -209,7 +213,7 @@ export default function TaskDetail() {
           </p>
           {archivedDoc && (
             <div className="mt-3 flex items-center gap-2 p-2 bg-success/10 border border-success/20 rounded-lg text-sm text-success">
-              <Paperclip size={14} /> 已归档：{archivedDoc.name}（{archivedDoc.docNumber}）
+              <Paperclip size={14} /> {task?.meeting ? '已归入会议相关文件：' : '已归档：'}{archivedDoc.name}（{archivedDoc.docNumber}）
             </div>
           )}
         </div>

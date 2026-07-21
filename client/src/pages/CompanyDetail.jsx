@@ -548,7 +548,7 @@ export default function CompanyDetail() {
     return (
       <div key={link._id} className="flex items-center justify-between p-3 bg-canvas rounded-lg">
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${link.roles.includes('director') ? 'bg-primary-100 text-primary-700' : link.roles.includes('shareholder') ? 'bg-success/10 text-success' : link.roles.includes('secretary') ? 'bg-warning/10 text-warning' : 'bg-gray-100 text-ink'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${link.roles.includes('director') ? 'bg-primary-100 text-primary-700' : link.roles.includes('shareholder') ? 'bg-success/10 text-success' : link.roles.includes('secretary') ? 'bg-warning/10 text-warning' : 'bg-canvas text-ink'}`}>
             {p.name?.charAt(0) || '?'}
           </div>
           <div>
@@ -1095,7 +1095,7 @@ export default function CompanyDetail() {
                                   })()}
                                 </div>
                                 <p className="text-xs text-ink-3">
-                                  <span className="bg-gray-100 text-ink-2 px-1.5 py-0.5 rounded">{DOC_CATEGORY_LABELS[doc.category] || '其他'}</span>
+                                  <span className="bg-canvas text-ink-2 px-1.5 py-0.5 rounded">{DOC_CATEGORY_LABELS[doc.category] || '其他'}</span>
                                   {doc.type && <> &middot; {doc.type.replace(/_/g, ' ')}</>}
                                   {doc.fileSize && <> &middot; {(doc.fileSize / 1024).toFixed(0)} KB</>}
                                   {doc.createdAt && <> &middot; {formatDate(doc.createdAt)}</>}

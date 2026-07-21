@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useTheme } from '../contexts/ThemeContext.jsx'
 import {
   LayoutDashboard, Calendar, FileText, Building2,
   CheckSquare, LogOut, Menu, X, Briefcase, Crown, Zap,
@@ -35,7 +36,7 @@ const BOTTOM_TABS = [
 const ROLE_BADGE = {
   admin:   { label: 'Admin',   color: 'bg-danger/10 text-danger'    },
   manager: { label: 'Manager', color: 'bg-info/10 text-primary-700'  },
-  viewer:  { label: 'Viewer',  color: 'bg-gray-100 text-ink-2'  },
+  viewer:  { label: 'Viewer',  color: 'bg-canvas text-ink-2'  },
 }
 
 /**
@@ -48,7 +49,7 @@ const NavItem = memo(({ path, icon: Icon, label, admin, active, onClick }) => (
     className={`tap-target flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors border-l-2 ${
       active
         ? 'bg-primary-50 text-primary-700 font-semibold border-primary-600'
-        : 'text-ink-2 hover:bg-gray-100 hover:text-ink border-transparent'
+        : 'text-ink-2 hover:bg-canvas hover:text-ink border-transparent'
     } ${admin ? 'border-dashed border-danger/30 hover:border-danger/30 hover:bg-danger/10 hover:text-danger' : ''}`}
   >
     <Icon size={18} className={active ? 'text-primary-600' : admin ? 'text-danger' : 'text-ink-3'} />
@@ -77,13 +78,8 @@ const Navbar = () => {
   const { user, logout, isAdmin, isDemo } = useAuth()
   const location = useLocation()
   const [open, setOpen] = useState(false)
-  const [theme, setTheme] = useState(() => document.documentElement.classList.contains('dark') ? 'dark' : 'light')
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    setTheme(next)
-    document.documentElement.classList.toggle('dark', next === 'dark')
-    try { localStorage.setItem('theme', next) } catch { /* ignore */ }
-  }
+  // M3：统一使用 ThemeContext 单一事实源（此前自写 localStorage('theme') 与设置页不同步）
+  const { theme, toggle } = useTheme()
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -121,7 +117,7 @@ const Navbar = () => {
             <p className="text-xs text-ink-3 mt-0.5 truncate">Secretary Management</p>
           </div>
           <button
-            onClick={toggleTheme}
+            onClick={toggle}
             aria-label="切换明暗主题"
             className="ml-auto p-2 rounded-lg text-ink-2 hover:bg-canvas transition-colors shrink-0"
           >
@@ -177,7 +173,7 @@ const Navbar = () => {
           </div>
           <button
             onClick={logout}
-            className="tap-target flex items-center w-full gap-3 px-3 py-2.5 text-sm text-ink-2 hover:bg-gray-100 hover:text-ink rounded-lg transition-colors"
+            className="tap-target flex items-center w-full gap-3 px-3 py-2.5 text-sm text-ink-2 hover:bg-canvas hover:text-ink rounded-lg transition-colors"
           >
             <LogOut size={17} className="text-ink-3" />
             Sign Out

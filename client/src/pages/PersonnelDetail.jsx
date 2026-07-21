@@ -12,8 +12,8 @@ const ROLE_META = {
   alternate_director: { label: '替任董事', color: 'bg-info/10 text-primary-700' },
   shareholder: { label: '股东', color: 'bg-success/10 text-success' },
   secretary: { label: '公司秘书', color: 'bg-warning/10 text-warning' },
-  auditor: { label: '审计师', color: 'bg-gray-100 text-ink-2' },
-  other: { label: '其他', color: 'bg-gray-100 text-ink-2' },
+  auditor: { label: '审计师', color: 'bg-canvas text-ink-2' },
+  other: { label: '其他', color: 'bg-canvas text-ink-2' },
 }
 
 // 页面级骨架（人员基础信息加载时）
@@ -21,10 +21,10 @@ function PersonnelSkeleton() {
   return (
     <div className="space-y-6" aria-hidden="true">
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-gray-100 animate-pulse" />
+        <div className="w-12 h-12 rounded-full bg-canvas animate-pulse" />
         <div className="space-y-2">
-          <div className="h-5 bg-gray-100 rounded animate-pulse w-40" />
-          <div className="h-3 bg-gray-100 rounded animate-pulse w-24" />
+          <div className="h-5 bg-canvas rounded animate-pulse w-40" />
+          <div className="h-3 bg-canvas rounded animate-pulse w-24" />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -162,7 +162,7 @@ export default function PersonnelDetail() {
         badges={
           <>
             {roleSet.map(r => (
-              <span key={r} className={`badge ${ROLE_META[r]?.color || 'bg-gray-100 text-ink-2'}`}>
+              <span key={r} className={`badge ${ROLE_META[r]?.color || 'bg-canvas text-ink-2'}`}>
                 {ROLE_META[r]?.label || r}
               </span>
             ))}
@@ -241,9 +241,9 @@ export default function PersonnelDetail() {
                   const c = item.company || item.link || {}
                   return (
                     <Link key={item._id || idx} to={`/companies/${c._id}`}
-                      className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-gray-100 transition-colors">
+                      className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-canvas transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${ROLE_META[(item.roles || [])[0]]?.color || 'bg-gray-100 text-ink-2'}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${ROLE_META[(item.roles || [])[0]]?.color || 'bg-canvas text-ink-2'}`}>
                           {c.name?.charAt(0) || '?'}
                         </div>
                         <div>
@@ -253,7 +253,7 @@ export default function PersonnelDetail() {
                       </div>
                       <div className="flex items-center gap-2 text-xs text-ink-2">
                         {(item.roles || []).map(r => (
-                          <span key={r} className={`badge ${ROLE_META[r]?.color || 'bg-gray-100 text-ink-2'}`}>{ROLE_META[r]?.label || r}</span>
+                          <span key={r} className={`badge ${ROLE_META[r]?.color || 'bg-canvas text-ink-2'}`}>{ROLE_META[r]?.label || r}</span>
                         ))}
                         {item.shares > 0 && <span>{item.shares?.toLocaleString()} 股</span>}
                         {item.appointmentDate && <span>自 {formatDate(item.appointmentDate)}</span>}
@@ -275,7 +275,7 @@ export default function PersonnelDetail() {
           <div className="space-y-2">
             {meetings.data.map(m => (
               <Link key={m._id} to={`/meetings/${m._id}`}
-                className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-gray-100 transition-colors">
+                className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-canvas transition-colors">
                 <div>
                   <p className="font-medium text-primary-600">{m.title}</p>
                   <p className="text-xs text-ink-3">{m.company?.name} &middot; {m.type}</p>
@@ -331,7 +331,7 @@ export default function PersonnelDetail() {
           <div className="space-y-2">
             {reminders.map(r => (
               <Link key={r._id} to="/compliance-reminders"
-                className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-gray-100 transition-colors">
+                className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-canvas transition-colors">
                 <div>
                   <p className="font-medium text-primary-600">{r.title}</p>
                   <p className="text-xs text-ink-3">{r.company?.name}</p>
@@ -354,7 +354,7 @@ export default function PersonnelDetail() {
           <div className="space-y-2">
             {tasks.data.map(t => (
               <Link key={t._id} to={`/tasks/${t._id}`}
-                className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-gray-100 transition-colors">
+                className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-canvas transition-colors">
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate">{t.title}</p>
                   <p className="text-xs text-ink-3">{t.type} &middot; 到期 {formatDate(t.dueDate)}</p>

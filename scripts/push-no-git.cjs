@@ -14,7 +14,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat: 会议归档清单精简为5类+多文件上传 + v5.2 纪要闭环/文件管理/Dashboard签署任务/移动端适配';
+const COMMIT_MSG = 'feat: v5.2 增量收尾 - 会议全生命周期闭环 + 通知/纪要Tab完善(编辑预览/重生成/保存Word) + M2全文搜索索引 + M3暗色模式令牌对齐 + 归档清单5类多文件 + 5项回归修复';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

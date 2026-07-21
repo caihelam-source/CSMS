@@ -145,3 +145,43 @@
 | MeetingDetail | meetingService.getById + signTasks.getByMeeting（签署 tab） |
 
 > 本期不做复杂 `$lookup` 聚合管道；先以"按引用 ID 过滤 + populate"保证 API 可用，后续性能优化再引入 `$lookup` / 物化缓存。
+
+---
+
+## 8. v5.2 增量变更（2026-07-20，叠加于冻结设计之上）
+
+以下变更**不违反** §0 单一写原则，均为读/暂存/前端体验层增强。
+
+### 8.1 会议全生命周期闭环
+- 流程：通知 → 附件 → 纪要 → 签字 → 归档。
+- **暂存池**：`Document.staged: true` 表示暂存于会议子目录（签字扫描件、其他资料），`documents` 路由列表默认排除 staged。
+- **归档**：批量将 staged 文档移库到公司库 + 自动重命名 `[日期] 公司_类型_来源.pdf` + 锁定只读（`isArchived` 标记，UI 显示已归档印章、禁用编辑）。
+- 关键词检测 `detectMinutesKeywords` 自动生成签署 Task 并关联 `meetingId`。
+
+### 8.2 签署任务双来源（Task）
+```js
+{
+  taskSource: 'meeting' | 'dashboard',   // v5.2 新增：来源区分
+  isCTC: Boolean,                         // v5.2 新增：是否合规文本(CTC)
+  meeting: ObjectId ref Meeting,          // 仅 meeting 来源有
+}
+```
+- 签署完成：来源为 meeting → 扫描件建 `staged:true` 暂存会议，待会议最终归档进公司库；来源为 dashboard → 直接归档公司库（命名 `(ctc)`/`(signed).pdf`）。
+- 来源标签路由：`dashboard_sign` → `/tasks`，`signing_scan` → `/meetings`。
+
+### 8.3 文档到期与筛选
+- `Document.expiresAt` 驱动到期徽章：`docExpiryStatus` / `DOC_EXPIRY_BADGE`（utils/helpers）。
+- CompanyDetail 多级筛选：大类 → 子类型 → 年份（前端本地筛选，非后端）。
+
+### 8.4 前端设计令牌 + 暗色模式
+- 全站统一令牌：`--bg`/`--surface`/`--text-*`/`--border`/`--c-*` + Tailwind `bg-canvas`/`border-hairline`/`text-ink-*`。
+- `ThemeContext` 读 `claw-theme` 单一事实源，`.dark` 切换；Navbar 暗色开关走 `useTheme()`。
+- ⚠️ 改 `tailwind.config.js` 后必须重启 vite dev（否则白屏）。
+
+### 8.5 全文搜索索引
+- `server/searchIndexes.js` `ensureSearchIndexes()` 对 Company / Personnel / Document / Meeting / Task / ComplianceReminder 6 集合建 `$text` 索引（防御式 try/catch，连接成功后调用）。
+
+### 8.6 已修正的遗留项（相对 §6）
+- ✅ **Director 模型已删除**（2026-07-15）：`migrate-v5.js` 改走 raw collection 读旧 `directors` 集合，不再依赖模型。
+- ✅ 前端 Directors 页面已移除，统一入口为 Personnel。
+- ⏸ **legacy 数据迁移 `--apply` 待执行**（见 MIGRATION.md 第 5 步）：`directors` / `shareholderentries` / `directorentries` 三集合数据待合并进 Personnel + Company.links。当前读时聚合已兼容，但旧集合未清空。

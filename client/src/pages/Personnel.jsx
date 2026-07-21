@@ -7,7 +7,6 @@ import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClas
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required, email as emailValidator } from '../utils/validators'
 import { useConfirm } from '../components/ConfirmDialog'
-import { VirtualList } from '../components/VirtualList'
 import Modal from '../components/Modal'
 
 const EMPTY_FORM = { name: '', nric: '', email: '', phone: '', nationality: '', address: { country: '' } }
@@ -299,56 +298,6 @@ export default function Personnel() {
         <LoadingSpinner size="lg" />
       ) : filtered.length === 0 ? (
         <EmptyState icon={Users} title="No personnel found" />
-      ) : filtered.length > 50 ? (
-        <VirtualList
-          items={filtered}
-          itemHeight={80}
-          maxHeight={600}
-          renderItem={(p, _idx, style) => {
-            const dupGroup = findDuplicateGroup(p._id)
-            return (
-              <div key={p._id} style={style} className={`px-1 py-1`}>
-                <div className={`card flex items-center justify-between hover:shadow-md transition-shadow ${selectedIds.includes(p._id) ? 'ring-2 ring-primary-500' : ''} ${dupGroup ? 'border-l-4 border-l-yellow-400' : ''}`}>
-                  <div className="flex items-center gap-3 flex-1">
-                    <input type="checkbox" checked={selectedIds.includes(p._id)} onChange={() => toggleSelect(p._id)}
-                      className="w-4 h-4 text-primary-600 rounded" />
-                    <Link to={`/personnel/${p._id}`} className="flex items-center gap-3 flex-1">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold">
-                        {p.name?.charAt(0) || '?'}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-primary-600 hover:underline">{p.name}</p>
-                          {dupGroup && (
-                            <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full flex items-center gap-1" title="Duplicate detected">
-                              <AlertTriangle size={10} /> {dupGroup.count}
-                            </span>
-                          )}
-                        </div>
-                        {p.roles?.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-0.5">
-                            {p.roles.map(r => (
-                              <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-700">{roleLabel(r)}</span>
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex gap-2 text-xs text-ink-3">
-                          {p.nric && <span>{p.nric}</span>}
-                          {p.nationality && <span>· {p.nationality}</span>}
-                          {p.email && <span>· {p.email}</span>}
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(p)} className="p-2 text-ink-3 hover:text-primary-600 rounded"><Pencil size={14} /></button>
-                    <button onClick={() => handleDelete(p)} className="p-2 text-ink-3 hover:text-danger rounded"><Trash2 size={14} /></button>
-                  </div>
-                </div>
-              </div>
-            )
-          }}
-        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map(p => {

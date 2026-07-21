@@ -15,7 +15,7 @@ const StatCard = memo(({ icon: Icon, label, value, to }) => (
       <p className="text-sm text-ink-2 mb-1">{label}</p>
       <p className="text-3xl font-semibold text-ink tracking-tight">{value}</p>
     </div>
-    <div className="p-3 rounded-xl bg-gray-100 text-ink-3"><Icon size={22} /></div>
+    <div className="p-3 rounded-xl bg-canvas text-ink-3"><Icon size={22} /></div>
   </Link>
 ))
 
@@ -258,7 +258,7 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-2">
             {upcomingMeetings.map(m => (
-              <Link key={m._id} to={`/meetings/${m._id}`} className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-gray-100">
+              <Link key={m._id} to={`/meetings/${m._id}`} className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-canvas">
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${m.status === 'scheduled' ? 'bg-primary-500' : 'bg-yellow-500'}`} />
                   <div>

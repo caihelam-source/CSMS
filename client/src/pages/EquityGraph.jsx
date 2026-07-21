@@ -86,7 +86,7 @@ function TreeNode({ node, relationship, depth }) {
             <div className="flex flex-wrap gap-2">
               {personShareholders.map(l => (
                 <Link key={l._id} to={`/personnel/${l.link?._id}`}
-                  className="inline-flex items-center gap-1 px-2 py-1 bg-canvas border border-hairline rounded-lg text-xs hover:bg-gray-100">
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-canvas border border-hairline rounded-lg text-xs hover:bg-canvas">
                   <Users size={11} /> {l.link?.name || '未知'}
                   <span className="text-ink-3">{(l.shares || 0).toLocaleString()} 股</span>
                 </Link>
@@ -117,7 +117,7 @@ function TreeNode({ node, relationship, depth }) {
         <div className="mt-4 ml-6 space-y-4 border-l-2 border-dashed border-hairline pl-6">
           {children.map(child => (
             <div key={child.company._id}>
-              <div className="flex items-center gap-1 text-gray-300 text-xs mb-1"><ArrowDown size={12} /> 穿透至下层股东</div>
+              <div className="flex items-center gap-1 text-ink-3 text-xs mb-1"><ArrowDown size={12} /> 穿透至下层股东</div>
               <TreeNode node={child} relationship={child.relationship} depth={depth + 1} />
             </div>
           ))}

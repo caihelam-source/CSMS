@@ -1,53 +1,60 @@
-# 🏢 Claw - 公司秘书管理系统 v3.0
+# 🏢 Claw - 公司秘书管理系统 v5.2
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-6.0%2B-green.svg)](https://www.mongodb.com/)
 
-**Claw (Company Secretary Management System)** 是一款现代化的全栈公司秘书管理系统，专为香港及中国地区企业设计，提供公司管理、董事管理、合规提醒、文档模板、电子签署等核心功能。
+**Claw (Company Secretary Management System)** 是一款现代化的全栈香港公司秘书管理系统，提供公司管理、统一人员中枢、会议全生命周期管理、电子签署、合规提醒、文档模板等核心功能。
+
+> 当前版本 **v5.2**（2026-07-20）。v5.0 完成统一人员中枢重构，v5.2 完成会议全生命周期闭环、文件管理升级、移动端适配与签署任务增强。详见 [CHANGELOG](#变更日志)。
 
 ## ✨ 核心功能
 
 ### 🔐 用户认证与权限
-- JWT 身份认证
-- 基于角色的访问控制 (RBAC)
-- Demo 模式支持（无需登录即可预览）
+- JWT 身份认证 + 基于角色的访问控制 (RBAC)
+- **Demo 模式**：无需登录即可预览（`admin@example.com` / `admin123`）
 
 ### 🏢 公司管理
-- 公司 CRUD 操作
-- Excel 批量导入
-- 详情视图：股东管理 / 董事管理 / 登记册 Tab
+- 公司 CRUD + **Excel 批量导入**
+- 详情视图：任职人员 (links) / 股东 / 登记册 Tab
 - 一键生成 ROM（股东名册）/ ROD（董事名册）PDF
+- 文件 Tab：到期红/橙/绿徽章 + 近期任务概览
 
-### 👥 董事与人员管理
-- **董事管理** - 董事信息 CRUD + 任职记录 + Excel 导入
-- **人员库 (Personnel)** - 统一人员库，支持多角色标签
-  - 个人股东 / 法人股东 / 董事 / 公司秘书
-  - 任职时间线追踪
-  - 数据联动：选择人员自动填充关联信息
+### 👥 统一人员中枢 (Personnel) — v5.0 重构核心
+- **单一人员库**，用角色标签区分董事 / 股东 / 秘书（不再有独立 Directors 表/页面）
+- 任职时间线追踪（`Company.links[]` 为唯一事实源，读时聚合）
+- **360° 人员视图**：任职公司 + 关联会议 / 文件 / 合规 / 任务 五板块并行加载
+- 智能合并 / 重复检测
+- Excel 统一导入
 
-### 📊 股东条目管理
-- 个人股东 / 法人股东分类
-- 入股退股时间线 (shareRecords)
-- 关联人员库和公司库
-
-### 📋 合规管理
-- **合规规则** - 17 条预设规则 + 自定义规则
-- **合规提醒** - 自动触发 + 到期提醒 + 统计面板
-- **登记册生成** - 香港格式 ROM/ROD PDF (pdfkit)
+### 📅 会议全生命周期闭环 — v5.2
+- 流程：**会议通知 → 上传附件 → 会议纪要 → 签字 → 归档**
+- 通知 / 纪要生成后可**编辑 / 重新生成 / 复制文案 / HTML 预览 / 保存 Word**
+- **暂存池**：签字扫描件、其他资料先暂存会议子目录，最终归档时批量移库 + 自动重命名（`[日期] 公司_类型_来源.pdf`）+ 锁定只读
+- 关键词检测自动生成签署 Task（关联 meetingId）
 
 ### 📄 文档与模板
-- **文档管理** - 文件上传下载 + 自动编号
-- **文档模板** - 变量渲染引擎 + 模板预览
+- 文件上传（本地磁盘 / Cloudflare R2 生产）
+- **多级筛选器**：大类 → 子类型 → 年份 + 面包屑 + 实时数量同步
+- 文档到期状态徽章（绿/橙/红）
+- 文档模板：变量渲染引擎 + 预览
 
-### ✍️ 电子签署流程
-- 签署任务创建与管理
-- 签署人列表 + 进度展示
-- 完整的签署工作流
+### ✍️ 电子签署流程 — v5.2 增强
+- **双来源 Task**：`taskSource: meeting | dashboard`，计数实时同步
+- 模态发起（关联公司 / 签署人 / 截止 / 是否 CTC）
+- 签署完成可直接归档公司库（`(ctc)`/`(signed).pdf` 命名）
+- 来源标签按 `kind` 路由（dashboard_sign → /tasks，signing_scan → /meetings）
 
-### 📅 会议与任务
-- 会议管理（快速状态切换）
-- 任务管理（快速完成 + 备注功能）
+### 📊 合规管理
+- 合规规则（17 条预设 + 自定义）
+- 合规提醒：自动触发 + 到期提醒 + 统计面板
+- 登记册生成：香港格式 ROM/ROD PDF (pdfkit)
+
+### 🎨 体验增强 — v5.2
+- **暗色模式**（ThemeContext，全站设计令牌对齐）
+- **移动端适配**（tap-target 44px、DetailHeader 折行、TabNav 选中加深）
+- **全文搜索增强**（`$text` 索引：Company/Personnel/Document/Meeting/Task/ComplianceReminder）
+- Dashboard 签署任务增强（双来源 + 模态发起）
 
 ## 🛠️ 技术栈
 
@@ -63,6 +70,7 @@
 | PDFKit | 0.19.x | PDF 生成 |
 | XLSX | 0.18.x | Excel 解析 |
 | Docxtemplater | 3.68.x | Word 文档生成 |
+| @aws-sdk/client-s3 | 3.x | Cloudflare R2 存储 |
 
 ### 前端
 | 技术 | 用途 |
@@ -74,6 +82,8 @@
 | React Router | 路由管理 |
 | Axios | HTTP 客户端 |
 
+> **Mock / Real 双轨**：前端 `services/index.js` 中 `USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'`（默认 mock）。`wrap(apiFn, mockFn)` 统一真实 `{success, entity}` 与 mock `{data:{data}}` 为前端期望形状。接真实后端：`VITE_USE_MOCK=false`。
+
 ## 🚀 快速开始
 
 ### 环境要求
@@ -83,217 +93,128 @@ MongoDB >= 6.0 (本地或 Atlas)
 ```
 
 ### 安装步骤
-
-1. **克隆仓库**
 ```bash
+# 1. 克隆仓库
 git clone <repository-url>
 cd Claw
-```
 
-2. **安装依赖**
-```bash
-# 安装根目录依赖
+# 2. 安装依赖（根 + 前端）
 npm install
+cd client && npm install && cd ..
 
-# 安装前端依赖
-cd client && npm install
-cd ..
-```
-
-3. **配置环境变量**
-```bash
+# 3. 配置环境变量（真实后端联调时需要）
 cp .env.example .env
-# 编辑 .env 文件，填入你的配置
-```
+# 编辑 .env 填入 MONGODB_URI / R2_* 等（见 DEPLOY-FULLSTACK.md）
 
-4. **启动 MongoDB**
-```bash
-# 使用 Docker（推荐）
+# 4. 启动 MongoDB（可选，演示可走 Mock）
 docker-compose up -d
 
-# 或使用本地 MongoDB
-mongod
-```
-
-5. **运行项目**
-```bash
-# 开发模式（同时启动前后端）
-npm run dev
-
-# 或分别启动
-npm run server:dev  # 后端 :5000
-npm run client:dev  # 前端 :5173
+# 5. 运行
+npm run dev              # 同时启动前后端（:5000 + :5173）
+# 或分开：
+npm run server:dev      # 后端 :5000
+npm run client:dev      # 前端 :5173（Mock 模式）
 ```
 
 ### 访问地址
 - 前端界面：http://localhost:5173
 - 后端 API：http://localhost:5000
-- API 文档：http://localhost:5000/api/docs
+- Demo 登录：`admin@example.com` / `admin123`
 
 ## 📁 项目结构
 
 ```
 Claw/
-├── client/                    # 前端应用 (React + Vite)
+├── client/                    # 前端 (React + Vite)
 │   ├── src/
-│   │   ├── components/        # 公共组件
-│   │   ├── pages/            # 页面组件
-│   │   │   ├── Dashboard.jsx      # 仪表盘
-│   │   │   ├── Companies.jsx      # 公司管理
-│   │   │   ├── Directors.jsx      # 董事管理
-│   │   │   ├── Personnel.jsx      # 人员库
-│   │   │   ├── Meetings.jsx       # 会议管理
-│   │   │   ├── Documents.jsx      # 文档管理
-│   │   │   ├── Tasks.jsx          # 任务管理
-│   │   │   ├── ComplianceReminders.jsx  # 合规提醒
-│   │   │   ├── ComplianceRules.jsx     # 合规规则
-│   │   │   ├── Templates.jsx      # 文档模板
-│   │   │   └── SignTasks.jsx      # 电子签署
-│   │   ├── services/         # API 服务层
-│   │   └── utils/            # 工具函数
+│   │   ├── components/        # 公共组件 (UIHelpers, Modal, TabNav ...)
+│   │   ├── pages/            # 页面
+│   │   │   ├── Dashboard.jsx       # 仪表盘（签署任务增强）
+│   │   │   ├── Companies.jsx       # 公司管理（Excel 导入）
+│   │   │   ├── CompanyDetail.jsx   # 公司 360°（文件 Tab + 近期任务）
+│   │   │   ├── Personnel.jsx       # 统一人员中枢
+│   │   │   ├── PersonnelDetail.jsx # 人员 360° 视图
+│   │   │   ├── Meetings.jsx        # 会议列表
+│   │   │   ├── MeetingDetail.jsx   # 会议全生命周期闭环
+│   │   │   ├── Documents.jsx       # 文档管理（多级筛选）
+│   │   │   ├── Tasks.jsx           # 任务（双来源签署）
+│   │   │   ├── TaskDetail.jsx      # 任务详情（CTC/来源徽章）
+│   │   │   ├── ComplianceReminders.jsx
+│   │   │   ├── ComplianceRules.jsx
+│   │   │   ├── Templates.jsx
+│   │   │   └── SignTasks.jsx
+│   │   ├── services/         # API 服务层（含 mock 双轨）
+│   │   └── utils/            # 工具函数 (helpers, validators)
 │   └── ...
-├── server/                   # 后端应用 (Express)
-│   ├── config/              # 配置文件
-│   ├── controllers/         # 控制器
-│   ├── middleware/          # 中间件
-│   ├── models/             # MongoDB 模型
-│   │   ├── User.js         # 用户模型
-│   │   ├── Company.js      # 公司模型
-│   │   ├── Director.js     # 董事模型
-│   │   ├── Personnel.js    # 人员库模型
-│   │   ├── ShareholderEntry.js  # 股东条目模型
-│   │   ├── DirectorEntry.js    # 董事条目模型
-│   │   ├── Document.js        # 文档模型
-│   │   ├── DocumentTemplate.js # 文档模板模型
-│   │   ├── ComplianceRule.js   # 合规规则模型
-│   │   ├── ComplianceReminder.js # 合规提醒模型
-│   │   ├── Meeting.js          # 会议模型
-│   │   ├── SignTask.js         # 签署任务模型
-│   │   └── Task.js             # 任务模型
-│   ├── routes/             # API 路由
-│   │   ├── auth.js            # 认证路由
-│   │   ├── companies.js       # 公司路由
-│   │   ├── directors.js       # 董事路由
-│   │   ├── personnel.js       # 人员库路由
-│   │   ├── companyEntries.js  # 条目路由
-│   │   ├── companyRegister.js # 登记册路由
-│   │   ├── documents.js       # 文档路由
-│   │   ├── meetings.js        # 会议路由
-│   │   ├── tasks.js           # 任务路由
-│   │   ├── complianceRules.js    # 合规规则路由
-│   │   ├── complianceReminders.js # 合规提醒路由
-│   │   ├── templates.js       # 模板路由
-│   │   └── signTasks.js       # 签署路由
-│   └── index.js            # 入口文件
-├── uploads/                 # 文件上传目录
-├── scripts/                 # 辅助脚本
-├── docker-compose.yml       # Docker 编排
-├── Dockerfile               # Docker 镜像
-├── nginx.conf               # Nginx 配置
+├── server/                   # 后端 (Express)
+│   ├── config/  controllers/  middleware/
+│   ├── models/              # User/Company/Personnel/Document/Meeting/Task/SignTask/ComplianceRule/ComplianceReminder ...
+│   │                        #   ⚠️ Director 模型已删除(v5.0)，legacy 数据待 migrate-v5 --apply 合并
+│   ├── routes/             # auth/companies/personnel/companyEntries/companyRegister/documents/meetings/tasks/complianceRules/complianceReminders/templates/signTasks
+│   ├── searchIndexes.js     # $text 索引确保（v5.2）
+│   └── index.js
+├── scripts/                 # 辅助脚本（含 migrate-v5.js 迁移脚本、push-no-git.cjs 推送）
+├── .workbuddy/memory/       # 项目记忆 + SECRETS.md（⚠️ 被 .gitignore 忽略，搬迁需手动带，见 MIGRATION.md）
+├── docker-compose.yml  Dockerfile  nginx.conf  render.yaml
 └── package.json
 ```
 
 ## 🔌 API 接口概览
 
-### 认证模块 `/api/auth`
-- `POST /register` - 用户注册
-- `POST /login` - 用户登录
-- `GET /me` - 获取当前用户
+### 认证 `/api/auth`
+`POST /register` · `POST /login` · `GET /me`
 
-### 公司模块 `/api/companies`
-- `GET /` - 获取所有公司
-- `POST /` - 创建公司
-- `PUT /:id` - 更新公司
-- `DELETE /:id` - 删除公司
-- `POST /import` - Excel 导入
-- `GET /:id/directors` - 获取公司董事
-- `GET /:id/shareholder-entries` - 获取股东条目
-- `GET /:id/director-entries` - 获取董事条目
+### 公司 `/api/companies`
+`GET /` · `POST /` · `PUT /:id` · `DELETE /:id` · `POST /import`(Excel) · `GET /:id/directors` · `GET /:id/shareholder-entries` · `GET /:id/director-entries` · `POST/PUT/DELETE /:id/links`(任职关系唯一写入口)
 
-### 人员库模块 `/api/personnel`
-- `GET /` - 获取所有人员
-- `POST /` - 创建人员
-- `PUT /:id` - 更新人员
-- `DELETE /:id` - 删除人员
-- `POST /:id/appointments` - 添加任职记录
+### 人员中枢 `/api/personnel`
+`GET /` · `POST /` · `PUT /:id` · `DELETE /:id` · `POST /:id/appointments` · `POST /merge` · `GET /:id/aggregate`(360° 聚合)
 
-### 合规模块
-- `GET /api/compliance-rules` - 获取合规规则
-- `POST /api/compliance-rules` - 创建规则
-- `GET /api/compliance-reminders` - 获取合规提醒
-- `PUT /api/compliance-reminders/:id/complete` - 标记完成
+### 会议 `/api/meetings`
+`GET /` · `POST /` · `PUT /:id` · `DELETE /:id` · `GET /:id/sign-tasks`
 
-### 登记册模块 `/api/company-register`
-- `GET /:id/rom` - 生成股东名册 PDF
-- `GET /:id/rod` - 生成董事名册 PDF
+### 文档 `/api/documents`
+`GET /`(排除暂存) · `POST /`(含 staged 暂存) · `GET /:id` · `DELETE /:id` · `GET /company/:id` · `GET /meeting/:id`
 
-更多 API 详情请查看 [API Documentation](./docs/API.md)
+### 任务 `/api/tasks` · 签署 `/api/sign-tasks` · 合规 `/api/compliance-rules` · `/api/compliance-reminders` · 模板 `/api/templates` · 登记册 `/api/company-register`(`GET /:id/rom` `GET /:id/rod`)
 
-## 🐳 Docker 部署
+> 完整 API 见 [docs/API.md](./docs/API.md)。
 
-### 快速部署
-```bash
-# 构建并启动所有服务
-docker-compose up -d --build
+## 📦 部署
 
-# 服务包括：
-# - MongoDB (27017)
-# - Backend API (:5000)
-# - Frontend (:80)
-```
+公网部署（Render + MongoDB Atlas + Cloudflare R2）详见 **[DEPLOY-FULLSTACK.md](./DEPLOY-FULLSTACK.md)**。
 
-### 单独服务
-```bash
-# 只启动数据库
-docker-compose up -d mongo
+沙箱无 git 时，用 `scripts/push-no-git.cjs`（Node.js 调 GitHub Git Data API 等效 `git push`，PAT 从 `.workbuddy/memory/SECRETS.md` 读取，不落盘）。
 
-# 只启动后端
-docker-compose up backend
+## 📦 整体搬迁（迁移到新环境）
 
-# 只启动前端
-docker-compose up frontend
-```
-
-详见 [DEPLOYMENT.md](./DEPLOYMENT.md)
-
-## 🤝 团队协作指南
-
-我们欢迎所有贡献者！请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解如何参与开发：
-
-- 如何设置开发环境
-- 代码规范和提交规范
-- 分支策略和工作流
-- 如何提交 PR
+把整个 CSMS 搬到另一台机器 / 新项目目录时，**不可只靠 `git clone`**（`.workbuddy/` 被忽略，会丢密钥与记忆）。完整步骤见 **[MIGRATION.md](./MIGRATION.md)**。
 
 ## 📋 项目路线图
 
-查看 [PROJECT_ROADMAP.md](./PROJECT_ROADMAP.md) 了解：
-- 当前开发进度
-- 即将发布的版本计划
-- 已知问题和改进方向
-- 功能优先级排序
+见 [PROJECT_ROADMAP.md](./PROJECT_ROADMAP.md)（当前 v5.2）。
 
-## 📝 开发文档
+## 📝 技术设计契约
 
-- [开发指南](./DEVELOPMENT.md) - 详细的环境配置和开发说明
-- [部署指南](./DEPLOYMENT.md) - 生产环境部署教程
-- [API 文档](./docs/API.md) - 完整的 API 接口文档
-- [数据库设计](./docs/DATABASE.md) - 数据模型和关系说明
+见 [TECH_DESIGN.md](./TECH_DESIGN.md)（v5.0 中央数据库设计冻结 + v5.2 增量）。
+
+## 🤝 团队协作
+
+见 [CONTRIBUTING.md](./CONTRIBUTING.md)（Git Flow + Conventional Commits）。
+
+## 📄 变更日志
+
+- **v5.2** (2026-07-20)：会议全生命周期闭环 + 文件管理升级 + 移动端适配 + 签署任务增强；会议通知/纪要 Tab 补齐「重新生成 / 保存 Word / HTML 预览」，修复编辑后预览丢失。
+- **v5.0** (2026-07-14)：统一人员中枢重构（Director/ShareholderEntry/DirectorEntry → Personnel + Company.links），Personnel 360° 视图，CompanyDetail 打通。
+- **v4.0**：代码优化（React.lazy / 共享组件 / 虚拟列表 / 验证器 / Toast）+ 端到端回归。
+- **v3.0**：中央信息库完整可用。
 
 ## 📄 License
 
-本项目采用 MIT License - 查看 [LICENSE](LICENSE) 文件了解详情
-
-## 💬 支持与反馈
-
-- 提交 Issue：[GitHub Issues](`<repository-url>/issues`)
-- 功能请求：[GitHub Discussions](`<repository-url>/discussions`)
-- 邮件联系：support@example.com
+MIT License - 见 [LICENSE](LICENSE)。
 
 ---
 
 <div align="center">
 <strong>Claw</strong> - 让公司秘书工作更高效 ✨
-<br><br>
-Made with ❤️ by the Claw Team
 </div>

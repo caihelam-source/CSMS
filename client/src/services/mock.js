@@ -664,7 +664,7 @@ export const documents = {
     if (filters.type) list = list.filter(d => d.type === filters.type);
     if (filters.companyId) list = list.filter(d => d.company?._id === filters.companyId);
     if (filters.personnelId) list = list.filter(d => d.personnel?._id === filters.personnelId);
-    if (filters.meetingId) list = list.filter(d => d.meeting?._id === filters.meetingId);
+    if (filters.meetingId) list = list.filter(d => (d.meeting?._id || d.meeting) === filters.meetingId);
     // v5.2 模块1：公司文件库 / 全局列表默认排除"会议暂存"文件（staged=true）。
     // 仅当显式 meetingId（会议视图自身）或 includeStaged 时才包含。
     if (!filters.meetingId && !filters.includeStaged) list = list.filter(d => !d.staged);
@@ -700,6 +700,8 @@ export const documents = {
       createdAt: new Date().toISOString().split('T')[0],
       ...data,
     };
+    // 归一化：meeting 字符串引用 → { _id } 对象，与种子数据 / 真实后端填充一致
+    if (typeof neu.meeting === 'string') neu.meeting = { _id: neu.meeting };
     // 自动生成文档编号（如未提供）
     if (!neu.docNumber) {
       const prefix = (neu.category || 'other').slice(0, 3).toUpperCase();

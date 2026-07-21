@@ -26,7 +26,7 @@ const MEETING_FLOW = [
 
 // 文件签署状态徽章（Document.signStatus）
 const SIGN_STATUS_BADGE = {
-  draft: { label: '草稿', cls: 'bg-gray-100 text-ink-2' },
+  draft: { label: '草稿', cls: 'bg-canvas text-ink-2' },
   pending_sign: { label: '待签署', cls: 'bg-warning/10 text-warning' },
   partially_signed: { label: '部分签署', cls: 'bg-info/10 text-primary-700' },
   fully_signed: { label: '已签署', cls: 'bg-success/10 text-success' },
@@ -93,6 +93,9 @@ export default function MeetingDetail() {
     try {
       const { data } = await meetingService.getOne(id)
       setMeeting(data.data)
+      // v5.2 修复：重进页面时从 meeting.notice / meeting.minutes 还原最新版本，避免"生成后点入就没了"
+      if (data.data?.notice) setNoticeData(data.data.notice)
+      if (data.data?.minutes) setMinutesData(data.data.minutes)
       // 相关文件：仅加载本会议关联的文档（Document.meeting = id），并补齐签署任务
       const { data: docRes } = await documentService.getAll({ meetingId: id }).catch(() => ({ data: { data: [] } }))
       setDocuments(docRes.data || [])
@@ -115,14 +118,21 @@ export default function MeetingDetail() {
     setGenerating('notice')
     try {
       const { data } = await meetingService.getNotice(id)
-      setNoticeData(data.data)
+      const notice = { ...data.data, generatedAt: new Date().toISOString() }
+      // v5.2 修复：生成的会议通知落库到 meeting.notice，重进页面仍呈现最新版本
+      await meetingService.update(id, {
+        notice,
+        phase: meeting?.phase === 'draft' ? 'notice-sent' : meeting?.phase,
+      }).catch(() => {})
+      setNoticeData(notice)
+      setMeeting(prev => ({ ...prev, notice, phase: prev.phase === 'draft' ? 'notice-sent' : prev.phase }))
       toast.success('会议通知已生成')
     } catch {
       toast.error('生成通知失败')
     } finally {
       setGenerating(null)
     }
-  }, [id])
+  }, [id, meeting])
 
   const generateMinutes = useCallback(async () => {
     setGenerating('minutes')
@@ -130,7 +140,14 @@ export default function MeetingDetail() {
       const { data } = await meetingService.getMinutes(id)
       setMinutesData(data.data)
       // 生成后标记纪要状态为 final，并推进阶段，强制引导"必须签署"
-      const minutesPatch = { ...(meeting?.minutes || {}), status: 'final' }
+      // v5.2 修复：把生成的纪要正文一并落库到 meeting.minutes（含 status），重进页面仍呈现最新版本
+      const minutesPatch = {
+        ...(meeting?.minutes || {}),
+        status: 'final',
+        text: data.data?.text,
+        html: data.data?.html,
+        generatedAt: new Date().toISOString(),
+      }
       const { data: upd } = await meetingService.update(id, { minutes: minutesPatch, phase: 'minutes-draft' }).catch(() => ({ data: { data: meeting } }))
       setMeeting(upd?.data || meeting)
       // v5.1 #2.1 关键词自动识别：纪要正文含"签署/签字/盖章"等 → 自动生成签署 Task
@@ -167,9 +184,52 @@ export default function MeetingDetail() {
     }
   }, [id, meeting, meetingTasks])
 
+  // v5.2 修复：编辑通知 / 纪要后落库，确保"编辑后呈现最新版本"
+  const saveNoticeEdit = useCallback(async () => {
+    if (!noticeData) return
+    // v5.2 fix: 保留原有 html 不清空，编辑纯文本不应破坏预览模板
+    const updated = { ...noticeData, text: editedNoticeText, editedAt: new Date().toISOString() }
+    await meetingService.update(id, { notice: updated }).catch(() => {})
+    setNoticeData(updated)
+    setMeeting(prev => ({ ...prev, notice: updated }))
+    setEditingNotice(false)
+    setEditedNoticeText('')
+    toast.success('会议通知已更新')
+  }, [id, noticeData, editedNoticeText])
+
+  const saveMinutesEdit = useCallback(async () => {
+    if (!minutesData) return
+    // v5.2 fix: 保留原有 html 不清空，编辑纯文本不应破坏预览模板
+    const updated = { ...minutesData, text: editedMinutesText, editedAt: new Date().toISOString() }
+    await meetingService.update(id, { minutes: updated }).catch(() => {})
+    setMinutesData(updated)
+    setMeeting(prev => ({ ...prev, minutes: updated }))
+    setEditingMinutes(false)
+    setEditedMinutesText('')
+    toast.success('会议纪要已更新')
+  }, [id, minutesData, editedMinutesText])
+
   const copyText = useCallback((text) => {
     navigator.clipboard.writeText(text)
     toast.success('已复制到剪贴板')
+  }, [])
+
+  // v5.2 fix: 保存为 Word 文档（.doc）— 用 HTML-Word 兼容格式，无需额外依赖
+  const downloadWord = useCallback((data, filenamePrefix) => {
+    const htmlContent = data.html || `<html><body><pre style="font-family: serif; white-space: pre-wrap;">${(data.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></body></html>`
+    const wordHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head><meta charset="utf-8"><title>${filenamePrefix}</title></head>
+      <body style="font-family: 'Times New Roman', serif; font-size: 14pt; line-height: 1.6;">${htmlContent}</body>
+      </html>`
+    const blob = new Blob(['\ufeff' + wordHtml], { type: 'application/msword' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${filenamePrefix}.doc`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success(`${filenamePrefix}.doc 已下载`)
   }, [])
 
   const uploadAttachment = useCallback(async () => {
@@ -182,7 +242,7 @@ export default function MeetingDetail() {
         name: attachForm.name,
         type: attachForm.type,
         category: 'meeting',
-        meeting: id,
+        meeting: { _id: id },
         company: meeting?.company?._id
           ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
           : undefined,
@@ -216,7 +276,7 @@ export default function MeetingDetail() {
         name: `${meeting?.title || '会议'} 纪要签字版扫描件`,
         type: 'minutes',
         category: 'meeting',
-        meeting: id,
+        meeting: { _id: id },
         company: meeting?.company?._id
           ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
           : undefined,
@@ -267,11 +327,19 @@ export default function MeetingDetail() {
     }
     try {
       const lockedAt = new Date().toISOString()
+      const usedNames = new Set()
       for (const d of documents) {
         if (!d.staged && d.locked) continue // 已归档锁定，跳过
         // v5.2 模块1：按命名规则重命名 → 解除暂存（移入公司库）→ 锁定只读
         const typeLabel = archiveTypeLabel(meeting, d)
-        const newName = buildArchiveDocName(meeting, meeting?.company, typeLabel)
+        let newName = buildArchiveDocName(meeting, meeting?.company, typeLabel)
+        // v5.2 修复：同类型多文件（如多份"其他"）防重名，追加 (2)(3)...
+        if (usedNames.has(newName)) {
+          let i = 2
+          while (usedNames.has(`${newName.replace('.pdf', '')} (${i}).pdf`)) i += 1
+          newName = `${newName.replace('.pdf', '')} (${i}).pdf`
+        }
+        usedNames.add(newName)
         await documentService.update(d._id, {
           name: newName,
           staged: false,
@@ -399,7 +467,7 @@ export default function MeetingDetail() {
 
       {/* v5.2 模块1：已归档只读横幅 */}
       {isArchived && (
-        <div className="flex items-center gap-2 rounded-xl border border-hairline bg-gray-50 px-4 py-3 text-sm text-ink-2">
+        <div className="flex items-center gap-2 rounded-xl border border-hairline bg-canvas px-4 py-3 text-sm text-ink-2">
           <Lock size={16} className="text-danger shrink-0" />
           <span>会议已归档，会议及关联文件为<strong className="text-danger">只读状态</strong>（不可删除 / 修改）。如需变更，请重新发起会议或联系管理员。</span>
         </div>
@@ -415,12 +483,12 @@ export default function MeetingDetail() {
             return (
               <div key={step.key} className="flex items-center flex-1">
                 <div className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${done ? 'bg-success text-white' : 'bg-gray-100 text-ink-2'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${done ? 'bg-success text-white' : 'bg-canvas text-ink-2'}`}>
                     {done ? <CheckCircle2 size={16} /> : i + 1}
                   </div>
                   <span className={`mt-1 text-xs ${done ? 'text-success font-medium' : 'text-ink-3'}`}>{step.label}</span>
                 </div>
-                {!isLast && <div className={`flex-1 h-0.5 mx-1 mb-5 ${done ? 'bg-success' : 'bg-gray-100'}`} />}
+                {!isLast && <div className={`flex-1 h-0.5 mx-1 mb-5 ${done ? 'bg-success' : 'bg-canvas'}`} />}
               </div>
             )
           })}
@@ -483,7 +551,7 @@ export default function MeetingDetail() {
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
                         a.status === 'attended' ? 'bg-success/10 text-success'
                         : a.status === 'accepted' ? 'bg-info/10 text-primary-700'
-                        : 'bg-gray-100 text-ink-2'
+                        : 'bg-canvas text-ink-2'
                       }`}>
                         {a.status === 'attended' ? '出席' : a.status === 'accepted' ? '已确认' : a.status === 'declined' ? '已拒绝' : '待确认'}
                       </span>
@@ -521,7 +589,7 @@ export default function MeetingDetail() {
                       <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                         r.status === 'approved' ? 'bg-success/10 text-success'
                         : r.status === 'rejected' ? 'bg-danger/10 text-danger'
-                        : 'bg-gray-100 text-ink-2'
+                        : 'bg-canvas text-ink-2'
                       }`}>
                         {r.status === 'approved' ? '已通过' : r.status === 'rejected' ? '未通过' : '待决议'}
                       </span>
@@ -538,7 +606,7 @@ export default function MeetingDetail() {
           <div className="space-y-4">
             {!noticeData ? (
               <div className="text-center py-12">
-                <FileText size={48} className="mx-auto text-gray-300 mb-4" />
+                <FileText size={48} className="mx-auto text-ink-3 mb-4" />
                 <p className="text-ink-2 mb-4">尚未生成会议通知</p>
                 <button
                   onClick={generateNotice}
@@ -559,19 +627,36 @@ export default function MeetingDetail() {
                   <button onClick={() => copyText(editingNotice ? editedNoticeText : noticeData.text)} className="btn-secondary inline-flex items-center gap-1.5 text-sm">
                     <Copy size={14} /> 复制文案
                   </button>
-                  {(noticeData.html || editingNotice) && (
+                  {!editingNotice ? (
                     <button
-                      onClick={() => {
-                        if (editingNotice) {
-                          setEditingNotice(false)
-                        } else {
-                          setEditedNoticeText(noticeData.text)
-                          setEditingNotice(true)
-                        }
-                      }}
-                      className={`inline-flex items-center gap-1.5 text-sm ${editingNotice ? 'btn-primary' : 'btn-secondary text-primary-600'}`}
+                      onClick={() => { setEditedNoticeText(noticeData.text); setEditingNotice(true) }}
+                      className="btn-secondary text-primary-600 inline-flex items-center gap-1.5 text-sm"
                     >
-                      {editingNotice ? <><CheckCircle2 size={14} /> 完成编辑</> : <><Pencil size={14} /> 编辑</>}
+                      <Pencil size={14} /> 编辑
+                    </button>
+                  ) : (
+                    <button
+                      onClick={saveNoticeEdit}
+                      className="btn-primary inline-flex items-center gap-1.5 text-sm"
+                    >
+                      <CheckCircle2 size={14} /> 完成编辑
+                    </button>
+                  )}
+                  {!editingNotice && (
+                    <button
+                      onClick={generateNotice}
+                      disabled={generating === 'notice'}
+                      className="btn-secondary text-primary-600 inline-flex items-center gap-1.5 text-sm disabled:opacity-50"
+                    >
+                      <FileText size={14} /> 重新生成
+                    </button>
+                  )}
+                  {!editingNotice && (
+                    <button
+                      onClick={() => downloadWord(noticeData, `${meeting?.title || '会议'}_通知`)}
+                      className="btn-secondary inline-flex items-center gap-1.5 text-sm text-primary-600"
+                    >
+                      <Download size={14} /> 保存Word
                     </button>
                   )}
                   {!editingNotice && noticeData.html && (
@@ -620,7 +705,7 @@ export default function MeetingDetail() {
           <div className="space-y-4">
             {!minutesData ? (
               <div className="text-center py-12">
-                <PenLine size={48} className="mx-auto text-gray-300 mb-4" />
+                <PenLine size={48} className="mx-auto text-ink-3 mb-4" />
                 <p className="text-ink-2 mb-4">尚未生成会议纪要</p>
                 <button
                   onClick={generateMinutes}
@@ -641,20 +726,37 @@ export default function MeetingDetail() {
                   <button onClick={() => copyText(editingMinutes ? editedMinutesText : minutesData.text)} className="btn-secondary inline-flex items-center gap-1.5 text-sm">
                     <Copy size={14} /> 复制文案
                   </button>
-                  {(minutesData.html || editingMinutes) && (
+                  {!editingMinutes ? (
                     <button
-                      onClick={() => {
-                        if (editingMinutes) {
-                          setEditingMinutes(false)
-                        } else {
-                          setEditedMinutesText(minutesData.text)
-                          setEditingMinutes(true)
-                        }
-                      }}
+                      onClick={() => { setEditedMinutesText(minutesData.text); setEditingMinutes(true) }}
                       disabled={isArchived}
-                      className={`inline-flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed ${editingMinutes ? 'btn-primary' : 'btn-secondary text-primary-600'}`}
+                      className="btn-secondary text-primary-600 inline-flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {editingMinutes ? <><CheckCircle2 size={14} /> 完成编辑</> : <><Pencil size={14} /> 编辑</>}
+                      <Pencil size={14} /> 编辑
+                    </button>
+                  ) : (
+                    <button
+                      onClick={saveMinutesEdit}
+                      className="btn-primary inline-flex items-center gap-1.5 text-sm"
+                    >
+                      <CheckCircle2 size={14} /> 完成编辑
+                    </button>
+                  )}
+                  {!editingMinutes && (
+                    <button
+                      onClick={generateMinutes}
+                      disabled={generating === 'minutes' || isArchived}
+                      className="btn-secondary text-primary-600 inline-flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <PenLine size={14} /> 重新生成
+                    </button>
+                  )}
+                  {!editingMinutes && (
+                    <button
+                      onClick={() => downloadWord(minutesData, `${meeting?.title || '会议'}_纪要`)}
+                      className="btn-secondary inline-flex items-center gap-1.5 text-sm text-primary-600"
+                    >
+                      <Download size={14} /> 保存Word
                     </button>
                   )}
                   {!editingMinutes && minutesData.html && (
@@ -896,7 +998,7 @@ export default function MeetingDetail() {
                         <span className={`text-xs px-2 py-1 rounded-full ${
                           st.status === 'completed' ? 'bg-success/10 text-success'
                           : st.status === 'in_progress' ? 'bg-info/10 text-primary-700'
-                          : 'bg-gray-100 text-ink-2'
+                          : 'bg-canvas text-ink-2'
                         }`}>{st.status}</span>
                       </div>
                       {st.signers?.length > 0 && (
@@ -947,7 +1049,7 @@ export default function MeetingDetail() {
               className={inputClass}
               value={attachForm.name}
               onChange={e => { setAttachForm({ ...attachForm, name: e.target.value }); setAttachErrors(ae => ({ ...ae, name: '' })) }}
-              placeholder="例如：董事签字页扫描件"
+              placeholder="默认取上传文件名，可修改"
             />
           </FormField>
           <FormField label="文件类型">
@@ -965,7 +1067,14 @@ export default function MeetingDetail() {
           </FormField>
           <FormField label="选择文件">
             <input type="file" className={inputClass}
-              onChange={e => setAttachForm({ ...attachForm, file: e.target.files[0] || null })} />
+              onChange={e => {
+                const f = e.target.files[0] || null
+                setAttachForm(prev => ({
+                  ...prev,
+                  file: f,
+                  name: prev.name.trim() ? prev.name : (f ? f.name.replace(/\.[^.]+$/, '') : ''),
+                }))
+              }} />
           </FormField>
           <div className="bg-warning/10 border border-warning/20 p-3 rounded-lg text-sm text-warning flex items-start gap-2">
             <AlertCircle size={16} className="shrink-0 mt-0.5" />

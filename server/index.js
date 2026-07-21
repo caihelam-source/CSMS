@@ -82,6 +82,14 @@ async function start() {
     const { initPresetRules } = require('./services/complianceService');
     await initPresetRules();
 
+    // M2.2 搜索全文索引（防御式，失败不影响启动）
+    try {
+      const { ensureSearchIndexes } = require('./searchIndexes');
+      await ensureSearchIndexes();
+    } catch (e) {
+      console.warn('⚠️ 搜索索引初始化跳过:', e.message);
+    }
+
     // 初始化预设模板
     try {
       // 通过 HTTP 调用或直接调用服务层（这里直接用 mongoose）

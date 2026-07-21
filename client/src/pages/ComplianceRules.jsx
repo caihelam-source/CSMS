@@ -132,11 +132,11 @@ const GenerateModal = ({ rule, companies, onConfirm, onCancel, loading }) => {
 
 const jurisdictionColor = (j) => ({
   'HK': 'bg-info/10 text-primary-700',
-  'BVI': 'bg-gray-100 text-ink-2',
-  'Cayman': 'bg-gray-100 text-ink-2',
-  'SG': 'bg-gray-100 text-ink-2',
-  'OTHER': 'bg-gray-100 text-ink-2',
-}[j] || 'bg-gray-100 text-ink-2')
+  'BVI': 'bg-canvas text-ink-2',
+  'Cayman': 'bg-canvas text-ink-2',
+  'SG': 'bg-canvas text-ink-2',
+  'OTHER': 'bg-canvas text-ink-2',
+}[j] || 'bg-canvas text-ink-2')
 
 const ComplianceRules = () => {
   const { confirm, ConfirmDialogComponent } = useConfirm()
@@ -340,7 +340,7 @@ const ComplianceRules = () => {
                   <td className="px-4 py-3 hidden lg:table-cell text-ink-2">{rule.frequency || '—'}</td>
                   <td className="px-4 py-3 hidden lg:table-cell text-ink-2">{rule.dueDaysBefore ?? rule.daysBefore ? `${rule.dueDaysBefore ?? rule.daysBefore} 天` : '—'}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${rule.status === 'active' ? 'bg-success/10 text-success' : 'bg-gray-100 text-ink-2'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${rule.status === 'active' ? 'bg-success/10 text-success' : 'bg-canvas text-ink-2'}`}>
                       {rule.status === 'active' ? '启用' : '停用'}
                     </span>
                   </td>

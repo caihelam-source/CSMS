@@ -61,7 +61,7 @@
 ## Step 3 — Render（后端 + 前端托管）
 
 1. 访问 https://render.com 注册（可用 GitHub 登录）
-2. **New** → **Blueprint** → 连接你的 Git 仓库（CNB / GitHub）
+2. **New** → **Blueprint** → 连接你的 Git 仓库（**仅 GitHub**，CNB remote 已移除）
 3. 选择仓库中的 `render.yaml`
 4. 按提示填入环境变量（见下表）
 5. 点击 **Apply** 开始部署
@@ -130,3 +130,22 @@ A: 全程免费。MongoDB Atlas M0 (512MB) + Cloudflare R2 (10GB) + Render Free 
 - 2026-07-09：claw-api / claw-web 环境变量已配置（MONGODB_URI、CLIENT_URL、R2_*、VITE_API_BASE 等）
 - 2026-07-09：MongoDB Atlas IP 白名单已加入 `0.0.0.0/0`（Active），Render 可连集群
 - 2026-07-09：推送到 GitHub 触发 Render 自动重新部署（白名单已生效）
+- 2026-07-16：CNB remote 已移除，仅留 GitHub；部署统一走 GitHub → Render 自动构建
+
+---
+
+## 沙箱/无 git 环境推送
+
+本机沙箱无 `git` 可执行文件时，用 Node.js 调 GitHub Git Data API 等效 `git push`：
+
+```bash
+# 先 DRY RUN 确认 deleted:0（不删任何文件）
+node scripts/push-no-git.cjs           # 默认 DRY RUN
+# 确认无误后真正推送（PAT 经环境变量传入，不落盘）
+$env:GITHUB_TOKEN = (从 .workbuddy/memory/SECRETS.md 读取)
+node scripts/push-no-git.cjs
+```
+
+推送后 Render 自动 build + deploy。PAT 为 fine-grained，仅限 `caihelam-source/CSMS` 仓库、Contents: Read and write，**有约 30 天有效期，过期需重新生成**。
+
+> 整体搬迁见 [MIGRATION.md](./MIGRATION.md)：`.workbuddy/` 被 gitignore 忽略，密钥与记忆需随目录一并复制，不可只靠 `git clone`。

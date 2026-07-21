@@ -165,7 +165,7 @@ export const MEETING_TYPE_LABELS = {
 }
 
 export const MEETING_PHASES = {
-  setup: { label: '草稿', color: 'bg-gray-100 text-ink-2' },
+  setup: { label: '草稿', color: 'bg-canvas text-ink-2' },
   'notice-draft': { label: '通知草稿', color: 'bg-info/10 text-primary-700' },
   'notice-sent': { label: '已发通知', color: 'bg-info/10 text-primary-700' },
   'meeting-held': { label: '已召开', color: 'bg-success/10 text-success' },

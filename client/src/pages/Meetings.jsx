@@ -293,7 +293,7 @@ export default function Meetings() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h3 className="text-lg font-semibold text-ink truncate">{m.title}</h3>
-                {m.company?.stockCode && <span className="text-xs bg-gray-100 text-ink-2 px-1.5 py-0.5 rounded font-mono">{m.company.stockCode}</span>}
+                {m.company?.stockCode && <span className="text-xs bg-canvas text-ink-2 px-1.5 py-0.5 rounded font-mono">{m.company.stockCode}</span>}
               </div>
               <p className="text-sm text-ink-2 mb-2">{m.company?.name}</p>
               <div className="flex flex-wrap items-center gap-4 text-sm text-ink-2">
@@ -309,7 +309,7 @@ export default function Meetings() {
             <div className="flex items-start gap-2 ml-4 shrink-0" onClick={e => e.stopPropagation()}>
               <PhaseBadge phase={m.phase || 'setup'} />
               {signTaskMap[m._id] ? (
-                <Link to={`/meetings/${m._id}?tab=signing`} className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-info/10 text-ink-2 hover:bg-gray-100">
+                <Link to={`/meetings/${m._id}?tab=signing`} className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-info/10 text-ink-2 hover:bg-canvas">
                   <PenLine size={12} /> 签署 {signTaskMap[m._id]}
                 </Link>
               ) : (
@@ -317,8 +317,8 @@ export default function Meetings() {
                   <PenLine size={12} /> 签署
                 </Link>
               )}
-              <button onClick={() => openEdit(m)} className="p-1.5 text-ink-3 hover:text-primary-600 rounded-lg hover:bg-gray-100"><Pencil size={14} /></button>
-              <button onClick={() => handleDelete(m)} className="p-1.5 text-ink-3 hover:text-danger rounded-lg hover:bg-gray-100"><Trash2 size={14} /></button>
+              <button onClick={() => openEdit(m)} className="p-1.5 text-ink-3 hover:text-primary-600 rounded-lg hover:bg-canvas"><Pencil size={14} /></button>
+              <button onClick={() => handleDelete(m)} className="p-1.5 text-ink-3 hover:text-danger rounded-lg hover:bg-canvas"><Trash2 size={14} /></button>
             </div>
           </div>
         </div>
@@ -334,10 +334,10 @@ export default function Meetings() {
               <div className="flex items-center gap-4">
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map(n => (
-                    <div key={n} className={`w-8 h-1.5 rounded-full ${wizardStep === n ? 'bg-primary-500' : wizardStep > n ? 'bg-primary-300' : 'bg-gray-100'}`} />
+                    <div key={n} className={`w-8 h-1.5 rounded-full ${wizardStep === n ? 'bg-primary-500' : wizardStep > n ? 'bg-primary-300' : 'bg-canvas'}`} />
                   ))}
                 </div>
-                <button onClick={() => setWizardStep(0)} className="p-1 hover:bg-gray-100 rounded"><X size={20} /></button>
+                <button onClick={() => setWizardStep(0)} className="p-1 hover:bg-canvas rounded"><X size={20} /></button>
               </div>
             </div>
 
@@ -538,7 +538,7 @@ export default function Meetings() {
             <div className="px-6 py-4 border-t bg-canvas flex items-center justify-between shrink-0">
               <div>
                 {wizardStep > 1 && (
-                  <Btn onClick={() => goStep(wizardStep - 1)} className="border border-hairline hover:bg-gray-100"><ChevronLeft size={14} />上一步</Btn>
+                  <Btn onClick={() => goStep(wizardStep - 1)} className="border border-hairline hover:bg-canvas"><ChevronLeft size={14} />上一步</Btn>
                 )}
               </div>
               <div className="flex gap-3">
@@ -546,19 +546,19 @@ export default function Meetings() {
                 {wizardStep === 2 && <Btn onClick={saveStep2} className="btn-primary">下一步 <ChevronRight size={14} /></Btn>}
                 {wizardStep === 3 && (
                   <>
-                    <Btn onClick={handleSaveMeeting} className="border border-hairline hover:bg-gray-100"><Check size={14} />直接保存</Btn>
+                    <Btn onClick={handleSaveMeeting} className="border border-hairline hover:bg-canvas"><Check size={14} />直接保存</Btn>
                     <Btn onClick={generateNotice} disabled={saving} className="btn-primary">{saving ? '生成中...' : '生成会议通知'} <FileText size={14} /></Btn>
                   </>
                 )}
                 {wizardStep === 4 && (
                   <>
-                    <Btn onClick={() => setWizardStep(0)} className="border border-hairline hover:bg-gray-100"><X size={14} />关闭</Btn>
+                    <Btn onClick={() => setWizardStep(0)} className="border border-hairline hover:bg-canvas"><X size={14} />关闭</Btn>
                     <Btn onClick={sendNotice} className="btn-primary"><Send size={14} />发送通知</Btn>
                   </>
                 )}
                 {wizardStep === 5 && (
                   <>
-                    <Btn onClick={() => generateMinutes()} className="border border-hairline hover:bg-gray-100">重新生成</Btn>
+                    <Btn onClick={() => generateMinutes()} className="border border-hairline hover:bg-canvas">重新生成</Btn>
                     <Btn onClick={signMinutes} className="btn-primary"><PenLine size={14} />签署纪要</Btn>
                   </>
                 )}
@@ -574,7 +574,7 @@ export default function Meetings() {
           <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
               <h2 className="text-xl font-bold truncate">{detailMeeting.title}</h2>
-              <button onClick={() => { setDetailId(null); setDetailMeeting(null) }} className="p-1 hover:bg-gray-100 rounded"><X size={20} /></button>
+              <button onClick={() => { setDetailId(null); setDetailMeeting(null) }} className="p-1 hover:bg-canvas rounded"><X size={20} /></button>
             </div>
 
             {/* Tabs */}
@@ -625,7 +625,7 @@ export default function Meetings() {
                             <p className="text-sm font-medium truncate">{a.name}</p>
                             <p className="text-xs text-ink-3 truncate">{a.role}</p>
                           </div>
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${a.status === 'attended' ? 'bg-success/10 text-success' : a.status === 'accepted' ? 'bg-info/10 text-primary-700' : 'bg-gray-100 text-ink-2'}`}>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${a.status === 'attended' ? 'bg-success/10 text-success' : a.status === 'accepted' ? 'bg-info/10 text-primary-700' : 'bg-canvas text-ink-2'}`}>
                             {a.status === 'attended' ? '出席' : a.status === 'accepted' ? '已确认' : a.status === 'declined' ? '已拒绝' : '待确认'}
                           </span>
                         </div>
@@ -655,7 +655,7 @@ export default function Meetings() {
                         {detailMeeting.resolutions.map((r, i) => (
                           <div key={i} className="flex items-center justify-between p-2 bg-canvas rounded-lg text-sm">
                             <span>{r.title}</span>
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${r.status === 'approved' ? 'bg-success/10 text-success' : 'bg-gray-100 text-ink-2'}`}>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${r.status === 'approved' ? 'bg-success/10 text-success' : 'bg-canvas text-ink-2'}`}>
                               {r.status === 'approved' ? '已通过' : r.status === 'rejected' ? '未通过' : '待决议'}
                             </span>
                           </div>

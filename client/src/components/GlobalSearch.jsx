@@ -6,10 +6,10 @@ import { searchService } from '../services'
 // 实体类型 → 中文标签 + 徽章配色（分组展示用）
 const TYPE_META = {
   company:   { label: '公司',   cls: 'bg-info/10 text-primary-700' },
-  personnel: { label: '人员',   cls: 'bg-gray-100 text-ink-2' },
+  personnel: { label: '人员',   cls: 'bg-canvas text-ink-2' },
   document:  { label: '文档',   cls: 'bg-warning/10 text-warning' },
   meeting:   { label: '会议',   cls: 'bg-success/10 text-success' },
-  task:      { label: '任务',   cls: 'bg-gray-100 text-ink-2' },
+  task:      { label: '任务',   cls: 'bg-canvas text-ink-2' },
   reminder:  { label: '合规提醒', cls: 'bg-danger/10 text-danger' },
 }
 const TYPE_ORDER = ['company', 'personnel', 'document', 'meeting', 'task', 'reminder']

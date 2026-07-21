@@ -23,7 +23,7 @@ const ROLES = [
   { value: 'auditor',  label: 'Auditor',  icon: ShieldCheck, desc: 'Read-only across all companies — for compliance audit', color: 'bg-warning/10 text-warning' },
   { value: 'secretary',label: 'Secretary',icon: UserCog, desc: 'Can create & edit records and upload documents',            color: 'bg-info/10 text-primary-700' },
   { value: 'manager',  label: 'Manager',  icon: UserCog, desc: 'Can create & edit records, cannot manage users or delete',  color: 'bg-info/10 text-primary-700' },
-  { value: 'viewer',   label: 'Viewer',   icon: Eye,     desc: 'Read-only access — cannot create, edit, or delete',         color: 'bg-gray-100 text-ink-2' },
+  { value: 'viewer',   label: 'Viewer',   icon: Eye,     desc: 'Read-only access — cannot create, edit, or delete',         color: 'bg-canvas text-ink-2' },
 ]
 
 const roleInfo = (role) => ROLES.find(r => r.value === role) || ROLES[3]
@@ -143,7 +143,7 @@ const PERM_MATRIX = [
 
 const Tick = ({ ok }) => ok
   ? <CheckCircle size={18} className="text-success mx-auto" />
-  : <XCircle size={18} className="text-gray-300 mx-auto" />
+  : <XCircle size={18} className="text-ink-3 mx-auto" />
 
 // ─── Stats banner ─────────────────────────────────────────────────
 const StatBadge = ({ icon: Icon, label, value, color }) => (
@@ -217,7 +217,7 @@ const AdminPanel = () => {
   if (!isAdmin && !canViewAudit) {
     return (
       <div className="flex flex-col items-center justify-center h-96 text-center">
-        <Shield size={48} className="text-gray-300 mb-4" />
+        <Shield size={48} className="text-ink-3 mb-4" />
         <h2 className="text-xl font-semibold text-ink mb-2">Access Denied</h2>
         <p className="text-ink-2">Only administrators or auditors can access this panel.</p>
       </div>
@@ -313,7 +313,7 @@ const AdminPanel = () => {
         <StatBadge icon={CheckCircle} label="Active" value={users.filter(u => u.status === 'active').length} color="bg-success/10 text-success" />
         <StatBadge icon={Crown} label="Admins" value={users.filter(u => u.role === 'admin').length} color="bg-danger/10 text-danger" />
         <StatBadge icon={UserCog} label="Managers" value={users.filter(u => u.role === 'manager' || u.role === 'secretary').length} color="bg-info/10 text-ink-2" />
-        <StatBadge icon={Eye} label="Viewers" value={users.filter(u => u.role === 'viewer').length} color="bg-gray-100 text-ink-2" />
+        <StatBadge icon={Eye} label="Viewers" value={users.filter(u => u.role === 'viewer').length} color="bg-canvas text-ink-2" />
       </div>
 
       {/* Tab nav */}
@@ -456,7 +456,7 @@ const AdminPanel = () => {
                 { label: 'Auth', value: 'JWT Tokens (5-role RBAC + row-level)' },
                 { label: 'Mode', value: localStorage.getItem('demoEmail') ? '⚡ Demo (no backend)' : '🟢 Live' },
               ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
+                <div key={label} className="flex justify-between py-1.5 border-b border-hairline last:border-0">
                   <span className="text-ink-2">{label}</span>
                   <span className="font-medium text-ink">{value}</span>
                 </div>
@@ -474,7 +474,7 @@ const AdminPanel = () => {
                 { icon: CheckSquare, label: 'Tasks',    status: 'Active' },
                 { icon: Users,     label: 'User Mgmt',  status: 'Active' },
               ].map(({ icon: Icon, label, status }) => (
-                <div key={label} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                <div key={label} className="flex items-center justify-between py-1.5 border-b border-hairline last:border-0">
                   <div className="flex items-center gap-2 text-ink"><Icon size={15} className="text-ink-3" />{label}</div>
                   <span className="flex items-center gap-1 text-success text-xs font-medium"><span className="w-1.5 h-1.5 rounded-full bg-success" />{status}</span>
                 </div>

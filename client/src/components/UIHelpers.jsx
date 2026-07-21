@@ -106,7 +106,7 @@ export const DeleteConfirmModal = ({ isOpen, name, onConfirm, onCancel, loading 
  */
 export const DetailHeader = ({ onBack, title, subtitle = '', initials = '?', avatarColor = 'bg-primary-100 text-primary-700', badges = null }) => (
   <div className="flex items-center gap-4">
-    <button onClick={onBack} className="p-2 rounded-lg hover:bg-gray-100">
+    <button onClick={onBack} className="p-2 rounded-lg hover:bg-canvas">
       <svg className="h-5 w-5 text-ink-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
       </svg>
@@ -185,8 +185,8 @@ export const compliancePriorityColor = (p) => ({
   critical: 'bg-danger/10 text-danger border-danger/20',
   high: 'bg-warning/10 text-warning border-warning/20',
   medium: 'bg-warning/10 text-warning border-warning/20',
-  low: 'bg-gray-100 text-ink-2 border-hairline',
-}[p] || 'bg-gray-100 text-ink-2 border-hairline')
+  low: 'bg-canvas text-ink-2 border-hairline',
+}[p] || 'bg-canvas text-ink-2 border-hairline')
 
 /**
  * Compliance status color helper
@@ -196,7 +196,7 @@ export const complianceStatusColor = (s) => ({
   upcoming: 'bg-info/10 text-primary-700',
   active: 'bg-warning/10 text-warning',
   expired: 'bg-danger/10 text-danger',
-}[s] || 'bg-gray-100 text-ink-2')
+}[s] || 'bg-canvas text-ink-2')
 
 /**
  * Task priority color helper
@@ -205,8 +205,8 @@ export const taskPriorityColor = (p) => ({
   urgent: 'bg-danger/10 text-danger border-danger/20',
   high: 'bg-warning/10 text-warning border-warning/20',
   medium: 'bg-warning/10 text-warning border-warning/20',
-  low: 'bg-gray-100 text-ink-2 border-hairline',
-}[p] || 'bg-gray-100 text-ink-2 border-hairline')
+  low: 'bg-canvas text-ink-2 border-hairline',
+}[p] || 'bg-canvas text-ink-2 border-hairline')
 
 /**
  * Task status color helper
@@ -215,8 +215,8 @@ export const taskStatusColor = (s) => ({
   completed: 'bg-success/10 text-success',
   in_progress: 'bg-info/10 text-primary-700',
   overdue: 'bg-danger/10 text-danger',
-  pending: 'bg-gray-100 text-ink-2',
-}[s] || 'bg-gray-100 text-ink-2')
+  pending: 'bg-canvas text-ink-2',
+}[s] || 'bg-canvas text-ink-2')
 
 /**
  * Jurisdiction — 统一英文枚举的展示映射（v5.0：与后端 Company/ComplianceRule enum 对齐）
@@ -281,10 +281,10 @@ export const SectionSkeleton = ({ lines = 3, className = '' }) => (
   <div className={`space-y-2 ${className}`} aria-hidden="true">
     {Array.from({ length: lines }).map((_, i) => (
       <div key={i} className="flex items-center gap-3 p-3 bg-canvas rounded-lg">
-        <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse shrink-0" />
+        <div className="w-8 h-8 rounded-full bg-canvas animate-pulse shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-3 bg-gray-100 rounded animate-pulse w-1/3" />
-          <div className="h-2.5 bg-gray-100 rounded animate-pulse w-1/2" />
+          <div className="h-3 bg-canvas rounded animate-pulse w-1/3" />
+          <div className="h-2.5 bg-canvas rounded animate-pulse w-1/2" />
         </div>
       </div>
     ))}
