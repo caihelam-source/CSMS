@@ -58,6 +58,9 @@
   .btn-danger {
     @apply bg-danger text-white px-4 py-2 rounded-xl hover:opacity-90 transition font-medium tap-target;
   }
+  .btn-success {
+    @apply bg-success text-white px-4 py-2 rounded-xl hover:opacity-90 transition font-medium tap-target;
+  }
 
   /* 卡片：单一深度处理（极淡发丝边 + 极柔阴影），不再双重叠加显重 */
   .card {

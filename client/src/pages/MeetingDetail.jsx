@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import {
   Calendar, Clock, ArrowLeft, CheckCircle2,
   FileText, Send, PenLine, Eye, Copy, Pencil,
-  Building2, AlertCircle, Download, Printer, Upload, Archive, ClipboardCheck, Lock
+  Building2, AlertCircle, Download, Upload, Archive, ClipboardCheck, Lock
 } from 'lucide-react'
 import { meetingService, documentService, signTaskService, taskService } from '../services/index.js'
 import { formatDate, MEETING_TYPE_LABELS as TYPES, fmtDate, fmtTime, buildPhasesWithIcons, getMeetingChecklist, docMatchesChecklistItem, detectMinutesKeywords, buildSignTaskTitle, buildSourceLabel, buildArchiveDocName, archiveTypeLabel } from '../utils/helpers'
@@ -88,6 +88,10 @@ export default function MeetingDetail() {
   const [signForm, setSignForm] = useState({ title: '', priority: 'medium', signerIds: [] })
   const [signErrors, setSignErrors] = useState({})
 
+  // v6.0 定稿状态：通知/纪要是否已定稿（创建对应 Document 记录）
+  const [noticeFinalized, setNoticeFinalized] = useState(false)
+  const [minutesFinalized, setMinutesFinalized] = useState(false)
+
   const fetchMeeting = useCallback(async () => {
     setLoading(true)
     try {
@@ -98,7 +102,11 @@ export default function MeetingDetail() {
       if (data.data?.minutes) setMinutesData(data.data.minutes)
       // 相关文件：仅加载本会议关联的文档（Document.meeting = id），并补齐签署任务
       const { data: docRes } = await documentService.getAll({ meetingId: id }).catch(() => ({ data: { data: [] } }))
-      setDocuments(docRes.data || [])
+      const docs = docRes.data || []
+      setDocuments(docs)
+      // v6.0 检测通知/纪要是否已定稿（有对应 Document 记录）
+      setNoticeFinalized(docs.some(d => d.source?.kind === 'meeting_notice'))
+      setMinutesFinalized(docs.some(d => d.source?.kind === 'meeting_minutes'))
       const { data: stRes } = await signTaskService.getAll().catch(() => ({ data: { data: [] } }))
       const all = stRes?.data || []
       setSignTasks(all.filter(st => st.relatedMeeting?._id === id || st.meeting?._id === id))
@@ -262,7 +270,7 @@ export default function MeetingDetail() {
   }, [attachForm, meeting, id, fetchMeeting])
 
   // 上传签署扫描件 → 标记签署任务 + 关联 Task 完成
-  const openScanModal = useCallback((st) => {
+  const _openScanModalFn = useCallback((st) => {
     setScanModal({ open: true, signTask: st, file: null })
     setScanErrors({})
   }, [])
@@ -418,6 +426,55 @@ export default function MeetingDetail() {
     }
   }, [signForm, meeting, id, fetchMeeting])
 
+  // ===== v6.0 定稿功能：通知/纪要 → 创建 Document 记录（staged）→ 出现在相关文件 Tab =====
+  const finalizeNotice = useCallback(async () => {
+    if (!noticeData) return
+    try {
+      await documentService.create({
+        name: `${meeting?.title || '会议'}_会议通知`,
+        type: 'notice',
+        category: 'meeting',
+        meeting: { _id: id },
+        company: meeting?.company?._id
+          ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
+          : undefined,
+        staged: true,
+        source: { kind: 'meeting_notice', refId: id, label: `来自会议通知：${meeting?.title || ''}` },
+        note: '由会议通知定稿生成',
+        createdAt: new Date().toISOString().split('T')[0],
+      })
+      setNoticeFinalized(true)
+      toast.success('会议通知已定稿，文件已关联至「相关文件」')
+      fetchMeeting()
+    } catch {
+      toast.error('定稿失败')
+    }
+  }, [noticeData, meeting, id, fetchMeeting])
+
+  const finalizeMinutes = useCallback(async () => {
+    if (!minutesData) return
+    try {
+      await documentService.create({
+        name: `${meeting?.title || '会议'}_会议纪要`,
+        type: 'minutes',
+        category: 'meeting',
+        meeting: { _id: id },
+        company: meeting?.company?._id
+          ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
+          : undefined,
+        staged: true,
+        source: { kind: 'meeting_minutes', refId: id, label: `来自会议纪要：${meeting?.title || ''}` },
+        note: '由会议纪要定稿生成',
+        createdAt: new Date().toISOString().split('T')[0],
+      })
+      setMinutesFinalized(true)
+      toast.success('会议纪要已定稿，文件已关联至「相关文件」')
+      fetchMeeting()
+    } catch {
+      toast.error('定稿失败')
+    }
+  }, [minutesData, meeting, id, fetchMeeting])
+
   if (loading) {
     return <LoadingSpinner text="加载会议详情..." />
   }
@@ -495,14 +552,14 @@ export default function MeetingDetail() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs —— v6.0 重排序：概览→通知→纪要→签署→相关文件 */}
       <TabNav
         tabs={[
           { key: 'overview', label: '概览' },
           { key: 'notice', label: '会议通知' },
           { key: 'minutes', label: '会议纪要' },
-          { key: 'documents', label: '相关文件' },
           { key: 'signing', label: '签署任务', icon: PenLine },
+          { key: 'documents', label: '相关文件' },
         ]}
         active={activeTab}
         onChange={setActiveTab}
@@ -651,6 +708,21 @@ export default function MeetingDetail() {
                       <FileText size={14} /> 重新生成
                     </button>
                   )}
+                  {/* v6.0 定稿按钮 —— 通知编辑完成后可定稿，创建 Document 记录关联到相关文件 */}
+                  {!editingNotice && !noticeFinalized && (
+                    <button
+                      onClick={finalizeNotice}
+                      disabled={isArchived}
+                      className="btn-success inline-flex items-center gap-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <CheckCircle2 size={14} /> 定稿通知
+                    </button>
+                  )}
+                  {noticeFinalized && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full bg-success/10 text-success font-medium">
+                      <CheckCircle2 size={12} /> 已定稿
+                    </span>
+                  )}
                   {!editingNotice && (
                     <button
                       onClick={() => downloadWord(noticeData, `${meeting?.title || '会议'}_通知`)}
@@ -750,6 +822,21 @@ export default function MeetingDetail() {
                     >
                       <PenLine size={14} /> 重新生成
                     </button>
+                  )}
+                  {/* v6.0 定稿按钮 —— 纪要编辑完成后可定稿，创建 Document 记录关联到相关文件 */}
+                  {!editingMinutes && !minutesFinalized && (
+                    <button
+                      onClick={finalizeMinutes}
+                      disabled={isArchived}
+                      className="btn-success inline-flex items-center gap-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <CheckCircle2 size={14} /> 定稿纪要
+                    </button>
+                  )}
+                  {minutesFinalized && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full bg-success/10 text-success font-medium">
+                      <CheckCircle2 size={12} /> 已定稿
+                    </span>
                   )}
                   {!editingMinutes && (
                     <button
@@ -920,44 +1007,63 @@ export default function MeetingDetail() {
               </div>
             </div>
 
-            {/* 已关联文件 */}
+            {/* 已关联文件 —— v6.0 增强显示：来源 + 暂存状态 */}
             <div>
-              <h4 className="text-sm font-semibold text-ink-2 mb-2">已关联文件（{documents.length}）</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-semibold text-ink-2">
+                  已关联文件（{documents.length}）
+                  <span className="ml-1.5 text-xs font-normal text-ink-3">
+                    （{documents.filter(d => d.staged).length} 待归档 / {documents.filter(d => !d.staged && d.locked).length} 已归档）
+                  </span>
+                </h4>
+              </div>
               {documents.length === 0 ? (
                 <div className="text-center py-12 text-ink-3">
                   <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>暂无相关文件，请从上方清单或下方按钮上传</p>
+                  <p>暂无相关文件</p>
+                  <p className="text-xs mt-1">可在会议通知/纪要 Tab 点击「定稿」，或从上方清单上传</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {documents.map(doc => (
-                    <div key={doc._id} className="flex items-center justify-between p-3 bg-canvas rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <FileText size={16} className="text-ink-3" />
-                        <div>
-                          <p className="text-sm font-medium">{doc.name}</p>
-                          <div className="flex items-center gap-2 text-xs text-ink-3">
-                            <span>{formatDate(doc.createdAt)}</span>
-                            {doc.signStatus && SIGN_STATUS_BADGE[doc.signStatus] && (
-                              <span className={`px-1.5 py-0.5 rounded-full ${SIGN_STATUS_BADGE[doc.signStatus].cls}`}>
-                                {SIGN_STATUS_BADGE[doc.signStatus].label}
-                              </span>
-                            )}
+                  {documents.map(doc => {
+                    // 来源标签映射
+                    const sourceLabel = doc.source?.kind === 'meeting_notice' ? '通知定稿'
+                      : doc.source?.kind === 'meeting_minutes' ? '纪要定稿'
+                      : doc.source?.kind === 'signing_scan' ? '签署上传'
+                      : '手动上传'
+                    const sourceColor = doc.source?.kind === 'meeting_notice' ? 'bg-info/10 text-primary-700'
+                      : doc.source?.kind === 'meeting_minutes' ? 'bg-info/10 text-primary-700'
+                      : doc.source?.kind === 'signing_scan' ? 'bg-success/10 text-success'
+                      : 'bg-canvas text-ink-2'
+                    return (
+                      <div key={doc._id} className={`flex items-center justify-between p-3 rounded-lg border ${doc.locked ? 'border-success/30 bg-success/[0.02]' : 'bg-canvas border-hairline'}`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <FileText size={16} className={doc.locked ? 'text-success shrink-0' : 'text-ink-3 shrink-0'} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{doc.name}</p>
+                            <div className="flex items-center gap-2 flex-wrap text-xs text-ink-3 mt-0.5">
+                              <span>{formatDate(doc.createdAt)}</span>
+                              <span className={`px-1.5 py-0.5 rounded-full ${sourceColor}`}>{sourceLabel}</span>
+                              {doc.staged && !doc.locked && <span className="px-1.5 py-0.5 rounded-full bg-warning/10 text-warning">暂存</span>}
+                              {doc.locked && <span className="px-1.5 py-0.5 rounded-full bg-success/10 text-success">已归档</span>}
+                              {doc.signStatus && SIGN_STATUS_BADGE[doc.signStatus] && (
+                                <span className={`px-1.5 py-0.5 rounded-full ${SIGN_STATUS_BADGE[doc.signStatus].cls}`}>
+                                  {SIGN_STATUS_BADGE[doc.signStatus].label}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex gap-1 shrink-0">
+                          {doc.fileUrl && (
+                            <a href={doc.fileUrl} target="_blank" rel="noopener" className="p-1.5 text-ink-3 hover:text-primary-600 rounded">
+                              <Download size={14} />
+                            </a>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        {doc.fileUrl && (
-                          <a href={doc.fileUrl} target="_blank" rel="noopener" className="p-1.5 text-ink-3 hover:text-primary-600 rounded">
-                            <Download size={14} />
-                          </a>
-                        )}
-                        <button className="p-1.5 text-ink-3 hover:text-ink-2 rounded">
-                          <Printer size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
               <button
@@ -971,62 +1077,154 @@ export default function MeetingDetail() {
           </div>
         )}
 
-        {/* SIGNING TAB — v5.0: 签署任务并入会议 */}
+        {/* ===== v6.0 签署任务 Tab（重写：统一 Task 视角 + 内联完成 + 双向状态同步）===== */}
         {activeTab === 'signing' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-ink-2">关联签署任务 ({signTasks.length})</h4>
+              <h4 className="text-sm font-semibold text-ink-2">
+                签署任务
+                <span className="ml-1.5 text-xs font-normal text-ink-3">
+                  （{meetingTasks.filter(t => t.type === 'signing').length} 个关联 Task）
+                </span>
+              </h4>
               <button onClick={openSignModal} disabled={isArchived} className="btn-primary flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                 <PenLine size={14} /> 发起签署任务
               </button>
             </div>
-            {signTasks.length === 0 ? (
+
+            {/* 统一视图：以 meetingTasks(Task) 为主线，关联 SignTask 信息 */}
+            {meetingTasks.length === 0 ? (
               <div className="text-center py-12 text-ink-3">
                 <PenLine size={48} className="mx-auto mb-4 opacity-50" />
-                <p>暂无关联签署任务</p>
-                <p className="text-xs mt-1">生成会议纪要后，可在此发起签署（将同步生成签署 Task）</p>
+                <p>暂无签署任务</p>
+                <p className="text-xs mt-1">生成会议纪要并定稿后，可在此发起签署任务</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {signTasks.map(st => {
-                  const allSigned = (st.signers || []).length > 0 && (st.signers || []).every(s => s.status === 'signed')
-                  const canUpload = st.status === 'completed' || allSigned
+                {meetingTasks.map(t => {
+                  const isCompleted = t.status === 'completed'
+                  // 找到对应的 SignTask
+                  const linkedST = signTasks.find(st => st.taskId === t._id)
                   return (
-                    <div key={st._id} className="border border-hairline rounded-xl p-4">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium">{st.title}</p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          st.status === 'completed' ? 'bg-success/10 text-success'
-                          : st.status === 'in_progress' ? 'bg-info/10 text-primary-700'
-                          : 'bg-canvas text-ink-2'
-                        }`}>{st.status}</span>
+                    <div key={t._id} className={`border rounded-xl p-4 ${isCompleted ? 'border-success/30 bg-success/[0.02]' : 'border-hairline'}`}>
+                      {/* 任务标题行 */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm">{t.title}</p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              isCompleted ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+                            }`}>
+                              {isCompleted ? '已完成' : '待签署'}
+                            </span>
+                            {t.autoGenerated && <span className="text-[10px] bg-info/10 text-primary-700 px-1.5 py-0.5 rounded-full">自动</span>}
+                            {t.taskSource === 'dashboard' && <span className="text-[10px] bg-primary/10 text-primary-700 px-1.5 py-0.5 rounded-full">Dashboard</span>}
+                            {t.isCTC && <span className="text-[10px] bg-danger/10 text-danger px-1.5 py-0.5 rounded-full">CTC</span>}
+                            {t.dueDate && <span className="text-xs text-ink-3">截止: {formatDate(t.dueDate)}</span>}
+                          </div>
+                        </div>
+                        {!isCompleted && (
+                          <a href={`/tasks/${t._id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline shrink-0 whitespace-nowrap">
+                            查看详情 →
+                          </a>
+                        )}
                       </div>
-                      {st.signers?.length > 0 && (
-                        <div className="mt-3 space-y-1">
-                          {st.signers.map((s, i) => (
-                            <div key={i} className="flex items-center justify-between text-sm">
-                              <span className="text-ink-2">{s.signerName || s.name || '签署人'}</span>
-                              <span className={s.status === 'signed' ? 'text-success' : 'text-warning'}>
-                                {s.status === 'signed' ? '已签署' : '待签署'}
+
+                      {/* 签署人列表 */}
+                      {linkedST?.signers?.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-hairline">
+                          <p className="text-xs text-ink-3 mb-1.5">签署人：</p>
+                          <div className="flex flex-wrap gap-2">
+                            {linkedST.signers.map((s, i) => (
+                              <span key={i} className={`text-xs px-2 py-1 rounded-full border ${
+                                s.status === 'signed' ? 'bg-success/5 border-success/20 text-success'
+                                : 'bg-canvas border-hairline text-ink-2'
+                              }`}>
+                                {s.name || s.signerName || '—'}
+                                <span className="ml-1">{s.status === 'signed' ? '✓' : '待签'}</span>
                               </span>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       )}
-                      {canUpload && (
-                        <button
-                          onClick={() => openScanModal(st)}
-                          disabled={isArchived}
-                          className="mt-3 btn-primary inline-flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Upload size={14} /> 上传签署扫描件
-                        </button>
+
+                      {/* 已完成的附件展示 */}
+                      {isCompleted && t.hasAttachment && (
+                        <div className="mt-3 pt-3 border-t border-hairline">
+                          <p className="text-xs text-success font-medium flex items-center gap-1">
+                            <CheckCircle2 size={12} /> 已上传签署文件，附件已归档至会议相关文件
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 操作按钮 —— 未完成任务可内联操作 */}
+                      {!isCompleted && !isArchived && (
+                        <div className="mt-3 pt-3 border-t border-hairline flex gap-2">
+                          <a
+                            href={`/tasks/${t._id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-primary inline-flex items-center gap-1.5 text-xs"
+                          >
+                            <Upload size={12} /> 去完成任务
+                          </a>
+                          {/* 内联快速上传 */}
+                          <label className="btn-secondary inline-flex items-center gap-1.5 text-xs cursor-pointer">
+                            <Upload size={12} />
+                            上传签署文件
+                            <input type="file" className="hidden" onChange={async (e) => {
+                              const file = e.target.files[0]
+                              if (!file) return
+                              // 快速上传：创建文档 + 标记 Task 完成
+                              try {
+                                await documentService.create({
+                                  name: `${meeting?.title || '会议'}_签署文件`,
+                                  type: 'minutes',
+                                  category: 'meeting',
+                                  meeting: { _id: id },
+                                  company: meeting?.company?._id
+                                    ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
+                                    : undefined,
+                                  signStatus: t.isCTC ? 'ctc' : 'fully_signed',
+                                  fileName: file.name,
+                                  fileSize: file.size,
+                                  staged: true,
+                                  source: { kind: 'signing_scan', refId: t._id, label: `来自签署任务：${t.title}` },
+                                  note: '由会议签署 Tab 快速上传',
+                                  createdAt: new Date().toISOString().split('T')[0],
+                                })
+                                await taskService.update(t._id, {
+                                  status: 'completed',
+                                  hasAttachment: true,
+                                }).catch(() => {})
+                                if (linkedST?._id) {
+                                  await signTaskService.update(linkedST._id, { status: 'completed', completedAt: new Date().toISOString() }).catch(() => {})
+                                }
+                                toast.success('签署文件已上传，任务已标记完成')
+                                fetchMeeting()
+                              } catch {
+                                toast.error('上传失败')
+                              }
+                            }} />
+                          </label>
+                        </div>
                       )}
                     </div>
                   )
                 })}
               </div>
             )}
+
+            {/* 流程提示 */}
+            <div className="bg-info/5 border border-info/15 p-3 rounded-lg text-xs text-primary-700 space-y-1">
+              <p className="font-medium">💡 签署流程说明</p>
+              <ol className="list-decimal list-inside ml-1 space-y-0.5 text-ink-2">
+                <li>点击「去完成任务」跳转至任务页面上传签字扫描件</li>
+                <li>或直接在此处「上传签署文件」快速完成</li>
+                <li>完成后附件自动关联至「相关文件」Tab</li>
+                <li>所有签署任务完成后，前往「相关文件」Tab 一键归档</li>
+              </ol>
+            </div>
           </div>
         )}
       </div>

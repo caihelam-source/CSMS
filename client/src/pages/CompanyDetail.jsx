@@ -189,7 +189,9 @@ export default function CompanyDetail() {
         complianceRuleService.getAll().catch(() => ({ data: { data: [] } })),
       ])
       setCompany(compRes.data.data)
-      setDocuments(docRes.data.data || [])
+      // v6.0 公司文档库只显示已归档文件（过滤掉会议暂存 staged 文件）
+      const allDocs = docRes.data.data || []
+      setDocuments(allDocs.filter(d => !d.staged))
       setMeetings(meetRes.data.data || [])
       if (compRes2) setCompliance(compRes2.data.data)
       setReminders(remRes?.data?.data || [])

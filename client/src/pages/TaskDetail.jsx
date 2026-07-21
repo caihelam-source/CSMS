@@ -5,7 +5,7 @@ import {
   Building2, Calendar, CheckCircle2, Circle,
   MessageSquare, AlertTriangle, Paperclip,
 } from 'lucide-react'
-import { taskService, documentService, companyService } from '../services/index.js'
+import { taskService, documentService, companyService, signTaskService } from '../services/index.js'
 import { formatDate, taskRequiresAttachment, buildCtcDocName } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, DetailHeader, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
 
@@ -96,6 +96,26 @@ export default function TaskDetail() {
         status: 'completed',
         hasAttachment: hasFile ? true : task.hasAttachment,
       }).catch(() => ({ data: { data: task } }))
+      // v6.0 双向同步：签署类 Task 完成时，同步更新关联的 SignTask 状态
+      if (task.type === 'signing' && task.meeting) {
+        const meetingId = task.meeting._id || task.meeting
+        try {
+          // 查找关联此 Task 的 SignTask 并标记完成
+          const { data: stRes } = await signTaskService.getAll().catch(() => ({ data: { data: [] } }))
+          const linkedST = (stRes.data || []).find(st =>
+            st.taskId === task._id ||
+            (st.relatedMeeting?._id === meetingId || st.relatedMeeting === meetingId)
+          )
+          if (linkedST) {
+            await signTaskService.update(linkedST._id, {
+              status: 'completed',
+              completedAt: new Date().toISOString(),
+            }).catch(() => {})
+          }
+        } catch {
+          /* non-blocking: SignTask sync failure shouldn't break task completion */
+        }
+      }
       const newNote = hasNote ? { content: noteText, createdAt: new Date().toISOString() } : null
       setTask(prev => ({
         ...(upd.data || prev),
