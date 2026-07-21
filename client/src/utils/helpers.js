@@ -171,7 +171,7 @@ export const MEETING_PHASES = {
   'meeting-held': { label: '已召开', color: 'bg-success/10 text-success' },
   'minutes-draft': { label: '纪要草稿', color: 'bg-warning/10 text-warning' },
   'minutes-signed': { label: '已签署', color: 'bg-success/10 text-success' },
-  completed: { label: '已完成', color: 'bg-success/10 text-success' },
+  completed: { label: '已归档', color: 'bg-success/10 text-success' },
 }
 
 // ── 会议归档清单（相关文件 Tab 的"应归档文件"检查表）──

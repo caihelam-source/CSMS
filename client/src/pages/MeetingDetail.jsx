@@ -39,11 +39,20 @@ function computeMeetingSteps(meeting, documents, tasks) {
   const phase = meeting?.phase || 'setup'
   const noticeDone = ['notice-sent', 'meeting-held', 'minutes-draft', 'minutes-signed', 'completed'].includes(phase) || !!meeting?.notice
   const minutesDone = meeting?.minutes?.status === 'final' || meeting?.minutes?.status === 'signed' || !!meeting?.resolutions?.length
-  // v6.0 增强：同时检查 meeting 嵌入的 signTasks 和本地 meetingTasks（Task 记录）
+  // v6.2 增强：签字完成检测——检查 SignTask / 任意关联 Task 已完成 / 已有签名记录 / 会议已归档(隐含签字完成)
   const signFromSignTasks = (meeting?.signTasks || []).some(st => st.status === 'completed')
-  const signFromTasks = (tasks || []).some(t => t.type === 'signing' && t.status === 'completed')
-  const signDone = (meeting?.signatures?.length || 0) > 0 || signFromSignTasks || signFromTasks
-  const archiveDone = meeting?.phase === 'completed'
+  const signFromTasks = (tasks || []).some(t => {
+    return t.status === 'completed' && (
+      t.type === 'signing' ||
+      t.taskSource === 'meeting' ||
+      (t.title && (t.title.includes('签署') || t.title.includes('签字')))
+    )
+  })
+  const hasSignatures = (meeting?.signatures?.length || 0) > 0
+  // 已归档的会议隐含所有步骤都完成
+  const isArchived = phase === 'completed' || !!meeting?.archivedAt
+  const signDone = hasSignatures || signFromSignTasks || signFromTasks || isArchived
+  const archiveDone = isArchived
   return {
     notice: !!noticeDone,
     attachment: (documents?.length || 0) > 0,
@@ -388,6 +397,17 @@ export default function MeetingDetail() {
     const { valid, errors } = validate(signForm, { title: [required('任务标题为必填')] })
     if (!valid) { setSignErrors(errors); return }
     setSignErrors({})
+
+    // v6.2 去重：检查是否已有未完成的签署任务（避免同一会议重复发起）
+    const existingPending = (meetingTasks || []).some(t =>
+      t.status !== 'completed' && (t.type === 'signing' || t.taskSource === 'meeting' || (t.title && t.title.includes('签署')))
+    )
+    const existingSignPending = (signTasks || []).some(st => st.status !== 'completed')
+    if (existingPending || existingSignPending) {
+      toast.error('该会议已有待处理的签署任务，请先完成现有任务后再发起新的签署')
+      return
+    }
+
     try {
       const signers = (meeting?.attendees || [])
         .filter(a => signForm.signerIds.includes(a._id))
@@ -433,7 +453,7 @@ export default function MeetingDetail() {
     } catch {
       toast.error('发起失败')
     }
-  }, [signForm, meeting, id, fetchMeeting])
+  }, [signForm, meeting, id, fetchMeeting, meetingTasks, signTasks])
 
   // ===== v6.0 内联完成：签署 Tab 内直接完成任务（不外跳 /tasks/:id）=====
   const openInlineComplete = useCallback((task) => {

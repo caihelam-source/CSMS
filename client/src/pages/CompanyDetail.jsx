@@ -1175,6 +1175,19 @@ export default function CompanyDetail() {
                             ) : (
                               <span className="text-xs text-ink-3 shrink-0">无文件</span>
                             )}
+                            <button
+                              onClick={async () => {
+                                const ok = window.confirm(`确定删除「${doc.name}」？此操作不可撤销。`)
+                                if (!ok) return
+                                await documentService.delete(doc._id).catch(() => toast.error('删除失败'))
+                                toast.success('已删除')
+                                loadAll()
+                              }}
+                              className="p-1.5 text-ink-3 hover:text-danger rounded-lg hover:bg-canvas shrink-0"
+                              title="删除文件"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         ))}
                       </div>
