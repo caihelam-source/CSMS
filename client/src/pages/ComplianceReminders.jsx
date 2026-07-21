@@ -3,8 +3,9 @@ import toast from 'react-hot-toast'
 import {
   Bell, Plus, RefreshCw,
   CheckCircle2, Clock,
-  Pencil, Trash2
+  Pencil, Trash2, Link2
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { complianceReminderService, companyService, documentService } from '../services/index.js'
 import { fmtDateShort } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, compliancePriorityColor, complianceStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
@@ -126,6 +127,7 @@ const ReminderForm = ({ initial = {}, onSave, onCancel, loading, companies }) =>
 }
 
 const ComplianceReminders = () => {
+  const navigate = useNavigate()
   const [reminders, setReminders] = useState([])
   const [stats, setStats] = useState(null)
   const [companies, setCompanies] = useState([])
@@ -333,9 +335,13 @@ const ComplianceReminders = () => {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className={`font-semibold ${isOverdue ? 'text-danger' : r.status === 'completed' ? 'text-ink-3 line-through' : 'text-ink'}`}>
+                      {/* 标题可点击 → 跳转详情页（进而可跳关联 Task） */}
+                      <button
+                        onClick={() => navigate(`/compliance-reminders/${r._id}`)}
+                        className={`font-semibold text-left hover:text-primary-600 hover:underline transition-colors ${isOverdue ? 'text-danger' : r.status === 'completed' ? 'text-ink-3 line-through' : 'text-ink'}`}
+                      >
                         {r.title}
-                      </h3>
+                      </button>
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${compliancePriorityColor(r.priority)}`}>{PRIORITY_DISPLAY[r.priority] || r.priority}</span>
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${complianceStatusColor(r.status)}`}>{STATUS_DISPLAY[r.status] || r.status}</span>
                     </div>
@@ -351,6 +357,17 @@ const ComplianceReminders = () => {
                       )}
                     </div>
                     {r.notes && <p className="text-xs text-ink-3 mt-2 line-clamp-1">{r.notes}</p>}
+                    {/* 关联任务快捷入口 */}
+                    {r.task && (r.task._id || r.task) && (
+                      <div className="mt-2">
+                        <button
+                          onClick={() => navigate(`/tasks/${r.task._id || r.task}`)}
+                          className="inline-flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 hover:underline"
+                        >
+                          <Link2 size={12} /> 查看关联任务 →
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-1 shrink-0">
                     {r.status !== 'completed' && r.status !== 'expired' && (

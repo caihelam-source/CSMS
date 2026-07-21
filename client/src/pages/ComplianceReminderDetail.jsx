@@ -74,6 +74,16 @@ export default function ComplianceReminderDetail() {
       }
       const { data: upd } = await complianceReminderService.update(reminder._id, payload).catch(() => ({ data: { data: reminder } }))
       setReminder(prev => ({ ...(upd.data || prev), ...payload }))
+      // v6.0 双向联动：完成 Reminder 时同步完成关联 Task
+      if (reminder.task?._id || reminder.task) {
+        const taskId = reminder.task._id || reminder.task
+        try {
+          await taskService.update(taskId, { status: 'completed', completedAt: new Date().toISOString() }).catch(() => {})
+          setLinkedTask(prev => prev ? ({ ...prev, status: 'completed' }) : null)
+        } catch {
+          /* non-blocking */
+        }
+      }
       setCompleteOpen(false)
       setNoteText('')
       setUploadFile(null)

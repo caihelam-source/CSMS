@@ -173,8 +173,10 @@ export default function TaskDetail() {
         badges={
           <>
             {overdue && <span className="badge bg-danger/10 text-danger"><AlertTriangle size={12} /> 逾期</span>}
-            {task.taskSource === 'dashboard' && <span className="badge bg-primary/10 text-primary-700">Dashboard 发起</span>}
+            {task.taskSource === 'dashboard' && !task.reminderId && <span className="badge bg-primary/10 text-primary-700">Dashboard 发起</span>}
             {task.taskSource === 'meeting' && <span className="badge bg-info/10 text-primary-700">会议衍生</span>}
+            {task.taskSource === 'compliance' && <span className="badge bg-purple-50 text-purple-700 border-purple-200">合规任务</span>}
+            {(task.taskSource === 'dashboard' && task.reminderId) && <span className="badge bg-orange-50 text-orange-700 border-orange-200">合规提醒触发</span>}
             {task.isCTC && <span className="badge bg-danger/10 text-danger">CTC 文件</span>}
           </>
         }
@@ -244,7 +246,16 @@ export default function TaskDetail() {
               <div className="flex justify-between"><span className="text-ink-2">关联会议</span><span><Link to={`/meetings/${task.meeting._id || task.meeting}`} className="text-primary-600 hover:underline">查看会议纪要</Link></span></div>
             )}
             {task.taskSource && (
-              <div className="flex justify-between"><span className="text-ink-2">来源</span><span>{task.taskSource === 'dashboard' ? 'Dashboard 发起' : task.taskSource === 'meeting' ? '会议衍生' : task.taskSource}</span></div>
+              <div className="flex justify-between"><span className="text-ink-2">来源</span><span>{
+                task.taskSource === 'compliance' ? '合规规则自动生成'
+                : (task.taskSource === 'dashboard' && task.reminderId) ? '合规提醒触发'
+                : task.taskSource === 'dashboard' ? 'Dashboard 发起'
+                : task.taskSource === 'meeting' ? '会议签署衍生'
+                : task.taskSource
+              }</span></div>
+            )}
+            {task.reminderId && (
+              <div className="flex justify-between"><span className="text-ink-2">关联提醒</span><span><Link to={`/compliance-reminders/${task.reminderId}`} className="text-primary-600 hover:underline">查看合规提醒 →</Link></span></div>
             )}
             {task.isCTC && (
               <div className="flex justify-between"><span className="text-ink-2">CTC 文件</span><span className="text-danger font-medium">是</span></div>

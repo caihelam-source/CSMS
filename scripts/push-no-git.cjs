@@ -14,7 +14,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'v6.0 会议全流程重构：Tab重排序+定稿功能+签署双向联动+暂存文件过滤+相关文件增强';
+const COMMIT_MSG = 'fix: 合规闭环修复——Reminder可跳Task+来源清晰化+近期任务可点+合规日期完成标注';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

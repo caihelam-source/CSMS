@@ -837,14 +837,80 @@ export default function CompanyDetail() {
               </p>
             ) : <p className="text-sm text-ink-3">-</p>}
           </div>
-          {/* Compliance dates */}
+          {/* Compliance dates — 增强版：显示完成状态 */}
           <div className="card">
             <h3 className="font-semibold mb-4">合规日期</h3>
             <dl className="space-y-3 text-sm">
-              <div className="flex justify-between"><span className="text-ink-2">AGM 到期</span><span>{formatDate(company.compliance?.agmDueDate)}</span></div>
-              <div className="flex justify-between"><span className="text-ink-2">年报到期</span><span className={company.compliance?.arDueDate && new Date(company.compliance.arDueDate) < new Date() ? 'text-danger font-medium' : ''}>{formatDate(company.compliance?.arDueDate)}</span></div>
+              {/* AGM 到期 */}
+              {(() => {
+                const agmTask = tasks.find(t => t.status === 'completed' && (
+                  t.title?.includes('AGM') || t.title?.includes('周年大会') || t.title?.includes('年度大会')
+                ))
+                return (
+                  <div className="flex justify-between items-center">
+                    <span className="text-ink-2">AGM 到期</span>
+                    <div className="text-right">
+                      <span>{formatDate(company.compliance?.agmDueDate) || '-'}</span>
+                      {agmTask && (
+                        <span className="ml-2 text-xs text-success font-medium bg-success/10 px-1.5 py-0.5 rounded-full">
+                          ✓ 已完成
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+              {/* 年报到期 */}
+              {(() => {
+                const arTask = tasks.find(t => t.status === 'completed' && (
+                  t.title?.includes('NAR1') || t.title?.includes('年报') || t.title?.includes('年度申报') || t.title?.includes('Annual Return')
+                ))
+                const arOverdue = company.compliance?.arDueDate && new Date(company.compliance.arDueDate) < new Date()
+                return (
+                  <div className="flex justify-between items-center">
+                    <span className="text-ink-2">年报到期</span>
+                    <div className="text-right">
+                      <span className={arOverdue ? 'text-danger font-medium' : ''}>{formatDate(company.compliance?.arDueDate)}</span>
+                      {arTask ? (
+                        <span className="ml-2 text-xs text-success font-medium bg-success/10 px-1.5 py-0.5 rounded-full">
+                          ✓ {formatDate(arTask.updatedAt || arTask.completedAt)} 完成
+                        </span>
+                      ) : arOverdue ? (
+                        <span className="ml-2 text-xs text-danger font-medium">已逾期</span>
+                      ) : null}
+                    </div>
+                  </div>
+                )
+              })()}
+              {/* 商业登记证到期 */}
+              {(() => {
+                const brTask = tasks.find(t => t.status === 'completed' && (
+                  t.title?.includes('商业登记') || t.title?.includes('BR')
+                ))
+                return company.brExpiryDate ? (
+                  <div className="flex justify-between items-center">
+                    <span className="text-ink-2">商业登记证到期</span>
+                    <div className="text-right">
+                      <span>{formatDate(company.brExpiryDate)}</span>
+                      {brTask && (
+                        <span className="ml-2 text-xs text-success font-medium bg-success/10 px-1.5 py-0.5 rounded-full">
+                          ✓ 已完成
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ) : null
+              })()}
               <div className="flex justify-between"><span className="text-ink-2">上次 AGM</span><span>{formatDate(company.compliance?.lastAgmDate)}</span></div>
             </dl>
+            {/* 合规任务完成概览 */}
+            {tasks.filter(t => t.status === 'completed' && (
+              t.type === 'compliance' || t.taskSource === 'compliance'
+            )).length > 0 && (
+              <div className="mt-3 pt-3 border-t border-hairline text-xs text-ink-3">
+                已完成 {tasks.filter(t => t.status === 'completed' && (t.type === 'compliance' || t.taskSource === 'compliance')).length} 项合规任务
+              </div>
+            )}
           </div>
           {meetings.length > 0 && (
             <div className="card">
@@ -862,13 +928,21 @@ export default function CompanyDetail() {
           {/* 新增 Task 区域 — 在概览页直接可见，无需切换 Tab */}
           {tasks.length > 0 && (
             <div className="card">
-              <h3 className="font-semibold mb-4 flex items-center gap-2"><CheckSquare size={16} /> 近期任务</h3>
+              <h3 className="font-semibold mb-4 flex items-center justify-between"><CheckSquare size={16} /> 近期任务
+                <Link to="/tasks" className="text-xs text-primary-600 hover:underline font-normal">查看全部 →</Link>
+              </h3>
               <div className="space-y-2">
-                {tasks.slice(0, 3).map(t => (
-                  <div key={t._id} className="flex items-center justify-between p-2 rounded-lg hover:bg-canvas text-sm">
-                    <span className="text-primary-600 truncate">{t.title}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${taskPriorityColor(t.priority)}`}>{t.priority}</span>
-                  </div>
+                {tasks.slice(0, 5).map(t => (
+                  <Link key={t._id} to={`/tasks/${t._id}`} className="flex items-center justify-between p-2 rounded-lg hover:bg-canvas text-sm group transition-colors">
+                    <span className="text-primary-600 truncate group-hover:underline">{t.title}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
+                      t.status === 'completed' ? 'bg-success/10 text-success'
+                      : t.status === 'in_progress' ? 'bg-info/10 text-primary-700'
+                      : taskPriorityColor(t.priority)
+                    }`}>
+                      {t.status === 'completed' ? 'completed' : t.priority}
+                    </span>
+                  </Link>
                 ))}
               </div>
             </div>
