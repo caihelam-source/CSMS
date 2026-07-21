@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, CheckSquare, Lock, AlertTriangle, ChevronRight } from 'lucide-react'
+import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, CheckSquare, Lock, AlertTriangle, ChevronRight, Upload } from 'lucide-react'
 import { companyService, documentService, meetingService, personnelService, complianceReminderService, complianceRuleService, taskService } from '../services/index.js'
 import EquityGraph from './EquityGraph'
 import { formatDate, getStatusColor, DOC_CATEGORY_LABELS, docExpiryStatus, DOC_EXPIRY_BADGE, generateDocFilename, saveBlob, DOC_SUBTYPE_MAP, docYear } from '../utils/helpers'

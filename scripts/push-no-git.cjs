@@ -14,7 +14,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: 公司详情页非法ObjectId致后端500+前端误踢回列表；GET /companies/:id 加ObjectId校验返400；CompanyDetail 加载失败改显空状态';
+const COMMIT_MSG = 'fix: CompanyDetail Upload 图标未导入导致 ReferenceError 崩溃';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 
