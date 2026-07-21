@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, CheckSquare, Lock, AlertTriangle, ChevronRight, Upload } from 'lucide-react'
+import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, CheckSquare, AlertTriangle, ChevronRight, Upload } from 'lucide-react'
 import { companyService, documentService, meetingService, personnelService, complianceReminderService, complianceRuleService, taskService } from '../services/index.js'
 import EquityGraph from './EquityGraph'
 import { formatDate, getStatusColor, DOC_CATEGORY_LABELS, docExpiryStatus, DOC_EXPIRY_BADGE, generateDocFilename, saveBlob, DOC_SUBTYPE_MAP, docYear } from '../utils/helpers'
@@ -115,7 +115,7 @@ export default function CompanyDetail() {
   // v5.1 文件管理中心：补充上传相关文件（关联会议/事项）
   const [uploadRelOpen, setUploadRelOpen] = useState(false)
   const [relForm, setRelForm] = useState({ name: '', type: 'other', meetingId: '', file: null })
-  // 按会议分组（用于归档锁定：该次会议的所有关联文件变为只读 #3.4）
+  // 按会议分组（用于来源追溯：显示文件来自哪场会议）
   const groupedDocs = useMemo(() => {
     const map = new Map()
     const orphan = { meetingId: null, docs: [] }
@@ -1087,7 +1087,7 @@ export default function CompanyDetail() {
             </div>
           </div>
 
-          {/* 主区：文件列表（分组 + 来源追溯 + 归档锁定） */}
+          {/* 主区：文件列表（分组 + 来源追溯） */}
           <div className="min-w-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">
@@ -1119,7 +1119,6 @@ export default function CompanyDetail() {
                   const mTitle = mid ? (meetings.find(m => m._id === mid)?.title || '关联会议') : '未关联会议的文件'
                   const docsInGroup = group.docs.filter(docMatchesFilter)
                   if (docsInGroup.length === 0) return null
-                  const allLocked = docsInGroup.every(d => d.locked)
                   return (
                     <div key={gi}>
                       <div className="flex items-center justify-between mb-2">
@@ -1127,46 +1126,33 @@ export default function CompanyDetail() {
                           {mid ? <Link to={`/meetings/${mid}`} className="text-primary-600 hover:underline">{mTitle}</Link> : mTitle}
                           <span className="text-xs text-ink-3">({docsInGroup.length})</span>
                         </h3>
-                        {/* v5.1 #3.4 一键归档锁定：该次会议的所有关联文件变为只读 */}
-                        <button
-                          disabled={allLocked}
-                          onClick={async () => {
-                            const ok = await confirm({
-                              title: '归档锁定',
-                              message: `确定锁定「${mTitle}」的全部 ${docsInGroup.length} 个文件？锁定后文件将变为只读（无法删除/修改）。`,
-                              confirmLabel: '确认归档锁定',
-                            })
-                            if (!ok) return
-                            for (const d of docsInGroup) {
-                              await documentService.update(d._id, { locked: true, lockedAt: new Date().toISOString() }).catch(() => {})
-                            }
-                            toast.success('已归档锁定，文件变为只读')
-                            loadAll()
-                          }}
-                          className="btn-secondary flex items-center gap-1.5 text-xs disabled:opacity-50"
-                        >
-                          <Lock size={12} /> {allLocked ? '已归档' : '一键归档锁定'}
-                        </button>
                       </div>
                       <div className="space-y-2">
                         {docsInGroup.map(doc => (
-                          <div key={doc._id} className={`card flex items-center justify-between ${doc.locked ? 'opacity-80' : ''}`}>
+                          <div key={doc._id} className="card flex items-center justify-between">
                             <div className="flex items-center gap-3 min-w-0">
                               <FileText size={20} className={doc.locked ? 'text-ink-3 shrink-0' : 'text-primary-600 shrink-0'} />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   {doc.docNumber && <span className="text-xs font-mono text-ink-3">{doc.docNumber}</span>}
                                   <p className="font-medium truncate">{doc.name}</p>
-                                  {/* v5.1 #3.4 归档锁定印章 */}
-                                  {doc.locked && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-danger/10 text-danger flex items-center gap-0.5"><Lock size={10} /> 已归档</span>
-                                  )}
-                                  {/* v5.1 #3.2 来源追溯：可点击跳回会议纪要 */}
-                                  {doc.source?.label && (
-                                    <Link to={doc.source.refId ? (doc.source.kind === 'dashboard_sign' ? `/tasks/${doc.source.refId}` : `/meetings/${doc.source.refId}`) : '#'} className="text-[10px] px-1.5 py-0.5 rounded-full bg-info/10 text-primary-700 hover:underline flex items-center gap-0.5">
-                                      <ExternalLink size={10} /> {doc.source.label}
-                                    </Link>
-                                  )}
+                                  {/* 来源追溯：可点击跳回任务/会议/规则 */}
+                                  {doc.source?.label && (() => {
+                                    const kind = doc.source.kind || ''
+                                    const href = doc.source.refId
+                                      ? (kind === 'compliance_complete' || kind === 'task_complete' || kind === 'signing_scan' || kind === 'meeting_task' || kind === 'dashboard_sign'
+                                          ? `/tasks/${doc.source.refId}`
+                                          : `/meetings/${doc.source.refId}`)
+                                      : '#'
+                                    const colorClass = kind === 'compliance_complete'
+                                      ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                      : 'bg-info/10 text-primary-700'
+                                    return (
+                                      <Link to={href} className={`text-[10px] px-1.5 py-0.5 rounded-full ${colorClass} hover:underline flex items-center gap-0.5`}>
+                                        <ExternalLink size={10} /> {doc.source.label}
+                                      </Link>
+                                    )
+                                  })()}
                                   {(() => {
                                     const st = docExpiryStatus(doc)
                                     const badge = DOC_EXPIRY_BADGE[st]

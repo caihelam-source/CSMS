@@ -5,7 +5,7 @@ import {
   Building2, Calendar, CheckCircle2, Circle,
   MessageSquare, AlertTriangle, Paperclip,
 } from 'lucide-react'
-import { taskService, documentService, companyService, signTaskService } from '../services/index.js'
+import { taskService, documentService, companyService, signTaskService, complianceReminderService } from '../services/index.js'
 import { formatDate, taskRequiresAttachment, buildCtcDocName } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, DetailHeader, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
 
@@ -62,26 +62,45 @@ export default function TaskDetail() {
       // v5.2 修复：关联会议的签署任务，其扫描件暂存于会议（staged），待会议最终归档后才统一进入公司库
       const meetingRef = task.meeting ? (task.meeting._id || task.meeting) : null
       const stageUnderMeeting = !!meetingRef
+      // v6.1 智能文档分类：根据任务来源决定文档类型/类别/来源标签
+      const isComplianceTask = task.taskSource === 'compliance' || !!task.reminderId || task.type === 'filing' || task.type === 'compliance'
+      const resolvedType = isComplianceTask
+        ? (task.type === 'filing' ? 'return' : 'government_filing')
+        : (stageUnderMeeting ? 'minutes' : 'task_attachment')
+      const resolvedCategory = isComplianceTask ? 'government' : (stageUnderMeeting ? 'meeting' : 'other')
       // 仅当：① 上传了文件；或 ② 有公司且无关联会议（直接归档到公司库）
       if (hasFile || (task.company && !stageUnderMeeting)) {
         const company = task.company
+        // 来源标签：合规类显示规则上下文，签署类显示任务来源，其他显示通用
+        let sourceLabel, sourceKind
+        if (isComplianceTask) {
+          sourceKind = 'compliance_complete'
+          sourceLabel = `合规完成：${task.title}`
+        } else if (stageUnderMeeting) {
+          sourceKind = 'signing_scan'
+          sourceLabel = `来自签署任务：${task.title}`
+        } else if (task.taskSource === 'meeting') {
+          sourceKind = 'meeting_task'
+          sourceLabel = `会议任务完成：${task.title}`
+        } else {
+          sourceKind = 'task_complete'
+          sourceLabel = `任务完成：${task.title}`
+        }
         const { data: docRes } = await documentService.create({
           name: hasFile ? buildCtcDocName(uploadFile.name, task.isCTC) : `任务完成附件 - ${task.title}`,
-          type: stageUnderMeeting ? 'minutes' : 'task_attachment',
-          category: stageUnderMeeting ? 'meeting' : 'other',
+          type: resolvedType,
+          category: resolvedCategory,
           meeting: stageUnderMeeting ? { _id: meetingRef } : undefined,
           company: company ? { _id: company._id, name: company.name, registrationNumber: company.registrationNumber } : undefined,
           fileName: hasFile ? uploadFile.name : undefined,
           fileSize: hasFile ? uploadFile.size : undefined,
-          // v5.2 模块4：签署类任务归档时标记签署状态（CTC / 普通签署）
           signStatus: hasFile && task.type === 'signing' ? (task.isCTC ? 'ctc' : 'fully_signed') : undefined,
           staged: stageUnderMeeting,
-          note: hasFile ? (stageUnderMeeting ? '由会议签署任务完成暂存，待会议最终归档' : (task.taskSource === 'dashboard' ? '由 Dashboard 签署任务完成自动归档' : '由任务完成自动归档')) : undefined,
-          // v5.2 修复：来源统一指向签署任务（会议衍生 / Dashboard 发起均归会议或公司追溯）
+          note: hasFile ? (stageUnderMeeting ? '由会议签署任务完成暂存，待会议最终归档' : (isComplianceTask ? `由合规任务「${task.title}」完成自动归档` : (task.taskSource === 'dashboard' ? '由 Dashboard 签署任务完成自动归档' : '由任务完成自动归档'))) : undefined,
           source: hasFile ? {
-            kind: 'signing_scan',
+            kind: sourceKind,
             refId: task._id,
-            label: `来自签署任务：${task.title}`,
+            label: sourceLabel,
           } : undefined,
           createdAt: new Date().toISOString().split('T')[0],
         }).catch(() => ({ data: { data: null } }))
@@ -114,6 +133,17 @@ export default function TaskDetail() {
           }
         } catch {
           /* non-blocking: SignTask sync failure shouldn't break task completion */
+        }
+      }
+      // v6.1 双向联动：合规类 Task 完成时，反向同步更新关联的 Reminder 状态
+      if (task.reminderId) {
+        try {
+          await complianceReminderService.update(task.reminderId, {
+            status: 'completed',
+            completed: true,
+          }).catch(() => {})
+        } catch {
+          /* non-blocking: Reminder sync failure shouldn't break task completion */
         }
       }
       const newNote = hasNote ? { content: noteText, createdAt: new Date().toISOString() } : null
