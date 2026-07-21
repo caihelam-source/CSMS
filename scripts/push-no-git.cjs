@@ -2,6 +2,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { execSync } = require('child_process');
 
 const TOKEN = process.env.GITHUB_TOKEN || (() => {
   try {
@@ -14,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: v6.3 MeetingDetail CompleteWithAttachmentModal import遗漏导致白屏崩溃';
+const COMMIT_MSG = 'ci: 质量门禁增强-eslint加jsx-no-undef+推送前全量lint门禁+vite-plugin-checker开发期实时报错';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 
@@ -111,6 +112,17 @@ function walk(dir, rel, rules) {
   walk(ROOT, '', rules);
 
   console.log(`Local files scanned: ${localFiles.size}`);
+
+  // ── 质量门禁：推送前全量 ESLint 检查（拦截未定义组件/变量等 error）──
+  console.log('Running ESLint quality gate (full project)...');
+  try {
+    execSync('node node_modules/eslint/bin/eslint.js .', { cwd: ROOT, stdio: 'inherit' });
+    console.log('ESLint ✅ passed (0 errors)');
+  } catch (e) {
+    console.error('\n❌ ESLint 门禁未通过：存在 lint error（如未导入的组件/变量）。');
+    console.error('   请先修复上述错误再推送，避免带病代码上线。本次推送已中止。\n');
+    process.exit(1);
+  }
 
   const ref = await api('GET', `/git/refs/heads/${BRANCH}`);
   const baseSha = ref.object.sha;

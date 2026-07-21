@@ -50,7 +50,6 @@ let R2 = null;
 function getR2() {
   if (r2Client) return r2Client;
   // 延迟加载，避免未配置时报错
-  // eslint-disable-next-line global-require
   const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
   r2Client = new S3Client({
     region: 'auto',

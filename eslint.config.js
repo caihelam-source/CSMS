@@ -33,6 +33,7 @@ module.exports = [
     settings: { react: { version: 'detect' } },
     rules: {
       ...js.configs.recommended.rules,
+      'react/jsx-no-undef': 'error',
       'react/jsx-uses-vars': 'error',
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-undef': 'error',
