@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { companyService, personnelService, documentService, meetingService, complianceReminderService, templateService, taskService } from '../services/index.js'
 import { formatDate, formatRelative, buildCtcDocName } from '../utils/helpers'
+import { generateCtcPdf } from '../utils/ctcPdf'
 import Modal from '../components/Modal'
 import { LoadingSpinner, PageHeader, WarningBanner, FormField, inputClass } from '../components/UIHelpers'
 import { Calendar, FileText, Building2, Users, Clock, AlertTriangle, FileCode, PenLine, RefreshCw, CheckCircle2, ChevronRight } from 'lucide-react'
@@ -34,8 +35,21 @@ export default function Dashboard() {
 
   // v5.2 模块4：Dashboard 发起签署任务（双来源，无需会议）
   const [companies, setCompanies] = useState([])
+  const [personnel, setPersonnel] = useState([])
+  const [documents, setDocuments] = useState([])
   const [dashSignOpen, setDashSignOpen] = useState(false)
-  const [dsForm, setDsForm] = useState({ companyId: '', responsiblePerson: '', dueDate: '', isCTC: false, file: null })
+  const [dsForm, setDsForm] = useState({
+    ownerType: 'company', // 'company' | 'personnel'
+    companyId: '',
+    personnelId: '',
+    documentId: '',
+    responsiblePerson: '',
+    dueDate: '',
+    isCTC: false,
+    ctcFullName: '',
+    ctcTitle: '',
+    ctcMembershipNo: '',
+  })
   const [dsErrors, setDsErrors] = useState({})
   const [dsSaving, setDsSaving] = useState(false)
 
@@ -93,6 +107,8 @@ export default function Dashboard() {
       setPendingTasksCount(pending.length)
       setTemplatesCount(templRes.data?.data?.length || 0)
       setCompanies(companies)
+      setPersonnel(persRes.data?.data || [])
+      setDocuments(documents)
       // v5.2 模块4：签署任务总数 = 会议衍生(taskSource:meeting) + Dashboard 发起(taskSource:dashboard)
       const signingTasks = allTasks.filter(t => t.type === 'signing')
       setSignTasksCount(signingTasks.length)
@@ -107,41 +123,89 @@ export default function Dashboard() {
   // v5.2 模块4：Dashboard 发起签署任务（双来源，无需会议，直接归档至公司库）
   const submitDashSign = useCallback(async () => {
     const errors = {}
-    if (!dsForm.companyId) errors.companyId = '请选择关联公司'
-    if (!dsForm.responsiblePerson.trim()) errors.responsiblePerson = '请填写签署人'
+    if (!dsForm.companyId && !dsForm.personnelId) errors.owner = '请选择关联公司或关联人员'
+    if (dsForm.ownerType === 'company' && !dsForm.companyId) errors.companyId = '请选择关联公司'
+    if (dsForm.ownerType === 'personnel' && !dsForm.personnelId) errors.personnelId = '请选择关联人员'
+    if (!dsForm.documentId) errors.documentId = '请选择要签署的文件'
+    if (dsForm.isCTC) {
+      if (!dsForm.ctcFullName.trim()) errors.ctcFullName = '请填写 Full Name'
+      if (!dsForm.ctcTitle.trim()) errors.ctcTitle = '请填写 Professional Title'
+      if (!dsForm.ctcMembershipNo.trim()) errors.ctcMembershipNo = '请填写 Membership No.'
+    } else {
+      if (!dsForm.responsiblePerson.trim()) errors.responsiblePerson = '请填写签署人'
+    }
     if (!dsForm.dueDate) errors.dueDate = '请选择截止日期'
-    if (!dsForm.file) errors.file = '请上传签署文件'
     if (Object.keys(errors).length) { setDsErrors(errors); return }
     setDsErrors({})
     setDsSaving(true)
     try {
       const company = companies.find(c => c._id === dsForm.companyId)
+      const person = personnel.find(p => p._id === dsForm.personnelId)
+      const selectedDoc = documents.find(d => d._id === dsForm.documentId)
       const coRef = company ? { _id: company._id, name: company.name, registrationNumber: company.registrationNumber } : undefined
-      // 1) 直接归档签署文件到公司库（不经会议流程），命名按 CTC / 普通签署区分
-      const docName = buildCtcDocName(dsForm.file.name, dsForm.isCTC)
+      const peRef = person ? { _id: person._id, name: person.name } : undefined
+
+      let uploadFile = null
+      let docName = ''
+
+      if (dsForm.isCTC) {
+        // CTC：下载原 PDF → 加盖声明区块 → 生成新的待签 PDF
+        const originalUrl = selectedDoc?.fileUrl
+        if (!originalUrl) throw new Error('所选文件没有可下载的 PDF')
+        const res = await fetch(originalUrl)
+        if (!res.ok) throw new Error('下载原文件失败')
+        const pdfBytes = await res.arrayBuffer()
+        const ctcBytes = await generateCtcPdf(pdfBytes, {
+          fullName: dsForm.ctcFullName.trim(),
+          professionalTitle: dsForm.ctcTitle.trim(),
+          membershipNo: dsForm.ctcMembershipNo.trim(),
+        })
+        docName = buildCtcDocName(selectedDoc.name || 'document.pdf', true)
+        uploadFile = new File([ctcBytes], docName, { type: 'application/pdf' })
+      }
+
+      // 1) 归档签署文件到公司库或个人文件库
+      const finalDocName = dsForm.isCTC ? docName : buildCtcDocName(selectedDoc?.name || 'document.pdf', false)
       const formData = new FormData()
-      formData.append('file', dsForm.file)
-      formData.append('name', docName)
-      formData.append('type', 'task_attachment')
+      formData.append('file', uploadFile || selectedDoc.file || new File([], 'empty'))
+      formData.append('name', finalDocName)
+      formData.append('type', dsForm.isCTC ? 'ctc' : 'task_attachment')
       formData.append('category', 'other')
-      formData.append('company', JSON.stringify(coRef))
+      if (coRef) formData.append('company', JSON.stringify(coRef))
+      if (peRef) formData.append('personnel', JSON.stringify(peRef))
       formData.append('signStatus', dsForm.isCTC ? 'ctc' : 'fully_signed')
-      formData.append('note', dsForm.isCTC ? 'CTC 文件（Dashboard 发起）' : '签署文件（Dashboard 发起）')
+      formData.append('note', dsForm.isCTC
+        ? `CTC 待签文件（Dashboard 发起）\n签署人：${dsForm.ctcFullName}\n职位：${dsForm.ctcTitle}\n会员号：${dsForm.ctcMembershipNo}`
+        : '签署文件（Dashboard 发起）')
       formData.append('source', JSON.stringify({ kind: 'dashboard_sign', refId: '', label: '来自 [Dashboard 签署任务]' }))
+
+      // 如果没有真正的 File 对象（mock 下 selectedDoc.file 不存在），需要重新下载原文件作为 File
+      if (!uploadFile && selectedDoc?.fileUrl) {
+        const res = await fetch(selectedDoc.fileUrl)
+        if (res.ok) {
+          const blob = await res.blob()
+          formData.set('file', new File([blob], selectedDoc.name || 'document.pdf', { type: blob.type || 'application/pdf' }))
+        }
+      }
+
       const { data: docRes } = await documentService.upload(formData).catch(() => ({ data: { data: null } }))
       // 2) 创建双来源签署 Task（taskSource: dashboard），文件已归档 → hasAttachment:true
+      const ownerName = company?.name || person?.name || '未关联'
       const { data: tRes } = await taskService.create({
-        title: `${dsForm.isCTC ? '[CTC] ' : ''}签署：${company ? company.name : '未关联公司'}`,
+        title: `${dsForm.isCTC ? '[CTC] ' : ''}签署：${ownerName}`,
         type: 'signing',
         priority: 'high',
         status: 'pending',
         taskSource: 'dashboard',
         isCTC: dsForm.isCTC,
         dueDate: dsForm.dueDate,
-        responsiblePerson: dsForm.responsiblePerson.trim(),
+        responsiblePerson: dsForm.isCTC ? dsForm.ctcFullName.trim() : dsForm.responsiblePerson.trim(),
         company: coRef,
+        personnel: peRef,
         hasAttachment: true,
-        description: `由 Dashboard 发起的签署任务${dsForm.isCTC ? '（CTC 文件）' : ''}，签署文件已直接归档至公司库。`,
+        description: dsForm.isCTC
+          ? `由 Dashboard 发起的 CTC 签署任务。待专业人士在打印件上签字后扫描上传完成。`
+          : `由 Dashboard 发起的签署任务，签署文件已直接归档。`,
       }).catch(() => ({ data: { data: null } }))
       // 回写 source.refId，便于公司档案点击跳回该 Task
       if (docRes?.data?._id && tRes?.data?._id) {
@@ -149,16 +213,20 @@ export default function Dashboard() {
           source: { kind: 'dashboard_sign', refId: tRes.data._id, label: '来自 [Dashboard 签署任务]' },
         }).catch(() => {})
       }
-      toast.success('Dashboard 签署任务已创建，签署文件已归档至公司库')
+      toast.success('Dashboard 签署任务已创建，签署文件已归档')
       setDashSignOpen(false)
-      setDsForm({ companyId: '', responsiblePerson: '', dueDate: '', isCTC: false, file: null })
+      setDsForm({
+        ownerType: 'company', companyId: '', personnelId: '', documentId: '',
+        responsiblePerson: '', dueDate: '', isCTC: false,
+        ctcFullName: '', ctcTitle: '', ctcMembershipNo: '',
+      })
       loadAll()
-    } catch {
-      toast.error('创建失败')
+    } catch (err) {
+      toast.error(err?.message || '创建失败')
     } finally {
       setDsSaving(false)
     }
-  }, [dsForm, companies, loadAll])
+  }, [dsForm, companies, personnel, documents, loadAll])
 
   useEffect(() => { loadAll() }, [loadAll])
 
@@ -331,28 +399,86 @@ export default function Dashboard() {
       {/* v5.2 模块4：Dashboard 发起签署任务 Modal */}
       <Modal isOpen={dashSignOpen} onClose={() => setDashSignOpen(false)} title="发起签署任务（Dashboard）" size="md">
         <div className="space-y-4">
-          <FormField label="关联公司" error={dsErrors.companyId}>
-            <select className={inputClass} value={dsForm.companyId} onChange={e => setDsForm(p => ({ ...p, companyId: e.target.value }))}>
-              <option value="">请选择公司</option>
-              {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+          {/* 归属类型：公司 / 人员 */}
+          <FormField label="关联对象" error={dsErrors.owner}>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-1.5 text-sm">
+                <input type="radio" checked={dsForm.ownerType === 'company'} onChange={() => setDsForm(p => ({ ...p, ownerType: 'company', personnelId: '', documentId: '' }))} /> 公司
+              </label>
+              <label className="flex items-center gap-1.5 text-sm">
+                <input type="radio" checked={dsForm.ownerType === 'personnel'} onChange={() => setDsForm(p => ({ ...p, ownerType: 'personnel', companyId: '', documentId: '' }))} /> 人员
+              </label>
+            </div>
+          </FormField>
+
+          {dsForm.ownerType === 'company' && (
+            <FormField label="关联公司" error={dsErrors.companyId}>
+              <select className={inputClass} value={dsForm.companyId} onChange={e => setDsForm(p => ({ ...p, companyId: e.target.value, documentId: '' }))}>
+                <option value="">请选择公司</option>
+                {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+              </select>
+            </FormField>
+          )}
+
+          {dsForm.ownerType === 'personnel' && (
+            <FormField label="关联人员" error={dsErrors.personnelId}>
+              <select className={inputClass} value={dsForm.personnelId} onChange={e => setDsForm(p => ({ ...p, personnelId: e.target.value, documentId: '' }))}>
+                <option value="">请选择人员</option>
+                {personnel.map(p => <option key={p._id} value={p._id}>{p.name || p.englishName || p._id}</option>)}
+              </select>
+            </FormField>
+          )}
+
+          <FormField label="选择要签署的文件" error={dsErrors.documentId}>
+            <select className={inputClass} value={dsForm.documentId} onChange={e => setDsForm(p => ({ ...p, documentId: e.target.value }))}>
+              <option value="">{dsForm.companyId || dsForm.personnelId ? '请选择文件' : '请先选择公司或人员'}</option>
+              {documents
+                .filter(d => {
+                  if (dsForm.ownerType === 'company') return (d.company?._id || d.company) === dsForm.companyId
+                  return (d.personnel?._id || d.personnel) === dsForm.personnelId
+                })
+                .map(d => <option key={d._id} value={d._id}>{d.name} {d.docNumber ? `(${d.docNumber})` : ''}</option>)}
             </select>
           </FormField>
-          <FormField label="签署人" error={dsErrors.responsiblePerson}>
-            <input className={inputClass} value={dsForm.responsiblePerson} onChange={e => setDsForm(p => ({ ...p, responsiblePerson: e.target.value }))} placeholder="例如：张三" />
-          </FormField>
-          <FormField label="截止日期" error={dsErrors.dueDate}>
-            <input type="date" className={inputClass} value={dsForm.dueDate} onChange={e => setDsForm(p => ({ ...p, dueDate: e.target.value }))} />
-          </FormField>
+
           <FormField label="是否为 CTC 文件？">
             <div className="flex gap-4">
               <label className="flex items-center gap-1.5 text-sm"><input type="radio" checked={!dsForm.isCTC} onChange={() => setDsForm(p => ({ ...p, isCTC: false }))} /> 否（普通签署）</label>
               <label className="flex items-center gap-1.5 text-sm"><input type="radio" checked={dsForm.isCTC} onChange={() => setDsForm(p => ({ ...p, isCTC: true }))} /> 是（CTC）</label>
             </div>
           </FormField>
-          <FormField label="上传签署文件" error={dsErrors.file}>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setDsForm(p => ({ ...p, file: e.target.files?.[0] || null }))} className="block w-full text-sm" />
-            {dsForm.file && <p className="text-xs text-ink-3 mt-1">将归档为：{buildCtcDocName(dsForm.file.name, dsForm.isCTC)}</p>}
+
+          {!dsForm.isCTC && (
+            <FormField label="签署人" error={dsErrors.responsiblePerson}>
+              <input className={inputClass} value={dsForm.responsiblePerson} onChange={e => setDsForm(p => ({ ...p, responsiblePerson: e.target.value }))} placeholder="例如：张三" />
+            </FormField>
+          )}
+
+          {dsForm.isCTC && (
+            <div className="space-y-3 border border-hairline rounded-lg p-3 bg-canvas">
+              <p className="text-sm font-medium text-ink-2">CTC 声明信息</p>
+              <FormField label="Full Name in Block Letters" required error={dsErrors.ctcFullName}>
+                <input className={inputClass} value={dsForm.ctcFullName} onChange={e => setDsForm(p => ({ ...p, ctcFullName: e.target.value }))} placeholder="CHAN TAI MAN" />
+              </FormField>
+              <FormField label="Professional Title" required error={dsErrors.ctcTitle}>
+                <input className={inputClass} value={dsForm.ctcTitle} onChange={e => setDsForm(p => ({ ...p, ctcTitle: e.target.value }))} placeholder="Solicitor / CPA" />
+              </FormField>
+              <FormField label="Membership No. / Practising Certificate No." required error={dsErrors.ctcMembershipNo}>
+                <input className={inputClass} value={dsForm.ctcMembershipNo} onChange={e => setDsForm(p => ({ ...p, ctcMembershipNo: e.target.value }))} placeholder="M123456" />
+              </FormField>
+            </div>
+          )}
+
+          <FormField label="截止日期" error={dsErrors.dueDate}>
+            <input type="date" className={inputClass} value={dsForm.dueDate} onChange={e => setDsForm(p => ({ ...p, dueDate: e.target.value }))} />
           </FormField>
+
+          {dsForm.documentId && (
+            <p className="text-xs text-ink-3">
+              将归档为：{buildCtcDocName(documents.find(d => d._id === dsForm.documentId)?.name || 'document.pdf', dsForm.isCTC)}
+            </p>
+          )}
+
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setDashSignOpen(false)} className="btn-secondary">取消</button>
             <button onClick={submitDashSign} disabled={dsSaving} className="btn-primary disabled:opacity-50">{dsSaving ? '提交中...' : '创建并归档'}</button>
