@@ -21,20 +21,23 @@ export async function generateCtcPdf(pdfBytes, { fullName, professionalTitle, me
   const font = await doc.embedFont(StandardFonts.Helvetica)
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold)
 
+  // 认证蓝印章色（边框与文字）
+  const blue = rgb(0.05, 0.25, 0.7)
+
   const boxWidth = 340
   const boxHeight = 200
   const margin = 24
   const x = width - boxWidth - margin
   const y = margin
 
-  // 白色不透明背景 + 黑色边框，确保盖住底层正文
+  // 白色不透明背景 + 蓝色边框，确保盖住底层正文
   page.drawRectangle({
     x,
     y,
     width: boxWidth,
     height: boxHeight,
     color: rgb(1, 1, 1),
-    borderColor: rgb(0, 0, 0),
+    borderColor: blue,
     borderWidth: 1,
   })
 
@@ -46,7 +49,7 @@ export async function generateCtcPdf(pdfBytes, { fullName, professionalTitle, me
     const size = opts.size || 8
     const f = opts.bold ? fontBold : font
     const dy = opts.dy || (opts.size || 8) + 2
-    page.drawText(text, { x: x + leftPad, y: cursorY, size, font: f, color: rgb(0, 0, 0) })
+    page.drawText(text, { x: x + leftPad, y: cursorY, size, font: f, color: blue })
     cursorY -= dy
   }
 
