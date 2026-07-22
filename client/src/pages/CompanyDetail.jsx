@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, CheckSquare, AlertTriangle, ChevronRight, Upload } from 'lucide-react'
+import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, CheckSquare, AlertTriangle, ChevronRight, Upload, Eye } from 'lucide-react'
 import { companyService, documentService, meetingService, personnelService, complianceReminderService, complianceRuleService, taskService } from '../services/index.js'
 import EquityGraph from './EquityGraph'
 import { formatDate, getStatusColor, DOC_CATEGORY_LABELS, docExpiryStatus, DOC_EXPIRY_BADGE, generateDocFilename, saveBlob, DOC_SUBTYPE_MAP, docYear } from '../utils/helpers'
@@ -104,6 +104,7 @@ export default function CompanyDetail() {
   const [linkFormErrors, setLinkFormErrors] = useState({})
   // 登记册生成
   const [generatingReg, setGeneratingReg] = useState(null) // 'rod' | 'rom' | null
+  const [previewReg, setPreviewReg] = useState(null) // { type, title, region, purpose } | null
   // 标记离任模态框
   const [showCeaseModal, setShowCeaseModal] = useState(false)
   const [ceasingLink, setCeasingLink] = useState(null) // link being ceased/restored
@@ -611,7 +612,7 @@ export default function CompanyDetail() {
   )
 
   // 登记册表格子组件：区分现任/历任，支持标记离任/恢复，保留完整记录
-  const RegisterTable = ({ title, subtitle, links, columns, onDownload, generating, regType, emptyText, extraControls }) => {
+  const RegisterTable = ({ title, subtitle, links, columns, onDownload, onPreview, generating, regType, emptyText, extraControls }) => {
     const current = links.filter(l => !l.ceasedDate)
     const former = links.filter(l => !!l.ceasedDate)
     const renderRows = (list) => list.map(link => {
@@ -660,6 +661,9 @@ export default function CompanyDetail() {
             <button onClick={openAddHistorical} className="btn-secondary flex items-center gap-1 text-xs py-1.5 px-3">
               <Plus size={14} /> 添加历史记录
             </button>
+            <button onClick={onPreview} className="btn-secondary flex items-center gap-2 text-sm">
+              <Eye size={16} /> 预览
+            </button>
             <button onClick={() => onDownload(regType)} disabled={generating} className="btn-primary flex items-center gap-2 text-sm">
               {generating ? '生成中...' : <><Download size={16} /> 生成 Word</>}
             </button>
@@ -683,6 +687,125 @@ export default function CompanyDetail() {
             <Section label="历任 (Former)" list={former} bg="bg-danger/10" />
           </div>
         )}
+      </div>
+    )
+  }
+
+  // 登记册预览渲染器（HTML 预览，与 Word 内容同源但简化排版）
+  const RegisterPreview = ({ preview }) => {
+    const { type, region, purpose } = preview
+    const genDate = formatDate(new Date())
+    const isBvi = region === 'BVI'
+    const withSig = purpose === 'bank' || purpose === 'audit'
+    const links = type === 'rom'
+      ? shareholders
+      : type === 'rod'
+        ? directors
+        : secretaries
+    const current = links.filter((l) => !l.ceasedDate)
+    const former = links.filter((l) => !!l.ceasedDate)
+
+    const Header = () => (
+      <div className="text-center border-b-2 border-ink pb-4 mb-4">
+        <h3 className="text-lg font-bold uppercase">{(company.name || '').toUpperCase()}</h3>
+        {company.nameChinese && <p className="text-base mt-1">{company.nameChinese}</p>}
+        <div className="text-xs mt-2 text-ink-2 flex justify-center gap-3 flex-wrap">
+          <span><strong>Company No.:</strong> {company.registrationNumber || '-'}</span>
+          <span><strong>Jurisdiction:</strong> {region === 'BVI' ? 'BVI' : 'Hong Kong'}</span>
+          <span><strong>Date:</strong> {genDate}</span>
+          {purpose !== 'standard' && <span className="text-primary-700 font-medium">Purpose: {purpose}</span>}
+        </div>
+        <h4 className="text-base font-bold mt-4 uppercase tracking-wide">
+          {type === 'rom' ? 'Register of Members' : type === 'rod' ? 'Register of Directors' : 'Register of Secretaries'}
+        </h4>
+      </div>
+    )
+
+    const Row = ({ label, list, cols }) => (
+      <div className="mb-4">
+        <div className="text-sm font-semibold mb-2 flex items-center gap-2">
+          <span className="bg-canvas px-2 py-0.5 rounded">{label}</span>
+          <span className="text-xs text-ink-2">({list.length})</span>
+        </div>
+        {list.length === 0 ? (
+          <p className="text-sm text-ink-3 italic">— 无记录 —</p>
+        ) : (
+          <div className="overflow-x-auto border rounded-lg">
+            <table className="w-full text-xs">
+              <thead className="bg-canvas border-b">
+                <tr>
+                  {cols.map((c) => <th key={c.key} className="text-left p-2 font-medium whitespace-nowrap">{c.header}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {list.map((l) => {
+                  const p = resolveLinkDisplay(l)
+                  return (
+                    <tr key={l._id} className="border-b last:border-b-0">
+                      {cols.map((c) => <td key={c.key} className="p-2 align-top">{c.cell(l, p)}</td>)}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    )
+
+    const rodCols = [
+      { key: 'appointed', header: 'Date Appointed', cell: (l) => formatDate(l.appointedDate) },
+      { key: 'name', header: 'Full Name', cell: (l, p) => p.name || '-' },
+      { key: 'nric', header: 'NRIC/Passport', cell: (l, p) => p.nric || '-' },
+      { key: 'nationality', header: 'Nationality', cell: (l, p) => p.nationality || '-' },
+      { key: 'address', header: 'Address for Service', cell: (l, p) => [p.address?.street, p.address?.city, p.address?.country].filter(Boolean).join(', ') || '-' },
+      { key: 'role', header: 'Role', cell: (l) => l.roles.map((r) => r.replace('_', ' ')).join(', ') },
+      { key: 'ceased', header: 'Date Ceased', cell: (l) => (l.ceasedDate ? formatDate(l.ceasedDate) : 'Present') },
+    ]
+
+    const romCols = [
+      { key: 'entered', header: 'Date Entered', cell: (l) => formatDate(l.appointedDate) },
+      { key: 'name', header: 'Member Name', cell: (l, p) => p.name || '-' },
+      { key: 'address', header: 'Address / Jurisdiction', cell: (l, p) => p.address?.country || p.registrationNumber || '-' },
+      { key: 'shares', header: 'No. of Shares', cell: (l) => (l.shares || 0).toLocaleString() },
+      { key: 'type', header: 'Type', cell: (l) => l.shareType || 'Ordinary' },
+      { key: 'pct', header: '%', cell: (l) => (company.shareCapital?.paidUp && l.shares ? ((l.shares / company.shareCapital.paidUp * 100).toFixed(2) + '%') : '-') },
+      { key: 'ceased', header: 'Date Ceased', cell: (l) => (l.ceasedDate ? formatDate(l.ceasedDate) : 'Present') },
+    ]
+
+    const secCols = [
+      { key: 'appointed', header: 'Date Appointed', cell: (l) => formatDate(l.appointedDate) },
+      { key: 'name', header: 'Name', cell: (l, p) => p.name || '-' },
+      { key: 'nric', header: 'NRIC/Passport', cell: (l, p) => p.nric || '-' },
+      { key: 'address', header: 'Address', cell: (l, p) => [p.address?.street, p.address?.city, p.address?.country].filter(Boolean).join(', ') || '-' },
+      { key: 'ceased', header: 'Date Ceased', cell: (l) => (l.ceasedDate ? formatDate(l.ceasedDate) : 'Present') },
+    ]
+
+    const cols = type === 'rom' ? romCols : type === 'rod' ? rodCols : secCols
+
+    return (
+      <div className="bg-white text-ink p-6 rounded border shadow-sm min-h-[400px]">
+        <Header />
+        {isBvi ? (
+          <div className="space-y-4">
+            <div className="bg-info/10 text-info-700 p-3 rounded text-sm">
+              BVI 格式包含多个独立分表（个人/公司 ORIGINAL + COPY），预览仅显示数据摘要。
+            </div>
+            <Row label="现任 (Current)" list={current} cols={cols} />
+            <Row label="历任 (Former)" list={former} cols={cols} />
+          </div>
+        ) : (
+          <>
+            <Row label="现任 (Current)" list={current} cols={cols} />
+            <Row label="历任 (Former)" list={former} cols={cols} />
+          </>
+        )}
+        {withSig && (
+          <div className="mt-6 pt-4 border-t border-dashed border-ink-2">
+            <p className="text-xs text-ink-2 italic">{purpose === 'bank' ? '银行用途：包含签字栏与认证页脚。' : '审计用途：包含签字栏与审计页脚。'}</p>
+          </div>
+        )}
+        <div className="mt-6 text-center text-[10px] text-ink-3 uppercase tracking-wider">Preview — Claw Company Secretary System</div>
       </div>
     )
   }
@@ -1219,6 +1342,7 @@ export default function CompanyDetail() {
             links={directors}
             regType="rod"
             onDownload={downloadRegister}
+            onPreview={() => setPreviewReg({ type: 'rod', title: 'Register of Directors (ROD)', region: rodRegion, purpose: rodPurpose })}
             generating={generatingReg === 'rod'}
             emptyText="No directors registered"
             extraControls={
@@ -1245,6 +1369,7 @@ export default function CompanyDetail() {
             links={shareholders}
             regType="rom"
             onDownload={downloadRegister}
+            onPreview={() => setPreviewReg({ type: 'rom', title: 'Register of Members (ROM)', region: romRegion, purpose: romPurpose })}
             generating={generatingReg === 'rom'}
             emptyText="No shareholders registered"
             extraControls={
@@ -1271,6 +1396,7 @@ export default function CompanyDetail() {
             links={secretaries}
             regType="sec"
             onDownload={() => {} /* TODO: generate ROS Word */ }
+            onPreview={() => setPreviewReg({ type: 'sec', title: 'Register of Secretaries', region: 'HK', purpose: 'standard' })}
             generating={false}
             emptyText="No secretary registered"
             columns={[
@@ -1672,6 +1798,16 @@ export default function CompanyDetail() {
             }} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">确认上传</button>
           </div>
         </div>
+      </Modal>
+
+      {/* Register Preview Modal */}
+      <Modal
+        isOpen={!!previewReg}
+        onClose={() => setPreviewReg(null)}
+        title={previewReg ? `${previewReg.title} 预览` : '登记册预览'}
+        size="xl"
+      >
+        {previewReg && <RegisterPreview preview={previewReg} />}
       </Modal>
 
       {/* Confirm Dialog */}
