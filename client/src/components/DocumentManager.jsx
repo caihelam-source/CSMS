@@ -68,7 +68,7 @@ function SourceBadge({ doc }) {
 }
 function ExternalLinkIcon() { return <span className="text-[8px]">↗</span> }
 
-export default function DocumentManager({ companyId, personnelId, embedded = false, showExport = true }) {
+export default function DocumentManager({ companyId, personnelId, embedded = false, showExport = true, onDocumentsChange }) {
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(new Set())
@@ -109,12 +109,13 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
         scope: d.scope || (d.company ? 'company' : (d.personnel ? 'person' : 'company')),
       }))
       setDocuments(list)
+      onDocumentsChange?.(list)
     } catch {
       toast.error('加载文档失败')
     } finally {
       setLoading(false)
     }
-  }, [companyId, personnelId])
+  }, [companyId, personnelId, onDocumentsChange])
 
   const loadRefs = useCallback(async () => {
     try {

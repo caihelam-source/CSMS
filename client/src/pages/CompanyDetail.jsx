@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, CheckSquare, AlertTriangle, ChevronRight, Upload, Eye } from 'lucide-react'
+import { Building2, Users, FileText, Plus, Trash2, Calendar, Shield, ExternalLink, BookOpen, Download, Edit3, Network, CheckSquare, AlertTriangle, Upload, Eye } from 'lucide-react'
 import { companyService, documentService, meetingService, personnelService, complianceReminderService, complianceRuleService, taskService } from '../services/index.js'
 import EquityGraph from './EquityGraph'
-import { formatDate, getStatusColor, DOC_CATEGORY_LABELS, docExpiryStatus, DOC_EXPIRY_BADGE, generateDocFilename, saveBlob, DOC_SUBTYPE_MAP, docYear } from '../utils/helpers'
+import { formatDate, getStatusColor, generateDocFilename, saveBlob } from '../utils/helpers'
 import { inferRegion } from '../utils/regionHelpers'
 import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, TabNav, taskPriorityColor, jurisdictionLabel } from '../components/UIHelpers'
 import Modal from '../components/Modal'
 import { useConfirm } from '../components/ConfirmDialog'
+import DocumentManager from '../components/DocumentManager'
 import { validate, required } from '../utils/validators'
 
 // 校验是否为有效 Date 对象（排除 invalid date 与 NaN）
@@ -93,10 +94,6 @@ export default function CompanyDetail() {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('info')
-  const [docFilterCategory, setDocFilterCategory] = useState('all')
-  // v5.2 模块2：文件库多级筛选（大类 → 子类型 → 年份）
-  const [docFilterSubtype, setDocFilterSubtype] = useState('')
-  const [docFilterYear, setDocFilterYear] = useState('')
   const [showLinkModal, setShowLinkModal] = useState(false)
   const [linkModalMode, setLinkModalMode] = useState('add') // 'add' | 'historical'
   const [editingLink, setEditingLink] = useState(null)
@@ -116,37 +113,6 @@ export default function CompanyDetail() {
   // v5.1 文件管理中心：补充上传相关文件（关联会议/事项）
   const [uploadRelOpen, setUploadRelOpen] = useState(false)
   const [relForm, setRelForm] = useState({ name: '', type: 'other', meetingId: '', file: null })
-  // 按会议分组（用于来源追溯：显示文件来自哪场会议）
-  const groupedDocs = useMemo(() => {
-    const map = new Map()
-    const orphan = { meetingId: null, docs: [] }
-    documents.forEach(d => {
-      const mid = d.meeting?._id || d.meeting
-      if (mid) {
-        const key = String(mid)
-        if (!map.has(key)) map.set(key, { meetingId: key, docs: [] })
-        map.get(key).docs.push(d)
-      } else {
-        orphan.docs.push(d)
-      }
-    })
-    return [...map.values(), orphan].filter(g => g.docs.length)
-  }, [documents])
-
-  // v5.2 模块2：文件库多级筛选（大类 → 子类型 → 年份）
-  const docMatchesFilter = (d) => {
-    if (docFilterCategory && docFilterCategory !== 'all' && (d.category || 'other') !== docFilterCategory) return false
-    if (docFilterSubtype && (d.type || 'other') !== docFilterSubtype) return false
-    if (docFilterYear && docYear(d) !== docFilterYear) return false
-    return true
-  }
-  const availableYears = useMemo(() => {
-    const set = new Set()
-    documents.forEach(d => { const y = docYear(d); if (y) set.add(y) })
-    return [...set].sort((a, b) => b - a)
-  }, [documents])
-  const clearDocFilters = () => { setDocFilterCategory('all'); setDocFilterSubtype(''); setDocFilterYear('') }
-
   // 合规规则库（用于新增提醒时联动选择 + 自定义沉淀）
   const [rules, setRules] = useState([])
   // 适配当前公司的规则（jurisdiction 匹配 或 ALL），供弹窗/快捷区过滤
@@ -178,9 +144,8 @@ export default function CompanyDetail() {
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [compRes, docRes, meetRes, compRes2, persRes, compsRes, remRes, taskRes, rulesRes] = await Promise.all([
+      const [compRes, meetRes, compRes2, persRes, compsRes, remRes, taskRes, rulesRes] = await Promise.all([
         companyService.getOne(id),
-        documentService.getByCompany(id).catch(() => ({ data: { data: [] } })),
         meetingService.getByCompany(id).catch(() => ({ data: { data: [] } })),
         companyService.getCompliance(id).catch(() => null),
         personnelService.getAll().catch(() => ({ data: { data: [] } })),
@@ -190,9 +155,6 @@ export default function CompanyDetail() {
         complianceRuleService.getAll().catch(() => ({ data: { data: [] } })),
       ])
       setCompany(compRes.data.data)
-      // v6.0 公司文档库只显示已归档文件（过滤掉会议暂存 staged 文件）
-      const allDocs = docRes.data.data || []
-      setDocuments(allDocs.filter(d => !d.staged))
       setMeetings(meetRes.data.data || [])
       if (compRes2) setCompliance(compRes2.data.data)
       setReminders(remRes?.data?.data || [])
@@ -1121,205 +1083,16 @@ export default function CompanyDetail() {
         </div>
       )}
 
-      {/* Documents Tab — 顶部多级筛选器 */}
+      {/* Documents Tab — 统一文档管理 */}
       {activeTab === 'documents' && (
         <div className="space-y-4">
-          {/* v5.2 模块2：顶部多级筛选器（大类 → 子类型 → 年份）+ 面包屑 */}
-          <div className="bg-surface rounded-xl border border-hairline p-4 space-y-3">
-            {/* 面包屑 */}
-            <div className="flex items-center gap-1 text-sm flex-wrap">
-              <button onClick={clearDocFilters} className={`px-2 py-1 rounded transition-colors ${!docFilterCategory || (docFilterCategory === 'all' && !docFilterSubtype && !docFilterYear) ? 'text-primary-700 font-medium' : 'text-ink-2 hover:underline'}`}>全部文件</button>
-              {docFilterCategory && docFilterCategory !== 'all' && (
-                <>
-                  <ChevronRight size={14} className="text-ink-3" />
-                  <button onClick={() => { setDocFilterSubtype(''); setDocFilterYear('') }} className="px-2 py-1 rounded text-primary-700 font-medium">{DOC_CATEGORY_LABELS[docFilterCategory] || docFilterCategory}</button>
-                </>
-              )}
-              {docFilterSubtype && (
-                <>
-                  <ChevronRight size={14} className="text-ink-3" />
-                  <span className="px-2 py-1 rounded text-primary-700 font-medium">{DOC_SUBTYPE_MAP[docFilterCategory]?.find(s => s.value === docFilterSubtype)?.label || docFilterSubtype}</span>
-                </>
-              )}
-              {docFilterYear && (
-                <>
-                  <ChevronRight size={14} className="text-ink-3" />
-                  <span className="px-2 py-1 rounded text-primary-700 font-medium">{docFilterYear} 年</span>
-                </>
-              )}
-              {(docFilterCategory !== 'all' || docFilterSubtype || docFilterYear) && (
-                <button onClick={clearDocFilters} className="ml-2 text-xs text-ink-3 hover:text-danger hover:underline">清除筛选</button>
-              )}
-            </div>
-
-            {/* 大类 */}
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => { setDocFilterCategory('all'); setDocFilterSubtype(''); setDocFilterYear('') }}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${docFilterCategory === 'all' ? 'bg-primary-600 text-white border-primary-600' : 'bg-surface border-hairline text-ink hover:bg-canvas'}`}>
-                全部 ({documents.length})
-              </button>
-              {Object.entries(DOC_CATEGORY_LABELS).map(([key, label]) => {
-                const count = documents.filter(d => (d.category || 'other') === key).length
-                return (
-                  <button key={key} onClick={() => { setDocFilterCategory(key); setDocFilterSubtype(''); setDocFilterYear('') }}
-                    className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${docFilterCategory === key ? 'bg-primary-600 text-white border-primary-600' : 'bg-surface border-hairline text-ink hover:bg-canvas'}`}>
-                    {label} ({count})
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* 子类型（仅当选了具体大类） */}
-            {docFilterCategory && docFilterCategory !== 'all' && (
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => setDocFilterSubtype('')}
-                  className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${!docFilterSubtype ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-surface border-hairline text-ink hover:bg-canvas'}`}>
-                  全部子类型
-                </button>
-                {(DOC_SUBTYPE_MAP[docFilterCategory] || []).map(st => {
-                  const count = documents.filter(d => (d.category || 'other') === docFilterCategory && (d.type || 'other') === st.value).length
-                  return (
-                    <button key={st.value} onClick={() => setDocFilterSubtype(st.value)}
-                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${docFilterSubtype === st.value ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-surface border-hairline text-ink hover:bg-canvas'}`}>
-                      {st.label} ({count})
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* 年份 */}
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setDocFilterYear('')}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${!docFilterYear ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-surface border-hairline text-ink hover:bg-canvas'}`}>
-                全部年份
-              </button>
-              {availableYears.map(y => {
-                const count = documents.filter(d => {
-                  if (docFilterCategory && docFilterCategory !== 'all' && (d.category || 'other') !== docFilterCategory) return false
-                  if (docFilterSubtype && (d.type || 'other') !== docFilterSubtype) return false
-                  return docYear(d) === y
-                }).length
-                return (
-                  <button key={y} onClick={() => setDocFilterYear(y)}
-                    className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${docFilterYear === y ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-surface border-hairline text-ink hover:bg-canvas'}`}>
-                    {y} 年 ({count})
-                  </button>
-                )
-              })}
-            </div>
+          <div className="flex justify-end">
+            <button onClick={() => { setRelForm({ name: '', type: 'other', meetingId: '', file: null }); setUploadRelOpen(true) }}
+              className="btn-secondary flex items-center gap-1.5 text-sm">
+              <Upload size={14} /> 上传并关联会议
+            </button>
           </div>
-
-          {/* 主区：文件列表（分组 + 来源追溯） */}
-          <div className="min-w-0">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">
-                关联文件
-                <span className="ml-2 text-sm font-normal text-ink-3">
-                  {documents.filter(docMatchesFilter).length} / {documents.length}
-                </span>
-              </h2>
-              <button onClick={() => { setRelForm({ name: '', type: 'other', meetingId: '', file: null }); setUploadRelOpen(true) }}
-                className="btn-secondary flex items-center gap-1.5 text-sm">
-                <Upload size={14} /> 上传相关文件
-              </button>
-            </div>
-            {documents.length === 0 ? (
-              <div className="card text-center py-12 text-ink-3">
-                <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                <p>暂无关联文件</p>
-              </div>
-            ) : documents.filter(docMatchesFilter).length === 0 ? (
-              <div className="card text-center py-12 text-ink-3">
-                <FileText size={48} className="mx-auto mb-4 opacity-50" />
-                <p>无符合当前筛选条件的文件</p>
-                <button onClick={clearDocFilters} className="mt-3 text-sm text-primary-600 hover:underline">清除筛选</button>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                {groupedDocs.map((group, gi) => {
-                  const mid = group.meetingId
-                  const mTitle = mid ? (meetings.find(m => m._id === mid)?.title || '关联会议') : '未关联会议的文件'
-                  const docsInGroup = group.docs.filter(docMatchesFilter)
-                  if (docsInGroup.length === 0) return null
-                  return (
-                    <div key={gi}>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold text-ink-2 flex items-center gap-2">
-                          {mid ? <Link to={`/meetings/${mid}`} className="text-primary-600 hover:underline">{mTitle}</Link> : mTitle}
-                          <span className="text-xs text-ink-3">({docsInGroup.length})</span>
-                        </h3>
-                      </div>
-                      <div className="space-y-2">
-                        {docsInGroup.map(doc => (
-                          <div key={doc._id} className="card flex items-center justify-between">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <FileText size={20} className={doc.locked ? 'text-ink-3 shrink-0' : 'text-primary-600 shrink-0'} />
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {doc.docNumber && <span className="text-xs font-mono text-ink-3">{doc.docNumber}</span>}
-                                  <p className="font-medium truncate">{doc.name}</p>
-                                  {/* 来源追溯：可点击跳回任务/会议/规则 */}
-                                  {doc.source?.label && (() => {
-                                    const kind = doc.source.kind || ''
-                                    const href = doc.source.refId
-                                      ? (kind === 'compliance_complete' || kind === 'task_complete' || kind === 'signing_scan' || kind === 'meeting_task' || kind === 'dashboard_sign'
-                                          ? `/tasks/${doc.source.refId}`
-                                          : `/meetings/${doc.source.refId}`)
-                                      : '#'
-                                    const colorClass = kind === 'compliance_complete'
-                                      ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                      : 'bg-info/10 text-primary-700'
-                                    return (
-                                      <Link to={href} className={`text-[10px] px-1.5 py-0.5 rounded-full ${colorClass} hover:underline flex items-center gap-0.5`}>
-                                        <ExternalLink size={10} /> {doc.source.label}
-                                      </Link>
-                                    )
-                                  })()}
-                                  {(() => {
-                                    const st = docExpiryStatus(doc)
-                                    const badge = DOC_EXPIRY_BADGE[st]
-                                    return badge ? (
-                                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
-                                    ) : null
-                                  })()}
-                                </div>
-                                <p className="text-xs text-ink-3">
-                                  <span className="bg-canvas text-ink-2 px-1.5 py-0.5 rounded">{DOC_CATEGORY_LABELS[doc.category] || '其他'}</span>
-                                  {doc.type && <> &middot; {doc.type.replace(/_/g, ' ')}</>}
-                                  {doc.fileSize && <> &middot; {(doc.fileSize / 1024).toFixed(0)} KB</>}
-                                  {doc.createdAt && <> &middot; {formatDate(doc.createdAt)}</>}
-                                  {doc.locked && <span className="text-danger"> &middot; 只读</span>}
-                                </p>
-                              </div>
-                            </div>
-                            {doc.fileUrl ? (
-                              <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm shrink-0">Download</a>
-                            ) : (
-                              <span className="text-xs text-ink-3 shrink-0">无文件</span>
-                            )}
-                            <button
-                              onClick={async () => {
-                                const ok = window.confirm(`确定删除「${doc.name}」？此操作不可撤销。`)
-                                if (!ok) return
-                                await documentService.delete(doc._id).catch(() => toast.error('删除失败'))
-                                toast.success('已删除')
-                                loadAll()
-                              }}
-                              className="p-1.5 text-ink-3 hover:text-danger rounded-lg hover:bg-canvas shrink-0"
-                              title="删除文件"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
+          <DocumentManager companyId={id} embedded showExport onDocumentsChange={setDocuments} />
         </div>
       )}
 
