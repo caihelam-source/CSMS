@@ -1648,24 +1648,23 @@ export default function CompanyDetail() {
             <button onClick={() => setUploadRelOpen(false)} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
             <button onClick={async () => {
               if (!relForm.name) { toast.error('请填写文件名称'); return }
+              if (!relForm.file) { toast.error('请选择要上传的文件'); return }
               try {
                 const mTitle = relForm.meetingId ? (meetings.find(m => m._id === relForm.meetingId)?.title || '关联会议') : null
-                await documentService.create({
-                  name: relForm.name,
-                  type: relForm.type,
-                  category: 'other',
-                  company: { _id: id, name: company?.name, registrationNumber: company?.registrationNumber },
-                  meeting: relForm.meetingId || undefined,
-                  fileName: relForm.file?.name,
-                  fileSize: relForm.file?.size,
-                  // v5.1 #3.1 / #3.2 来源追溯：标注关联会议，公司档案可点击跳回
-                  source: {
-                    kind: relForm.meetingId ? 'manual_upload' : 'other',
-                    refId: relForm.meetingId || undefined,
-                    label: relForm.meetingId ? `来自 [${mTitle}]` : '手动上传',
-                  },
-                  createdAt: new Date().toISOString().split('T')[0],
-                })
+                const formData = new FormData()
+                formData.append('file', relForm.file)
+                formData.append('name', relForm.name)
+                formData.append('type', relForm.type || 'other')
+                formData.append('category', 'other')
+                formData.append('company', JSON.stringify({ _id: id, name: company?.name, registrationNumber: company?.registrationNumber }))
+                if (relForm.meetingId) formData.append('meeting', relForm.meetingId)
+                formData.append('source', JSON.stringify({
+                  kind: relForm.meetingId ? 'manual_upload' : 'other',
+                  refId: relForm.meetingId || undefined,
+                  label: relForm.meetingId ? `来自 [${mTitle}]` : '手动上传',
+                }))
+                formData.append('note', '由公司详情页上传')
+                await documentService.upload(formData)
                 toast.success('相关文件已上传并归入公司文档库')
                 setUploadRelOpen(false)
                 loadAll()

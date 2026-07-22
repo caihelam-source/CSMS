@@ -119,19 +119,16 @@ export default function Dashboard() {
       const coRef = company ? { _id: company._id, name: company.name, registrationNumber: company.registrationNumber } : undefined
       // 1) 直接归档签署文件到公司库（不经会议流程），命名按 CTC / 普通签署区分
       const docName = buildCtcDocName(dsForm.file.name, dsForm.isCTC)
-      const { data: docRes } = await documentService.create({
-        name: docName,
-        type: 'task_attachment',
-        category: 'other',
-        company: coRef,
-        fileName: dsForm.file.name,
-        fileSize: dsForm.file.size,
-        fileUrl: '/scan/' + encodeURIComponent(dsForm.file.name),
-        signStatus: dsForm.isCTC ? 'ctc' : 'fully_signed',
-        note: dsForm.isCTC ? 'CTC 文件（Dashboard 发起）' : '签署文件（Dashboard 发起）',
-        source: { kind: 'dashboard_sign', refId: '', label: '来自 [Dashboard 签署任务]' },
-        createdAt: new Date().toISOString().split('T')[0],
-      }).catch(() => ({ data: { data: null } }))
+      const formData = new FormData()
+      formData.append('file', dsForm.file)
+      formData.append('name', docName)
+      formData.append('type', 'task_attachment')
+      formData.append('category', 'other')
+      formData.append('company', JSON.stringify(coRef))
+      formData.append('signStatus', dsForm.isCTC ? 'ctc' : 'fully_signed')
+      formData.append('note', dsForm.isCTC ? 'CTC 文件（Dashboard 发起）' : '签署文件（Dashboard 发起）')
+      formData.append('source', JSON.stringify({ kind: 'dashboard_sign', refId: '', label: '来自 [Dashboard 签署任务]' }))
+      const { data: docRes } = await documentService.upload(formData).catch(() => ({ data: { data: null } }))
       // 2) 创建双来源签署 Task（taskSource: dashboard），文件已归档 → hasAttachment:true
       const { data: tRes } = await taskService.create({
         title: `${dsForm.isCTC ? '[CTC] ' : ''}签署：${company ? company.name : '未关联公司'}`,

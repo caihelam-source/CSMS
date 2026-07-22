@@ -241,7 +241,7 @@ export default function MeetingDetail() {
   }, [])
 
   // v5.2 fix: 保存为 Word 文档（.doc）— 用 HTML-Word 兼容格式，无需额外依赖
-  const downloadWord = useCallback((data, filenamePrefix) => {
+  const buildWordFile = useCallback((data, filenamePrefix) => {
     const htmlContent = data.html || `<html><body><pre style="font-family: serif; white-space: pre-wrap;">${(data.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></body></html>`
     const wordHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -249,14 +249,19 @@ export default function MeetingDetail() {
       <body style="font-family: 'Times New Roman', serif; font-size: 14pt; line-height: 1.6;">${htmlContent}</body>
       </html>`
     const blob = new Blob(['\ufeff' + wordHtml], { type: 'application/msword' })
-    const url = URL.createObjectURL(blob)
+    return new File([blob], `${filenamePrefix}.doc`, { type: 'application/msword' })
+  }, [])
+
+  const downloadWord = useCallback((data, filenamePrefix) => {
+    const file = buildWordFile(data, filenamePrefix)
+    const url = URL.createObjectURL(file)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${filenamePrefix}.doc`
+    a.download = file.name
     a.click()
     URL.revokeObjectURL(url)
-    toast.success(`${filenamePrefix}.doc 已下载`)
-  }, [])
+    toast.success(`${file.name} 已下载`)
+  }, [buildWordFile])
 
   const uploadAttachment = useCallback(async () => {
     const { valid, errors } = validate(attachForm, ATTACH_FORM_RULES)
@@ -509,54 +514,58 @@ export default function MeetingDetail() {
     }
   }, [inlineTargetTask, inlineNote, inlineFile, meeting, id, signTasks, fetchMeeting])
 
-  // ===== v6.0 定稿功能：通知/纪要 → 创建 Document 记录（staged）→ 出现在相关文件 Tab =====
+  // ===== v6.0 定稿功能：通知/纪要 → 生成 Word 文件并上传 → 出现在相关文件 Tab =====
   const finalizeNotice = useCallback(async () => {
     if (!noticeData) return
     try {
-      await documentService.create({
-        name: `${meeting?.title || '会议'}_会议通知`,
-        type: 'notice',
-        category: 'meeting',
-        meeting: { _id: id },
-        company: meeting?.company?._id
-          ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
-          : undefined,
-        staged: true,
-        source: { kind: 'meeting_notice', refId: id, label: `来自会议通知：${meeting?.title || ''}` },
-        note: '由会议通知定稿生成',
-        createdAt: new Date().toISOString().split('T')[0],
-      })
+      const filename = `${meeting?.title || '会议'}_会议通知`
+      const file = buildWordFile(noticeData, filename)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('name', filename)
+      formData.append('type', 'notice')
+      formData.append('category', 'meeting')
+      formData.append('meeting', id)
+      if (meeting?.company?._id) {
+        formData.append('company', JSON.stringify({ _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }))
+      }
+      formData.append('staged', 'true')
+      formData.append('source', JSON.stringify({ kind: 'meeting_notice', refId: id, label: `来自会议通知：${meeting?.title || ''}` }))
+      formData.append('note', '由会议通知定稿生成')
+      await documentService.upload(formData)
       setNoticeFinalized(true)
       toast.success('会议通知已定稿，文件已关联至「相关文件」')
       fetchMeeting()
     } catch {
       toast.error('定稿失败')
     }
-  }, [noticeData, meeting, id, fetchMeeting])
+  }, [noticeData, meeting, id, buildWordFile, fetchMeeting])
 
   const finalizeMinutes = useCallback(async () => {
     if (!minutesData) return
     try {
-      await documentService.create({
-        name: `${meeting?.title || '会议'}_会议纪要`,
-        type: 'minutes',
-        category: 'meeting',
-        meeting: { _id: id },
-        company: meeting?.company?._id
-          ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
-          : undefined,
-        staged: true,
-        source: { kind: 'meeting_minutes', refId: id, label: `来自会议纪要：${meeting?.title || ''}` },
-        note: '由会议纪要定稿生成',
-        createdAt: new Date().toISOString().split('T')[0],
-      })
+      const filename = `${meeting?.title || '会议'}_会议纪要`
+      const file = buildWordFile(minutesData, filename)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('name', filename)
+      formData.append('type', 'minutes')
+      formData.append('category', 'meeting')
+      formData.append('meeting', id)
+      if (meeting?.company?._id) {
+        formData.append('company', JSON.stringify({ _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }))
+      }
+      formData.append('staged', 'true')
+      formData.append('source', JSON.stringify({ kind: 'meeting_minutes', refId: id, label: `来自会议纪要：${meeting?.title || ''}` }))
+      formData.append('note', '由会议纪要定稿生成')
+      await documentService.upload(formData)
       setMinutesFinalized(true)
       toast.success('会议纪要已定稿，文件已关联至「相关文件」')
       fetchMeeting()
     } catch {
       toast.error('定稿失败')
     }
-  }, [minutesData, meeting, id, fetchMeeting])
+  }, [minutesData, meeting, id, buildWordFile, fetchMeeting])
 
   if (loading) {
     return <LoadingSpinner text="加载会议详情..." />
@@ -1256,24 +1265,22 @@ export default function MeetingDetail() {
                             <input type="file" className="hidden" onChange={async (e) => {
                               const file = e.target.files[0]
                               if (!file) return
-                              // 快速上传：创建文档 + 标记 Task 完成
+                              // 快速上传：multipart 上传文件实体 + 标记 Task 完成
                               try {
-                                await documentService.create({
-                                  name: `${meeting?.title || '会议'}_签署文件`,
-                                  type: 'minutes',
-                                  category: 'meeting',
-                                  meeting: { _id: id },
-                                  company: meeting?.company?._id
-                                    ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
-                                    : undefined,
-                                  signStatus: t.isCTC ? 'ctc' : 'fully_signed',
-                                  fileName: file.name,
-                                  fileSize: file.size,
-                                  staged: true,
-                                  source: { kind: 'signing_scan', refId: t._id, label: `来自签署任务：${t.title}` },
-                                  note: '由会议签署 Tab 快速上传',
-                                  createdAt: new Date().toISOString().split('T')[0],
-                                })
+                                const formData = new FormData()
+                                formData.append('file', file)
+                                formData.append('name', `${meeting?.title || '会议'}_签署文件`)
+                                formData.append('type', 'minutes')
+                                formData.append('category', 'meeting')
+                                formData.append('meeting', id)
+                                if (meeting?.company?._id) {
+                                  formData.append('company', JSON.stringify({ _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }))
+                                }
+                                formData.append('signStatus', t.isCTC ? 'ctc' : 'fully_signed')
+                                formData.append('staged', 'true')
+                                formData.append('source', JSON.stringify({ kind: 'signing_scan', refId: t._id, label: `来自签署任务：${t.title}` }))
+                                formData.append('note', '由会议签署 Tab 快速上传')
+                                await documentService.upload(formData)
                                 await taskService.update(t._id, {
                                   status: 'completed',
                                   hasAttachment: true,
