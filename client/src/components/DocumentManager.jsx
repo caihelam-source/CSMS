@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import JSZip from 'jszip'
 import {
   FileText, Download, Building2, User, Upload, CheckSquare, Square,
   Pencil, Trash2, Eye, FileSpreadsheet, FileArchive,
@@ -9,6 +10,7 @@ import { documentService, companyService, personnelService } from '../services/i
 import { formatDate } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, SearchBar, FormField, inputClass, labelClass } from '../components/UIHelpers'
 import Modal from '../components/Modal'
+import { useAuth } from '../contexts/AuthContext.jsx'
 
 // ── 类型 / 分类标签 ──
 export const DOC_TYPE_LABELS = {
@@ -92,6 +94,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
 
   const [companies, setCompanies] = useState([])
   const [personnel, setPersonnel] = useState([])
+  const { isDemo } = useAuth()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -266,18 +269,48 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
     toast.success('清单已导出 (Excel 可打开)')
   }
   const handleExportZip = async () => {
-    if (selected.size === 0 && filtered.length === 0) { toast.error('没有可导出的文件'); return }
-    const ids = [...selected]
-    const isMock = import.meta.env.VITE_USE_MOCK !== 'false'
-    if (isMock) {
-      // 演示模式无实体文件存储：逐个打开可下载文件
-      const chosen = documents.filter((d) => (selected.size ? selected.has(d._id) : true)).filter((d) => d.fileUrl)
-      if (chosen.length === 0) { toast('所选文档在演示模式下无实体文件可打包', { icon: 'ℹ️' }); return }
-      chosen.forEach((d) => window.open(d.fileUrl, '_blank', 'noopener'))
-      toast(`演示模式：已逐个打开 ${chosen.length} 个文件（ZIP 需连接真实后端）`)
+    const toExport = selected.size > 0 ? documents.filter((d) => selected.has(d._id)) : filtered
+    const withFiles = toExport.filter((d) => d.fileUrl)
+    if (withFiles.length === 0) { toast.error('没有可导出的文件'); return }
+
+    const isMockEnv = import.meta.env.VITE_USE_MOCK !== 'false'
+    if (isMockEnv || isDemo) {
+      try {
+        const zip = new JSZip()
+        const failed = []
+        await Promise.all(withFiles.map(async (d) => {
+          try {
+            const resp = await fetch(d.fileUrl)
+            if (!resp.ok) throw new Error(`${resp.status}`)
+            const blob = await resp.blob()
+            zip.file(d.fileName || d.name || 'file', blob)
+          } catch (e) {
+            failed.push(d.name)
+            zip.file(`${d.fileName || d.name || 'file'}.txt`, `[演示模式] 无法获取文件：${d.fileUrl} (错误: ${e.message})`)
+          }
+        }))
+        const content = await zip.generateAsync({ type: 'blob' })
+        const url = URL.createObjectURL(content)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `documents_${Date.now()}.zip`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+        if (failed.length) {
+          toast.success(`已打包 ${withFiles.length - failed.length} 个文件（${failed.length} 个无法获取）`)
+        } else {
+          toast.success(`已打包 ${withFiles.length} 个文件`)
+        }
+      } catch (err) {
+        toast.error(`ZIP 生成失败: ${err.message}`)
+      }
       return
     }
+
     try {
+      const ids = withFiles.map((d) => d._id)
       const qs = ids.length ? `ids=${ids.join(',')}` : new URLSearchParams({ company: companyId || '', personnelId: personnelId || '' }).toString()
       const res = await documentService.exportZip?.(qs)
       if (!res) { toast.error('导出接口不可用'); return }
