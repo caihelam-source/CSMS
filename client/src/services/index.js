@@ -324,6 +324,11 @@ export const documentService = {
     (id) => api.delete(`/api/documents/${id}`),
     mockDocuments.delete,
   ),
+  // Phase B 导出：ZIP 包（真实后端从存储拉文件打包；mock 返回 null，前端降级为逐个打开）
+  exportZip: wrap(
+    (qs) => api.get(`/api/documents/export-zip?${qs}`, { responseType: 'blob' }),
+    async () => null,
+  ),
   getExpiring: wrap(
     () => api.get('/api/documents/expiring'),
     mockDocuments.getExpiring,

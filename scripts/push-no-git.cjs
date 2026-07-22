@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'ci: 质量门禁增强-eslint加jsx-no-undef+推送前全量lint门禁+vite-plugin-checker开发期实时报错';
+const COMMIT_MSG = 'feat: v6.x 文件管理重构 Phase A+B - 统一DocumentManager + scope/year化编号 + CSV/ZIP导出 + mock.upload串档根治';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

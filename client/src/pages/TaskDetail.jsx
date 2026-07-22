@@ -86,24 +86,32 @@ export default function TaskDetail() {
           sourceKind = 'task_complete'
           sourceLabel = `任务完成：${task.title}`
         }
-        const { data: docRes } = await documentService.create({
-          name: hasFile ? buildCtcDocName(uploadFile.name, task.isCTC) : `任务完成附件 - ${task.title}`,
-          type: resolvedType,
-          category: resolvedCategory,
-          meeting: stageUnderMeeting ? { _id: meetingRef } : undefined,
-          company: company ? { _id: company._id, name: company.name, registrationNumber: company.registrationNumber } : undefined,
-          fileName: hasFile ? uploadFile.name : undefined,
-          fileSize: hasFile ? uploadFile.size : undefined,
-          signStatus: hasFile && task.type === 'signing' ? (task.isCTC ? 'ctc' : 'fully_signed') : undefined,
-          staged: stageUnderMeeting,
-          note: hasFile ? (stageUnderMeeting ? '由会议签署任务完成暂存，待会议最终归档' : (isComplianceTask ? `由合规任务「${task.title}」完成自动归档` : (task.taskSource === 'dashboard' ? '由 Dashboard 签署任务完成自动归档' : '由任务完成自动归档'))) : undefined,
-          source: hasFile ? {
-            kind: sourceKind,
-            refId: task._id,
-            label: sourceLabel,
-          } : undefined,
-          createdAt: new Date().toISOString().split('T')[0],
-        }).catch(() => ({ data: { data: null } }))
+        // 有文件时：用 FormData multipart 上传（后端存文件+返回含 fileUrl 的文档）
+        // 无文件但有公司时：纯 JSON 创建元数据记录
+        let docRes
+        if (hasFile) {
+          const formData = new FormData()
+          formData.append('file', uploadFile)
+          formData.append('name', buildCtcDocName(uploadFile.name, task.isCTC))
+          formData.append('type', resolvedType)
+          formData.append('category', resolvedCategory)
+          if (stageUnderMeeting) formData.append('meeting', meetingRef)
+          if (company) formData.append('company', JSON.stringify({ _id: company._id, name: company.name, registrationNumber: company.registrationNumber }))
+          if (hasFile && task.type === 'signing') formData.append('signStatus', task.isCTC ? 'ctc' : 'fully_signed')
+          formData.append('staged', String(stageUnderMeeting))
+          formData.append('note', stageUnderMeeting ? '由会议签署任务完成暂存，待会议最终归档' : (isComplianceTask ? `由合规任务「${task.title}」完成自动归档` : (task.taskSource === 'dashboard' ? '由 Dashboard 签署任务完成自动归档' : '由任务完成自动归档')))
+          formData.append('source', JSON.stringify({ kind: sourceKind, refId: task._id, label: sourceLabel }))
+          docRes = await documentService.upload(formData).catch(() => ({ data: { data: null } }))
+        } else {
+          docRes = await documentService.create({
+            name: `任务完成附件 - ${task.title}`,
+            type: resolvedType,
+            category: resolvedCategory,
+            company: company ? { _id: company._id, name: company.name, registrationNumber: company.registrationNumber } : undefined,
+            note: undefined,
+            createdAt: new Date().toISOString().split('T')[0],
+          }).catch(() => ({ data: { data: null } }))
+        }
         doc = docRes.data
       }
       // 新增备注

@@ -168,10 +168,10 @@ const MOCK_DOCUMENTS = [
   { _id: 'd4', docNumber: 'GOV-NAR1-0004', name: 'NAR1 周年申报表 2025', type: 'return', category: 'government', company: { _id: 'c4', name: 'Hong Kong Time Honour Property Ltd (香港時駿地産)', registrationNumber: '63822186' }, personnel: null, fileUrl: '/docs/TimeHonour_NAR1_2025.pdf', fileName: 'NAR1 - Hong Kong Time Honour Property Ltd 2025.pdf', fileSize: 512000, createdAt: '2025-12-04' },
   { _id: 'd5', docNumber: 'GOV-NAR1-0005', name: 'NAR1 周年申报表 2025', type: 'return', category: 'government', company: { _id: 'c5', name: 'Pannix Industrial (Hong Kong) Ltd (佳穎實業)', registrationNumber: '63822047' }, personnel: null, fileUrl: '/docs/Pannix_NAR1_2025.pdf', fileName: 'NAR1 - Pannix Industrial (Hong Kong) Limited 2025.pdf', fileSize: 512000, createdAt: '2025-12-02' },
   // 个人证件文档
-  { _id: 'd6', docNumber: 'OTH-ID-0006', name: '施金帆 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p1', name: '施金帆' }, fileUrl: '', fileName: 'shijinfan_id.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2027-05-10' },
-  { _id: 'd7', docNumber: 'OTH-PP-0007', name: '施南路 — 护照复印件', type: 'passport', category: 'other', company: null, personnel: { _id: 'p2', name: '施南路' }, fileUrl: '', fileName: 'shinanlu_passport.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-07-20' },
-  { _id: 'd8', docNumber: 'OTH-ID-0008', name: '施中安 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p3', name: '施中安 (施侃成)' }, fileUrl: '', fileName: 'shizhongan_id.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-07-10' },
-  { _id: 'd9', docNumber: 'OTH-NRIC-0009', name: '林才賀 — NRIC副本', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, fileUrl: '', fileName: 'lincaihe_nric.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-08-01' },
+  { _id: 'd6', docNumber: 'OTH-ID-0006', name: '施金帆 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p1', name: '施金帆' }, scope: 'person', fileUrl: '', fileName: 'shijinfan_id.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2027-05-10' },
+  { _id: 'd7', docNumber: 'OTH-PP-0007', name: '施南路 — 护照复印件', type: 'passport', category: 'other', company: null, personnel: { _id: 'p2', name: '施南路' }, scope: 'person', fileUrl: '', fileName: 'shinanlu_passport.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-07-20' },
+  { _id: 'd8', docNumber: 'OTH-ID-0008', name: '施中安 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p3', name: '施中安 (施侃成)' }, scope: 'person', fileUrl: '', fileName: 'shizhongan_id.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-07-10' },
+  { _id: 'd9', docNumber: 'OTH-NRIC-0009', name: '林才賀 — NRIC副本', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, scope: 'person', fileUrl: '', fileName: 'lincaihe_nric.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-08-01' },
   // CNC 文档
   { _id: 'd10', docNumber: 'GOV-NN3-0010', name: 'NAR1 NN3 周年申报表 2025', type: 'return', category: 'government', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_NAR1_NN3_2025.pdf', fileSize: 1024000, createdAt: '2025-11-01', notes: '注册非香港公司周年申报表' },
   { _id: 'd11', docNumber: 'EST-COI-0011', name: 'Certificate of Incumbency 2026-01-08', type: 'certificate', category: 'establishment', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_COI_20260108.pdf', fileSize: 512000, createdAt: '2026-01-08', notes: '在职证明', expiresAt: '2027-01-08' },
@@ -684,7 +684,64 @@ export const documents = {
     await delay();
     return { data: { data: MOCK_DOCUMENTS.filter(d => d.personnel?._id === personnelId) } };
   },
-  upload: async () => { await delay(); return { data: { data: MOCK_DOCUMENTS[0] } }; },
+  // v6.x 修复：真实接收 FormData，新建带正确元数据 + fileUrl 的文档
+  // （此前写死返回 MOCK_DOCUMENTS[0] → 串档 + 线上"无文件"）
+  upload: async (formData) => {
+    await delay();
+    const get = (k) => (formData && typeof formData.get === 'function' ? formData.get(k) : (formData ? formData[k] : undefined));
+    const parseObj = (raw) => {
+      if (!raw) return undefined;
+      if (typeof raw === 'object') return raw;
+      try { return JSON.parse(raw); } catch { return { _id: raw }; }
+    };
+    const name = get('name') || (get('file') && get('file').name) || 'Untitled';
+    const type = get('type') || 'other';
+    const category = get('category') || 'other';
+    const companyRaw = get('company');
+    const personnelRaw = get('personnel');
+    const meetingRaw = get('meeting');
+    const staged = get('staged');
+    const signStatus = get('signStatus') || 'draft';
+    const sourceRaw = get('source');
+    const note = get('note') || get('description');
+    const file = get('file');
+
+    const company = parseObj(companyRaw);
+    const personnel = parseObj(personnelRaw);
+    const meeting = parseObj(meetingRaw);
+    const source = parseObj(sourceRaw);
+
+    // 浏览器内用 blob URL 预览（真实后端走 R2/local 返回可访问 URL）
+    const fileUrl = (typeof URL !== 'undefined' && file) ? URL.createObjectURL(file) : '';
+
+    const neu = {
+      _id: 'd' + Date.now(),
+      name,
+      type,
+      category,
+      company: company ? { _id: company._id, name: company.name, registrationNumber: company.registrationNumber } : undefined,
+      personnel: personnel ? { _id: personnel._id, name: personnel.name } : undefined,
+      meeting: meeting ? (typeof meeting === 'string' ? meeting : { _id: meeting._id }) : undefined,
+      fileName: file && file.name,
+      fileSize: file && file.size,
+      fileUrl,
+      mimeType: file && file.type,
+      signStatus,
+      staged: staged === 'true' || staged === true,
+      // v6.x 归属维度：有 company 即公司文件（即便关联 personnel，如董事任免）；仅 personnel 则个人文件
+      scope: company ? 'company' : (personnel ? 'person' : 'company'),
+      source,
+      note,
+      documentYear: new Date().getFullYear(),
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+    if (!neu.docNumber) {
+      const prefix = (category || 'other').slice(0, 3).toUpperCase();
+      neu.docNumber = `${prefix}-${String(MOCK_DOCUMENTS.length + 1).padStart(4, '0')}`;
+    }
+    MOCK_DOCUMENTS.push(neu);
+    return { data: { data: neu } };
+  },
   delete: async (id) => { await delay(); return { data: { data: { _id: id } } }; },
   getExpiring: async () => {
     await delay();

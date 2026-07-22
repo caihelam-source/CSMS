@@ -264,20 +264,16 @@ export default function MeetingDetail() {
     setAttachErrors({})
     try {
       // 统一归属：meeting = 本会议，company = 所属公司 → 公司文件可见
-      await documentService.create({
-        name: attachForm.name,
-        type: attachForm.type,
-        category: 'meeting',
-        meeting: { _id: id },
-        company: meeting?.company?._id
-          ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
-          : undefined,
-        fileName: attachForm.file?.name,
-        fileSize: attachForm.file?.size,
-        // v5.2 模块1：会议上传文件先"暂存"于会议子目录（staged=true），不进入公司库
-        staged: true,
-        createdAt: new Date().toISOString().split('T')[0],
-      })
+      // 用 FormData multipart 上传文件，后端返回含 fileUrl 的文档
+      const formData = new FormData()
+      if (attachForm.file) formData.append('file', attachForm.file)
+      formData.append('name', attachForm.name)
+      formData.append('type', attachForm.type)
+      formData.append('category', 'meeting')
+      formData.append('meeting', id)
+      if (meeting?.company?._id) formData.append('company', JSON.stringify({ _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }))
+      formData.append('staged', 'true')
+      await documentService.upload(formData)
       toast.success('文件已上传并归入会议相关文件（同时归属公司）')
       setAttachModal(false)
       setAttachForm({ name: '', type: 'minutes', file: null })
@@ -298,28 +294,22 @@ export default function MeetingDetail() {
     if (!scanModal.file) { setScanErrors({ file: '请选择签署扫描件' }); return }
     setScanErrors({})
     try {
-      await documentService.create({
-        name: `${meeting?.title || '会议'} 纪要签字版扫描件`,
-        type: 'minutes',
-        category: 'meeting',
-        meeting: { _id: id },
-        company: meeting?.company?._id
-          ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
-          : undefined,
-        signStatus: 'fully_signed',
-        fileName: scanModal.file.name,
-        fileSize: scanModal.file.size,
-        fileUrl: '/scan/' + encodeURIComponent(scanModal.file.name),
-        // v5.2 模块1：签署扫描件同样暂存于会议子目录
-        staged: true,
-        // v5.1 #3.1 来源追溯：扫描件标注来源 → 公司档案可点击跳回本会议
-        source: {
-          kind: 'signing_scan',
-          refId: st.taskId || st._id,
-          label: buildSourceLabel(meeting),
-        },
-        createdAt: new Date().toISOString().split('T')[0],
-      })
+      // 用 FormData multipart 真正上传文件到存储，后端返回含真实 fileUrl 的文档
+      const scanFormData = new FormData()
+      scanFormData.append('file', scanModal.file)
+      scanFormData.append('name', `${meeting?.title || '会议'} 纪要签字版扫描件`)
+      scanFormData.append('type', 'minutes')
+      scanFormData.append('category', 'meeting')
+      scanFormData.append('meeting', id)
+      if (meeting?.company?._id) scanFormData.append('company', JSON.stringify({ _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }))
+      scanFormData.append('signStatus', 'fully_signed')
+      scanFormData.append('staged', 'true')
+      scanFormData.append('source', JSON.stringify({
+        kind: 'signing_scan',
+        refId: st.taskId || st._id,
+        label: buildSourceLabel(meeting),
+      }))
+      await documentService.upload(scanFormData)
       // 标记关联 Task 完成（连带 hasAttachment，满足 #2.3 完成门禁）
       if (st.taskId) {
         await taskService.update(st.taskId, {
@@ -473,24 +463,20 @@ export default function MeetingDetail() {
     }
     setInlineSaving(true)
     try {
-      // 1. 上传文件（如有）
+      // 1. 上传文件（如有）— 用 FormData multipart 确保文件实际存入存储并返回 fileUrl
       if (hasFile) {
-        await documentService.create({
-          name: `${meeting?.title || '会议'}_签署文件`,
-          type: 'minutes',
-          category: 'meeting',
-          meeting: { _id: id },
-          company: meeting?.company?._id
-            ? { _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }
-            : undefined,
-          signStatus: inlineTargetTask.isCTC ? 'ctc' : 'fully_signed',
-          fileName: inlineFile.name,
-          fileSize: inlineFile.size,
-          staged: true,
-          source: { kind: 'signing_scan', refId: inlineTargetTask._id, label: `来自签署任务：${inlineTargetTask.title}` },
-          note: '由会议签署 Tab 完成',
-          createdAt: new Date().toISOString().split('T')[0],
-        })
+        const formData = new FormData()
+        formData.append('file', inlineFile)
+        formData.append('name', `${meeting?.title || '会议'}_签署文件`)
+        formData.append('type', 'minutes')
+        formData.append('category', 'meeting')
+        formData.append('meeting', id)
+        if (meeting?.company?._id) formData.append('company', JSON.stringify({ _id: meeting.company._id, name: meeting.company.name, registrationNumber: meeting.company.registrationNumber }))
+        formData.append('signStatus', inlineTargetTask.isCTC ? 'ctc' : 'fully_signed')
+        formData.append('staged', 'true')
+        formData.append('source', JSON.stringify({ kind: 'signing_scan', refId: inlineTargetTask._id, label: `来自签署任务：${inlineTargetTask.title}` }))
+        formData.append('note', '由会议签署 Tab 完成')
+        await documentService.upload(formData).catch(() => {})
       }
       // 2. 标记 Task 完成
       await taskService.update(inlineTargetTask._id, {

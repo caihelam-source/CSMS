@@ -53,15 +53,25 @@ export default function ComplianceReminderDetail() {
     try {
       let archived = null
       if (hasFile || reminder.company) {
-        const { data: docRes } = await documentService.create({
-          name: hasFile ? uploadFile.name : `合规完成附件 - ${reminder.title}`,
-          type: 'compliance_attachment',
-          category: 'government',
-          company: reminder.company ? { _id: reminder.company._id, name: reminder.company.name, registrationNumber: reminder.company.registrationNumber } : undefined,
-          fileName: hasFile ? uploadFile.name : undefined,
-          fileSize: hasFile ? uploadFile.size : undefined,
-          createdAt: new Date().toISOString().split('T')[0],
-        }).catch(() => ({ data: { data: null } }))
+        // 有文件时用 FormData multipart 上传（后端返回含 fileUrl 的文档）
+        let docRes
+        if (hasFile) {
+          const formData = new FormData()
+          formData.append('file', uploadFile)
+          formData.append('name', uploadFile.name)
+          formData.append('type', 'return')
+          formData.append('category', 'government')
+          if (reminder.company) formData.append('company', JSON.stringify({ _id: reminder.company._id, name: reminder.company.name, registrationNumber: reminder.company.registrationNumber }))
+          docRes = await documentService.upload(formData).catch(() => ({ data: { data: null } }))
+        } else {
+          docRes = await documentService.create({
+            name: `合规完成附件 - ${reminder.title}`,
+            type: 'compliance_attachment',
+            category: 'government',
+            company: reminder.company ? { _id: reminder.company._id, name: reminder.company.name, registrationNumber: reminder.company.registrationNumber } : undefined,
+            createdAt: new Date().toISOString().split('T')[0],
+          }).catch(() => ({ data: { data: null } }))
+        }
         archived = docRes.data
         setArchivedDoc(archived)
       }

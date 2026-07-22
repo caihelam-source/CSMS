@@ -89,11 +89,12 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
     // 生成文档编号
     let companyObj = null;
-    let directorName = null;
+    let personnelObj = null;
+    const docYear = req.body.documentYear ? Number(req.body.documentYear) : new Date().getFullYear();
     if (companyVal) companyObj = await Company.findById(companyVal);
     if (personnelVal) {
       const d = await Personnel.findById(personnelVal);
-      if (d) directorName = d.name;
+      if (d) personnelObj = d;
     }
 
     const docData = {
@@ -117,6 +118,9 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       locked: locked === true || locked === 'true' || false,
       // v5.2 会议暂存（模块1）：会议视图上传时携带 staged=true，归档时由前端置 false
       staged: staged === true || staged === 'true' || false,
+      // v6.x 归属维度：有 company 即为公司文件（即便关联 personnel，如董事任免）；仅 personnel 则为个人文件
+      scope: companyVal ? 'company' : (personnelVal ? 'person' : 'company'),
+      documentYear: docYear,
       uploadedBy: req.user._id,
     };
 
@@ -138,7 +142,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     // 生成文档编号并创建（重试 3 次防 unique 索引冲突 — DB-AUDIT P1-8）
     let doc = null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      docData.docNumber = await Document.generateDocNumber(companyObj, directorName, type);
+      docData.docNumber = await Document.generateDocNumber({ company: companyObj, personnel: personnelObj, type: docData.type, year: docYear });
       try {
         doc = await Document.create(docData);
         break;
@@ -160,9 +164,27 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 // PUT /api/documents/:id
 router.put('/:id', auth, async (req, res) => {
   try {
+    const existing = await Document.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Document not found' });
+
+    const upd = { ...req.body };
+    // v6.x 动态编号：编辑归属公司/人员/类型/年份 → 重算 docNumber 并同步 scope
+    const needsRenumber = ['company', 'personnel', 'type', 'documentYear'].some((k) => k in upd);
+    if (needsRenumber) {
+      const c = upd.company ? await Company.findById(upd.company)
+        : (existing.company ? await Company.findById(existing.company) : null);
+      const p = upd.personnel ? await Personnel.findById(upd.personnel)
+        : (existing.personnel ? await Personnel.findById(existing.personnel) : null);
+      const yr = upd.documentYear ? Number(upd.documentYear) : (existing.documentYear || new Date().getFullYear());
+      upd.docNumber = await Document.generateDocNumber({
+        company: c, personnel: p, type: upd.type || existing.type, year: yr,
+      });
+      upd.scope = upd.company ? 'company' : (upd.personnel ? 'person' : 'company');
+    }
+
     const doc = await Document.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, $inc: { version: 1 } },
+      { ...upd, $inc: { version: 1 } },
       { new: true }
     ).populate('company', 'name');
     if (!doc) return res.status(404).json({ message: 'Document not found' });
@@ -210,6 +232,90 @@ router.get('/:id/download', auth, async (req, res) => {
       return res.download(doc.filepath, doc.originalName || doc.filename);
     }
     res.status(404).json({ message: 'File not found on disk' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/documents/export — FILE_MANIFEST（CSV，Excel 可直接打开）
+router.get('/export', auth, scopeMiddleware, async (req, res) => {
+  try {
+    const { company, companyId, personnelId, type, year, signStatus } = req.query;
+    const query = {};
+    if (company) query.company = company;
+    if (companyId) query.company = companyId;
+    if (personnelId) query.personnel = personnelId;
+    if (type) query.type = type;
+    if (year) query.documentYear = Number(year);
+    if (signStatus) query.signStatus = signStatus;
+    if (req.query.includeStaged !== 'true') query.staged = { $ne: true };
+    // 行级权限：非 admin/auditor 仅见 accessibleCompanies 内公司文档
+    applyListScope(query, req, 'company');
+
+    const docs = await Document.find(query)
+      .populate('company', 'name registrationNumber')
+      .populate('personnel', 'name')
+      .sort({ createdAt: -1 });
+
+    const headers = ['编号', '名称', '类型', '分类', '归属', '关联公司', '关联人员', '年份', '创建日期', '到期日', '来源', '文件URL'];
+    const esc = (v) => {
+      const s = v == null ? '' : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = docs.map((d) => [
+      d.docNumber, d.name, d.type, d.category,
+      d.scope || (d.company ? 'company' : 'person'),
+      d.company?.name || '', d.personnel?.name || '', d.documentYear || '',
+      d.createdAt ? d.createdAt.toISOString().split('T')[0] : '',
+      d.expiresAt ? d.expiresAt.toISOString().split('T')[0] : '',
+      d.source?.label || '', d.fileUrl || '',
+    ].map(esc).join(','));
+
+    // BOM 头确保 Excel 正确识别中文
+    const csv = '﻿' + [headers.join(','), ...rows].join('\r\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="FILE_MANIFEST_${Date.now()}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/documents/export-zip — 选中/范围文件打包下载（需实体文件）
+router.get('/export-zip', auth, scopeMiddleware, async (req, res) => {
+  try {
+    const ids = req.query.ids ? String(req.query.ids).split(',') : [];
+    const query = {};
+    if (ids.length) {
+      query._id = { $in: ids };
+    } else {
+      const { company, companyId, personnelId, type, year } = req.query;
+      if (company) query.company = company;
+      if (companyId) query.company = companyId;
+      if (personnelId) query.personnel = personnelId;
+      if (type) query.type = type;
+      if (year) query.documentYear = Number(year);
+    }
+    if (req.query.includeStaged !== 'true') query.staged = { $ne: true };
+    applyListScope(query, req, 'company');
+
+    const docs = await Document.find(query).populate('company', 'name');
+    const JSZip = require('jszip');
+    const zip = new JSZip();
+    let added = 0;
+    for (const d of docs) {
+      if (!d.filename) continue;
+      const buf = await fileStorage.get(d.filename).catch(() => null);
+      if (!buf) continue;
+      const safeName = `${(d.docNumber || d._id).replace(/[^\w.-]/g, '_')}_${d.fileName || d.filename}`;
+      zip.file(safeName, buf);
+      added += 1;
+    }
+    if (added === 0) return res.status(404).json({ message: '没有可打包的实体文件' });
+    const content = await zip.generateAsync({ type: 'nodebuffer' });
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="documents_${Date.now()}.zip"`);
+    res.send(content);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

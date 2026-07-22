@@ -41,6 +41,11 @@ const localDriver = {
   getUrl(key) {
     return `/uploads/documents/${key}`;
   },
+  async get(key) {
+    const p = path.join(LOCAL_DIR, key);
+    if (!fs.existsSync(p)) return null;
+    return fs.readFileSync(p);
+  },
 };
 
 // ── Cloudflare R2 Driver ─────────────────────────────────────
@@ -93,6 +98,21 @@ const r2Driver = {
   getUrl(key) {
     const base = process.env.R2_PUBLIC_URL || `${process.env.R2_ENDPOINT.replace('https://', 'https://pub.')}/`;
     return `${base.replace(/\/$/, '')}/${key}`;
+  },
+  async get(key) {
+    const s3 = getR2();
+    try {
+      const res = await s3.send(new R2.GetObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: key,
+      }));
+      const chunks = [];
+      // aws-sdk v3 Body 是可读流 / 异步可迭代
+      for await (const chunk of res.Body) chunks.push(chunk);
+      return Buffer.concat(chunks);
+    } catch {
+      return null;
+    }
   },
 };
 
