@@ -14,20 +14,20 @@ export async function generateCtcPdf(pdfBytes, { fullName, professionalTitle, me
   const pages = doc.getPages()
   if (pages.length === 0) throw new Error('PDF has no pages')
 
-  // 只在最后一页右下角加盖声明
-  const page = pages[pages.length - 1]
+  // 在第一页右下角加盖声明
+  const page = pages[0]
   const { width } = page.getSize()
 
   const font = await doc.embedFont(StandardFonts.Helvetica)
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold)
 
-  const boxWidth = 320
-  const boxHeight = 140
+  const boxWidth = 340
+  const boxHeight = 200
   const margin = 24
   const x = width - boxWidth - margin
   const y = margin
 
-  // 白色半透明背景 + 黑色边框
+  // 白色不透明背景 + 黑色边框，确保盖住底层正文
   page.drawRectangle({
     x,
     y,
@@ -38,32 +38,34 @@ export async function generateCtcPdf(pdfBytes, { fullName, professionalTitle, me
     borderWidth: 1,
   })
 
-  let cursorY = y + boxHeight - 14
-  const lineHeight = 14
   const leftPad = 10
+  // 从顶部内衬开始往下绘制
+  let cursorY = y + boxHeight - 12
 
   const drawText = (text, opts = {}) => {
     const size = opts.size || 8
     const f = opts.bold ? fontBold : font
+    const dy = opts.dy || (opts.size || 8) + 2
     page.drawText(text, { x: x + leftPad, y: cursorY, size, font: f, color: rgb(0, 0, 0) })
-    cursorY -= lineHeight
+    cursorY -= dy
   }
 
-  drawText('CERTIFIED TRUE COPY', { bold: true, size: 10 })
-  cursorY -= 2
+  drawText('CERTIFIED TRUE COPY', { bold: true, size: 10, dy: 16 })
   drawText('I, the undersigned, do hereby certify that I have examined')
   drawText('this document with its original and that the same is a true')
   drawText('and complete copy of the original.')
-  cursorY -= 4
+  cursorY -= 6
   drawText('Dated this _____ day of __________, 20____')
-  cursorY -= 4
-  drawText('_________________________________')
+  cursorY -= 14 // 签名预留空间
+  drawText('________________________________________')
   drawText('Signature')
-  cursorY -= 4
+  cursorY -= 22 // 加大签字留白
 
   if (fullName) drawText(fullName)
-  if (professionalTitle) drawText(professionalTitle)
-  if (membershipNo) drawText(membershipNo)
+  if (professionalTitle || membershipNo) {
+    const combined = [professionalTitle, membershipNo].filter(Boolean).join(' / ')
+    drawText(combined)
+  }
 
   return await doc.save()
 }
