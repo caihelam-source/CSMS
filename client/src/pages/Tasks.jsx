@@ -5,7 +5,7 @@ import {
   AlertTriangle, Clock, CheckCircle2, Circle,
   Pencil, Trash2, MessageSquare
 } from 'lucide-react'
-import { taskService, documentService } from '../services/index.js'
+import { taskService, documentService, companyService, meetingService, personnelService } from '../services/index.js'
 import { fmtDateShort } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
@@ -23,6 +23,10 @@ const TASK_FORM_RULES = {
 }
 
 const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
+  const idOf = (ref) => {
+    if (!ref) return ''
+    return typeof ref === 'object' ? ref._id || '' : String(ref)
+  }
   const [form, setForm] = useState({
     title: initial.title || '',
     description: initial.description || '',
@@ -30,15 +34,53 @@ const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
     priority: initial.priority || 'medium',
     status: initial.status || 'pending',
     dueDate: initial.dueDate ? fmtDateShort(initial.dueDate) : '',
+    company: idOf(initial.company),
+    meeting: idOf(initial.meeting),
+    personnel: idOf(initial.personnel),
   })
   const [errors, setErrors] = useState({})
+  const [options, setOptions] = useState({ companies: [], meetings: [], personnel: [] })
+  const [loadingOptions, setLoadingOptions] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const [coRes, mtRes, peRes] = await Promise.all([
+          companyService.getAll().catch(() => ({ data: { data: [] } })),
+          meetingService.getAll().catch(() => ({ data: { data: [] } })),
+          personnelService.getAll().catch(() => ({ data: { data: [] } })),
+        ])
+        if (!cancelled) {
+          setOptions({
+            companies: coRes.data?.data || [],
+            meetings: mtRes.data?.data?.data || mtRes.data?.data || [],
+            personnel: peRes.data?.data || [],
+          })
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setLoadingOptions(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })) }
   const handleSubmit = (e) => {
     e.preventDefault()
     const { valid, errors: vErrors } = validate(form, TASK_FORM_RULES)
     if (!valid) { setErrors(vErrors); return }
     setErrors({})
-    onSave(form)
+    const payload = {
+      ...form,
+      company: form.company || undefined,
+      meeting: form.meeting || undefined,
+      personnel: form.personnel || undefined,
+    }
+    onSave(payload)
   }
 
   return (
@@ -73,9 +115,38 @@ const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
           <input type="date" className={inputClass} value={form.dueDate} onChange={e => set('dueDate', e.target.value)} />
         </FormField>
       </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className={labelClass}>关联公司</label>
+          <select className={inputClass} value={form.company} onChange={e => set('company', e.target.value)} disabled={loadingOptions}>
+            <option value="">-- 请选择 --</option>
+            {options.companies.map(c => (
+              <option key={c._id} value={c._id}>{c.name}{c.nameChinese ? ` (${c.nameChinese})` : ''}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelClass}>关联会议</label>
+          <select className={inputClass} value={form.meeting} onChange={e => set('meeting', e.target.value)} disabled={loadingOptions}>
+            <option value="">-- 请选择 --</option>
+            {options.meetings.map(m => (
+              <option key={m._id} value={m._id}>{m.title || m.name || m._id}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelClass}>关联人员</label>
+          <select className={inputClass} value={form.personnel} onChange={e => set('personnel', e.target.value)} disabled={loadingOptions}>
+            <option value="">-- 请选择 --</option>
+            {options.personnel.map(p => (
+              <option key={p._id} value={p._id}>{p.name || p.englishName || p._id}</option>
+            ))}
+          </select>
+        </div>
+      </div>
       <div className="flex justify-end gap-3 pt-2">
         <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-ink border border-hairline rounded-lg hover:bg-canvas">Cancel</button>
-        <button type="submit" disabled={loading} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
+        <button type="submit" disabled={loading || loadingOptions} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
           {loading ? 'Saving...' : 'Save Task'}
         </button>
       </div>
@@ -292,6 +363,9 @@ const Tasks = () => {
                             {overdue ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : `${days}d remaining`}
                           </span>
                           {task.type && <span className="capitalize">{task.type.replace('_', ' ')}</span>}
+                          {task.company?.name && <span className="text-primary-700 bg-info/10 px-1.5 py-0.5 rounded">{task.company.name}</span>}
+                          {task.meeting?.title && <span className="text-primary-700 bg-canvas px-1.5 py-0.5 rounded border border-hairline">{task.meeting.title}</span>}
+                          {task.personnel?.name && <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">{task.personnel.name}</span>}
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
