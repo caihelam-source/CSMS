@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CheckSquare, Plus, Filter, Calendar,
   AlertTriangle, Clock, CheckCircle2, Circle,
   Pencil, Trash2, MessageSquare
 } from 'lucide-react'
-import { taskService, documentService, companyService, meetingService, personnelService } from '../services/index.js'
+import { taskService, documentService, companyService, meetingService, userService } from '../services/index.js'
 import { fmtDateShort } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
@@ -22,10 +22,13 @@ const TASK_FORM_RULES = {
   dueDate: [required('Due date is required')],
 }
 
-const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
-  const idOf = (ref) => {
+const TaskForm = ({ initial = {}, onSave, onCancel, loading, users = [] }) => {
+  const firstIdOf = (ref) => {
     if (!ref) return ''
-    return typeof ref === 'object' ? ref._id || '' : String(ref)
+    const arr = Array.isArray(ref) ? ref : [ref]
+    const first = arr[0]
+    if (!first) return ''
+    return typeof first === 'object' ? first._id || '' : String(first)
   }
   const [form, setForm] = useState({
     title: initial.title || '',
@@ -34,28 +37,26 @@ const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
     priority: initial.priority || 'medium',
     status: initial.status || 'pending',
     dueDate: initial.dueDate ? fmtDateShort(initial.dueDate) : '',
-    company: idOf(initial.company),
-    meeting: idOf(initial.meeting),
-    personnel: idOf(initial.personnel),
+    company: firstIdOf(initial.company),
+    meeting: firstIdOf(initial.meeting),
+    assignedTo: firstIdOf(initial.assignedTo),
   })
   const [errors, setErrors] = useState({})
-  const [options, setOptions] = useState({ companies: [], meetings: [], personnel: [] })
+  const [options, setOptions] = useState({ companies: [], meetings: [] })
   const [loadingOptions, setLoadingOptions] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       try {
-        const [coRes, mtRes, peRes] = await Promise.all([
+        const [coRes, mtRes] = await Promise.all([
           companyService.getAll().catch(() => ({ data: { data: [] } })),
           meetingService.getAll().catch(() => ({ data: { data: [] } })),
-          personnelService.getAll().catch(() => ({ data: { data: [] } })),
         ])
         if (!cancelled) {
           setOptions({
             companies: coRes.data?.data || [],
             meetings: mtRes.data?.data?.data || mtRes.data?.data || [],
-            personnel: peRes.data?.data || [],
           })
         }
       } catch {
@@ -68,6 +69,20 @@ const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
     return () => { cancelled = true }
   }, [])
 
+  // 当公司变化时，过滤会议选项；若当前所选会议不属于新公司，则清空
+  useEffect(() => {
+    if (!form.company) return
+    const belongs = options.meetings.some(m => m._id === form.meeting && (m.company?._id === form.company || m.company === form.company))
+    if (form.meeting && !belongs) {
+      setForm(f => ({ ...f, meeting: '' }))
+    }
+  }, [form.company, options.meetings])
+
+  const visibleMeetings = useMemo(() => {
+    if (!form.company) return options.meetings
+    return options.meetings.filter(m => m.company?._id === form.company || m.company === form.company)
+  }, [form.company, options.meetings])
+
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })) }
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -78,7 +93,7 @@ const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
       ...form,
       company: form.company || undefined,
       meeting: form.meeting || undefined,
-      personnel: form.personnel || undefined,
+      assignedTo: form.assignedTo ? [form.assignedTo] : undefined,
     }
     onSave(payload)
   }
@@ -127,19 +142,19 @@ const TaskForm = ({ initial = {}, onSave, onCancel, loading }) => {
         </div>
         <div>
           <label className={labelClass}>关联会议</label>
-          <select className={inputClass} value={form.meeting} onChange={e => set('meeting', e.target.value)} disabled={loadingOptions}>
-            <option value="">-- 请选择 --</option>
-            {options.meetings.map(m => (
+          <select className={inputClass} value={form.meeting} onChange={e => set('meeting', e.target.value)} disabled={loadingOptions || !form.company}>
+            <option value="">{form.company ? '-- 请选择 --' : '-- 请先选择公司 --'}</option>
+            {visibleMeetings.map(m => (
               <option key={m._id} value={m._id}>{m.title || m.name || m._id}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className={labelClass}>关联人员</label>
-          <select className={inputClass} value={form.personnel} onChange={e => set('personnel', e.target.value)} disabled={loadingOptions}>
+          <label className={labelClass}>跟进人 / 负责人</label>
+          <select className={inputClass} value={form.assignedTo} onChange={e => set('assignedTo', e.target.value)} disabled={loadingOptions}>
             <option value="">-- 请选择 --</option>
-            {options.personnel.map(p => (
-              <option key={p._id} value={p._id}>{p.name || p.englishName || p._id}</option>
+            {users.map(u => (
+              <option key={u._id} value={u._id}>{u.name || u.email || u._id}</option>
             ))}
           </select>
         </div>
@@ -163,6 +178,7 @@ const Tasks = () => {
   const { canEdit } = useAuth()
   const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -198,6 +214,12 @@ const Tasks = () => {
   }, [])
 
   useEffect(() => { fetchTasks() }, [fetchTasks])
+
+  useEffect(() => {
+    userService.getAll()
+      .then(res => setUsers(res.data?.data || []))
+      .catch(() => setUsers([]))
+  }, [])
 
   const openNew = () => { setEditTarget(null); setError(''); setModalOpen(true) }
   const openEdit = (t) => { setEditTarget(t); setError(''); setModalOpen(true) }
@@ -365,7 +387,14 @@ const Tasks = () => {
                           {task.type && <span className="capitalize">{task.type.replace('_', ' ')}</span>}
                           {task.company?.name && <span className="text-primary-700 bg-info/10 px-1.5 py-0.5 rounded">{task.company.name}</span>}
                           {task.meeting?.title && <span className="text-primary-700 bg-canvas px-1.5 py-0.5 rounded border border-hairline">{task.meeting.title}</span>}
-                          {task.personnel?.name && <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">{task.personnel.name}</span>}
+                          {task.assignedTo && task.assignedTo.length > 0 && (
+                            <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">
+                              {task.assignedTo.map(a => typeof a === 'object' ? a.name : (users.find(u => u._id === a)?.name || a)).join(', ')}
+                            </span>
+                          )}
+                          {!task.assignedTo?.length && task.responsiblePerson && (
+                            <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">{task.responsiblePerson}</span>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
@@ -402,7 +431,7 @@ const Tasks = () => {
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? 'Edit Task' : 'New Task'} size="md">
         {error && <div className="mb-4 p-3 bg-danger/10 border border-danger/20 text-danger text-sm rounded-lg">{error}</div>}
-        <TaskForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModalOpen(false)} loading={saving} />
+        <TaskForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModalOpen(false)} loading={saving} users={users} />
       </Modal>
 
       <DeleteConfirmModal
