@@ -5,6 +5,7 @@ import { companyService, personnelService, documentService, taskService } from '
 import { buildCtcDocName } from '../utils/helpers'
 import { generateCtcPdf } from '../utils/ctcPdf'
 import { FormField, inputClass } from './UIHelpers'
+import api from '../services/api.js'
 
 const OWNER_TYPES = [
   { key: 'company', label: '公司' },
@@ -145,10 +146,18 @@ export default function SignTaskForm({
       if (!tRes?.data?._id) throw new Error('创建签署任务失败')
 
       // 3) CTC：前端生成带章 PDF 供下载（不入库）；保留弹窗内下载链接
-      if (form.isCTC && selectedDoc?.fileUrl) {
-        const res = await fetch(selectedDoc.fileUrl)
-        if (!res.ok) throw new Error('下载原文件失败')
-        const pdfBytes = await res.arrayBuffer()
+      if (form.isCTC && selectedDoc) {
+        // 真实模式走鉴权 view 路由取字节（跨域/私有桶均可）；演示模式回退 fileUrl
+        let pdfBytes
+        const isMockEnv = import.meta.env.VITE_USE_MOCK !== 'false'
+        if (isMockEnv && selectedDoc.fileUrl) {
+          const res = await fetch(selectedDoc.fileUrl)
+          if (!res.ok) throw new Error('下载原文件失败')
+          pdfBytes = await res.arrayBuffer()
+        } else {
+          const res = await api.get(`/api/documents/${selectedDoc._id}/view`, { responseType: 'arraybuffer' })
+          pdfBytes = res.data
+        }
         const ctcBytes = await generateCtcPdf(pdfBytes, {
           fullName: form.ctcFullName.trim(),
           professionalTitle: form.ctcTitle.trim(),

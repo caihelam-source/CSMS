@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { meetingService, documentService, signTaskService, taskService } from '../services/index.js'
 import { formatDate, MEETING_TYPE_LABELS as TYPES, fmtDate, fmtTime, buildPhasesWithIcons, getMeetingChecklist, docMatchesChecklistItem, detectMinutesKeywords, buildSignTaskTitle, buildSourceLabel, buildArchiveDocName, archiveTypeLabel } from '../utils/helpers'
+import { downloadDoc } from '../utils/fileAccess'
 import { validate, required } from '../utils/validators'
 import { LoadingSpinner, DetailHeader, FormField, inputClass, InfoCard, TabNav, CompleteWithAttachmentModal } from '../components/UIHelpers'
 import Modal from '../components/Modal'
@@ -1148,9 +1149,9 @@ export default function MeetingDetail() {
                         </div>
                         <div className="flex gap-1 shrink-0">
                           {doc.fileUrl && (
-                            <a href={doc.fileUrl} target="_blank" rel="noopener" className="p-1.5 text-ink-3 hover:text-primary-600 rounded">
+                            <button onClick={() => downloadDoc(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 rounded" title="下载">
                               <Download size={14} />
-                            </a>
+                            </button>
                           )}
                         </div>
                       </div>

@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: 签署闭环重构 - 发起不建文档/完成时普通签就地替换、CTC新建(ctc)文档，消除3份重复文件';
+const COMMIT_MSG = 'fix: 文档预览/下载改走鉴权流式路由 /api/documents/:id/view|/download，修复跨域+R2私有桶导致大量文件(尤task上传)无法预览';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

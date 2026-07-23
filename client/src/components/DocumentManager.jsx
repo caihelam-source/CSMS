@@ -9,6 +9,7 @@ import {
 import SignTaskModal from './SignTaskModal'
 import { documentService, companyService, personnelService } from '../services/index.js'
 import { formatDate } from '../utils/helpers'
+import { fetchDocBlobUrl, downloadDoc, isPdfDoc, isImageDoc } from '../utils/fileAccess'
 import { LoadingSpinner, EmptyState, SearchBar, FormField, inputClass, labelClass } from '../components/UIHelpers'
 import Modal from '../components/Modal'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -102,6 +103,8 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
   })
 
   const [previewDoc, setPreviewDoc] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
   const [editDoc, setEditDoc] = useState(null)
   const [editMeta, setEditMeta] = useState({ name: '', type: 'other', category: 'other', companyId: '', personnelId: '', documentYear: new Date().getFullYear() })
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -111,6 +114,29 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
   const [companies, setCompanies] = useState([])
   const [personnel, setPersonnel] = useState([])
   const { isDemo } = useAuth()
+
+  // 预览：通过鉴权路由取 blob → objectURL，规避跨域/公开 URL 问题
+  const openPreview = useCallback(async (doc) => {
+    setPreviewDoc(doc)
+    setPreviewUrl(null)
+    setPreviewLoading(true)
+    try {
+      const url = await fetchDocBlobUrl(doc._id)
+      setPreviewUrl(url)
+    } catch (e) {
+      console.error('预览加载失败:', e)
+      setPreviewUrl(null)
+    } finally {
+      setPreviewLoading(false)
+    }
+  }, [])
+
+  const closePreview = useCallback(() => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(null)
+    setPreviewDoc(null)
+    setPreviewLoading(false)
+  }, [previewUrl])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -460,14 +486,14 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
                       <span className="text-xs text-ink-3 hidden sm:block">{formatDate(doc.createdAt)}</span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-nav">
                         {doc.fileUrl && (
-                          <button onClick={() => setPreviewDoc(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="预览">
+                          <button onClick={() => openPreview(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="预览">
                             <Eye size={18} />
                           </button>
                         )}
                         {doc.fileUrl && (
-                          <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="下载">
+                          <button onClick={() => downloadDoc(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="下载">
                             <Download size={18} />
-                          </a>
+                          </button>
                         )}
                         <button onClick={() => setSignDoc(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="发起签署">
                           <FileSignature size={18} />
@@ -591,7 +617,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
       </Modal>
 
       {/* 预览 Modal */}
-      <Modal isOpen={!!previewDoc} onClose={() => setPreviewDoc(null)} title={previewDoc?.name || '预览'} size="lg">
+      <Modal isOpen={!!previewDoc} onClose={closePreview} title={previewDoc?.name || '预览'} size="lg">
         {previewDoc && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs text-ink-3 flex-wrap">
@@ -599,20 +625,24 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
               <span>{DOC_TYPE_LABELS[previewDoc.type] || previewDoc.type}</span>
               {previewDoc.fileSize && <span>{(previewDoc.fileSize / 1024).toFixed(0)} KB</span>}
             </div>
-            {/\.pdf$/i.test(previewDoc.fileUrl || '') ? (
-              <iframe src={previewDoc.fileUrl} title="preview" className="w-full h-[60vh] rounded-lg border border-hairline" />
-            ) : /\.(png|jpe?g|gif|webp)$/i.test(previewDoc.fileUrl || '') ? (
-              <img src={previewDoc.fileUrl} alt={previewDoc.name} className="max-h-[60vh] mx-auto rounded-lg" />
+            {previewLoading ? (
+              <div className="flex items-center justify-center h-[60vh] text-ink-3">
+                <LoadingSpinner /> <span className="ml-2">加载中…</span>
+              </div>
+            ) : previewUrl && isPdfDoc(previewDoc) ? (
+              <iframe src={previewUrl} title="preview" className="w-full h-[60vh] rounded-lg border border-hairline" />
+            ) : previewUrl && isImageDoc(previewDoc) ? (
+              <img src={previewUrl} alt={previewDoc.name} className="max-h-[60vh] mx-auto rounded-lg" />
             ) : (
               <div className="text-center py-8">
-                <p className="text-ink-3 text-sm">此文件类型不支持内联预览。</p>
-                <a href={previewDoc.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm mt-3 inline-flex items-center gap-1">
+                <p className="text-ink-3 text-sm">此文件类型不支持内联预览，或加载失败。</p>
+                <button onClick={() => downloadDoc(previewDoc)} className="btn-secondary text-sm mt-3 inline-flex items-center gap-1">
                   <Download size={14} /> 下载 / 打开
-                </a>
+                </button>
               </div>
             )}
             <div className="flex justify-end">
-              <button onClick={() => setPreviewDoc(null)} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">关闭</button>
+              <button onClick={closePreview} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">关闭</button>
             </div>
           </div>
         )}

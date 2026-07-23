@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { User, Building2, FileText, Mail, Phone, MapPin, Calendar, Bell, CheckSquare, Edit3 } from 'lucide-react'
 import { personnelService } from '../services/index.js'
 import { formatDate, getStatusColor, docExpiryStatus, DOC_EXPIRY_BADGE } from '../utils/helpers'
+import { downloadDoc } from '../utils/fileAccess'
 import { DetailHeader, EmptyState, SectionSkeleton, taskPriorityColor, FormField, inputClass } from '../components/UIHelpers'
 
 // 角色元数据：标签 + 图标 + 配色（读时聚合自 Company.links.roles）
@@ -312,7 +313,7 @@ export default function PersonnelDetail() {
                     </div>
                   </div>
                   {doc.fileUrl ? (
-                    <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs shrink-0">Download</a>
+                    <button onClick={() => downloadDoc(doc)} className="btn-secondary text-xs shrink-0">Download</button>
                   ) : (
                     <span className="text-xs text-ink-3 shrink-0">No file</span>
                   )}
