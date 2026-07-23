@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CheckSquare, Plus, Filter, Calendar,
   AlertTriangle, Clock, CheckCircle2, Circle,
@@ -12,6 +12,7 @@ import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Modal from '../components/Modal'
+import SignTaskForm from '../components/SignTaskForm'
 
 const TASK_STATUSES = ['pending', 'in_progress', 'completed', 'overdue']
 const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent']
@@ -177,12 +178,14 @@ const statusIcon = (s) => {
 const Tasks = () => {
   const { canEdit } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [tasks, setTasks] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
+  const [newTaskMode, setNewTaskMode] = useState('regular')
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [noteTarget, setNoteTarget] = useState(null)
   const [noteText, setNoteText] = useState('')
@@ -221,8 +224,17 @@ const Tasks = () => {
       .catch(() => setUsers([]))
   }, [])
 
-  const openNew = () => { setEditTarget(null); setError(''); setModalOpen(true) }
+  const openNew = (mode = 'regular') => { setEditTarget(null); setNewTaskMode(mode); setError(''); setModalOpen(true) }
   const openEdit = (t) => { setEditTarget(t); setError(''); setModalOpen(true) }
+
+  // 深链：Dashboard「发起签署任务」→ /tasks?mode=signing 自动打开签署任务弹窗
+  useEffect(() => {
+    if (searchParams.get('mode') === 'signing') {
+      openNew('signing')
+      setSearchParams({}, { replace: true })
+    }
+    // 仅在挂载时执行一次
+  }, [])
 
   const handleSave = async (formData) => {
     setSaving(true); setError('')
@@ -431,7 +443,26 @@ const Tasks = () => {
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? 'Edit Task' : 'New Task'} size="md">
         {error && <div className="mb-4 p-3 bg-danger/10 border border-danger/20 text-danger text-sm rounded-lg">{error}</div>}
-        <TaskForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModalOpen(false)} loading={saving} users={users} />
+        {!editTarget && (
+          <div className="mb-4 flex gap-4 p-3 bg-canvas rounded-lg">
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+              <input type="radio" checked={newTaskMode === 'regular'} onChange={() => setNewTaskMode('regular')} /> 一般任务
+            </label>
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+              <input type="radio" checked={newTaskMode === 'signing'} onChange={() => setNewTaskMode('signing')} /> 签署任务
+            </label>
+          </div>
+        )}
+        {editTarget || newTaskMode === 'regular' ? (
+          <TaskForm initial={editTarget || {}} onSave={handleSave} onCancel={() => setModalOpen(false)} loading={saving} users={users} />
+        ) : (
+          <SignTaskForm
+            onSuccess={() => { setModalOpen(false); fetchTasks() }}
+            onCancel={() => setModalOpen(false)}
+            sourceKind="task_sign"
+            sourceLabel="来自 [Tasks 签署任务]"
+          />
+        )}
       </Modal>
 
       <DeleteConfirmModal

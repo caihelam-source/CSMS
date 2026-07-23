@@ -4,8 +4,9 @@ import toast from 'react-hot-toast'
 import JSZip from 'jszip'
 import {
   FileText, Download, Building2, User, Upload, CheckSquare, Square,
-  Pencil, Trash2, Eye, FileSpreadsheet, FileArchive,
+  Pencil, Trash2, Eye, FileSpreadsheet, FileArchive, PenLine,
 } from 'lucide-react'
+import SignTaskModal from './SignTaskModal'
 import { documentService, companyService, personnelService } from '../services/index.js'
 import { formatDate } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, SearchBar, FormField, inputClass, labelClass } from '../components/UIHelpers'
@@ -53,7 +54,7 @@ function SourceBadge({ doc }) {
   if (!doc.source?.label) return null
   const kind = doc.source.kind || ''
   const href = doc.source.refId
-    ? (['compliance_complete', 'task_complete', 'signing_scan', 'meeting_task', 'dashboard_sign'].includes(kind)
+    ? (['compliance_complete', 'task_complete', 'signing_scan', 'meeting_task', 'dashboard_sign', 'task_sign', 'document_sign'].includes(kind)
         ? `/tasks/${doc.source.refId}`
         : `/meetings/${doc.source.refId}`)
     : '#'
@@ -91,6 +92,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
   const [editMeta, setEditMeta] = useState({ name: '', type: 'other', category: 'other', companyId: '', personnelId: '', documentYear: new Date().getFullYear() })
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [signDoc, setSignDoc] = useState(null)
 
   const [companies, setCompanies] = useState([])
   const [personnel, setPersonnel] = useState([])
@@ -452,6 +454,9 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
                             <Download size={14} />
                           </a>
                         )}
+                        <button onClick={() => setSignDoc(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="发起签署">
+                          <PenLine size={14} />
+                        </button>
                         <button onClick={() => openEdit(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-info/10 rounded-lg" title="编辑">
                           <Pencil size={14} />
                         </button>
@@ -608,6 +613,17 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
           </div>
         </div>
       </Modal>
+
+      {/* 发起签署任务 */}
+      <SignTaskModal
+        isOpen={!!signDoc}
+        onClose={() => setSignDoc(null)}
+        onSuccess={() => { setSignDoc(null); load() }}
+        title="发起签署任务"
+        initialDocument={signDoc}
+        sourceKind="document_sign"
+        sourceLabel="来自 [文件列表 签署任务]"
+      />
     </div>
   )
 }

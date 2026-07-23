@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat: v6.x 文件管理重构 Phase A+B - 统一DocumentManager + scope/year化编号 + CSV/ZIP导出 + mock.upload串档根治';
+const COMMIT_MSG = 'feat: Dashboard「发起签署任务」深链至 Tasks 统一弹窗 (一般任务/签署任务 + 普通/CTC 分支)';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 
