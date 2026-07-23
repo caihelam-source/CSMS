@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: 文档预览/下载改走鉴权流式路由 /api/documents/:id/view|/download，修复跨域+R2私有桶导致大量文件(尤task上传)无法预览';
+const COMMIT_MSG = 'fix: CTC 签署闭环 - 发起时生成带章草稿PDF入库(待签/可在文档库查到打印签字)，完成时就地替换为已签(ctc)文档';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

@@ -114,11 +114,9 @@ export default function SignTaskForm({
       const peRef = person ? { _id: person._id, name: person.name } : undefined
       const ownerName = company?.name || person?.name || '未关联'
 
-      // 1) 源文档置为待签状态（不再新建"假签"文档，避免闭环出现 3 份文件）
-      if (selectedDoc?._id) {
-        await documentService.update(selectedDoc._id, {
-          signStatus: form.isCTC ? 'pending_ctc' : 'pending_sign',
-        }).catch(() => {})
+      // 1) 普通签署：源文档置为待签（完成时就地替换为已签）；CTC 由「待签盖章草稿」文档承载待签状态，源文件保持原样
+      if (selectedDoc?._id && !form.isCTC) {
+        await documentService.update(selectedDoc._id, { signStatus: 'pending_sign' }).catch(() => {})
       }
 
       // 2) 创建签署 Task，关联源文档（签署闭环的单一真源）
@@ -145,7 +143,7 @@ export default function SignTaskForm({
 
       if (!tRes?.data?._id) throw new Error('创建签署任务失败')
 
-      // 3) CTC：前端生成带章 PDF 供下载（不入库）；保留弹窗内下载链接
+      // 3) CTC：生成带 CTC 章的 PDF → 作为「待签」草稿文档入库（可在文档库找到、打印签字）；同时弹窗内提供下载
       if (form.isCTC && selectedDoc) {
         // 真实模式走鉴权 view 路由取字节（跨域/私有桶均可）；演示模式回退 fileUrl
         let pdfBytes
@@ -163,10 +161,26 @@ export default function SignTaskForm({
           professionalTitle: form.ctcTitle.trim(),
           membershipNo: form.ctcMembershipNo.trim(),
         })
-        const blob = new Blob([ctcBytes], { type: 'application/pdf' })
-        const url = URL.createObjectURL(blob)
-        setCtcDownload({ url, name: buildCtcDocName(selectedDoc.name || 'document.pdf', true) })
-        toast.success('CTC 盖章件已生成，请下载后签字再上传完成')
+        const ctcName = buildCtcDocName(selectedDoc.name || 'document.pdf', true)
+        // 入库为待签草稿文档（type=ctc, signStatus=pending_ctc），关联本 Task
+        const fd = new FormData()
+        fd.append('file', new File([ctcBytes], ctcName, { type: 'application/pdf' }))
+        fd.append('name', ctcName)
+        fd.append('type', 'ctc')
+        fd.append('category', 'other')
+        if (coRef) fd.append('company', JSON.stringify(coRef))
+        if (peRef) fd.append('personnel', JSON.stringify(peRef))
+        fd.append('signStatus', 'pending_ctc')
+        fd.append('note', `CTC 盖章草稿（待打印由专业人士签字）：源文件「${selectedDoc.name}」`)
+        fd.append('source', JSON.stringify({ kind: 'document_sign', refId: tRes.data._id, label: `CTC 签署任务「${ownerName}」盖章草稿` }))
+        const { data: draftRes } = await documentService.upload(fd).catch(() => ({ data: { data: null } }))
+        // 把待签草稿文档关联回 Task（完成时就地替换为已签 CTC 文档，避免重复产生文件）
+        if (draftRes?.data?._id) {
+          await taskService.update(tRes.data._id, { sourceDocumentId: draftRes.data._id }).catch(() => {})
+        }
+        // 弹窗内即时下载
+        setCtcDownload({ url: URL.createObjectURL(new Blob([ctcBytes], { type: 'application/pdf' })), name: ctcName })
+        toast.success('CTC 盖章草稿已生成并存入文档库（待签），请在文档库找到并打印签字，再到任务「完成」页上传')
         return
       }
 
@@ -260,8 +274,8 @@ export default function SignTaskForm({
       {form.documentId && (
         <p className="text-xs text-ink-3">
           {form.isCTC
-            ? '将生成 CTC 盖章件供下载签字，源文件保持待签；完成后上传签字件即归档 (ctc) 文档。'
-            : '源文件将置为待签；完成后上传签署件即就地更新该文件（最终仅 1 份）。'}
+            ? '将生成带 CTC 章的草稿 PDF 并存入文档库（待签状态），可在文档库找到、打印、签字；完成后上传签字件即把该草稿更新为已签 (ctc) 文档。'
+            : '源文件将置为待签；完成后上传签署件即就地替换该文件（最终仅 1 份）。'}
         </p>
       )}
 
