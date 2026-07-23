@@ -10,24 +10,74 @@
  *     fetch blob → URL.createObjectURL 后喂给 <iframe>/<img>。
  */
 import api from '../services/api.js';
+import toast from 'react-hot-toast';
+
+export function isDemoToken() {
+  const token = localStorage.getItem('token');
+  return !!token && token.startsWith('demo-');
+}
 
 // 取文档字节，返回可用于 <iframe src>/<img src> 的 blob object URL
 export async function fetchDocBlobUrl(docId) {
-  const res = await api.get(`/api/documents/${docId}/view`, { responseType: 'blob' });
-  return URL.createObjectURL(res.data);
+  try {
+    const res = await api.get(`/api/documents/${docId}/view`, { responseType: 'blob' });
+    return URL.createObjectURL(res.data);
+  } catch (err) {
+    if (err.response?.status === 401) {
+      toast.error('登录已失效，请重新登录');
+    }
+    throw err;
+  }
+}
+
+// 静默取文档字节（ArrayBuffer），优先走鉴权 view 路由，失败则回退 fallbackUrl，
+// 最终仍失败返回 null —— 用于 CTC 生成等不希望因 401 中断的闭环。
+export async function fetchDocBytes(docId, fallbackUrl = null) {
+  try {
+    const blobUrl = await fetchDocBlobUrl(docId);
+    const res = await fetch(blobUrl);
+    if (res.ok) {
+      const ab = await res.arrayBuffer();
+      if (ab && ab.byteLength) return ab;
+    }
+  } catch (e) {
+    // 401 已由 fetchDocBlobUrl 提示；此处仅记录，继续 fallback
+    console.warn('[fetchDocBytes] view 路由失败:', e?.message || e);
+  }
+  if (fallbackUrl) {
+    try {
+      const res = await fetch(fallbackUrl);
+      if (res.ok) {
+        const ab = await res.arrayBuffer();
+        if (ab && ab.byteLength) return ab;
+      }
+    } catch (e) {
+      console.warn('[fetchDocBytes] fallback URL 失败:', e?.message || e);
+    }
+  }
+  return null;
 }
 
 // 触发浏览器下载（鉴权流式返回，规避跨域公开 URL 问题）
 export async function downloadDoc(doc) {
-  const res = await api.get(`/api/documents/${doc._id}/download`, { responseType: 'blob' });
-  const url = URL.createObjectURL(res.data);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = doc.fileName || doc.name || 'download';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  try {
+    const res = await api.get(`/api/documents/${doc._id}/download`, { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = doc.fileName || doc.name || 'download';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (err) {
+    if (err.response?.status === 401) {
+      toast.error('登录已失效，请重新登录');
+    } else {
+      toast.error('下载失败');
+    }
+    throw err;
+  }
 }
 
 // 由文件名/URL 推断扩展名，用于判断预览渲染方式

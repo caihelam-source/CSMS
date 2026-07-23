@@ -4,7 +4,7 @@ import { Download } from 'lucide-react'
 import { companyService, personnelService, documentService, taskService } from '../services/index.js'
 import { buildCtcDocName } from '../utils/helpers'
 import { generateCtcPdf } from '../utils/ctcPdf'
-import { fetchDocBlobUrl } from '../utils/fileAccess'
+import { fetchDocBytes, isDemoToken } from '../utils/fileAccess'
 import { PDFDocument } from 'pdf-lib'
 import { FormField, inputClass } from './UIHelpers'
 
@@ -107,6 +107,12 @@ export default function SignTaskForm({
     if (!form.dueDate) errs.dueDate = '请选择截止日期'
     if (Object.keys(errs).length) { setErrors(errs); return }
 
+    const isRealMode = import.meta.env.VITE_USE_MOCK === 'false'
+    if (isRealMode && isDemoToken()) {
+      toast.error('当前为演示登录状态，真实后端拒绝访问。请先退出并重新登录真实账号。')
+      return
+    }
+
     setSaving(true)
     try {
       const company = companies.find(c => c._id === form.companyId)
@@ -146,23 +152,10 @@ export default function SignTaskForm({
 
       // 3) CTC：生成带 CTC 章的 PDF → 作为「待签」草稿文档入库（可在文档库找到、打印签字）；同时弹窗内提供下载
       if (form.isCTC && selectedDoc) {
-        // 取源 PDF 字节：真实模式走与预览一致的鉴权 view 路由（带 token）；失败则回退 fileUrl，
-        // 再不行用 pdf-lib 生成空白页兜底——绝不让 401/网络错误中断闭环（真实模式 token 失效时
-        // 其它接口因 wrap 静默回退 mock 看似正常，此处直接暴露 401，故需兜底）。
-        const isRealMode = import.meta.env.VITE_USE_MOCK === 'false'
-        let pdfBytes = null
-        try {
-          if (isRealMode && selectedDoc._id) {
-            const blobUrl = await fetchDocBlobUrl(selectedDoc._id)
-            const ab = await (await fetch(blobUrl)).arrayBuffer()
-            if (ab && ab.byteLength) pdfBytes = ab
-          } else if (selectedDoc.fileUrl) {
-            const res = await fetch(selectedDoc.fileUrl)
-            if (res.ok) pdfBytes = await res.arrayBuffer()
-          }
-        } catch (e) {
-          console.warn('[CTC] 取源 PDF 字节失败，准备回退：', e?.message || e)
-        }
+        // 取源 PDF 字节：优先走鉴权 view 路由，失败则回退 fileUrl，再不行用 pdf-lib 空白页兜底。
+        // 真实模式 token 失效时其它接口因 wrap 静默回退 mock 看似正常，此处用 fetchDocBytes 保证
+        // 不因 401 中断闭环，同时在上文已拦截 demo-token + real-mode 的无效组合。
+        let pdfBytes = await fetchDocBytes(selectedDoc._id, selectedDoc.fileUrl)
         if (!pdfBytes || !pdfBytes.byteLength) {
           const empty = await PDFDocument.create()
           pdfBytes = await empty.save()

@@ -8,6 +8,7 @@ import {
 import { taskService, documentService, companyService, signTaskService, complianceReminderService } from '../services/index.js'
 import { formatDate, taskRequiresAttachment, buildCtcDocName } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, DetailHeader, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
+import TaskLinkedDocument from '../components/TaskLinkedDocument'
 
 const typeLabel = (t) => ({ filing: '申报', compliance: '合规', meeting_prep: '会议准备', document: '文档', follow_up: '跟进', other: '其他' }[t] || t)
 
@@ -332,6 +333,11 @@ export default function TaskDetail() {
           )}
         </div>
       </div>
+
+      {/* 关联文档（签署/CTC 任务中央数据库联动） */}
+      {task.sourceDocumentId && (
+        <TaskLinkedDocument documentId={task.sourceDocumentId} task={task} />
+      )}
 
       {/* 描述 */}
       {task.description && (

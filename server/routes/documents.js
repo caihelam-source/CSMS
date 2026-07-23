@@ -134,8 +134,8 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       docData.originalName = req.file.originalname;
       docData.filepath = saved.url;       // R2: 公开 URL; local: /uploads/... 路径
       docData.fileUrl = saved.url;
-      docData.mimetype = req.file.mimetype;
-      docData.size = saved.size;
+      docData.mimeType = req.file.mimetype;
+      docData.fileSize = saved.size;
     }
 
     // 生成文档编号并创建（重试 3 次防 unique 索引冲突 — DB-AUDIT P1-8）
@@ -221,8 +221,8 @@ router.put('/:id/file', auth, upload.single('file'), async (req, res) => {
       existing.originalName = req.file.originalname;
       existing.filepath = saved.url;
       existing.fileUrl = saved.url;
-      existing.mimetype = req.file.mimetype;
-      existing.size = saved.size;
+      existing.mimeType = req.file.mimetype;
+      existing.fileSize = saved.size;
     }
 
     if (req.body.signStatus) existing.signStatus = req.body.signStatus;
@@ -264,7 +264,7 @@ router.get('/:id/download', auth, scopeMiddleware, async (req, res) => {
     }
     const buf = await fileStorage.get(doc.filename);
     if (!buf) return res.status(404).json({ message: 'File not found on storage' });
-    res.set('Content-Type', doc.mimetype || 'application/octet-stream');
+    res.set('Content-Type', doc.mimeType || doc.mimetype || 'application/octet-stream');
     res.set('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.fileName || doc.name || 'file')}"`);
     res.set('Cache-Control', 'private, max-age=300');
     return res.send(buf);
@@ -285,7 +285,7 @@ router.get('/:id/view', auth, scopeMiddleware, async (req, res) => {
     }
     const buf = await fileStorage.get(doc.filename);
     if (!buf) return res.status(404).json({ message: 'File not found on storage' });
-    res.set('Content-Type', doc.mimetype || 'application/octet-stream');
+    res.set('Content-Type', doc.mimeType || doc.mimetype || 'application/octet-stream');
     res.set('Content-Disposition', `inline; filename="${encodeURIComponent(doc.fileName || doc.name || 'file')}"`);
     res.set('Cache-Control', 'private, max-age=300');
     return res.send(buf);

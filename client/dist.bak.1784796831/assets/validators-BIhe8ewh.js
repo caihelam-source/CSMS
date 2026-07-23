@@ -1,0 +1,1 @@
+const a=e=>r=>r==null||r===""||Array.isArray(r)&&r.length===0?e||"此字段为必填":"",f=e=>r=>r?/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r)?"":e:"",u=(e,r)=>t=>t&&t.length<e?r||`最少 ${e} 个字符`:"",c=(e,r)=>{const t={};for(const[n,i]of Object.entries(r))for(const o of i){const s=o(e[n]);if(s){t[n]=s;break}}return{valid:Object.keys(t).length===0,errors:t}};export{f as e,u as m,a as r,c as v};

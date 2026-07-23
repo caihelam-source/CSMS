@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: CTC 取源PDF字节健壮化 - 真实模式走fetchDocBlobUrl(带token)，失败回退fileUrl/空白页兜底，消除401中断';
+const COMMIT_MSG = 'fix: CTC 401/0KB/预览失败修复 + TaskDetail 关联文档卡片\n\n- 后端统一 fileSize/mimeType 字段，view/download 兼容旧 size/mimetype\n- 真实模式 demo-token 直接拦截，避免静默回退 mock 产生假文件\n- fetchDocBlobUrl/downloadDoc 401 给出明确登录提示\n- 新增 fetchDocBytes 供 CTC 生成无感兜底\n- TaskDetail 增加 LinkedDocumentCard：预览/下载/编辑与文档库同步';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

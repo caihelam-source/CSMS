@@ -466,7 +466,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
                       <div className="flex flex-wrap gap-2 mt-1 items-center text-xs text-ink-3">
                         <span className="px-2 py-0.5 rounded-full border bg-canvas">{cat}</span>
                         <span>{DOC_TYPE_LABELS[doc.type] || doc.type || '-'}</span>
-                        {doc.fileSize && <span>{(doc.fileSize / 1024).toFixed(0)} KB</span>}
+                        {((doc.fileSize ?? doc.size) > 0) && <span>{((doc.fileSize ?? doc.size) / 1024).toFixed(0)} KB</span>}
                         {exp && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${exp.cls}`}>{exp.label}</span>}
                         {doc.company && (
                           <Link to={`/companies/${doc.company._id || doc.company}`} className="text-primary-500 hover:underline flex items-center gap-0.5 no-nav">
@@ -623,7 +623,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
             <div className="flex items-center gap-2 text-xs text-ink-3 flex-wrap">
               <span className="font-mono">{previewDoc.docNumber}</span>
               <span>{DOC_TYPE_LABELS[previewDoc.type] || previewDoc.type}</span>
-              {previewDoc.fileSize && <span>{(previewDoc.fileSize / 1024).toFixed(0)} KB</span>}
+              {((previewDoc.fileSize ?? previewDoc.size) > 0) && <span>{((previewDoc.fileSize ?? previewDoc.size) / 1024).toFixed(0)} KB</span>}
             </div>
             {previewLoading ? (
               <div className="flex items-center justify-center h-[60vh] text-ink-3">
