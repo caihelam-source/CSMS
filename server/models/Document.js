@@ -7,7 +7,7 @@ const documentSchema = new mongoose.Schema({
     type: String,
     enum: ['minutes', 'resolution', 'agreement', 'form', 'certificate', 'return', 'notice', 'memo',
            'annual_report', 'financial_statement', 'id_document', 'passport', 'proof_of_address',
-           'board_resolution', 'incorporation_doc', 'other'],
+           'board_resolution', 'incorporation_doc', 'ctc', 'other'],
     default: 'other',
   },
   fileUrl: { type: String },
@@ -67,7 +67,7 @@ const DOC_TYPE_CODE = {
   minutes: 'MIN', resolution: 'RES', board_resolution: 'RES', agreement: 'AGR',
   form: 'FORM', certificate: 'COI', return: 'NAR1', notice: 'NOT', memo: 'MEM',
   annual_report: 'AR', financial_statement: 'FS', id_document: 'ID',
-  passport: 'PP', proof_of_address: 'ADDR', incorporation_doc: 'INC', other: 'OTH',
+  passport: 'PP', proof_of_address: 'ADDR', incorporation_doc: 'INC', ctc: 'CTC', other: 'OTH',
 };
 
 // 自动生成文档编号：<归属码>-<年份>-<类型码>-<序号>

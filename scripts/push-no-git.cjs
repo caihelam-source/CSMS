@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: CTC 签署闭环 - 发起时生成带章草稿PDF入库(待签/可在文档库查到打印签字)，完成时就地替换为已签(ctc)文档';
+const COMMIT_MSG = 'fix: CTC 取源PDF字节健壮化 - 真实模式走fetchDocBlobUrl(带token)，失败回退fileUrl/空白页兜底，消除401中断';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

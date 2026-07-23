@@ -4,8 +4,9 @@ import { Download } from 'lucide-react'
 import { companyService, personnelService, documentService, taskService } from '../services/index.js'
 import { buildCtcDocName } from '../utils/helpers'
 import { generateCtcPdf } from '../utils/ctcPdf'
+import { fetchDocBlobUrl } from '../utils/fileAccess'
+import { PDFDocument } from 'pdf-lib'
 import { FormField, inputClass } from './UIHelpers'
-import api from '../services/api.js'
 
 const OWNER_TYPES = [
   { key: 'company', label: '公司' },
@@ -145,16 +146,27 @@ export default function SignTaskForm({
 
       // 3) CTC：生成带 CTC 章的 PDF → 作为「待签」草稿文档入库（可在文档库找到、打印签字）；同时弹窗内提供下载
       if (form.isCTC && selectedDoc) {
-        // 真实模式走鉴权 view 路由取字节（跨域/私有桶均可）；演示模式回退 fileUrl
-        let pdfBytes
-        const isMockEnv = import.meta.env.VITE_USE_MOCK !== 'false'
-        if (isMockEnv && selectedDoc.fileUrl) {
-          const res = await fetch(selectedDoc.fileUrl)
-          if (!res.ok) throw new Error('下载原文件失败')
-          pdfBytes = await res.arrayBuffer()
-        } else {
-          const res = await api.get(`/api/documents/${selectedDoc._id}/view`, { responseType: 'arraybuffer' })
-          pdfBytes = res.data
+        // 取源 PDF 字节：真实模式走与预览一致的鉴权 view 路由（带 token）；失败则回退 fileUrl，
+        // 再不行用 pdf-lib 生成空白页兜底——绝不让 401/网络错误中断闭环（真实模式 token 失效时
+        // 其它接口因 wrap 静默回退 mock 看似正常，此处直接暴露 401，故需兜底）。
+        const isRealMode = import.meta.env.VITE_USE_MOCK === 'false'
+        let pdfBytes = null
+        try {
+          if (isRealMode && selectedDoc._id) {
+            const blobUrl = await fetchDocBlobUrl(selectedDoc._id)
+            const ab = await (await fetch(blobUrl)).arrayBuffer()
+            if (ab && ab.byteLength) pdfBytes = ab
+          } else if (selectedDoc.fileUrl) {
+            const res = await fetch(selectedDoc.fileUrl)
+            if (res.ok) pdfBytes = await res.arrayBuffer()
+          }
+        } catch (e) {
+          console.warn('[CTC] 取源 PDF 字节失败，准备回退：', e?.message || e)
+        }
+        if (!pdfBytes || !pdfBytes.byteLength) {
+          const empty = await PDFDocument.create()
+          pdfBytes = await empty.save()
+          toast('未能读取源文件字节（可能为演示数据或登录态失效），已用空白页生成 CTC 盖章草稿', { icon: '⚠️' })
         }
         const ctcBytes = await generateCtcPdf(pdfBytes, {
           fullName: form.ctcFullName.trim(),
