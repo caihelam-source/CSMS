@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import JSZip from 'jszip'
 import {
   FileText, Download, Building2, User, Upload, CheckSquare, Square,
-  Pencil, Trash2, Eye, FileSpreadsheet, FileArchive, PenLine,
+  Pencil, Trash2, Eye, FileSpreadsheet, FileArchive, FileSignature,
 } from 'lucide-react'
 import SignTaskModal from './SignTaskModal'
 import { documentService, companyService, personnelService } from '../services/index.js'
@@ -446,22 +446,22 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-nav">
                         {doc.fileUrl && (
                           <button onClick={() => setPreviewDoc(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="预览">
-                            <Eye size={14} />
+                            <Eye size={18} />
                           </button>
                         )}
                         {doc.fileUrl && (
                           <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="下载">
-                            <Download size={14} />
+                            <Download size={18} />
                           </a>
                         )}
                         <button onClick={() => setSignDoc(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="发起签署">
-                          <PenLine size={14} />
+                          <FileSignature size={18} />
                         </button>
                         <button onClick={() => openEdit(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-info/10 rounded-lg" title="编辑">
-                          <Pencil size={14} />
+                          <Pencil size={18} />
                         </button>
                         <button onClick={() => setDeleteTarget(doc)} className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg" title="删除">
-                          <Trash2 size={14} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </div>

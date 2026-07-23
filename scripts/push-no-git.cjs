@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat: Dashboard「发起签署任务」深链至 Tasks 统一弹窗 (一般任务/签署任务 + 普通/CTC 分支)';
+const COMMIT_MSG = 'fix: DocumentManager 操作图标区分签署与编辑，并放大操作图标';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 
