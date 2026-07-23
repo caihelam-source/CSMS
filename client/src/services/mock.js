@@ -773,6 +773,28 @@ export const documents = {
     if (idx >= 0) { MOCK_DOCUMENTS[idx] = { ...MOCK_DOCUMENTS[idx], ...data }; return { data: { data: MOCK_DOCUMENTS[idx] } }; }
     throw new Error('Document not found');
   },
+  // v6.x 签署闭环：替换文档物理文件（mock 用 blob URL 模拟，保留元数据）
+  replaceFile: async (id, formData) => {
+    await delay();
+    const idx = MOCK_DOCUMENTS.findIndex(d => d._id === id);
+    if (idx < 0) throw new Error('Document not found');
+    const get = (k) => (formData && typeof formData.get === 'function' ? formData.get(k) : undefined);
+    const file = get('file');
+    const signStatus = get('signStatus');
+    const fileUrl = (file && typeof URL !== 'undefined') ? URL.createObjectURL(file) : MOCK_DOCUMENTS[idx].fileUrl;
+    MOCK_DOCUMENTS[idx] = {
+      ...MOCK_DOCUMENTS[idx],
+      fileUrl,
+      fileName: file && file.name,
+      fileSize: file && file.size,
+      mimeType: file && file.type,
+      signStatus: signStatus || MOCK_DOCUMENTS[idx].signStatus,
+      signedBy: get('signedBy') || MOCK_DOCUMENTS[idx].signedBy,
+      signedAt: get('signedAt') || MOCK_DOCUMENTS[idx].signedAt,
+      version: (MOCK_DOCUMENTS[idx].version || 1) + 1,
+    };
+    return { data: { data: MOCK_DOCUMENTS[idx] } };
+  },
 };
 
 // ====== Directors unified into Personnel + Company.links (single source of truth) ======

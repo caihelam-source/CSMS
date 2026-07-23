@@ -201,6 +201,45 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
+// PUT /api/documents/:id/file — 替换物理文件（签署闭环：普通签署完成时就地替换源文档）
+// 保留编号/元数据，仅更新文件实体与签署信息，version+1
+router.put('/:id/file', auth, upload.single('file'), async (req, res) => {
+  try {
+    const existing = await Document.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Document not found' });
+
+    if (req.file) {
+      // 先删除旧物理文件，避免存储孤儿
+      if (existing.filename) {
+        try { await fileStorage.delete(existing.filename); } catch (e) { console.error('删除旧文件失败:', e.message); }
+      }
+      const saved = await fileStorage.upload(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+      );
+      existing.filename = saved.key;
+      existing.originalName = req.file.originalname;
+      existing.filepath = saved.url;
+      existing.fileUrl = saved.url;
+      existing.mimetype = req.file.mimetype;
+      existing.size = saved.size;
+    }
+
+    if (req.body.signStatus) existing.signStatus = req.body.signStatus;
+    if (req.body.signedBy) existing.signedBy = req.body.signedBy;
+    if (req.body.signedAt) existing.signedAt = req.body.signedAt;
+    existing.version = (existing.version || 1) + 1;
+
+    await existing.save();
+    const populated = await Document.findById(existing._id)
+      .populate('company', 'name').populate('uploadedBy', 'name email');
+    res.json({ success: true, document: populated });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // DELETE /api/documents/:id
 router.delete('/:id', auth, async (req, res) => {
   try {

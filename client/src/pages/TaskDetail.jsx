@@ -90,18 +90,35 @@ export default function TaskDetail() {
         // 无文件但有公司时：纯 JSON 创建元数据记录
         let docRes
         if (hasFile) {
-          const formData = new FormData()
-          formData.append('file', uploadFile)
-          formData.append('name', buildCtcDocName(uploadFile.name, task.isCTC))
-          formData.append('type', resolvedType)
-          formData.append('category', resolvedCategory)
-          if (stageUnderMeeting) formData.append('meeting', meetingRef)
-          if (company) formData.append('company', JSON.stringify({ _id: company._id, name: company.name, registrationNumber: company.registrationNumber }))
-          if (hasFile && task.type === 'signing') formData.append('signStatus', task.isCTC ? 'ctc' : 'fully_signed')
-          formData.append('staged', String(stageUnderMeeting))
-          formData.append('note', stageUnderMeeting ? '由会议签署任务完成暂存，待会议最终归档' : (isComplianceTask ? `由合规任务「${task.title}」完成自动归档` : (task.taskSource === 'dashboard' ? '由 Dashboard 签署任务完成自动归档' : '由任务完成自动归档')))
-          formData.append('source', JSON.stringify({ kind: sourceKind, refId: task._id, label: sourceLabel }))
-          docRes = await documentService.upload(formData).catch(() => ({ data: { data: null } }))
+          // v6.x 签署闭环：完成签署任务时分叉处理，避免重复归档产生多份文件
+          if (task.type === 'signing' && !task.isCTC && task.sourceDocumentId) {
+            // 普通签署：就地替换源文档文件 → 最终仅保留 1 份（已签）
+            const fd = new FormData()
+            fd.append('file', uploadFile)
+            fd.append('signStatus', 'fully_signed')
+            fd.append('signedBy', task.responsiblePerson || '')
+            fd.append('signedAt', new Date().toISOString())
+            docRes = await documentService.replaceFile(task.sourceDocumentId, fd).catch(() => ({ data: { data: null } }))
+          } else {
+            const formData = new FormData()
+            formData.append('file', uploadFile)
+            // CTC 完成：文件名标记 (ctc)，普通/会议任务标 (signed)
+            formData.append('name', task.type === 'signing' && task.isCTC ? buildCtcDocName(uploadFile.name, true) : buildCtcDocName(uploadFile.name, false))
+            formData.append('type', resolvedType)
+            formData.append('category', resolvedCategory)
+            if (stageUnderMeeting) formData.append('meeting', meetingRef)
+            if (company) formData.append('company', JSON.stringify({ _id: company._id, name: company.name, registrationNumber: company.registrationNumber }))
+            if (task.type === 'signing') formData.append('signStatus', task.isCTC ? 'ctc' : 'fully_signed')
+            formData.append('staged', String(stageUnderMeeting))
+            formData.append('note', stageUnderMeeting ? '由会议签署任务完成暂存，待会议最终归档' : (isComplianceTask ? `由合规任务「${task.title}」完成自动归档` : (task.taskSource === 'dashboard' ? '由 Dashboard 签署任务完成自动归档' : '由任务完成自动归档')))
+            // CTC：新建 (ctc) 文档并反向关联源文档；其余沿用通用来源标签
+            if (task.type === 'signing' && task.isCTC && task.sourceDocumentId) {
+              formData.append('source', JSON.stringify({ kind: 'document_sign', refId: task.sourceDocumentId, label: '来自签署任务源文件（CTC）' }))
+            } else {
+              formData.append('source', JSON.stringify({ kind: sourceKind, refId: task._id, label: sourceLabel }))
+            }
+            docRes = await documentService.upload(formData).catch(() => ({ data: { data: null } }))
+          }
         } else {
           docRes = await documentService.create({
             name: `任务完成附件 - ${task.title}`,

@@ -55,6 +55,12 @@ const taskSchema = new mongoose.Schema({
   taskSource: { type: String, enum: ['meeting', 'dashboard'], default: undefined },
   // isCTC: 是否为 CTC 文件（认证副本）——Dashboard 发起签署任务时勾选，归档命名 (ctc).pdf
   isCTC: { type: Boolean, default: false },
+  // v6.x 签署闭环：关联源文档（发起签署时选定的待签文件），完成时普通签署就地替换该文档、CTC 新建 (ctc) 文档
+  sourceDocumentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Document' },
+  // CTC 盖章参数：随任务保存，便于完成页重新生成 CTC 盖章件供签字
+  ctcFullName: { type: String },
+  ctcTitle: { type: String },
+  ctcMembershipNo: { type: String },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

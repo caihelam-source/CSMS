@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: DocumentManager 操作图标区分签署与编辑，并放大操作图标';
+const COMMIT_MSG = 'fix: 签署闭环重构 - 发起不建文档/完成时普通签就地替换、CTC新建(ctc)文档，消除3份重复文件';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

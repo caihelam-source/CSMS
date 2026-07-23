@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import toast from 'react-hot-toast'
+import { Download } from 'lucide-react'
 import { companyService, personnelService, documentService, taskService } from '../services/index.js'
 import { buildCtcDocName } from '../utils/helpers'
 import { generateCtcPdf } from '../utils/ctcPdf'
@@ -20,7 +21,6 @@ export default function SignTaskForm({
   initialDocument = null,
   initialCompanyId = '',
   initialPersonnelId = '',
-  sourceKind = 'document_sign',
   sourceLabel = '来自 [签署任务]',
   onSuccess,
   onCancel,
@@ -31,6 +31,7 @@ export default function SignTaskForm({
   const [loadingRefs, setLoadingRefs] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
+  const [ctcDownload, setCtcDownload] = useState(null)
 
   const inferOwnerType = () => {
     if (initialCompanyId) return 'company'
@@ -110,14 +111,42 @@ export default function SignTaskForm({
       const person = personnel.find(p => p._id === form.personnelId)
       const coRef = company ? { _id: company._id, name: company.name, registrationNumber: company.registrationNumber } : undefined
       const peRef = person ? { _id: person._id, name: person.name } : undefined
+      const ownerName = company?.name || person?.name || '未关联'
 
-      let uploadFile = null
-      let docName = ''
+      // 1) 源文档置为待签状态（不再新建"假签"文档，避免闭环出现 3 份文件）
+      if (selectedDoc?._id) {
+        await documentService.update(selectedDoc._id, {
+          signStatus: form.isCTC ? 'pending_ctc' : 'pending_sign',
+        }).catch(() => {})
+      }
 
-      if (form.isCTC) {
-        const originalUrl = selectedDoc?.fileUrl
-        if (!originalUrl) throw new Error('所选文件没有可下载的 PDF')
-        const res = await fetch(originalUrl)
+      // 2) 创建签署 Task，关联源文档（签署闭环的单一真源）
+      const { data: tRes } = await taskService.create({
+        title: `${form.isCTC ? '[CTC] ' : ''}签署：${ownerName}`,
+        type: 'signing',
+        priority: 'high',
+        status: 'pending',
+        taskSource: 'dashboard',
+        isCTC: form.isCTC,
+        dueDate: form.dueDate,
+        responsiblePerson: form.isCTC ? form.ctcFullName.trim() : form.responsiblePerson.trim(),
+        company: coRef,
+        personnel: peRef,
+        sourceDocumentId: selectedDoc?._id || undefined,
+        ctcFullName: form.isCTC ? form.ctcFullName.trim() : undefined,
+        ctcTitle: form.isCTC ? form.ctcTitle.trim() : undefined,
+        ctcMembershipNo: form.isCTC ? form.ctcMembershipNo.trim() : undefined,
+        hasAttachment: false,
+        description: form.isCTC
+          ? `由 ${sourceLabel} 发起的 CTC 签署任务。已生成带 CTC 章的 PDF，请下载后由专业人士签字并扫描上传完成。`
+          : `由 ${sourceLabel} 发起的签署任务，源文件已置为待签；完成上传签署件后归档。`,
+      }).catch(() => ({ data: { data: null } }))
+
+      if (!tRes?.data?._id) throw new Error('创建签署任务失败')
+
+      // 3) CTC：前端生成带章 PDF 供下载（不入库）；保留弹窗内下载链接
+      if (form.isCTC && selectedDoc?.fileUrl) {
+        const res = await fetch(selectedDoc.fileUrl)
         if (!res.ok) throw new Error('下载原文件失败')
         const pdfBytes = await res.arrayBuffer()
         const ctcBytes = await generateCtcPdf(pdfBytes, {
@@ -125,58 +154,14 @@ export default function SignTaskForm({
           professionalTitle: form.ctcTitle.trim(),
           membershipNo: form.ctcMembershipNo.trim(),
         })
-        docName = buildCtcDocName(selectedDoc.name || 'document.pdf', true)
-        uploadFile = new File([ctcBytes], docName, { type: 'application/pdf' })
+        const blob = new Blob([ctcBytes], { type: 'application/pdf' })
+        const url = URL.createObjectURL(blob)
+        setCtcDownload({ url, name: buildCtcDocName(selectedDoc.name || 'document.pdf', true) })
+        toast.success('CTC 盖章件已生成，请下载后签字再上传完成')
+        return
       }
 
-      const finalDocName = form.isCTC ? docName : buildCtcDocName(selectedDoc?.name || 'document.pdf', false)
-      const fd = new FormData()
-      fd.append('file', uploadFile || selectedDoc.file || new File([], 'empty'))
-      fd.append('name', finalDocName)
-      fd.append('type', form.isCTC ? 'ctc' : 'task_attachment')
-      fd.append('category', 'other')
-      if (coRef) fd.append('company', JSON.stringify(coRef))
-      if (peRef) fd.append('personnel', JSON.stringify(peRef))
-      fd.append('signStatus', form.isCTC ? 'ctc' : 'fully_signed')
-      fd.append('note', form.isCTC
-        ? `CTC 待签文件（${sourceLabel}）\n签署人：${form.ctcFullName}\n职位：${form.ctcTitle}\n会员号：${form.ctcMembershipNo}`
-        : `签署文件（${sourceLabel}）`)
-      fd.append('source', JSON.stringify({ kind: sourceKind, refId: '', label: sourceLabel }))
-
-      if (!uploadFile && selectedDoc?.fileUrl) {
-        const res = await fetch(selectedDoc.fileUrl)
-        if (res.ok) {
-          const blob = await res.blob()
-          fd.set('file', new File([blob], selectedDoc.name || 'document.pdf', { type: blob.type || 'application/pdf' }))
-        }
-      }
-
-      const { data: docRes } = await documentService.upload(fd).catch(() => ({ data: { data: null } }))
-      const ownerName = company?.name || person?.name || '未关联'
-      const { data: tRes } = await taskService.create({
-        title: `${form.isCTC ? '[CTC] ' : ''}签署：${ownerName}`,
-        type: 'signing',
-        priority: 'high',
-        status: 'pending',
-        taskSource: sourceKind,
-        isCTC: form.isCTC,
-        dueDate: form.dueDate,
-        responsiblePerson: form.isCTC ? form.ctcFullName.trim() : form.responsiblePerson.trim(),
-        company: coRef,
-        personnel: peRef,
-        hasAttachment: true,
-        description: form.isCTC
-          ? `由 ${sourceLabel} 发起的 CTC 签署任务。待专业人士在打印件上签字后扫描上传完成。`
-          : `由 ${sourceLabel} 发起的签署任务，签署文件已直接归档。`,
-      }).catch(() => ({ data: { data: null } }))
-
-      if (docRes?.data?._id && tRes?.data?._id) {
-        await documentService.update(docRes.data._id, {
-          source: { kind: sourceKind, refId: tRes.data._id, label: sourceLabel },
-        }).catch(() => {})
-      }
-
-      toast.success('签署任务已创建，签署文件已归档')
+      toast.success('签署任务已创建，源文件已置为待签')
       onSuccess?.()
     } catch (err) {
       toast.error(err?.message || '创建失败')
@@ -265,15 +250,30 @@ export default function SignTaskForm({
 
       {form.documentId && (
         <p className="text-xs text-ink-3">
-          将归档为：{buildCtcDocName(selectedDoc?.name || 'document.pdf', form.isCTC)}
+          {form.isCTC
+            ? '将生成 CTC 盖章件供下载签字，源文件保持待签；完成后上传签字件即归档 (ctc) 文档。'
+            : '源文件将置为待签；完成后上传签署件即就地更新该文件（最终仅 1 份）。'}
         </p>
       )}
 
+      {ctcDownload && (
+        <div className="rounded-lg border border-info/30 bg-info/5 p-3 text-sm">
+          <p className="mb-2 text-ink">CTC 盖章件已生成，请下载后由专业人士签字，再到该任务的「完成」页上传签字件：</p>
+          <a href={ctcDownload.url} download={ctcDownload.name} className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+            <Download size={14} /> 下载 CTC 盖章件（{ctcDownload.name}）
+          </a>
+        </div>
+      )}
+
       <div className="flex justify-end gap-2 pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-ink border border-hairline rounded-lg hover:bg-canvas">取消</button>
-        <button type="button" onClick={handleSubmit} disabled={saving || loadingRefs} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
-          {saving ? '提交中...' : '创建并归档'}
+        <button type="button" onClick={ctcDownload ? onSuccess : onCancel} className="px-4 py-2 text-sm text-ink border border-hairline rounded-lg hover:bg-canvas">
+          {ctcDownload ? '完成并关闭' : '取消'}
         </button>
+        {!ctcDownload && (
+          <button type="button" onClick={handleSubmit} disabled={saving || loadingRefs} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
+            {saving ? '提交中...' : '创建签署任务'}
+          </button>
+        )}
       </div>
     </div>
   )

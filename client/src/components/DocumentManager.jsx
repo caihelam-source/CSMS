@@ -69,6 +69,20 @@ function SourceBadge({ doc }) {
 }
 function ExternalLinkIcon() { return <span className="text-[8px]">↗</span> }
 
+// 签署状态徽章：让"待签/已签/已盖CTC章"一目了然，避免闭环中出现假签文件造成混淆
+const SIGN_STATUS_MAP = {
+  pending_sign: { label: '待签', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  pending_ctc: { label: 'CTC待签', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  fully_signed: { label: '已签', cls: 'bg-green-50 text-green-700 border-green-200' },
+  ctc: { label: 'CTC已签', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  archived: { label: '已归档', cls: 'bg-gray-100 text-gray-500 border-gray-200' },
+}
+function SignStatusBadge({ status }) {
+  const m = SIGN_STATUS_MAP[status]
+  if (!m) return null
+  return <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${m.cls}`}>{m.label}</span>
+}
+
 export default function DocumentManager({ companyId, personnelId, embedded = false, showExport = true, onDocumentsChange }) {
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -439,6 +453,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
                           </Link>
                         )}
                         <SourceBadge doc={doc} />
+                        <SignStatusBadge status={doc.signStatus} />
                       </div>
                     </div>
                     <div className="text-right shrink-0 flex items-center gap-2">

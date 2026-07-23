@@ -320,6 +320,13 @@ export const documentService = {
     (id, data) => api.put(`/api/documents/${id}`, data),
     mockDocuments.update,
   ),
+  // v6.x 签署闭环：替换文档物理文件（普通签署完成时就地替换源文档）
+  replaceFile: wrap(
+    (id, formData) => api.put(`/api/documents/${id}/file`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+    mockDocuments.replaceFile,
+  ),
   delete: wrap(
     (id) => api.delete(`/api/documents/${id}`),
     mockDocuments.delete,

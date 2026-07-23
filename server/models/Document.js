@@ -34,14 +34,17 @@ const documentSchema = new mongoose.Schema({
   documentYear: { type: Number },
   // Legacy fields
   docNumber: { type: String, unique: true, sparse: true },
-  signStatus: { type: String, enum: ['draft', 'pending_sign', 'partially_signed', 'fully_signed', 'archived'], default: 'draft' },
+  signStatus: { type: String, enum: ['draft', 'pending_sign', 'pending_ctc', 'partially_signed', 'fully_signed', 'ctc', 'archived'], default: 'draft' },
   // v5.1 来源追溯 + 归档锁定（会议纪要闭环 / 文件管理中心）
   // source: 记录文件从何处自动归集而来，便于公司档案展示"来自 [会议纪要]"并可跳回
   source: {
-    kind: { type: String, enum: ['meeting_minutes', 'signing_scan', 'task_attachment', 'manual_upload', 'other'] },
+    kind: { type: String, enum: ['meeting_minutes', 'signing_scan', 'task_attachment', 'manual_upload', 'other', 'document_sign', 'compliance_complete', 'meeting_task', 'task_complete', 'meeting_notice', 'dashboard_sign'] },
     refId: { type: mongoose.Schema.Types.ObjectId }, // 关联 Meeting / Task
     label: { type: String }, // 人类可读来源标签，如 "来自 [2026-07-17 董事会纪要]"
   },
+  // v6.x 签署闭环：签署人姓名（普通签署）/ 签署完成时间，用于审计与档案展示
+  signedBy: { type: String },
+  signedAt: { type: Date },
   // locked: 归档锁定 → 只读（无法删除/修改），公司档案展示"已归档"印章
   locked: { type: Boolean, default: false },
   lockedAt: { type: Date },
