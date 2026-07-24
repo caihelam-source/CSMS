@@ -10,15 +10,52 @@
  *     fetch blob → URL.createObjectURL 后喂给 <iframe>/<img>。
  */
 import api from '../services/api.js';
+import { documentService } from '../services/index.js';
 import toast from 'react-hot-toast';
+import { isMockMode } from './mockMode.js';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
-export function isDemoToken() {
-  const token = localStorage.getItem('token');
-  return !!token && token.startsWith('demo-');
+// Demo/mock 模式下种子数据没有真实文件，生成一个可预览/可下载的占位 PDF
+async function createDummyPdfBlobUrl(label = 'Demo preview') {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const text = label || 'Demo preview';
+  const width = font.widthOfTextAtSize(text, 24);
+  page.drawText(text, {
+    x: (page.getWidth() - width) / 2,
+    y: page.getHeight() / 2,
+    size: 24,
+    font,
+    color: rgb(0.2, 0.2, 0.2),
+  });
+  page.drawText('演示数据，无真实文件内容', {
+    x: 50,
+    y: page.getHeight() / 2 - 40,
+    size: 14,
+    font,
+    color: rgb(0.5, 0.5, 0.5),
+  });
+  const bytes = await doc.save();
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  return URL.createObjectURL(blob);
 }
 
 // 取文档字节，返回可用于 <iframe src>/<img src> 的 blob object URL
 export async function fetchDocBlobUrl(docId) {
+  if (isMockMode()) {
+    try {
+      const res = await documentService.getOne(docId);
+      const doc = res.data?.data;
+      // mock 上传的文件会生成 blob URL，可直接复用
+      if (doc?.fileUrl?.startsWith('blob:')) return doc.fileUrl;
+      // 种子数据没有真实文件，返回 demo 占位 PDF
+      return await createDummyPdfBlobUrl(doc?.name || 'Demo preview');
+    } catch (e) {
+      console.warn('[fetchDocBlobUrl] mock mode fallback failed:', e);
+      return createDummyPdfBlobUrl('Demo preview');
+    }
+  }
   try {
     const res = await api.get(`/api/documents/${docId}/view`, { responseType: 'blob' });
     return URL.createObjectURL(res.data);
@@ -33,6 +70,23 @@ export async function fetchDocBlobUrl(docId) {
 // 静默取文档字节（ArrayBuffer），优先走鉴权 view 路由，失败则回退 fallbackUrl，
 // 最终仍失败返回 null —— 用于 CTC 生成等不希望因 401 中断的闭环。
 export async function fetchDocBytes(docId, fallbackUrl = null) {
+  if (isMockMode()) {
+    try {
+      const res = await documentService.getOne(docId);
+      const doc = res.data?.data;
+      if (doc?.fileUrl?.startsWith('blob:')) {
+        const r = await fetch(doc.fileUrl);
+        if (r.ok) {
+          const ab = await r.arrayBuffer();
+          if (ab && ab.byteLength) return ab;
+        }
+      }
+    } catch (e) {
+      console.warn('[fetchDocBytes] mock mode get doc failed:', e);
+    }
+    // 种子数据没有真实文件，让调用方用空白页兜底（CTC 仍可正常盖章）
+    return null;
+  }
   try {
     const blobUrl = await fetchDocBlobUrl(docId);
     const res = await fetch(blobUrl);
@@ -60,6 +114,30 @@ export async function fetchDocBytes(docId, fallbackUrl = null) {
 
 // 触发浏览器下载（鉴权流式返回，规避跨域公开 URL 问题）
 export async function downloadDoc(doc) {
+  if (isMockMode()) {
+    try {
+      if (doc?.fileUrl?.startsWith('blob:')) {
+        const a = document.createElement('a');
+        a.href = doc.fileUrl;
+        a.download = doc.fileName || doc.name || 'download';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        return;
+      }
+      const url = await createDummyPdfBlobUrl(doc?.name || 'Demo document');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.fileName || doc.name || 'demo-document.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch {
+      toast.error('下载失败');
+    }
+    return;
+  }
   try {
     const res = await api.get(`/api/documents/${doc._id}/download`, { responseType: 'blob' });
     const url = URL.createObjectURL(res.data);

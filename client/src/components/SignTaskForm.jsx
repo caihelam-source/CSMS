@@ -4,7 +4,7 @@ import { Download } from 'lucide-react'
 import { companyService, personnelService, documentService, taskService } from '../services/index.js'
 import { buildCtcDocName } from '../utils/helpers'
 import { generateCtcPdf } from '../utils/ctcPdf'
-import { fetchDocBytes, isDemoToken } from '../utils/fileAccess'
+import { fetchDocBytes } from '../utils/fileAccess'
 import { PDFDocument } from 'pdf-lib'
 import { FormField, inputClass } from './UIHelpers'
 
@@ -107,12 +107,6 @@ export default function SignTaskForm({
     if (!form.dueDate) errs.dueDate = '请选择截止日期'
     if (Object.keys(errs).length) { setErrors(errs); return }
 
-    const isRealMode = import.meta.env.VITE_USE_MOCK === 'false'
-    if (isRealMode && isDemoToken()) {
-      toast.error('当前为演示登录状态，真实后端拒绝访问。请先退出并重新登录真实账号。')
-      return
-    }
-
     setSaving(true)
     try {
       const company = companies.find(c => c._id === form.companyId)
@@ -153,8 +147,8 @@ export default function SignTaskForm({
       // 3) CTC：生成带 CTC 章的 PDF → 作为「待签」草稿文档入库（可在文档库找到、打印签字）；同时弹窗内提供下载
       if (form.isCTC && selectedDoc) {
         // 取源 PDF 字节：优先走鉴权 view 路由，失败则回退 fileUrl，再不行用 pdf-lib 空白页兜底。
-        // 真实模式 token 失效时其它接口因 wrap 静默回退 mock 看似正常，此处用 fetchDocBytes 保证
-        // 不因 401 中断闭环，同时在上文已拦截 demo-token + real-mode 的无效组合。
+        // demo/mock 模式下种子数据没有真实文件，fetchDocBytes 会返回 null，随后用空白页兜底，
+        // 保证 CTC 盖章草稿仍可生成。
         let pdfBytes = await fetchDocBytes(selectedDoc._id, selectedDoc.fileUrl)
         if (!pdfBytes || !pdfBytes.byteLength) {
           const empty = await PDFDocument.create()

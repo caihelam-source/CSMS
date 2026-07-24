@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat: seed-admin 支持 ADMIN_FORCE=true 强制更新管理员\n\n- server/scripts/seed-admin.js: 默认行为保留（已有 admin 跳过）\n- 新增 ADMIN_FORCE=true / --force：将现有管理员邮箱/姓名/密码全部覆盖为目标账号，便于 Atlas 密码轮换后替换旧 admin\n- 配合已有的 safeMongoUri 自动转义密码特殊字符';
+const COMMIT_MSG = 'feat: demo 模式支持完整功能（运行时 mock）\n\n- 新增 client/src/utils/mockMode.js：支持运行时强制 mock（localStorage forceMock）\n- AuthContext：demo 登录/注册时 setForceMock(true)，真实登录/退出时 setForceMock(false)\n- services/index.js：useMock 改为运行时函数 isMockMode() || fallbackMock，demo 登录立即全量走 mock\n- fileAccess.js：mock 模式下预览/下载/CTC 取字节不再撞真实后端 401；种子数据生成 demo 占位 PDF，上传文件复用 blob URL\n- SignTaskForm：移除 demo-token + real-mode 的拦截弹窗，demo 下可正常发起 CTC/普通签署';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

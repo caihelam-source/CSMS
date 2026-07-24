@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { authService } from '../services/index.js'
+import { setForceMock } from '../utils/mockMode.js'
 
 const AuthContext = createContext(null)
 
@@ -25,7 +26,12 @@ export function AuthProvider({ children }) {
     const savedUser = localStorage.getItem('user')
     if (token && savedUser) {
       try {
-        setUser(JSON.parse(savedUser))
+        const parsed = JSON.parse(savedUser)
+        setUser(parsed)
+        // 若本地已是 demo 账号，强制进入完整 mock 模式，避免直接 api 调用撞 401
+        if (parsed.token && parsed.token.startsWith('demo-')) {
+          setForceMock(true)
+        }
         setLoading(false)
         return
       } catch {
@@ -62,6 +68,7 @@ export function AuthProvider({ children }) {
       const userData = res.data?.data || res.data || res
       localStorage.setItem('token', userData.token || 'real-token')
       localStorage.setItem('user', JSON.stringify(userData))
+      setForceMock(false)
       setUser(userData)
       return userData
     } catch {
@@ -77,6 +84,7 @@ export function AuthProvider({ children }) {
       }
       localStorage.setItem('token', userData.token)
       localStorage.setItem('user', JSON.stringify(userData))
+      setForceMock(true)
       setUser(userData)
       return userData
     }
@@ -89,6 +97,7 @@ export function AuthProvider({ children }) {
       const userData = res.data?.data || res.data || res
       localStorage.setItem('token', userData.token || 'real-token')
       localStorage.setItem('user', JSON.stringify(userData))
+      setForceMock(false)
       setUser(userData)
       return userData
     } catch {
@@ -102,6 +111,7 @@ export function AuthProvider({ children }) {
       }
       localStorage.setItem('token', userData.token)
       localStorage.setItem('user', JSON.stringify(userData))
+      setForceMock(true)
       setUser(userData)
       return userData
     }
@@ -135,6 +145,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    setForceMock(false)
     setUser(null)
   }
 

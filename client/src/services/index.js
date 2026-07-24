@@ -1,5 +1,6 @@
 import api from './api.js'
 import { normalize } from '../utils/responseNormalize.js'
+import { isMockMode } from '../utils/mockMode.js'
 import {
   auth as mockAuth,
   users as mockUsers,
@@ -18,8 +19,10 @@ import {
 
 // 生产环境通过 VITE_USE_MOCK=false 注入真实 API 模式
 // 开发/演示默认 Mock 模式（无需后端即可体验 UI）
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
-let useMock = USE_MOCK
+// 另外支持运行时强制 mock：demo 账号登录时写入 localStorage，避免
+// 直接调用 api 的组件（预览/下载/CTC）撞真实后端 401。
+let fallbackMock = false
+const useMock = () => isMockMode() || fallbackMock
 
 // ====== wrap — unifies API and mock ======
 // Mock 返回 { data: { data: X } }；真实后端返回 { success, entity } 或 { success, count, list }。
@@ -27,7 +30,7 @@ let useMock = USE_MOCK
 // normalize 逻辑见 ../utils/responseNormalize.js（已抽为可测纯函数）。
 
 const wrap = (apiFn, mockFn) => async (...args) => {
-  if (useMock) return mockFn(...args)
+  if (useMock()) return mockFn(...args)
   try {
     const res = await apiFn(...args)
     return normalize(res.data)
@@ -35,7 +38,7 @@ const wrap = (apiFn, mockFn) => async (...args) => {
     // 任何错误（网络 / HTTP 错误）静默回退 mock，保证演示不中断；
     // 但打日志，避免生产环境后端报错被完全吞掉、无从排查。
     console.error('[services] real API failed, falling back to mock:', err?.message || err)
-    useMock = true
+    fallbackMock = true
     return mockFn(...args)
   }
 }
@@ -76,14 +79,14 @@ const apiAuth = {
 
 const fallbackToMock = (fn, ...args) => {
   console.warn('[auth] real API failed, falling back to mock')
-  useMock = true
+  fallbackMock = true
   return fn(...args)
 }
 
 // ====== Auth Service ======
 export const authService = {
   login: async (email, password) => {
-    if (useMock) return mockAuth.login(email, password)
+    if (useMock()) return mockAuth.login(email, password)
     try {
       const res = await apiAuth.login(email, password)
       return { data: { data: extractUser(res.data) } }
@@ -92,7 +95,7 @@ export const authService = {
     }
   },
   register: async (data) => {
-    if (useMock) return mockAuth.register(data)
+    if (useMock()) return mockAuth.register(data)
     try {
       const res = await apiAuth.register(data)
       return { data: { data: extractUser(res.data) } }
@@ -101,7 +104,7 @@ export const authService = {
     }
   },
   getMe: async () => {
-    if (useMock) return mockAuth.getMe()
+    if (useMock()) return mockAuth.getMe()
     try {
       const res = await apiAuth.getMe()
       return { data: { data: extractUser(res.data) } }
@@ -110,7 +113,7 @@ export const authService = {
     }
   },
   updateProfile: async (data) => {
-    if (useMock) return mockAuth.updateProfile(data)
+    if (useMock()) return mockAuth.updateProfile(data)
     try {
       const res = await apiAuth.updateProfile(data)
       return { data: { data: extractUser(res.data) } }
