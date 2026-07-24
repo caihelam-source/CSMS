@@ -7,9 +7,10 @@
 //   ADMIN_NAME     (默认 Administrator)
 // 行为：若库中已存在任意 admin，则跳过；否则创建。
 const mongoose = require('mongoose');
+const { safeMongoUri } = require('../utils/mongoUri');
 const User = require('../models/User');
 
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+const MONGO_URI = safeMongoUri(process.env.MONGODB_URI || process.env.MONGO_URI);
 if (!MONGO_URI) {
   console.error('❌ 缺少 MONGODB_URI 环境变量');
   process.exit(1);

@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
+const { safeMongoUri } = require('./utils/mongoUri');
 
 dotenv.config();
 
@@ -31,7 +32,7 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/company-secretary';
+const MONGO_URI = safeMongoUri(process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/company-secretary');
 
 // 确保上传目录存在
 ['uploads', 'uploads/documents', 'uploads/images'].forEach(dir => {

@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: CTC 401/0KB/预览失败修复 + TaskDetail 关联文档卡片\n\n- 后端统一 fileSize/mimeType 字段，view/download 兼容旧 size/mimetype\n- 真实模式 demo-token 直接拦截，避免静默回退 mock 产生假文件\n- fetchDocBlobUrl/downloadDoc 401 给出明确登录提示\n- 新增 fetchDocBytes 供 CTC 生成无感兜底\n- TaskDetail 增加 LinkedDocumentCard：预览/下载/编辑与文档库同步';
+const COMMIT_MSG = 'fix: 后端启动失败(Password contains unescaped characters) + 前端健壮性\n\n- 新增 server/utils/mongoUri.js：自动转义 MONGODB_URI 密码中的特殊字符(@ / # : 等)，三处连库(server/index.js, config/database.js, seed-admin.js)统一接入，免去每次手动 URL-encode\n- client/.env.production VITE_API_BASE 占位符改为真实地址(claw-api-5zq7.onrender.com)双保险\n- client/src/services/api.js 加 30s 超时 + 冷启动/网络错误友好提示，避免免费套餐冷启动被误判为登录失败';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

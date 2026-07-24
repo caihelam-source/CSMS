@@ -7,6 +7,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || ''
 const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 30000, // 免费套餐冷启动可能 30-60s，给足超时避免误判失败
 })
 
 api.interceptors.request.use((config) => {
@@ -18,6 +19,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
+    // 网络错误 / 超时：给出可操作提示，而非笼统「登录失败」
+    if (err.code === 'ECONNABORTED' || /timeout/i.test(err.message || '')) {
+      err.message = '请求超时。若使用免费套餐，后端可能正在冷启动（约 30-60 秒），请稍后重试。'
+    } else if (!err.response && err.code === 'ERR_NETWORK') {
+      err.message = '无法连接服务器，请确认后端 claw-api 已启动且 VITE_API_BASE 配置正确。'
+    }
+
     if (err.response?.status === 401) {
       // Don't force redirect in demo mode — mock data won't have real tokens
       const token = localStorage.getItem('token')
