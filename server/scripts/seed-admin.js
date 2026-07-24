@@ -5,12 +5,17 @@
 //   ADMIN_EMAIL    (默认 admin@example.com)
 //   ADMIN_PASSWORD (默认 admin123)
 //   ADMIN_NAME     (默认 Administrator)
-// 行为：若库中已存在任意 admin，则跳过；否则创建。
+// 行为：
+//   - 默认：若库中已存在任意 admin，则跳过；否则创建。
+//   - ADMIN_FORCE=true（或 --force）：强制将现有管理员更新为当前指定账号
+//     （邮箱/姓名/密码全部覆盖），用于 Atlas 轮换/初始部署后替换旧 admin。
 const mongoose = require('mongoose');
 const { safeMongoUri } = require('../utils/mongoUri');
 const User = require('../models/User');
 
 const MONGO_URI = safeMongoUri(process.env.MONGODB_URI || process.env.MONGO_URI);
+const FORCE = process.env.ADMIN_FORCE === 'true' || process.argv.includes('--force');
+
 if (!MONGO_URI) {
   console.error('❌ 缺少 MONGODB_URI 环境变量');
   process.exit(1);
@@ -26,7 +31,18 @@ if (!MONGO_URI) {
 
   const existingAdmin = await User.findOne({ role: 'admin' });
   if (existingAdmin) {
-    console.log(`ℹ️  已存在管理员 (${existingAdmin.email})，跳过创建。`);
+    if (!FORCE) {
+      console.log(`ℹ️  已存在管理员 (${existingAdmin.email})，跳过创建。如需强制更新为当前指定账号，请加 ADMIN_FORCE=true`);
+      await mongoose.disconnect();
+      return;
+    }
+    existingAdmin.email = email;
+    existingAdmin.name = name;
+    existingAdmin.password = password;
+    existingAdmin.role = 'admin';
+    existingAdmin.isActive = true;
+    await existingAdmin.save();
+    console.log(`✅ 已强制更新管理员：${email}`);
     await mongoose.disconnect();
     return;
   }
@@ -35,11 +51,13 @@ if (!MONGO_URI) {
   if (existing) {
     existing.role = 'admin';
     existing.isActive = true;
+    existing.password = password;
+    existing.name = name;
     await existing.save();
-    console.log(`✅ 已将现有用户 ${email} 提升为管理员`);
+    console.log(`✅ 已将现有用户 ${email} 提升为管理员（密码已更新）`);
   } else {
     await User.create({ name, email, password, role: 'admin', isActive: true });
-    console.log(`✅ 已创建管理员：${email} / ${password}`);
+    console.log(`✅ 已创建管理员：${email}`);
   }
 
   await mongoose.disconnect();

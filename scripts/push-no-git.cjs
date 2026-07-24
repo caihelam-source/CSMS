@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: 后端启动失败(Password contains unescaped characters) + 前端健壮性\n\n- 新增 server/utils/mongoUri.js：自动转义 MONGODB_URI 密码中的特殊字符(@ / # : 等)，三处连库(server/index.js, config/database.js, seed-admin.js)统一接入，免去每次手动 URL-encode\n- client/.env.production VITE_API_BASE 占位符改为真实地址(claw-api-5zq7.onrender.com)双保险\n- client/src/services/api.js 加 30s 超时 + 冷启动/网络错误友好提示，避免免费套餐冷启动被误判为登录失败';
+const COMMIT_MSG = 'feat: seed-admin 支持 ADMIN_FORCE=true 强制更新管理员\n\n- server/scripts/seed-admin.js: 默认行为保留（已有 admin 跳过）\n- 新增 ADMIN_FORCE=true / --force：将现有管理员邮箱/姓名/密码全部覆盖为目标账号，便于 Atlas 密码轮换后替换旧 admin\n- 配合已有的 safeMongoUri 自动转义密码特殊字符';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 
