@@ -77,49 +77,27 @@ const apiAuth = {
   updateProfile: (data) => api.put('/api/auth/me', data),
 }
 
-const fallbackToMock = (fn, ...args) => {
-  console.warn('[auth] real API failed, falling back to mock')
-  fallbackMock = true
-  return fn(...args)
-}
-
 // ====== Auth Service ======
 export const authService = {
   login: async (email, password) => {
     if (useMock()) return mockAuth.login(email, password)
-    try {
-      const res = await apiAuth.login(email, password)
-      return { data: { data: extractUser(res.data) } }
-    } catch {
-      return fallbackToMock(mockAuth.login, email, password)
-    }
+    const res = await apiAuth.login(email, password)
+    return { data: { data: extractUser(res.data) } }
   },
   register: async (data) => {
     if (useMock()) return mockAuth.register(data)
-    try {
-      const res = await apiAuth.register(data)
-      return { data: { data: extractUser(res.data) } }
-    } catch {
-      return fallbackToMock(mockAuth.register, data)
-    }
+    const res = await apiAuth.register(data)
+    return { data: { data: extractUser(res.data) } }
   },
   getMe: async () => {
     if (useMock()) return mockAuth.getMe()
-    try {
-      const res = await apiAuth.getMe()
-      return { data: { data: extractUser(res.data) } }
-    } catch {
-      return fallbackToMock(mockAuth.getMe)
-    }
+    const res = await apiAuth.getMe()
+    return { data: { data: extractUser(res.data) } }
   },
   updateProfile: async (data) => {
     if (useMock()) return mockAuth.updateProfile(data)
-    try {
-      const res = await apiAuth.updateProfile(data)
-      return { data: { data: extractUser(res.data) } }
-    } catch {
-      return fallbackToMock(mockAuth.updateProfile, data)
-    }
+    const res = await apiAuth.updateProfile(data)
+    return { data: { data: extractUser(res.data) } }
   },
   updatePassword: wrap(
     (data) => api.put('/api/auth/password', data),

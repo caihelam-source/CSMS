@@ -62,19 +62,10 @@ export function AuthProvider({ children }) {
   ]
 
   const login = async (email, password) => {
-    // Try real backend first
-    try {
-      const res = await authService.login(email, password)
-      const userData = res.data?.data || res.data || res
-      localStorage.setItem('token', userData.token || 'real-token')
-      localStorage.setItem('user', JSON.stringify(userData))
-      setForceMock(false)
-      setUser(userData)
-      return userData
-    } catch {
-      // Backend unavailable — check demo credentials
+    // 生产环境（VITE_USE_MOCK=false）必须走真实后端，失败直接暴露真实错误
+    if (DEMO_MODE) {
       const demo = DEMO_ACCOUNTS.find(a => a.email === email && a.password === password)
-      if (!demo) throw new Error('Invalid credentials. Use a demo account or start the backend.')
+      if (!demo) throw new Error('Invalid demo credentials.')
       const userData = {
         id: `demo-${demo.email}`,
         name: demo.name,
@@ -88,20 +79,18 @@ export function AuthProvider({ children }) {
       setUser(userData)
       return userData
     }
+
+    const res = await authService.login(email, password)
+    const userData = res.data?.data || res.data || res
+    localStorage.setItem('token', userData.token || 'real-token')
+    localStorage.setItem('user', JSON.stringify(userData))
+    setForceMock(false)
+    setUser(userData)
+    return userData
   }
 
   const register = async (name, email, password, role) => {
-    // Try real backend first
-    try {
-      const res = await authService.register({ name, email, password, role })
-      const userData = res.data?.data || res.data || res
-      localStorage.setItem('token', userData.token || 'real-token')
-      localStorage.setItem('user', JSON.stringify(userData))
-      setForceMock(false)
-      setUser(userData)
-      return userData
-    } catch {
-      // Backend unavailable — create local user
+    if (DEMO_MODE) {
       const userData = {
         id: `demo-${Date.now()}`,
         name,
@@ -115,6 +104,14 @@ export function AuthProvider({ children }) {
       setUser(userData)
       return userData
     }
+
+    const res = await authService.register({ name, email, password, role })
+    const userData = res.data?.data || res.data || res
+    localStorage.setItem('token', userData.token || 'real-token')
+    localStorage.setItem('user', JSON.stringify(userData))
+    setForceMock(false)
+    setUser(userData)
+    return userData
   }
 
   const updateProfile = async (data) => {
