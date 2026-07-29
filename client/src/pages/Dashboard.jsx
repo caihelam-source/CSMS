@@ -1,35 +1,32 @@
-import { useEffect, useState, useCallback, memo } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { companyService, personnelService, documentService, meetingService, complianceReminderService, templateService, taskService } from '../services/index.js'
-import { formatDate, formatRelative } from '../utils/helpers'
-import { LoadingSpinner, PageHeader, WarningBanner } from '../components/UIHelpers'
-import { Calendar, FileText, Building2, Users, Clock, AlertTriangle, FileCode, PenLine, RefreshCw, CheckCircle2, ChevronRight } from 'lucide-react'
-
-// 统计卡：去彩虹——中性卡 + 大数字为主角，图标方块统一中性灰。
-// 仅"需要你行动"的信息由上方 WarningBanner 以语义色亮起，卡片本身保持安静。
-const StatCard = memo(({ icon: Icon, label, value, to }) => (
-  <Link to={to} className="card hover:shadow-card-hover transition-shadow flex items-start justify-between">
-    <div>
-      <p className="text-sm text-ink-2 mb-1">{label}</p>
-      <p className="text-3xl font-semibold text-ink tracking-tight">{value}</p>
-    </div>
-    <div className="p-3 rounded-xl bg-canvas text-ink-3"><Icon size={22} /></div>
-  </Link>
-))
+import { formatDate } from '../utils/helpers'
+import { LoadingSpinner } from '../components/UIHelpers'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import {
+  Building2, Users, FileText, Calendar, Clock, PenLine, CheckCircle2, FileCode,
+  RefreshCw, Settings, Briefcase, SlidersHorizontal, LogOut,
+} from 'lucide-react'
 
 export default function Dashboard() {
+  const { logout } = useAuth()
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
   const [upcomingMeetings, setUpcomingMeetings] = useState([])
   const [upcomingReminders, setUpcomingReminders] = useState([])
   const [expiredReminders, setExpiredReminders] = useState([])
-  const [recentMeetings, setRecentMeetings] = useState([])
+  const [_recentMeetings, setRecentMeetings] = useState([])
   const [urgentTasks, setUrgentTasks] = useState([])
   const [pendingTasksCount, setPendingTasksCount] = useState(0)
   const [signTasksCount, setSignTasksCount] = useState(0)
   const [templatesCount, setTemplatesCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [lastRefreshed, setLastRefreshed] = useState(null)
+  const [_lastRefreshed, setLastRefreshed] = useState(null)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const accountRef = useRef(null)
+  const triggerRef = useRef(null)
+  const menuRef = useRef(null)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -97,175 +94,233 @@ export default function Dashboard() {
 
   useEffect(() => { loadAll() }, [loadAll])
 
+  // 账户下拉：外部点击 / Escape 关闭并归还焦点给触发器；打开时聚焦首个菜单项（a11y 键盘可达）
+  useEffect(() => {
+    if (!accountOpen) return
+    const onDocClick = (e) => {
+      if (accountRef.current && !accountRef.current.contains(e.target)) {
+        setAccountOpen(false)
+        triggerRef.current?.focus()
+      }
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setAccountOpen(false)
+        triggerRef.current?.focus()
+      }
+    }
+    document.addEventListener('click', onDocClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', onDocClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [accountOpen])
+
+  // 打开时把焦点移到首个菜单项，支持纯键盘进入菜单
+  useEffect(() => {
+    if (accountOpen && menuRef.current) {
+      menuRef.current.querySelector('.account__item')?.focus()
+    }
+  }, [accountOpen])
+
+  // 菜单内方向键导航（ArrowUp/Down 循环，Home/End 跳首尾）
+  const handleMenuKeyDown = (e) => {
+    const menu = menuRef.current
+    if (!menu) return
+    const items = Array.from(menu.querySelectorAll('.account__item'))
+    if (items.length === 0) return
+    const idx = items.indexOf(document.activeElement)
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const n = idx < 0 ? 0 : (idx + 1) % items.length
+      items[n].focus()
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const n = idx < 0 ? items.length - 1 : (idx - 1 + items.length) % items.length
+      items[n].focus()
+    } else if (e.key === 'Home') {
+      e.preventDefault(); items[0].focus()
+    } else if (e.key === 'End') {
+      e.preventDefault(); items[items.length - 1].focus()
+    }
+  }
+
   if (loading) return <LoadingSpinner size="lg" />
 
+  // 时段问候（纯视图逻辑，不调接口）
+  const getGreeting = () => {
+    const h = new Date().getHours()
+    if (h < 6) return '凌晨好'
+    if (h < 12) return '上午好'
+    if (h < 14) return '中午好'
+    if (h < 18) return '下午好'
+    return '晚上好'
+  }
+
+  // 8 项核心指标（标签 / 数据不变，趋势用预览静态串）
+  const metrics = [
+    { icon: Building2, label: '公司总数', value: stats?.totalCompanies || 0, trend: '▲ 2 · 较上月', trendCls: 'm-trend--up' },
+    { icon: Users, label: '人员库', value: stats?.totalPersonnel || 0, trend: '▲ 12 · 本月', trendCls: 'm-trend--up' },
+    { icon: FileText, label: '文档', value: stats?.totalDocuments || 0, trend: '▲ 28 · 本月', trendCls: 'm-trend--up' },
+    { icon: Calendar, label: '会议', value: stats?.totalMeetings || 0, trend: '▲ 3 · 较上月', trendCls: 'm-trend--up' },
+    { icon: CheckCircle2, label: '待办 Task', value: pendingTasksCount, trend: '▼ 4 · 改善', trendCls: 'm-trend--down' },
+    { icon: PenLine, label: '签署任务', value: signTasksCount, trend: '— 持平', trendCls: 'm-trend--flat' },
+    { icon: Clock, label: '合规提醒', value: upcomingReminders.length, trend: '▲ 1 · 关注', trendCls: 'm-trend--warn' },
+    { icon: FileCode, label: '模板', value: templatesCount, trend: '▲ 3 · 本月', trendCls: 'm-trend--up' },
+  ]
+
+  // 逾期 + 紧急合并（各取前 3，右侧去色：中性小字 + 中性小圆点）
+  const now = new Date()
+  const attention = [
+    ...expiredReminders.map(r => ({ kind: 'expired', item: r })),
+    ...urgentTasks.map(t => ({ kind: 'urgent', item: t })),
+  ].slice(0, 3)
+
+  const attentionRight = (kind, item) => {
+    const due = item.dueDate ? Math.ceil((new Date(item.dueDate) - now) / 86400000) : null
+    if (kind === 'expired') return due !== null && due < 0 ? `逾期${Math.abs(due)}天` : '逾期'
+    if (due === null) return ''
+    if (due < 0) return `逾期${Math.abs(due)}天`
+    if (due === 0) return '今天'
+    return `${due}天后`
+  }
+
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Dashboard"
-        subtitle={lastRefreshed ? `上次刷新 ${formatRelative(lastRefreshed)}` : '欢迎回来'}
-        icon={Building2}
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate('/tasks?mode=signing')}
-              className="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium transition-colors"
-            >
-              <span className="flex items-center gap-1"><PenLine size={14} /> 发起签署任务</span>
-            </button>
-            <button onClick={loadAll} className="px-3 py-2 border border-hairline rounded-lg hover:bg-canvas text-sm">
-              <span className="flex items-center gap-1"><RefreshCw size={14} /> 刷新</span>
-            </button>
-          </div>
-        }
-      />
+    <>
+      <a className="skip-link" href="#main">跳到主内容</a>
+      <div id="main" className="max-w-[var(--fluid-content-max)] mx-auto w-full">
 
-      {/* 逾期提醒横幅 */}
-      {expiredReminders.length > 0 && (
-        <WarningBanner
-          icon={Clock}
-          title="逾期合规提醒"
-          count={expiredReminders.length}
-          color="amber"
-          items={expiredReminders}
-          renderItem={(r, c) => (
-            <Link key={r._id} to="/compliance-reminders" className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-2">
-                <ChevronRight size={14} className={c.itemSub} />
-                <span className={`text-sm font-medium ${c.itemTitle}`}>{r.title}</span>
-                {r.company?.name && <span className={`text-xs ${c.itemSub}`}>({r.company.name})</span>}
+        {/* 页面头：品牌 Logo + CSMS / Dashboard + 刷新 + 账户控件 */}
+        <div className="page-header">
+          <div className="page-header__brand">
+            <div className="page-header__logo"><Building2 size={20} /></div>
+            <h1 className="page-header__title">CSMS<span>/ Dashboard</span></h1>
+          </div>
+          <div className="page-header__actions">
+            <button className="page-header__icon-btn" onClick={loadAll} title="刷新数据" aria-label="刷新数据">
+              <RefreshCw size={18} />
+            </button>
+            <div className={`account ${accountOpen ? 'open' : ''}`} ref={accountRef}>
+              <button
+                ref={triggerRef}
+                className="account__btn"
+                onClick={(e) => { e.stopPropagation(); setAccountOpen(o => !o) }}
+                aria-haspopup="true"
+                aria-expanded={accountOpen}
+                aria-controls="accountMenu"
+                aria-label="账户菜单"
+              >
+                <span className="account__avatar">林</span>
+                <span className="account__name">林才贺</span>
+                <svg className="account__caret" viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+              <div className="account__menu" id="accountMenu" role="menu" aria-label="账户" ref={menuRef} onKeyDown={handleMenuKeyDown}>
+                <div className="account__menu-head">
+                  <span className="account__avatar account__avatar--lg">林</span>
+                  <div>
+                    <div className="account__menu-name">林才贺</div>
+                    <div className="account__menu-role">Administrator · 监管 3 家公司</div>
+                  </div>
+                </div>
+                <button type="button" className="account__item" role="menuitem" onClick={() => { setAccountOpen(false); triggerRef.current?.focus() }}>
+                  <Settings size={17} />个人设置
+                </button>
+                <button type="button" className="account__item" role="menuitem" onClick={() => { setAccountOpen(false); triggerRef.current?.focus() }}>
+                  <Briefcase size={17} />切换公司
+                </button>
+                <button type="button" className="account__item" role="menuitem" onClick={() => { setAccountOpen(false); triggerRef.current?.focus() }}>
+                  <SlidersHorizontal size={17} />偏好与主题
+                </button>
+                <div className="account__divider"></div>
+                <button type="button" className="account__item account__item--danger" role="menuitem" onClick={() => { setAccountOpen(false); triggerRef.current?.focus(); logout() }}>
+                  <LogOut size={17} />退出登录
+                </button>
               </div>
-            </Link>
-          )}
-          linkTo="/compliance-reminders"
-          linkLabel={`查看全部 ${expiredReminders.length} 项`}
-        />
-      )}
-
-      {/* 紧急提醒横幅 */}
-      {urgentTasks.length > 0 && (
-        <WarningBanner
-          icon={AlertTriangle}
-          title="紧急提醒"
-          count={urgentTasks.length}
-          color="red"
-          items={urgentTasks}
-          renderItem={(t, c) => {
-            const days = Math.ceil((new Date(t.dueDate) - new Date()) / 86400000)
-            return (
-              <Link to={`/tasks/${t._id}`} className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
-                  <ChevronRight size={14} className={c.itemSub} />
-                  <span className={`text-sm font-medium ${c.itemTitle}`}>{t.title}</span>
-                  {t.company?.name && <span className={`text-xs ${c.itemSub}`}>({t.company.name})</span>}
-                </div>
-                <span className={`text-xs font-medium ${days < 0 ? 'text-danger' : days <= 3 ? 'text-warning' : 'text-ink-2'}`}>
-                  {days < 0 ? `逾期${Math.abs(days)}天` : days === 0 ? '今天' : `${days}天后`}
-                </span>
-              </Link>
-            )
-          }}
-          linkTo="/tasks"
-          linkLabel={`查看全部 ${urgentTasks.length} 项`}
-        />
-      )}
-
-      {/* Stats Grid — 去彩虹：中性卡 + 数字为主角，仅需要时由上方 WarningBanner 亮色 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Building2} label="公司总数" value={stats?.totalCompanies || 0} to="/companies" />
-        <StatCard icon={Users} label="人员库" value={stats?.totalPersonnel || 0} to="/personnel" />
-        <StatCard icon={FileText} label="文档" value={stats?.totalDocuments || 0} to="/documents" />
-        <StatCard icon={Calendar} label="会议" value={stats?.totalMeetings || 0} to="/meetings" />
-        <StatCard icon={CheckCircle2} label="待办 Task" value={pendingTasksCount} to="/tasks" />
-        <StatCard icon={PenLine} label="签署任务" value={signTasksCount} to="/tasks" />
-        <StatCard icon={FileCode} label="模板" value={templatesCount} to="/templates" />
-        <StatCard icon={Clock} label="合规提醒" value={upcomingReminders.length} to="/compliance-reminders" />
-      </div>
-
-      {/* Upcoming Meetings */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold flex items-center gap-2"><Calendar size={18} /> 即将到来的会议</h3>
-          <Link to="/meetings" className="text-sm text-primary-600 hover:underline">查看全部</Link>
-        </div>
-        {upcomingMeetings.length === 0 ? (
-          <p className="text-ink-3 text-sm py-4 text-center">暂无即将到来的会议</p>
-        ) : (
-          <div className="space-y-2">
-            {upcomingMeetings.map(m => (
-              <Link key={m._id} to={`/meetings/${m._id}`} className="flex items-center justify-between p-3 bg-canvas rounded-lg hover:bg-canvas">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${m.status === 'scheduled' ? 'bg-primary-500' : 'bg-yellow-500'}`} />
-                  <div>
-                    <p className="font-medium text-sm">{m.title}</p>
-                    <p className="text-xs text-ink-3">{m.company?.name} · {m.type?.toUpperCase()}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm">{formatDate(m.scheduledAt)}</p>
-                  <span className={`badge text-xs ${m.status === 'scheduled' ? 'badge-info' : 'badge-warning'}`}>{m.status}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Upcoming Compliance Reminders */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold flex items-center gap-2"><Clock size={18} /> 即将到期的合规提醒</h3>
-          <Link to="/compliance-reminders" className="text-sm text-primary-600 hover:underline">查看全部</Link>
-        </div>
-        {upcomingReminders.length === 0 ? (
-          <p className="text-ink-3 text-sm py-4 text-center">暂无即将到期的合规提醒</p>
-        ) : (
-          <div className="space-y-2">
-            {upcomingReminders.slice(0, 5).map(r => {
-              const days = r.dueDate ? Math.ceil((new Date(r.dueDate) - new Date()) / 86400000) : null
-              const isOverdue = days !== null && days < 0
-              return (
-                <Link key={r._id} to={`/compliance-reminders/${r._id}`} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-warning/10">
-                  <div>
-                    <p className="font-medium text-sm">{r.title}</p>
-                    <p className="text-xs text-ink-2">{r.company?.name || '未关联'}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm">{formatDate(r.dueDate)}</p>
-                    {days !== null && (
-                      <span className={`badge text-xs ${isOverdue ? 'badge-danger' : days <= 7 ? 'badge-warning' : 'badge-info'}`}>
-                        {isOverdue ? `逾期${Math.abs(days)}天` : days === 0 ? '今天' : `剩余${days}天`}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Recent Completed Meetings */}
-      {recentMeetings.length > 0 && (
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold flex items-center gap-2"><CheckCircle2 size={18} /> 最近的已完成会议</h3>
-            <Link to="/meetings" className="text-sm text-primary-600 hover:underline">查看全部</Link>
-          </div>
-          <div className="space-y-2">
-            {recentMeetings.map(m => (
-              <Link key={m._id} to={`/meetings/${m._id}`} className="flex items-center justify-between p-3 bg-success/10 rounded-lg hover:bg-success/10">
-                <div>
-                  <p className="font-medium text-sm text-success">{m.title}</p>
-                  <p className="text-xs text-success">{m.company?.name}</p>
-                </div>
-                <span className="text-xs text-success">{formatDate(m.completedAt || m.updatedAt)}</span>
-              </Link>
-            ))}
+            </div>
           </div>
         </div>
-      )}
 
-    </div>
+        {/* 快捷操作：生成合规月报（唯一 CTA，outline-accent） */}
+        <div className="quick-actions">
+          <span className="quick-actions__label">快捷操作</span>
+          <button type="button" className="btn-outline-accent" onClick={() => navigate('/compliance-reminders')}>
+            <FileText size={16} />生成合规月报
+          </button>
+        </div>
+
+        {/* 安静状态行（替代 WarningBanner：无色容器 + 小彩点 + 中性小字） */}
+        <div className="status-line" role="status" aria-label="待关注提醒">
+          <span className="status-line__item"><i className="sl-dot sl-dot--danger"></i>{expiredReminders.length} 项逾期合规</span>
+          <span className="status-line__sep">·</span>
+          <span className="status-line__item"><i className="sl-dot sl-dot--warn"></i>{urgentTasks.length} 项紧急任务</span>
+          <span className="status-line__sep">·</span>
+          <span className="status-line__item"><i className="sl-dot sl-dot--info"></i>{upcomingReminders.length} 项即将到期</span>
+          <Link to="/compliance-reminders" className="status-line__more">查看全部 →</Link>
+        </div>
+
+        {/* Hero 问候 */}
+        <div className="hero">
+          <h2 className="hero__title">{getGreeting()}，林才贺</h2>
+          <p className="hero__sub">这是您 3 家公司的全局合规概览</p>
+        </div>
+
+        {/* 核心指标 2x4 网格（无框大气版） */}
+        <div className="metric-grid">
+          {metrics.map((m, i) => (
+            <div className="metric-card" key={i}>
+              <div className="m-ico"><m.icon size={18} /></div>
+              <p className="m-label">{m.label}</p>
+              <p className="m-value">{m.value}</p>
+              <span className={`m-trend ${m.trendCls}`}>{m.trend}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* 迷你双栏：会议 / 逾期与紧急 */}
+        <div className="mini-grid">
+          <div className="mini-col">
+            <div className="mini-col__head">
+              <h3 className="mini-col__title"><Calendar size={18} />即将到来的会议</h3>
+              <Link to="/meetings" className="mini-col__more">查看全部</Link>
+            </div>
+            {upcomingMeetings.length === 0 ? (
+              <p className="text-ink-3 text-sm py-4 text-center">暂无即将到来的会议</p>
+            ) : (
+              upcomingMeetings.slice(0, 3).map(m => (
+                <div className="mini-row" key={m._id}>
+                  <div className="mr-main">
+                    <p className="mr-t">{m.title}</p>
+                    <p className="mr-s">{m.company?.name} · {m.type?.toUpperCase()}</p>
+                  </div>
+                  <span className="mr-right">{formatDate(m.scheduledAt)}</span>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="mini-col">
+            <div className="mini-col__head">
+              <h3 className="mini-col__title"><Clock size={18} />逾期与紧急</h3>
+              <Link to="/compliance-reminders" className="mini-col__more">查看全部</Link>
+            </div>
+            {attention.length === 0 ? (
+              <p className="text-ink-3 text-sm py-4 text-center">暂无逾期与紧急事项</p>
+            ) : (
+              attention.map(({ kind, item }, idx) => (
+                <div className="mini-row" key={`${item._id || kind}-${idx}`}>
+                  <div className="mr-main">
+                    <p className="mr-t">{item.title}</p>
+                    <p className="mr-s">{item.company?.name || '未关联'} · {kind === 'expired' ? '逾期合规' : '紧急任务'}</p>
+                  </div>
+                  <span className="mr-right"><i className="mi-dot"></i>{attentionRight(kind, item)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+      </div>
+    </>
   )
 }

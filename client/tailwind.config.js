@@ -9,39 +9,42 @@ export default {
   theme: {
     extend: {
       colors: {
-        // 单一强调色：Apple 系统蓝（500=#0a84ff 亮 / 600=#0071e3 主）
+        // 主蓝阶（Lumina blue，替代旧苹果蓝 #0071e3）
         primary: {
-          50:  '#eef6ff',
-          100: '#d9ecff',
-          200: '#b6d8ff',
-          300: '#84bcff',
-          400: '#3f97ff',
-          500: '#0a84ff',
-          600: '#0071e3',
-          700: '#005bbd',
-          800: '#004a9c',
-          900: '#0a3d7a',
+          50: '#EFF6FF', 100: '#DBEAFE', 200: '#BFDBFE', 300: '#93C5FD',
+          400: '#60A5FA', 500: '#3B82F6', 600: '#2563EB', 700: '#1D4ED8', 800: '#1E40AF', 900: '#1E3A8A',
         },
-        // 语义色（仅承载状态；值来自 CSS 变量，支持透明度修饰符，暗色自动切换）
+        // 品牌橙（唯一 CTA / 强调），走通道值以支持 alpha 修饰符
+        accent: 'rgb(var(--rgb-accent) / <alpha-value>)',
+        accentHover: '#F97316',
+        // 语义色（值来自 index.css 变量，旧 #0071e3 已改为 37 99 235）
         success: 'rgb(var(--c-success) / <alpha-value>)',
         warning: 'rgb(var(--c-warning) / <alpha-value>)',
-        danger:  'rgb(var(--c-danger) / <alpha-value>)',
-        info:    'rgb(var(--c-info) / <alpha-value>)',
-        // 中性表面/文字/发丝边框令牌（主题感知，见 index.css 变量，支持透明度）
-        canvas:   'rgb(var(--bg) / <alpha-value>)',
-        surface:  'rgb(var(--surface) / <alpha-value>)',
-        ink:      'rgb(var(--text-1) / <alpha-value>)',
-        'ink-2':  'rgb(var(--text-2) / <alpha-value>)',
-        'ink-3':  'rgb(var(--text-3) / <alpha-value>)',
+        danger: 'rgb(var(--c-danger) / <alpha-value>)',
+        info: 'rgb(var(--c-info) / <alpha-value>)',
+        // 中性表面 / 文字 / 发丝边框令牌（主题感知，见 index.css 变量，支持透明度）
+        canvas: 'rgb(var(--bg) / <alpha-value>)',
+        surface: 'rgb(var(--surface) / <alpha-value>)',
+        ink: 'rgb(var(--text-1) / <alpha-value>)',
+        'ink-2': 'rgb(var(--text-2) / <alpha-value>)',
+        'ink-3': 'rgb(var(--text-3) / <alpha-value>)',
         hairline: 'rgb(var(--border) / <alpha-value>)',
+        subtle: 'rgb(var(--subtle) / <alpha-value>)',
       },
       borderRadius: {
-        xl: '0.875rem',   // 14px
-        '2xl': '1.125rem', // 18px（卡片用，Apple 风）
+        sm: '6px', md: '8px', lg: '12px', xl: '16px', '2xl': '18px', full: '999px',
       },
       boxShadow: {
-        card: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)',
+        'sm': '0 1px 2px rgba(15,23,42,.06)',
+        'md': '0 4px 12px rgba(15,23,42,.08)',
+        'lg': '0 12px 32px rgba(15,23,42,.12)',
+        'focus': '0 0 0 3px rgba(37,99,235,.35)',
+        // 其他页面保留
+        'card': '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)',
         'card-hover': '0 6px 20px rgba(0,0,0,0.06)',
+      },
+      fontFamily: {
+        sans: ['system-ui', '-apple-system', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', '"PingFang SC"', '"Microsoft YaHei"', '"Hiragino Sans GB"', '"Noto Sans CJK SC"', 'sans-serif'],
       },
       transitionDuration: {
         DEFAULT: '200ms',

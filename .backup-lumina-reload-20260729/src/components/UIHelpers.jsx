@@ -56,18 +56,16 @@ export const FormField = ({ label, required = false, error = '', children, class
  * PageHeader — standard page header with title, subtitle, and action buttons
  * Usage: <PageHeader title="合规提醒" subtitle="跟踪截止日期" icon={Bell} actions={<button>...</button>} />
  */
-export const PageHeader = ({ title, subtitle = '', icon: Icon, actions = null, iconColor = 'text-white' }) => (
-  <div className="page-header">
-    <div className="page-header__brand">
-      {Icon && (
-        <div className="page-header__logo"><Icon className={iconColor} size={20} /></div>
-      )}
-      <div>
-        <h1 className="page-header__title">{title}</h1>
-        {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
-      </div>
+export const PageHeader = ({ title, subtitle = '', icon: Icon, actions = null, iconColor = 'text-primary-600' }) => (
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+        {Icon && <Icon className={iconColor} size={26} />}
+        {title}
+      </h1>
+      {subtitle && <p className="text-ink-2 text-sm mt-1">{subtitle}</p>}
     </div>
-    {actions && <div className="page-header__actions">{actions}</div>}
+    {actions && <div className="flex gap-2 flex-wrap">{actions}</div>}
   </div>
 )
 

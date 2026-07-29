@@ -6,7 +6,7 @@ SRC="/c/Users/Vincent/WorkBuddy/Claw"
 DST="/c/Users/Vincent/WorkBuddy/项目文档/精华文件"
 
 # 构建残留排除规则（防止每日同步重新污染副本）
-EXCLUDES="--exclude=node_modules --exclude=dist \
+EXCLUDES="--exclude=node_modules --exclude=dist --exclude='dist.bak.*' \
   --exclude='*.log' --exclude='*.err' --exclude='build_jur*' \
   --exclude='vite.config.js.timestamp-*' --exclude='ssr-meetings*' \
   --exclude='tmp' --exclude='output' --exclude='rom_ref_unpacked' \
@@ -25,7 +25,7 @@ rm -f "$DST/client/src/components/VirtualList.jsx" || true
 # 主动清理 client 层构建残留（tar 只增改不删，双保险）
 rm -f "$DST/client/"*.log "$DST/client/"*.err "$DST/client/build_jur"* \
       "$DST/client/vite.config.js.timestamp-"* "$DST/client/ssr-meetings"* 2>/dev/null || true
-rm -rf "$DST/client/tmp" 2>/dev/null || true
+rm -rf "$DST/client/tmp" "$DST/client/dist.bak."* 2>/dev/null || true
 
 # 2) 镜像 docs 与 .workbuddy
 mkdir -p "$DST/docs"
