@@ -152,8 +152,6 @@ export default function Dashboard() {
     }
   }
 
-  if (loading) return <LoadingSpinner size="lg" />
-
   // 时段问候（纯视图逻辑，不调接口）
   const getGreeting = () => {
     const h = new Date().getHours()
@@ -231,6 +229,9 @@ export default function Dashboard() {
     if (due === 0) return '今天'
     return `${due}天后`
   }
+
+  // 所有 hook 与派生计算必须在 early return 之前完成，保证每次 render 的 hook 数量一致
+  if (loading) return <LoadingSpinner size="lg" />
 
   return (
     <>
