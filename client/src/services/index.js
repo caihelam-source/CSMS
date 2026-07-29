@@ -29,14 +29,22 @@ const useMock = () => isMockMode() || fallbackMock
 // 统一归一化为前端期望的 { data: { data: X } } 形状，消除 Mock/真实差异。
 // normalize 逻辑见 ../utils/responseNormalize.js（已抽为可测纯函数）。
 
+// 生产环境（VITE_USE_MOCK=false）必须走真实后端，任何失败都直接抛出，
+// 禁止静默回退 mock。否则用户会突然看到假数据，导致预览/下载等功能失效。
+const PRODUCTION_REAL_MODE = import.meta.env.VITE_USE_MOCK === 'false'
+
 const wrap = (apiFn, mockFn) => async (...args) => {
   if (useMock()) return mockFn(...args)
   try {
     const res = await apiFn(...args)
     return normalize(res.data)
   } catch (err) {
-    // 任何错误（网络 / HTTP 错误）静默回退 mock，保证演示不中断；
-    // 但打日志，避免生产环境后端报错被完全吞掉、无从排查。
+    if (PRODUCTION_REAL_MODE) {
+      // 生产环境：失败直接抛出，让用户看到真实错误，便于排查。
+      console.error('[services] real API failed (production):', err?.message || err)
+      throw err
+    }
+    // 开发/演示：静默回退 mock，保证 UI 可体验。
     console.error('[services] real API failed, falling back to mock:', err?.message || err)
     fallbackMock = true
     return mockFn(...args)
