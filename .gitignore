@@ -85,6 +85,7 @@ docker-data/
 # Backup files
 *.bak
 *.backup
+.backup-*/
 output/
 
 # Claude/WorkBuddy specific
