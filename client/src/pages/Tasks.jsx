@@ -228,9 +228,15 @@ const Tasks = () => {
   const openEdit = (t) => { setEditTarget(t); setError(''); setModalOpen(true) }
 
   // 深链：Dashboard「发起签署任务」→ /tasks?mode=signing 自动打开签署任务弹窗
+  //        Dashboard「新增一般任务」→ /tasks?open=new 自动打开新建任务弹窗
   useEffect(() => {
-    if (searchParams.get('mode') === 'signing') {
+    const mode = searchParams.get('mode')
+    const open = searchParams.get('open')
+    if (mode === 'signing') {
       openNew('signing')
+      setSearchParams({}, { replace: true })
+    } else if (open === 'new') {
+      openNew('regular')
       setSearchParams({}, { replace: true })
     }
     // 仅在挂载时执行一次

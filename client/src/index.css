@@ -212,44 +212,90 @@
   .status-line__more { margin-left: auto; color: rgb(var(--text-3)); font-weight: 600; font-size: var(--text-sm); transition: color var(--dur-fast); text-decoration: none; }
   .status-line__more:hover { color: rgb(var(--text-1)); text-decoration: underline; }
 
-  /* 快捷操作行（CTA 降为内容区次级 outline 操作，橙色仅小面积出现） */
-  .quick-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
-  .quick-actions__label { font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: rgb(var(--text-3)); }
-  .btn-outline-accent { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
-    min-height: 36px; padding: var(--space-2) var(--space-4); font-size: var(--text-sm); font-weight: 600;
-    border-radius: var(--radius-md); border: 1px solid rgb(var(--rgb-accent) / .35);
-    background: transparent; color: rgb(var(--color-accent)); cursor: pointer;
-    transition: background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast); }
-  .btn-outline-accent:hover { background: color-mix(in srgb, rgb(var(--rgb-accent)) 10%, transparent); color: rgb(var(--color-accent)); }
+  /* 快捷操作：状态入口 + 创建入口，圆角胶囊 chips */
+  .quick-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--fluid-section-xl); }
+  .qa-chip { display: inline-flex; align-items: center; gap: var(--space-2);
+    padding: var(--space-2) var(--space-3); border-radius: var(--radius-full); font-size: var(--text-sm); font-weight: 600;
+    text-decoration: none; transition: transform var(--dur-fast), background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast);
+    border: 1px solid rgb(var(--border)); background: rgb(var(--surface)); color: rgb(var(--text-2)); }
+  .qa-chip:hover { transform: translateY(-2px); color: rgb(var(--text-1)); background: rgb(var(--subtle)); }
+  .qa-chip svg { flex: none; }
+  .qa-chip__count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px;
+    padding: 0 6px; border-radius: var(--radius-full); background: rgb(var(--subtle));
+    font-size: var(--text-xs); font-weight: 700; color: rgb(var(--text-1)); }
+  .qa-chip--danger { border-color: rgb(var(--c-danger) / .25); color: rgb(var(--c-danger)); background: rgb(var(--c-danger) / .06); }
+  .qa-chip--danger:hover { background: rgb(var(--c-danger) / .12); color: rgb(var(--c-danger)); }
+  .qa-chip--danger .qa-chip__count { background: rgb(var(--c-danger) / .12); color: rgb(var(--c-danger)); }
+  .qa-chip--warn { border-color: rgb(var(--c-warning) / .25); color: rgb(var(--c-warning)); background: rgb(var(--c-warning) / .08); }
+  .qa-chip--warn:hover { background: rgb(var(--c-warning) / .15); color: rgb(var(--c-warning)); }
+  .qa-chip--warn .qa-chip__count { background: rgb(var(--c-warning) / .15); color: rgb(var(--c-warning)); }
+  .qa-chip--info { border-color: rgb(var(--c-info) / .25); color: rgb(var(--c-info)); background: rgb(var(--c-info) / .08); }
+  .qa-chip--info:hover { background: rgb(var(--c-info) / .15); color: rgb(var(--c-info)); }
+  .qa-chip--info .qa-chip__count { background: rgb(var(--c-info) / .15); color: rgb(var(--c-info)); }
+  .qa-chip--action { border-color: rgb(var(--color-primary) / .25); color: rgb(var(--color-primary)); background: rgb(var(--color-primary) / .08); }
+  .qa-chip--action:hover { background: rgb(var(--color-primary) / .15); color: rgb(var(--color-primary)); }
 
-  /* Hero 问候（有归属感的标题，拉开首屏层次） */
-  .hero { margin-bottom: var(--fluid-section-xl); }
-  .hero__title { font-size: var(--fluid-hero); font-weight: 800; letter-spacing: -.02em; color: rgb(var(--text-1)); line-height: 1.15; }
-  .hero__sub { font-size: var(--fluid-hero-sub); color: rgb(var(--text-2)); margin-top: var(--space-2); font-weight: 500; }
+  /* Hero 横幅（品牌主色卡片，主 CTA + 可编辑欢迎词 + 摘要徽章） */
+  .hero-card { display: grid; grid-template-columns: 1fr auto; gap: var(--space-8);
+    align-items: center; padding: clamp(1.5rem, 3vw, 2.5rem);
+    background: linear-gradient(135deg, rgb(var(--blue-600)) 0%, rgb(var(--blue-700)) 100%);
+    border-radius: var(--radius-xl); color: rgb(var(--on-primary));
+    margin-bottom: var(--fluid-section-xl); box-shadow: var(--shadow-lg); }
+  @media (max-width: 767px) { .hero-card { grid-template-columns: 1fr; gap: var(--space-5); } }
+  .hero-card__title { font-size: var(--fluid-hero); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+  .hero-card__sub { font-size: var(--fluid-hero-sub); opacity: .9; margin-top: var(--space-2);
+    display: flex; align-items: center; gap: var(--space-2); min-height: 32px; }
+  .hero-card__sub-edit { display: flex; align-items: center; gap: var(--space-2); }
+  .hero-card__sub-input { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.35);
+    border-radius: var(--radius-md); padding: 6px 10px; color: rgb(var(--on-primary)); min-width: 260px;
+    font-size: var(--text-sm); outline: none; }
+  .hero-card__sub-input::placeholder { color: rgba(255,255,255,.55); }
+  .hero-card__sub-input:focus { border-color: rgba(255,255,255,.7); box-shadow: 0 0 0 3px rgba(255,255,255,.2); }
+  .hero-card__sub-edit-btn { width: 26px; height: 26px; border-radius: var(--radius-full);
+    background: rgba(255,255,255,.15); border: none; color: rgb(var(--on-primary));
+    display: grid; place-items: center; cursor: pointer; transition: background var(--dur-fast); flex: none; }
+  .hero-card__sub-edit-btn:hover { background: rgba(255,255,255,.28); }
+  .hero-card__sub-btn { width: 26px; height: 26px; border-radius: var(--radius-full);
+    background: rgba(255,255,255,.2); border: none; color: rgb(var(--on-primary));
+    display: grid; place-items: center; cursor: pointer; transition: background var(--dur-fast); flex: none; }
+  .hero-card__sub-btn:hover { background: rgba(255,255,255,.35); }
+  .hero-card__cta { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-4); }
+  @media (max-width: 767px) { .hero-card__cta { align-items: flex-start; } }
+  .hero-card__btn { display: inline-flex; align-items: center; gap: var(--space-2);
+    padding: var(--space-3) var(--space-5); background: rgb(var(--on-primary)); color: rgb(var(--blue-700));
+    border-radius: var(--radius-lg); font-weight: 700; text-decoration: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18); transition: transform var(--dur-fast), box-shadow var(--dur-fast); }
+  .hero-card__btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.22); }
+  .hero-card__btn svg { flex: none; }
+  .hero-card__badges { display: flex; gap: var(--space-3); flex-wrap: wrap; justify-content: flex-end; }
+  @media (max-width: 767px) { .hero-card__badges { justify-content: flex-start; } }
+  .hero-card__badge { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: 600;
+    background: rgba(255,255,255,.14); padding: 6px 12px; border-radius: var(--radius-full); }
+  .hero-card__badge i { width: 7px; height: 7px; border-radius: var(--radius-full); flex: none; }
+  .hero-card__badge--danger i { background: rgb(var(--c-danger)); }
+  .hero-card__badge--warn i { background: rgb(var(--c-warning)); }
+  .hero-card__badge--info i { background: rgb(var(--on-primary)); opacity: .9; }
 
-  /* 核心指标 2x4 网格（无框大气版：蓝大数字 + 极淡发丝线 + 角落淡图标 + 趋势微标注） */
-  .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0;
+  /* 核心指标 2x4 网格（卡片版：白底 + 柔阴影 + 左上图标 + 蓝大数字 + 趋势微标注） */
+  .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4);
     margin-bottom: var(--fluid-section-xl); max-width: 1680px; margin-left: auto; margin-right: auto; }
   @media (min-width: 768px) { .metric-grid { grid-template-columns: repeat(4, 1fr); } }
-  .metric-card { position: relative; display: block; padding: var(--fluid-metric-pad); background: transparent; border: none; box-shadow: none;
-    text-decoration: none; color: inherit; cursor: pointer;
-    transition: background var(--dur-base) var(--ease-in); }
-  .metric-card:hover { background: rgb(var(--subtle)); }
+  .metric-card { position: relative; display: block; padding: var(--fluid-metric-pad);
+    background: rgb(var(--surface)); border: 1px solid rgb(var(--border)); border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm); text-decoration: none; color: inherit; cursor: pointer;
+    transition: transform var(--dur-base) var(--ease-in), box-shadow var(--dur-base) var(--ease-in), border-color var(--dur-fast); }
+  .metric-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: rgb(var(--blue-200)); }
+  .dark .metric-card:hover { border-color: rgb(var(--blue-800)); }
   .metric-card:focus-visible { outline: 2px solid rgb(var(--color-primary)); outline-offset: 2px; }
-  .metric-card:not(:nth-child(4n)) { border-right: none; }
-  @media (max-width: 767px) { .metric-card:not(:nth-child(2n)) { border-right: none; } }
-  .metric-card:nth-child(n+5) { border-top: 1px solid rgb(var(--border)); }
-  .metric-card .m-label { font-size: var(--text-xs); color: rgb(var(--text-3)); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .metric-card .m-label { font-size: var(--text-sm); color: rgb(var(--text-2)); font-weight: 600; }
   .metric-card .m-value { font-size: var(--fluid-mvalue); font-weight: 800; letter-spacing: -.04em; line-height: 1;
-    color: rgb(var(--color-primary)); font-variant-numeric: tabular-nums; margin-top: var(--space-2);
-    transition: transform var(--dur-base) var(--ease-in); }
-  .metric-card:hover .m-value { transform: translateY(-2px); }
+    color: rgb(var(--color-primary)); font-variant-numeric: tabular-nums; margin-top: var(--space-1); }
   .dark .metric-card .m-value { color: rgb(var(--blue-400)); }
-  .metric-card .m-ico { position: absolute; top: var(--space-5); right: var(--space-5); width: 34px; height: 34px;
-    border-radius: var(--radius-md); color: rgb(var(--border)); display: grid; place-items: center;
-    opacity: .55; transition: opacity var(--dur-fast), color var(--dur-fast); }
-  .metric-card:hover .m-ico { opacity: 1; color: rgb(var(--text-3)); }
-  .metric-card .m-ico svg { width: 18px; height: 18px; }
+  .metric-card .m-ico { width: 40px; height: 40px; border-radius: var(--radius-lg);
+    background: rgb(var(--blue-100)); color: rgb(var(--blue-600)); display: grid; place-items: center;
+    margin-bottom: var(--space-4); }
+  .dark .metric-card .m-ico { background: rgba(96,165,250,.15); color: rgb(var(--blue-400)); }
+  .metric-card .m-ico svg { width: 20px; height: 20px; }
   .metric-card .m-trend { display: inline-flex; align-items: center; gap: 4px; margin-top: var(--space-3);
     font-size: var(--text-xs); font-weight: 600; color: rgb(var(--text-3));
     font-variant-numeric: tabular-nums; letter-spacing: .01em; }

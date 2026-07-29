@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { companyService, personnelService, documentService, meetingService, complianceReminderService, templateService, taskService } from '../services/index.js'
 import { formatDate } from '../utils/helpers'
 import { LoadingSpinner } from '../components/UIHelpers'
@@ -7,11 +7,14 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import {
   Building2, Users, FileText, Calendar, Clock, PenLine, CheckCircle2, FileCode,
   RefreshCw, Settings, Briefcase, SlidersHorizontal, LogOut,
+  Pencil, X, Check, ArrowRight, PlusCircle, AlertCircle, AlertTriangle,
 } from 'lucide-react'
 
+const SUBTITLE_KEY = 'csms.dashboardSubtitle'
+
 export default function Dashboard() {
-  const { logout } = useAuth()
-  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+  const displayName = user?.name || '林才贺'
   const [stats, setStats] = useState(null)
   const [upcomingMeetings, setUpcomingMeetings] = useState([])
   const [upcomingReminders, setUpcomingReminders] = useState([])
@@ -24,6 +27,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [_lastRefreshed, setLastRefreshed] = useState(null)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [customSubtitle, setCustomSubtitle] = useState(() => localStorage.getItem(SUBTITLE_KEY) || '')
+  const [editingSubtitle, setEditingSubtitle] = useState(false)
+  const [draftSubtitle, setDraftSubtitle] = useState('')
   const accountRef = useRef(null)
   const triggerRef = useRef(null)
   const menuRef = useRef(null)
@@ -158,6 +164,37 @@ export default function Dashboard() {
     return '晚上好'
   }
 
+  // 动态默认欢迎副标题：用真实数据，不再硬编码"3家公司"
+  const defaultSubtitle = useMemo(() => {
+    const parts = []
+    if (stats) {
+      parts.push(`监管 ${stats.activeCompanies} 家公司`)
+      if (pendingTasksCount) parts.push(`${pendingTasksCount} 项待办`)
+      if (expiredReminders.length) parts.push(`${expiredReminders.length} 项逾期`)
+      if (upcomingReminders.length) parts.push(`${upcomingReminders.length} 项即将到期`)
+    }
+    return parts.length ? parts.join(' · ') : '全局合规概览已就绪'
+  }, [stats, pendingTasksCount, expiredReminders.length, upcomingReminders.length])
+
+  const subtitleText = customSubtitle || defaultSubtitle
+
+  const startEditSubtitle = () => {
+    setDraftSubtitle(customSubtitle || defaultSubtitle)
+    setEditingSubtitle(true)
+  }
+  const saveSubtitle = () => {
+    const value = draftSubtitle.trim()
+    if (value) {
+      localStorage.setItem(SUBTITLE_KEY, value)
+      setCustomSubtitle(value)
+    } else {
+      localStorage.removeItem(SUBTITLE_KEY)
+      setCustomSubtitle('')
+    }
+    setEditingSubtitle(false)
+  }
+  const cancelEditSubtitle = () => setEditingSubtitle(false)
+
   // 8 项核心指标（标签 / 数据不变，趋势用预览静态串）
   const metrics = [
     { icon: Building2, label: '公司总数', value: stats?.totalCompanies || 0, trend: '▲ 2 · 较上月', trendCls: 'm-trend--up', to: '/companies' },
@@ -168,6 +205,15 @@ export default function Dashboard() {
     { icon: PenLine, label: '签署任务', value: signTasksCount, trend: '— 持平', trendCls: 'm-trend--flat', to: '/sign-tasks' },
     { icon: Clock, label: '合规提醒', value: upcomingReminders.length, trend: '▲ 1 · 关注', trendCls: 'm-trend--warn', to: '/compliance-reminders' },
     { icon: FileCode, label: '模板', value: templatesCount, trend: '▲ 3 · 本月', trendCls: 'm-trend--up', to: '/templates' },
+  ]
+
+  // 快捷操作：状态快捷入口 + 创建快捷入口
+  const quickActions = [
+    { to: '/compliance-reminders', label: '逾期合规', count: expiredReminders.length, icon: AlertTriangle, tone: 'danger' },
+    { to: '/tasks', label: '紧急任务', count: urgentTasks.length, icon: AlertCircle, tone: 'warn' },
+    { to: '/compliance-reminders', label: '即将到期', count: upcomingReminders.length, icon: Clock, tone: 'info' },
+    { to: '/tasks?open=new', label: '新增一般任务', icon: PlusCircle, tone: 'action' },
+    { to: '/tasks?mode=signing', label: '新增签署任务', icon: PenLine, tone: 'action' },
   ]
 
   // 逾期 + 紧急合并（各取前 3，右侧去色：中性小字 + 中性小圆点）
@@ -211,16 +257,16 @@ export default function Dashboard() {
                 aria-controls="accountMenu"
                 aria-label="账户菜单"
               >
-                <span className="account__avatar">林</span>
-                <span className="account__name">林才贺</span>
+                <span className="account__avatar">{displayName.charAt(0)}</span>
+                <span className="account__name">{displayName}</span>
                 <svg className="account__caret" viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
               <div className="account__menu" id="accountMenu" role="menu" aria-label="账户" ref={menuRef} onKeyDown={handleMenuKeyDown}>
                 <div className="account__menu-head">
-                  <span className="account__avatar account__avatar--lg">林</span>
+                  <span className="account__avatar account__avatar--lg">{displayName.charAt(0)}</span>
                   <div>
-                    <div className="account__menu-name">林才贺</div>
-                    <div className="account__menu-role">Administrator · 监管 3 家公司</div>
+                    <div className="account__menu-name">{displayName}</div>
+                    <div className="account__menu-role">Administrator · 监管 {stats?.activeCompanies || 0} 家公司</div>
                   </div>
                 </div>
                 <button type="button" className="account__item" role="menuitem" onClick={() => { setAccountOpen(false); triggerRef.current?.focus() }}>
@@ -241,35 +287,69 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 快捷操作：生成合规月报（唯一 CTA，outline-accent） */}
-        <div className="quick-actions">
-          <span className="quick-actions__label">快捷操作</span>
-          <button type="button" className="btn-outline-accent" onClick={() => navigate('/compliance-reminders')}>
-            <FileText size={16} />生成合规月报
-          </button>
+        {/* Hero 横幅：主 CTA + 可编辑欢迎词 + 关键摘要徽章 */}
+        <div className="hero-card">
+          <div className="hero-card__main">
+            <h2 className="hero-card__title">{getGreeting()}，{displayName}</h2>
+            <div className="hero-card__sub">
+              {editingSubtitle ? (
+                <div className="hero-card__sub-edit" onClick={e => e.stopPropagation()}>
+                  <input
+                    className="hero-card__sub-input"
+                    value={draftSubtitle}
+                    onChange={e => setDraftSubtitle(e.target.value)}
+                    placeholder={defaultSubtitle}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') saveSubtitle()
+                      if (e.key === 'Escape') cancelEditSubtitle()
+                    }}
+                  />
+                  <button type="button" className="hero-card__sub-btn" onClick={saveSubtitle} title="保存"><Check size={16} /></button>
+                  <button type="button" className="hero-card__sub-btn" onClick={cancelEditSubtitle} title="取消"><X size={16} /></button>
+                </div>
+              ) : (
+                <>
+                  <span>{subtitleText}</span>
+                  <button type="button" className="hero-card__sub-edit-btn" onClick={startEditSubtitle} title="编辑欢迎词"><Pencil size={14} /></button>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="hero-card__cta">
+            <Link to="/compliance-reminders" className="hero-card__btn">
+              <FileText size={18} /> 生成合规月报 <ArrowRight size={16} />
+            </Link>
+            <div className="hero-card__badges">
+              <span className="hero-card__badge hero-card__badge--danger"><i></i>{expiredReminders.length} 项逾期</span>
+              <span className="hero-card__badge hero-card__badge--warn"><i></i>{urgentTasks.length} 项紧急</span>
+              <span className="hero-card__badge hero-card__badge--info"><i></i>{upcomingReminders.length} 项即将到期</span>
+            </div>
+          </div>
         </div>
 
-        {/* 安静状态行（替代 WarningBanner：无色容器 + 小彩点 + 中性小字） */}
-        <div className="status-line" role="status" aria-label="待关注提醒">
-          <span className="status-line__item"><i className="sl-dot sl-dot--danger"></i>{expiredReminders.length} 项逾期合规</span>
-          <span className="status-line__sep">·</span>
-          <span className="status-line__item"><i className="sl-dot sl-dot--warn"></i>{urgentTasks.length} 项紧急任务</span>
-          <span className="status-line__sep">·</span>
-          <span className="status-line__item"><i className="sl-dot sl-dot--info"></i>{upcomingReminders.length} 项即将到期</span>
-          <Link to="/compliance-reminders" className="status-line__more">查看全部 →</Link>
+        {/* 快捷操作：状态入口 + 创建入口，全部可点 */}
+        <div className="quick-actions" role="group" aria-label="快捷操作">
+          {quickActions.map((a, i) => {
+            const Icon = a.icon
+            return (
+              <Link
+                key={i}
+                to={a.to}
+                className={`qa-chip qa-chip--${a.tone}`}
+              >
+                <Icon size={16} />
+                <span>{a.label}</span>
+                {typeof a.count === 'number' && <span className="qa-chip__count">{a.count}</span>}
+              </Link>
+            )
+          })}
         </div>
 
-        {/* Hero 问候 */}
-        <div className="hero">
-          <h2 className="hero__title">{getGreeting()}，林才贺</h2>
-          <p className="hero__sub">这是您 3 家公司的全局合规概览</p>
-        </div>
-
-        {/* 核心指标 2x4 网格（无框大气版） */}
+        {/* 核心指标卡片网格 */}
         <div className="metric-grid">
           {metrics.map((m, i) => (
             <Link to={m.to} className="metric-card" key={i} aria-label={`查看${m.label}`}>
-              <div className="m-ico"><m.icon size={18} /></div>
+              <div className="m-ico"><m.icon size={20} /></div>
               <p className="m-label">{m.label}</p>
               <p className="m-value">{m.value}</p>
               <span className={`m-trend ${m.trendCls}`}>{m.trend}</span>
