@@ -12,6 +12,13 @@ const documentSchema = new mongoose.Schema({
   },
   fileUrl: { type: String },
   fileName: { type: String },
+  // 存储层字段：filename = 存储 key（R2 object key / 本地磁盘文件名），
+  // filepath = 旧兼容路径，originalName = 上传时的原始文件名（下载建议名）
+  // ⚠️ 这些字段若漏定义，mongoose 在 strict 模式下会丢弃 docData.filename，
+  //    导致库里 filename 为空 → /view /download 用 doc.filename 取存储时 404。
+  filename: { type: String },
+  filepath: { type: String },
+  originalName: { type: String },
   category: { type: String, default: 'other' },
   note: { type: String },
   fileSize: { type: Number },
