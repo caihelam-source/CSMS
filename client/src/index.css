@@ -231,9 +231,11 @@
   .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0;
     margin-bottom: var(--fluid-section-xl); max-width: 1680px; margin-left: auto; margin-right: auto; }
   @media (min-width: 768px) { .metric-grid { grid-template-columns: repeat(4, 1fr); } }
-  .metric-card { position: relative; padding: var(--fluid-metric-pad); background: transparent; border: none; box-shadow: none;
-    transition: background var(--dur-base) var(--ease-in); cursor: default; }
+  .metric-card { position: relative; display: block; padding: var(--fluid-metric-pad); background: transparent; border: none; box-shadow: none;
+    text-decoration: none; color: inherit; cursor: pointer;
+    transition: background var(--dur-base) var(--ease-in); }
   .metric-card:hover { background: rgb(var(--subtle)); }
+  .metric-card:focus-visible { outline: 2px solid rgb(var(--color-primary)); outline-offset: 2px; }
   .metric-card:not(:nth-child(4n)) { border-right: none; }
   @media (max-width: 767px) { .metric-card:not(:nth-child(2n)) { border-right: none; } }
   .metric-card:nth-child(n+5) { border-top: 1px solid rgb(var(--border)); }
@@ -265,7 +267,10 @@
   .mini-col__title > svg { width: 18px; height: 18px; color: rgb(var(--color-primary)); }
   .mini-col__more { font-size: var(--text-sm); font-weight: 600; color: rgb(var(--color-primary)); text-decoration: none; }
   .mini-col__more:hover { text-decoration: underline; }
-  .mini-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) 0; }
+  .mini-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) 0;
+    text-decoration: none; color: inherit; cursor: pointer; border-radius: var(--radius-sm); transition: background var(--dur-fast); }
+  .mini-row:hover { background: rgb(var(--subtle)); }
+  .mini-row:focus-visible { outline: 2px solid rgb(var(--color-primary)); outline-offset: 2px; }
   .mini-row + .mini-row { border-top: 1px solid rgb(var(--border)); }
   .mini-row .mr-main { min-width: 0; }
   .mini-row .mr-t { font-size: var(--text-sm); font-weight: 600; color: rgb(var(--text-1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

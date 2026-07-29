@@ -160,14 +160,14 @@ export default function Dashboard() {
 
   // 8 项核心指标（标签 / 数据不变，趋势用预览静态串）
   const metrics = [
-    { icon: Building2, label: '公司总数', value: stats?.totalCompanies || 0, trend: '▲ 2 · 较上月', trendCls: 'm-trend--up' },
-    { icon: Users, label: '人员库', value: stats?.totalPersonnel || 0, trend: '▲ 12 · 本月', trendCls: 'm-trend--up' },
-    { icon: FileText, label: '文档', value: stats?.totalDocuments || 0, trend: '▲ 28 · 本月', trendCls: 'm-trend--up' },
-    { icon: Calendar, label: '会议', value: stats?.totalMeetings || 0, trend: '▲ 3 · 较上月', trendCls: 'm-trend--up' },
-    { icon: CheckCircle2, label: '待办 Task', value: pendingTasksCount, trend: '▼ 4 · 改善', trendCls: 'm-trend--down' },
-    { icon: PenLine, label: '签署任务', value: signTasksCount, trend: '— 持平', trendCls: 'm-trend--flat' },
-    { icon: Clock, label: '合规提醒', value: upcomingReminders.length, trend: '▲ 1 · 关注', trendCls: 'm-trend--warn' },
-    { icon: FileCode, label: '模板', value: templatesCount, trend: '▲ 3 · 本月', trendCls: 'm-trend--up' },
+    { icon: Building2, label: '公司总数', value: stats?.totalCompanies || 0, trend: '▲ 2 · 较上月', trendCls: 'm-trend--up', to: '/companies' },
+    { icon: Users, label: '人员库', value: stats?.totalPersonnel || 0, trend: '▲ 12 · 本月', trendCls: 'm-trend--up', to: '/personnel' },
+    { icon: FileText, label: '文档', value: stats?.totalDocuments || 0, trend: '▲ 28 · 本月', trendCls: 'm-trend--up', to: '/documents' },
+    { icon: Calendar, label: '会议', value: stats?.totalMeetings || 0, trend: '▲ 3 · 较上月', trendCls: 'm-trend--up', to: '/meetings' },
+    { icon: CheckCircle2, label: '待办 Task', value: pendingTasksCount, trend: '▼ 4 · 改善', trendCls: 'm-trend--down', to: '/tasks' },
+    { icon: PenLine, label: '签署任务', value: signTasksCount, trend: '— 持平', trendCls: 'm-trend--flat', to: '/sign-tasks' },
+    { icon: Clock, label: '合规提醒', value: upcomingReminders.length, trend: '▲ 1 · 关注', trendCls: 'm-trend--warn', to: '/compliance-reminders' },
+    { icon: FileCode, label: '模板', value: templatesCount, trend: '▲ 3 · 本月', trendCls: 'm-trend--up', to: '/templates' },
   ]
 
   // 逾期 + 紧急合并（各取前 3，右侧去色：中性小字 + 中性小圆点）
@@ -268,12 +268,12 @@ export default function Dashboard() {
         {/* 核心指标 2x4 网格（无框大气版） */}
         <div className="metric-grid">
           {metrics.map((m, i) => (
-            <div className="metric-card" key={i}>
+            <Link to={m.to} className="metric-card" key={i} aria-label={`查看${m.label}`}>
               <div className="m-ico"><m.icon size={18} /></div>
               <p className="m-label">{m.label}</p>
               <p className="m-value">{m.value}</p>
               <span className={`m-trend ${m.trendCls}`}>{m.trend}</span>
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -288,13 +288,13 @@ export default function Dashboard() {
               <p className="text-ink-3 text-sm py-4 text-center">暂无即将到来的会议</p>
             ) : (
               upcomingMeetings.slice(0, 3).map(m => (
-                <div className="mini-row" key={m._id}>
+                <Link to={`/meetings/${m._id}`} className="mini-row" key={m._id}>
                   <div className="mr-main">
                     <p className="mr-t">{m.title}</p>
                     <p className="mr-s">{m.company?.name} · {m.type?.toUpperCase()}</p>
                   </div>
                   <span className="mr-right">{formatDate(m.scheduledAt)}</span>
-                </div>
+                </Link>
               ))
             )}
           </div>
@@ -307,15 +307,18 @@ export default function Dashboard() {
             {attention.length === 0 ? (
               <p className="text-ink-3 text-sm py-4 text-center">暂无逾期与紧急事项</p>
             ) : (
-              attention.map(({ kind, item }, idx) => (
-                <div className="mini-row" key={`${item._id || kind}-${idx}`}>
-                  <div className="mr-main">
-                    <p className="mr-t">{item.title}</p>
-                    <p className="mr-s">{item.company?.name || '未关联'} · {kind === 'expired' ? '逾期合规' : '紧急任务'}</p>
-                  </div>
-                  <span className="mr-right"><i className="mi-dot"></i>{attentionRight(kind, item)}</span>
-                </div>
-              ))
+              attention.map(({ kind, item }, idx) => {
+                const to = kind === 'expired' ? `/compliance-reminders/${item._id}` : `/tasks/${item._id}`
+                return (
+                  <Link to={to} className="mini-row" key={`${item._id || kind}-${idx}`}>
+                    <div className="mr-main">
+                      <p className="mr-t">{item.title}</p>
+                      <p className="mr-s">{item.company?.name || '未关联'} · {kind === 'expired' ? '逾期合规' : '紧急任务'}</p>
+                    </div>
+                    <span className="mr-right"><i className="mi-dot"></i>{attentionRight(kind, item)}</span>
+                  </Link>
+                )
+              })
             )}
           </div>
         </div>
