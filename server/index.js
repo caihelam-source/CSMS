@@ -26,6 +26,11 @@ const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
 const auditRoutes = require('./routes/audit');
 
+// ── 模型预注册（mongoose 模型需 require 一次才会注册；
+//    Document.generateDocNumber 内部用 mongoose.model('Counter') 取编号计数器，
+//    若 Counter 未注册会抛 "Schema hasn't been registered for model Counter"，导致上传 500）──
+require('./models/Counter');
+
 // ── Middleware ──────────────────────────────────────────────
 const errorHandler = require('./middleware/errorHandler');
 
