@@ -8,8 +8,13 @@ const Task = require('../models/Task')
 const ComplianceReminder = require('../models/ComplianceReminder')
 const { auth } = require('../middleware/auth')
 
-// 跨实体结构化全局搜索：对 公司 / 人员 / 文件 / 会议 / 任务 / 合规提醒 做关键词正则匹配，
-// 归一成 { type, id, title, subtitle, link } 形状，前端按 type 分组展示并跳转。
+// 跨实体结构化全局搜索：公司 / 人员 / 文件 / 会议 / 任务 / 合规提醒。
+// 归一成 { type, id, title, subtitle, link, score } 形状，前端按 type 分组展示并跳转。
+//
+// 搜索增强（中文稳健）：采用"正则子串匹配 + 相关度打分排序"为主路径。
+// 不再优先 MongoDB $text —— $text 依赖词边界分词，对中文（CJK 无空格）分词极弱，
+// 反而会在生产环境（索引已建）漏掉本该命中的中文结果。正则子串对中文/拉丁都友好，
+// 配合打分（exact>prefix>boundary>substring）给出合理的相关度排序，且不挑语言。
 const ENTITIES = [
   {
     type: 'company',
@@ -88,37 +93,66 @@ const ENTITIES = [
 // 转义正则特殊字符，避免用户输入破坏查询
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-// GET /api/search?q=keyword[&limit=5]
+// 单条文档对查询词的相关度打分：
+//   exact(整串相等)=100 > prefix(前缀)=60 > boundary(词/边界匹配)=35 > substring(子串)=15
+// 字段可能是字符串或数组（tags/keywords），统一按多值处理。
+function scoreDoc(doc, fields, qLower) {
+  let best = 0
+  for (const f of fields) {
+    let vals = doc[f]
+    if (vals == null) continue
+    if (!Array.isArray(vals)) vals = [vals]
+    for (let raw of vals) {
+      if (raw == null) continue
+      const v = String(raw).toLowerCase()
+      if (v === qLower) { best = Math.max(best, 100); continue }
+      if (v.startsWith(qLower)) { best = Math.max(best, 60); continue }
+      const idx = v.indexOf(qLower)
+      if (idx >= 0) {
+        const before = idx === 0 ? '' : v[idx - 1]
+        const after = idx + qLower.length >= v.length ? '' : v[idx + qLower.length]
+        // 拉丁文前后非字母数字、或中文相邻（CJK 不在 a-z0-9 范围）均视为边界匹配
+        const boundary = before === '' || after === '' || /[^a-z0-9]/i.test(before) || /[^a-z0-9]/i.test(after)
+        best = Math.max(best, boundary ? 35 : 15)
+      }
+    }
+  }
+  return best
+}
+
+// GET /api/search?q=keyword[&limit=8]
 router.get('/', auth, async (req, res) => {
   try {
     const q = (req.query.q || '').toString().trim()
-    const limit = Math.min(parseInt(req.query.limit, 10) || 5, 20)
+    const limit = Math.min(parseInt(req.query.limit, 10) || 8, 50)
 
     if (!q) {
       return res.json({ data: { data: { results: [], counts: {}, query: '' } } })
     }
 
+    const qLower = q.toLowerCase()
     const regex = new RegExp(escapeRegex(q), 'i')
-    // 搜索增强 M2.1：优先用 $text 全文索引（相关度排序）；索引未就绪时回退正则匹配
-    const queries = ENTITIES.map((e) => {
-      const textQuery = e.model.find(
-        { $text: { $search: q } },
-        { score: { $meta: 'textScore' } },
-      ).sort({ score: { $meta: 'textScore' } }).limit(limit).lean().then((docs) => docs.map(e.map))
-      return textQuery.catch((err) => {
-        const msg = String(err && err.message || '')
-        if (msg.includes('text index') || msg.includes('$text') || msg.includes('text search')) {
-          const or = e.fields.map((f) => ({ [f]: regex }))
-          return e.model.find({ $or: or }).limit(limit).lean().then((docs) => docs.map(e.map))
-        }
-        throw err
-      })
-    })
+    // 多取一些再做打分截断，保证高相关度结果不被 limit 过早截断
+    const fetchLimit = Math.min(limit * 4, 60)
 
-    const settled = await Promise.all(queries)
-    const results = settled.flat()
+    const perEntity = await Promise.all(ENTITIES.map(async (e) => {
+      const or = e.fields.map((f) => ({ [f]: regex }))
+      const docs = await e.model.find({ $or: or }).limit(fetchLimit).lean()
+      const scored = docs
+        .map((d) => ({ doc: d, score: scoreDoc(d, e.fields, qLower) }))
+        .filter((s) => s.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map((s) => ({ ...e.map(s.doc), score: s.score }))
+      return { type: e.type, items: scored }
+    }))
+
+    const results = []
     const counts = {}
-    ENTITIES.forEach((e, i) => { counts[e.type] = settled[i].length })
+    perEntity.forEach((p) => {
+      counts[p.type] = p.items.length
+      p.items.forEach((it) => results.push(it))
+    })
 
     res.json({ data: { data: { results, counts, query: q } } })
   } catch (err) {

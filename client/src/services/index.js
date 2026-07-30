@@ -532,7 +532,7 @@ export const signTaskService = {
 // 真实后端返回 { data: { data: { results, counts, query } } }，与 mock 形状一致，normalize 直接透传。
 export const searchService = {
   globalSearch: wrap(
-    (q) => api.get('/api/search', { params: { q } }),
+    (q, limit) => api.get('/api/search', { params: { q, ...(limit ? { limit } : {}) } }),
     mockSearch.globalSearch,
   ),
 }

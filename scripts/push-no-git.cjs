@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat: demo 模式支持完整功能（运行时 mock）\n\n- 新增 client/src/utils/mockMode.js：支持运行时强制 mock（localStorage forceMock）\n- AuthContext：demo 登录/注册时 setForceMock(true)，真实登录/退出时 setForceMock(false)\n- services/index.js：useMock 改为运行时函数 isMockMode() || fallbackMock，demo 登录立即全量走 mock\n- fileAccess.js：mock 模式下预览/下载/CTC 取字节不再撞真实后端 401；种子数据生成 demo 占位 PDF，上传文件复用 blob URL\n- SignTaskForm：移除 demo-token + real-mode 的拦截弹窗，demo 下可正常发起 CTC/普通签署';
+const COMMIT_MSG = 'feat: 搜索增强 — 中文稳健化 + 全局搜索体验升级\n\n- 后端 /api/search：正则子串匹配为主 + 相关度打分排序(exact>prefix>boundary>substring)，修复 $text 对中文分词弱的漏匹配陷阱；limit 提到 50\n- 前端 GlobalSearch：命中关键词高亮、键盘 ↑↓ 导航选中、Enter 跳选中项、底部"查看全部结果"入口\n- 新增 /search 结果页：跨 6 类实体分组展示、命中高亮、加载更多\n- mock 同步：searchService 支持 limit 参数、globalSearch 返回 score 字段';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

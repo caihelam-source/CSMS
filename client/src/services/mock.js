@@ -1200,7 +1200,7 @@ export const signTasks = {
 // 在内存数据集上做跨实体关键词匹配，归一成与后端 /api/search 一致的形状：
 // { type, id, title, subtitle, link }；前端按 type 分组展示并跳转。
 export const search = {
-  globalSearch: async (q) => {
+  globalSearch: async (q, limit) => {
     await delay();
     const raw = (q || '').toString().trim();
     const empty = { data: { data: { results: [], counts: {}, query: '' } } };
@@ -1273,13 +1273,33 @@ export const search = {
     const matchFields = (obj, fields) =>
       fields.some((f) => obj[f] != null && String(obj[f]).toLowerCase().includes(term))
 
+    // 简单相关度打分（与后端 search.js 一致）：exact=100 > prefix=60 > substring=15
+    const scoreOf = (obj, fields) => {
+      let best = 0
+      for (const f of fields) {
+        let vals = obj[f]
+        if (vals == null) continue
+        if (!Array.isArray(vals)) vals = [vals]
+        for (let raw of vals) {
+          if (raw == null) continue
+          const v = String(raw).toLowerCase()
+          if (v === term) best = Math.max(best, 100)
+          else if (v.startsWith(term)) best = Math.max(best, 60)
+          else if (v.includes(term)) best = Math.max(best, 15)
+        }
+      }
+      return best
+    }
+
     const results = []
     const counts = {}
     defs.forEach((def) => {
+      const cap = limit || def.limit
       const hits = def.arr
         .filter((d) => matchFields(d, def.fields))
-        .slice(0, def.limit)
-        .map(def.map)
+        .map((d) => ({ ...def.map(d), score: scoreOf(d, def.fields) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, cap)
       counts[def.type] = hits.length
       results.push(...hits)
     })

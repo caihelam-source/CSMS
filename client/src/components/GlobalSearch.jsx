@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { Search, CornerDownLeft } from 'lucide-react'
 import { searchService } from '../services'
 
 // 实体类型 → 中文标签 + 徽章配色（分组展示用）
@@ -14,13 +14,27 @@ const TYPE_META = {
 }
 const TYPE_ORDER = ['company', 'personnel', 'document', 'meeting', 'task', 'reminder']
 
+// 命中关键词高亮：把匹配片段包成 <mark>
+function highlight(text, q) {
+  if (!text || !q) return text
+  const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const parts = String(text).split(new RegExp(`(${esc})`, 'gi'))
+  return parts.map((part, i) =>
+    part.toLowerCase() === q.toLowerCase()
+      ? <mark key={i} className="bg-warning/30 text-ink rounded px-0.5">{part}</mark>
+      : <span key={i}>{part}</span>
+  )
+}
+
 export default function GlobalSearch() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
   const containerRef = useRef(null)
+  const activeRef = useRef(null)
   const debounceRef = useRef(null)
 
   // 防抖调用跨实体全局搜索
@@ -31,6 +45,7 @@ export default function GlobalSearch() {
       setResults([])
       setOpen(false)
       setLoading(false)
+      setActiveIndex(0)
       return
     }
     setLoading(true)
@@ -39,6 +54,7 @@ export default function GlobalSearch() {
         const res = await searchService.globalSearch(term)
         const data = res?.data?.data || {}
         setResults(data.results || [])
+        setActiveIndex(0)
         setOpen(true)
       } catch {
         setResults([])
@@ -58,6 +74,11 @@ export default function GlobalSearch() {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
+  // active 项滚动进可视区（键盘导航时）
+  useEffect(() => {
+    if (activeRef.current) activeRef.current.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex])
+
   const go = useCallback((link) => {
     setOpen(false)
     setQuery('')
@@ -65,8 +86,20 @@ export default function GlobalSearch() {
   }, [navigate])
 
   const onKeyDown = (e) => {
-    if (e.key === 'Escape') setOpen(false)
-    if (e.key === 'Enter' && results.length > 0) go(results[0].link)
+    const flat = grouped.flatMap((g) => g.items)
+    if (e.key === 'Escape') { setOpen(false); return }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (flat.length) setActiveIndex((i) => Math.min(i + 1, flat.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (flat.length) setActiveIndex((i) => Math.max(i - 1, 0))
+    } else if (e.key === 'Enter') {
+      if (flat.length) {
+        const item = flat[activeIndex] || flat[0]
+        if (item) go(item.link)
+      }
+    }
   }
 
   const grouped = TYPE_ORDER
@@ -74,6 +107,7 @@ export default function GlobalSearch() {
     .filter((g) => g.items.length > 0)
 
   const total = results.length
+  let vi = -1
 
   return (
     <div ref={containerRef} className="relative px-3 pb-3">
@@ -111,18 +145,39 @@ export default function GlobalSearch() {
                     </span>
                     <span className="text-xs text-ink-3">{g.items.length}</span>
                   </div>
-                  {g.items.map((r) => (
-                    <button
-                      key={`${r.type}-${r.id}`}
-                      onClick={() => go(r.link)}
-                      className="w-full text-left px-4 py-2 hover:bg-canvas flex flex-col"
-                    >
-                      <span className="text-sm font-medium text-ink truncate">{r.title}</span>
-                      {r.subtitle && <span className="text-xs text-ink-3 truncate">{r.subtitle}</span>}
-                    </button>
-                  ))}
+                  {g.items.map((r) => {
+                    vi += 1
+                    const idx = vi
+                    const active = idx === activeIndex
+                    return (
+                      <button
+                        key={`${r.type}-${r.id}`}
+                        ref={active ? activeRef : null}
+                        onMouseEnter={() => setActiveIndex(idx)}
+                        onClick={() => go(r.link)}
+                        className={`w-full text-left px-4 py-2 flex flex-col ${active ? 'bg-primary-50' : 'hover:bg-canvas'}`}
+                      >
+                        <span className="text-sm font-medium text-ink truncate">
+                          {highlight(r.title, query.trim())}
+                        </span>
+                        {r.subtitle && (
+                          <span className="text-xs text-ink-3 truncate">
+                            {highlight(r.subtitle, query.trim())}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               ))}
+
+              <button
+                onClick={() => go(`/search?q=${encodeURIComponent(query.trim())}`)}
+                className="w-full mt-1 px-4 py-2.5 flex items-center justify-center gap-1.5 text-sm font-medium text-primary-700 hover:bg-primary-50 border-t border-hairline"
+              >
+                <CornerDownLeft size={14} />
+                查看全部 {total} 条结果
+              </button>
             </>
           )}
         </div>
