@@ -8,6 +8,7 @@ import { complianceRuleService, companyService } from '../services/index.js'
 import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
+import { toArray } from '../utils/responseNormalize.js'
 import Modal from '../components/Modal'
 import { useConfirm } from '../components/ConfirmDialog'
 
@@ -172,10 +173,13 @@ const ComplianceRules = () => {
         complianceRuleService.getAll(),
         companyService.getAll(),
       ])
-      setRules(rulesRes.data?.data || rulesRes.data || [])
-      setCompanies(compRes.data?.data || compRes.data || [])
+      // 防御：normalize 兜底可能返回非数组（如 { success, count, rules }），
+      // 直接 setState 会让 useSearchFilter / displayRules 的 .filter 抛错白屏
+      setRules(toArray(rulesRes?.data?.data, 'rules'))
+      setCompanies(toArray(compRes?.data?.data, 'companies'))
     } catch {
       setRules([])
+      setCompanies([])
     } finally {
       setLoading(false)
     }
@@ -203,11 +207,14 @@ const ComplianceRules = () => {
     try {
       if (editTarget) {
         const { data: res } = await complianceRuleService.update(editTarget._id, data)
-        setRules(rs => rs.map(r => r._id === editTarget._id ? res : r))
+        // service 统一返回 { data: { data: entity } }，此处 res 已是内层 { data: entity }
+        const updated = res?.data || res
+        setRules(rs => rs.map(r => r._id === editTarget._id ? updated : r))
         toast.success('更新成功')
       } else {
         const { data: res } = await complianceRuleService.create(data)
-        setRules(rs => [res, ...rs])
+        const created = res?.data || res
+        setRules(rs => [created, ...rs])
         toast.success('创建成功')
       }
       setModal(null)
@@ -223,7 +230,10 @@ const ComplianceRules = () => {
     setSaving(true)
     try {
       const { data: res } = await complianceRuleService.generateReminders(editTarget._id, { companyIds })
-      setGenResult({ success: true, message: `成功生成 ${res.remindersGenerated || 0} 条提醒，跳过 ${res.skipped || 0} 条` })
+      // Mock 返回 remindersGenerated，真实后端返回 created，两者都兼容
+      const payload = res?.data || res || {}
+      const generated = payload.remindersGenerated ?? payload.created ?? 0
+      setGenResult({ success: true, message: `成功生成 ${generated} 条提醒，跳过 ${payload.skipped || 0} 条` })
       setTimeout(() => { setModal(null); setGenResult(null) }, 2500)
     } catch (e) {
       setGenResult({ success: false, message: e.response?.data?.message || '生成失败' })

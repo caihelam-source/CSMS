@@ -4,7 +4,9 @@ const react = require('eslint-plugin-react')
 
 module.exports = [
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/.workbuddy/**', '**/client/tmp/**'],
+    // dist* 通配可覆盖构建产物及其历史备份目录（dist、dist.bak.*、dist_prev_* 等），
+    // 这些目录只含压缩产物，既不该被 lint，也可能因权限问题无法被遍历。
+    ignores: ['**/node_modules/', '**/dist*/', '**/build/', '**/.workbuddy/', '**/client/tmp/'],
   },
   // ── 后端（Node / CommonJS）──
   {
@@ -33,7 +35,6 @@ module.exports = [
     settings: { react: { version: 'detect' } },
     rules: {
       ...js.configs.recommended.rules,
-      'react/jsx-no-undef': 'error',
       'react/jsx-uses-vars': 'error',
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-undef': 'error',

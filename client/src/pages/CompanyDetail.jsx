@@ -11,29 +11,10 @@ import Modal from '../components/Modal'
 import { useConfirm } from '../components/ConfirmDialog'
 import DocumentManager from '../components/DocumentManager'
 import { validate, required } from '../utils/validators'
+import { toArray } from '../utils/responseNormalize.js'
 
 // 校验是否为有效 Date 对象（排除 invalid date 与 NaN）
 const isValidDate = (d) => d instanceof Date && !isNaN(d)
-
-/**
- * 防御性数组提取：保证写入列表状态的值一定是数组。
- * 后端主负载键若未被 responseNormalize 的 ENTITY_KEYS 覆盖，
- * normalize 会兜底把整个 body（如 { success, count, rules }）当作 payload，
- * 此时直接 setState 会让后续 .filter / .map 抛错并白屏。
- *
- * @param {unknown} value 归一化后的 payload
- * @param {...string} keys 可能承载数组的候选键名（如 'rules' / 'tasks'）
- * @returns {Array} 始终返回数组，无法提取时返回空数组
- */
-const toArray = (value, ...keys) => {
-  if (Array.isArray(value)) return value
-  if (value && typeof value === 'object') {
-    for (const key of keys) {
-      if (Array.isArray(value[key])) return value[key]
-    }
-  }
-  return []
-}
 
 // 日期偏移（天）
 const shiftDays = (date, days) => {

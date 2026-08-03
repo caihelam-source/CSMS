@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: CompanyDetail 白屏 — 修复 normalize 不识 compliance rules 键\n\n- client/src/utils/responseNormalize.js：ENTITY_KEYS 新增 rule/rules，避免后端 { success, count, rules } 被兜底成对象\n- client/src/pages/CompanyDetail.jsx：loadAll 中 setRules/setTasks 用 asArray 防御性提取数组，杜绝 .filter 报非函数白屏\n- 添加 normalize 注释，提醒新增后端路由时同步补充主负载键';
+const COMMIT_MSG = 'fix: CompanyDetail/ComplianceRules 白屏 — 修复 normalize 不识 rule(s) 键 + 契约对齐\n\n- client/src/utils/responseNormalize.js：ENTITY_KEYS 新增 rule/rules；导出 toArray() 防御性数组提取\n- client/src/pages/CompanyDetail.jsx：loadAll 全部列表态经 toArray，杜绝 .filter 报非函数白屏\n- client/src/pages/ComplianceRules.jsx：fetchAll/handleSave/handleGenerate 契约对齐（解包 res.data、兼容真实后端 created 字段）\n- client/src/utils/responseNormalize.test.js：新增 3 条回归测试（rules 列表/rule 单条/空列表）\n- eslint.config.js：ignores 改 dist* 覆盖构建产物历史备份目录，恢复 ESLint 遍历';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

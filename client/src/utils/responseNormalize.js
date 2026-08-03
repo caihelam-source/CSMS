@@ -30,3 +30,25 @@ export const normalize = (body) => {
   // 4) 兜底：整包作为 payload
   return { data: { data: body } }
 }
+
+/**
+ * 防御性数组提取：保证写入列表状态的值一定是数组。
+ *
+ * normalize 的步骤 4 兜底可能把整个 body（如 { success, count, rules }）当作 payload。
+ * 组件若直接 setState，后续 .filter / .map 会抛
+ * "xxx.filter is not a function" 并导致整页白屏。
+ * 所有列表型 setState 都应经过本函数。
+ *
+ * @param {unknown} value 归一化后的 payload
+ * @param {...string} keys 可能承载数组的候选键名（如 'rules' / 'tasks'）
+ * @returns {Array} 始终返回数组，无法提取时返回空数组
+ */
+export const toArray = (value, ...keys) => {
+  if (Array.isArray(value)) return value
+  if (value && typeof value === 'object') {
+    for (const key of keys) {
+      if (Array.isArray(value[key])) return value[key]
+    }
+  }
+  return []
+}

@@ -21,6 +21,23 @@ test('扁平响应提取主负载实体键 (companies 列表)', () => {
   expect(normalize(body)).toEqual({ data: { data: [{ _id: 'c1' }, { _id: 'c2' }] } })
 })
 
+test('扁平响应提取主负载实体键 (rules 列表) —— 修复 CompanyDetail 白屏', () => {
+  const body = { success: true, count: 2, rules: [{ _id: 'r1', jurisdiction: 'HK' }, { _id: 'r2', jurisdiction: 'ALL' }] }
+  const out = normalize(body)
+  expect(Array.isArray(out.data.data)).toBe(true)
+  expect(out).toEqual({ data: { data: [{ _id: 'r1', jurisdiction: 'HK' }, { _id: 'r2', jurisdiction: 'ALL' }] } })
+})
+
+test('扁平响应提取主负载实体键 (rule 单条)', () => {
+  const body = { success: true, rule: { _id: 'r1', ruleName: 'HK AR' } }
+  expect(normalize(body)).toEqual({ data: { data: { _id: 'r1', ruleName: 'HK AR' } } })
+})
+
+test('rules 空列表也应返回数组而非兜底整包', () => {
+  const body = { success: true, count: 0, rules: [] }
+  expect(normalize(body)).toEqual({ data: { data: [] } })
+})
+
 test('兜底：未知形状整包作为 payload', () => {
   const body = { foo: 'bar' }
   expect(normalize(body)).toEqual({ data: { data: { foo: 'bar' } } })
