@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat: 搜索增强 — 中文稳健化 + 全局搜索体验升级\n\n- 后端 /api/search：正则子串匹配为主 + 相关度打分排序(exact>prefix>boundary>substring)，修复 $text 对中文分词弱的漏匹配陷阱；limit 提到 50\n- 前端 GlobalSearch：命中关键词高亮、键盘 ↑↓ 导航选中、Enter 跳选中项、底部"查看全部结果"入口\n- 新增 /search 结果页：跨 6 类实体分组展示、命中高亮、加载更多\n- mock 同步：searchService 支持 limit 参数、globalSearch 返回 score 字段';
+const COMMIT_MSG = 'feat: 新增生产环境初始化与计数工具脚本\n\n- scripts/seed-prod.js：灌演示数据(10人员+10公司+16任职关联)，DEMO-前缀隔离，--apply/--clear 生产守卫\n- scripts/count-prod.js：生产库计数(company/personnel/links)，模型计数避免集合名陷阱\n- setup-prod.cmd / migrate-apply.cmd：一键初始化/迁移，密码不落盘';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 
