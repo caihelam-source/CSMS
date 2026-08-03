@@ -15,6 +15,26 @@ import { validate, required } from '../utils/validators'
 // 校验是否为有效 Date 对象（排除 invalid date 与 NaN）
 const isValidDate = (d) => d instanceof Date && !isNaN(d)
 
+/**
+ * 防御性数组提取：保证写入列表状态的值一定是数组。
+ * 后端主负载键若未被 responseNormalize 的 ENTITY_KEYS 覆盖，
+ * normalize 会兜底把整个 body（如 { success, count, rules }）当作 payload，
+ * 此时直接 setState 会让后续 .filter / .map 抛错并白屏。
+ *
+ * @param {unknown} value 归一化后的 payload
+ * @param {...string} keys 可能承载数组的候选键名（如 'rules' / 'tasks'）
+ * @returns {Array} 始终返回数组，无法提取时返回空数组
+ */
+const toArray = (value, ...keys) => {
+  if (Array.isArray(value)) return value
+  if (value && typeof value === 'object') {
+    for (const key of keys) {
+      if (Array.isArray(value[key])) return value[key]
+    }
+  }
+  return []
+}
+
 // 日期偏移（天）
 const shiftDays = (date, days) => {
   const d = new Date(date)
@@ -155,13 +175,14 @@ export default function CompanyDetail() {
         complianceRuleService.getAll().catch(() => ({ data: { data: [] } })),
       ])
       setCompany(compRes.data.data)
-      setMeetings(meetRes.data.data || [])
+      // 列表状态一律经 toArray 兜底：即便后端 / normalize 返回非数组也不会白屏
+      setMeetings(toArray(meetRes?.data?.data, 'meetings'))
       if (compRes2) setCompliance(compRes2.data.data)
-      setReminders(remRes?.data?.data || [])
-      setTasks(taskRes?.data?.data || [])
-      setAllPersonnel(persRes?.data?.data || [])
-      setAllCompanies(compsRes?.data?.data || [])
-      setRules(rulesRes?.data?.data || [])
+      setReminders(toArray(remRes?.data?.data, 'reminders'))
+      setTasks(toArray(taskRes?.data?.data, 'tasks'))
+      setAllPersonnel(toArray(persRes?.data?.data, 'personnel', 'personnelList'))
+      setAllCompanies(toArray(compsRes?.data?.data, 'companies'))
+      setRules(toArray(rulesRes?.data?.data, 'rules'))
     } catch (err) {
       // 公司不存在或 id 无效：显示空状态而非强制跳回列表
       setCompany(null)

@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'feat: 新增生产环境初始化与计数工具脚本\n\n- scripts/seed-prod.js：灌演示数据(10人员+10公司+16任职关联)，DEMO-前缀隔离，--apply/--clear 生产守卫\n- scripts/count-prod.js：生产库计数(company/personnel/links)，模型计数避免集合名陷阱\n- setup-prod.cmd / migrate-apply.cmd：一键初始化/迁移，密码不落盘';
+const COMMIT_MSG = 'fix: CompanyDetail 白屏 — 修复 normalize 不识 compliance rules 键\n\n- client/src/utils/responseNormalize.js：ENTITY_KEYS 新增 rule/rules，避免后端 { success, count, rules } 被兜底成对象\n- client/src/pages/CompanyDetail.jsx：loadAll 中 setRules/setTasks 用 asArray 防御性提取数组，杜绝 .filter 报非函数白屏\n- 添加 normalize 注释，提醒新增后端路由时同步补充主负载键';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 
