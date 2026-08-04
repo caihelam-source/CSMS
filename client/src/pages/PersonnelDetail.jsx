@@ -6,6 +6,7 @@ import { personnelService } from '../services/index.js'
 import { formatDate, getStatusColor, docExpiryStatus, DOC_EXPIRY_BADGE } from '../utils/helpers'
 import { downloadDoc } from '../utils/fileAccess'
 import { DetailHeader, EmptyState, SectionSkeleton, taskPriorityColor, FormField, inputClass } from '../components/UIHelpers'
+import Breadcrumbs from '../components/Breadcrumbs'
 
 // 角色元数据：标签 + 图标 + 配色（读时聚合自 Company.links.roles）
 const ROLE_META = {
@@ -149,6 +150,7 @@ export default function PersonnelDetail() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[{ label: 'Personnel', to: '/personnel' }, { label: person?.name || '—' }]} />
       {/* Header */}
       <DetailHeader
         onBack={() => navigate('/personnel')}

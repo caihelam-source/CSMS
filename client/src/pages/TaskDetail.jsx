@@ -8,6 +8,7 @@ import {
 import { taskService, documentService, companyService, signTaskService, complianceReminderService } from '../services/index.js'
 import { formatDate, taskRequiresAttachment, buildCtcDocName } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, DetailHeader, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
+import Breadcrumbs from '../components/Breadcrumbs'
 import TaskLinkedDocument from '../components/TaskLinkedDocument'
 
 const typeLabel = (t) => ({ filing: '申报', compliance: '合规', meeting_prep: '会议准备', document: '文档', follow_up: '跟进', other: '其他' }[t] || t)
@@ -213,6 +214,12 @@ export default function TaskDetail() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[
+        { label: 'Companies', to: '/companies' },
+        { label: task?.company?.name || '未关联公司', to: task?.company?._id ? `/companies/${task.company._id}` : undefined },
+        { label: 'Tasks', to: '/tasks' },
+        { label: task?.title || '—' },
+      ]} />
       <DetailHeader
         onBack={() => navigate('/tasks')}
         title={task.title}

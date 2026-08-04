@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, CornerDownLeft } from 'lucide-react'
+import { Search, CornerDownLeft, Command } from 'lucide-react'
 import { searchService } from '../services'
 
 // 实体类型 → 中文标签 + 徽章配色（分组展示用）
@@ -26,7 +26,7 @@ function highlight(text, q) {
   )
 }
 
-export default function GlobalSearch() {
+export default function GlobalSearch({ onOpenCommand }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -111,17 +111,30 @@ export default function GlobalSearch() {
 
   return (
     <div ref={containerRef} className="relative px-3 pb-3">
-      <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => { if (query.trim()) setOpen(true) }}
-          onKeyDown={onKeyDown}
-          placeholder="搜索公司 / 人员 / 文件 / 会议…"
-          className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-hairline bg-canvas focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-        />
+      <div className="relative flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => { if (query.trim()) setOpen(true) }}
+            onKeyDown={onKeyDown}
+            placeholder="搜索公司 / 人员 / 文件 / 会议…"
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-hairline bg-canvas focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          />
+        </div>
+        {onOpenCommand && (
+          <button
+            type="button"
+            onClick={onOpenCommand}
+            aria-label="打开命令面板"
+            title="命令面板 (⌘K)"
+            className="shrink-0 p-2 rounded-lg text-ink-3 hover:text-ink hover:bg-canvas border border-hairline transition-colors"
+          >
+            <Command size={18} />
+          </button>
+        )}
       </div>
 
       {open && query.trim() && (

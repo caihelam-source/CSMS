@@ -5,31 +5,45 @@ import {
   LayoutDashboard, Calendar, FileText, Building2,
   CheckSquare, LogOut, Menu, X, Briefcase, Crown, Zap,
   Bell, ShieldCheck, FileCode, UserCircle, Settings as SettingsIcon,
-  Sun, Moon, MoreHorizontal,
+  Sun, Moon, MoreHorizontal, FileSignature, CalendarClock,
 } from 'lucide-react'
-import { useState, memo } from 'react'
+import { useState, memo, useEffect } from 'react'
 import GlobalSearch from './GlobalSearch'
+import CommandPalette from './CommandPalette'
 
-// v5.0 导航重组：移除 Directors 独立菜单，按 中央信息库 → 人员 → 文档 → 会议 → 合规 → 任务 排序
-const NAV_ITEMS = [
-  { path: '/dashboard',              icon: LayoutDashboard, label: 'Dashboard',    group: null },
-  { path: '/companies',              icon: Building2,       label: 'Companies',    group: null },
-  { path: '/personnel',              icon: UserCircle,      label: 'Personnel',    group: null },
-  { path: '/documents',              icon: FileText,        label: 'Documents',    group: null },
-  { path: '/meetings',               icon: Calendar,        label: 'Meetings',     group: null },
-  { path: '/tasks',                  icon: CheckSquare,     label: 'Tasks',        group: null },
-  { path: '/compliance-reminders',   icon: Bell,            label: 'Reminders',    group: 'Compliance' },
-  { path: '/compliance-rules',       icon: ShieldCheck,     label: 'Rules',        group: 'Compliance' },
-  { path: '/templates',              icon: FileCode,        label: 'Templates',    group: 'Compliance' },
-  { path: '/settings',              icon: SettingsIcon,     label: 'Settings',    group: null },
+// UX 架构重构（2026-08-03）：IA 四组分组，修复 Sign Tasks 导航孤儿 + Templates 归位
+// 分组顺序与标题由 NAV_GROUPS 驱动，新增组无需改渲染逻辑
+export const NAV_ITEMS = [
+  { path: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard',  group: 'Command' },
+  { path: '/companies',    icon: Building2,       label: 'Companies',  group: 'Command' },
+  { path: '/personnel',    icon: UserCircle,      label: 'Personnel',  group: 'Command' },
+  { path: '/documents',    icon: FileText,        label: 'Documents',  group: 'Operations' },
+  { path: '/meetings',     icon: Calendar,        label: 'Meetings',   group: 'Operations' },
+  { path: '/tasks',        icon: CheckSquare,     label: 'Tasks',      group: 'Operations' },
+  { path: '/sign-tasks',   icon: FileSignature,   label: 'Signatures', group: 'Operations' },
+  { path: '/compliance-reminders', icon: Bell,      label: 'Reminders', group: 'Compliance' },
+  { path: '/compliance-rules',     icon: ShieldCheck, label: 'Rules',   group: 'Compliance' },
+  { path: '/results-timetable', icon: CalendarClock, label: '业绩排期', group: 'Compliance' },
+  { path: '/templates',    icon: FileCode,        label: 'Templates',  group: 'Library' },
+  { path: '/settings',     icon: SettingsIcon,    label: 'Settings',   group: 'System' },
+]
+
+// 侧边栏分组：label=null 表示该组无标题（Command 作为默认起始组）
+export const NAV_GROUPS = [
+  { key: 'Command',    label: null },
+  { key: 'Operations', label: 'Operations' },
+  { key: 'Compliance', label: 'Compliance' },
+  { key: 'Library',    label: 'Library' },
+  { key: 'System',     label: 'System' },
 ]
 
 // 手机端底部 Tab 栏主项（最多 5 个，其余走"更多"抽屉）
-const BOTTOM_TABS = [
+// UX 重构 B5：把高频的「合规 / 签署」提到底部，替换低频的「文档 / 会议」（仍可在"更多"抽屉到达）
+export const BOTTOM_TABS = [
   { path: '/dashboard',  icon: LayoutDashboard, label: '首页' },
   { path: '/companies',  icon: Building2,       label: '公司' },
-  { path: '/documents',  icon: FileText,        label: '文档' },
-  { path: '/meetings',   icon: Calendar,        label: '会议' },
+  { path: '/compliance-reminders', icon: Bell,  label: '合规' },
+  { path: '/sign-tasks', icon: FileSignature,   label: '签署' },
   { path: '/tasks',      icon: CheckSquare,     label: '任务' },
 ]
 
@@ -78,6 +92,18 @@ const Navbar = () => {
   const { user, logout, isAdmin, isDemo } = useAuth()
   const location = useLocation()
   const [open, setOpen] = useState(false)
+  const [cmdOpen, setCmdOpen] = useState(false)
+  // P2 命令面板：⌘K / Ctrl+K 全局唤起（与顶部触发按钮共用同一状态）
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setCmdOpen(o => !o)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
   // M3：统一使用 ThemeContext 单一事实源（此前自写 localStorage('theme') 与设置页不同步）
   const { theme, toggle } = useTheme()
 
@@ -130,24 +156,27 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Global search */}
-        <GlobalSearch />
+        {/* Global search + 命令面板入口（按钮紧贴搜索框右侧，A 方案） */}
+        <GlobalSearch onOpenCommand={() => setCmdOpen(true)} />
 
-        {/* Nav items */}
+        {/* Nav items — 由 NAV_GROUPS 驱动渲染，新增分组无需改动此处 */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <div className="space-y-0.5">
-            {NAV_ITEMS.filter(i => !i.group).map(item => (
-              <NavItem key={item.path} {...item} active={isActive(item.path)} onClick={closeMobile} />
-            ))}
-          </div>
-          <div className="mt-4">
-            <p className="px-3 text-xs font-semibold text-ink-3 uppercase tracking-widest pb-1.5">Compliance</p>
-            <div className="space-y-0.5">
-              {NAV_ITEMS.filter(i => i.group === 'Compliance').map(item => (
-                <NavItem key={item.path} {...item} active={isActive(item.path)} onClick={closeMobile} />
-              ))}
-            </div>
-          </div>
+          {NAV_GROUPS.map(group => {
+            const items = NAV_ITEMS.filter(i => i.group === group.key)
+            if (!items.length) return null
+            return (
+              <div key={group.key} className={group.key === 'Command' ? '' : 'mt-4'}>
+                {group.label && (
+                  <p className="px-3 text-xs font-semibold text-ink-3 uppercase tracking-widest pb-1.5">{group.label}</p>
+                )}
+                <div className="space-y-0.5">
+                  {items.map(item => (
+                    <NavItem key={item.path} {...item} active={isActive(item.path)} onClick={closeMobile} />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
           {isAdmin && (
             <>
               <div className="pt-3 pb-1">
@@ -200,6 +229,9 @@ const Navbar = () => {
           <span className="text-[11px] leading-none">更多</span>
         </button>
       </nav>
+
+      {/* P2 命令面板 ⌘K */}
+      <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} />
     </>
   )
 }

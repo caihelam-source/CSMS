@@ -11,6 +11,7 @@ import { formatDate, MEETING_TYPE_LABELS as TYPES, fmtDate, fmtTime, buildPhases
 import { downloadDoc } from '../utils/fileAccess'
 import { validate, required } from '../utils/validators'
 import { LoadingSpinner, DetailHeader, FormField, inputClass, InfoCard, TabNav, CompleteWithAttachmentModal } from '../components/UIHelpers'
+import Breadcrumbs from '../components/Breadcrumbs'
 import Modal from '../components/Modal'
 
 // Phase icon mapping — uses shared buildPhasesWithIcons
@@ -591,6 +592,12 @@ export default function MeetingDetail() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[
+        { label: 'Companies', to: '/companies' },
+        { label: meeting?.company?.name || '未关联公司', to: meeting?.company?._id ? `/companies/${meeting.company._id}` : undefined },
+        { label: 'Meetings', to: '/meetings' },
+        { label: meeting?.title || '—' },
+      ]} />
       {/* Header */}
       <DetailHeader
         onBack={() => navigate('/meetings')}

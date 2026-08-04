@@ -8,6 +8,7 @@ import {
 import { complianceReminderService, taskService, documentService } from '../services/index.js'
 import { formatDate } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, compliancePriorityColor, complianceStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
+import Breadcrumbs from '../components/Breadcrumbs'
 
 export default function ComplianceReminderDetail() {
   const { id } = useParams()
@@ -116,6 +117,12 @@ export default function ComplianceReminderDetail() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[
+        { label: 'Companies', to: '/companies' },
+        { label: reminder?.company?.name || '未关联公司', to: reminder?.company?._id ? `/companies/${reminder.company._id}` : undefined },
+        { label: 'Compliance', to: '/compliance-reminders' },
+        { label: reminder?.title || '—' },
+      ]} />
       <div className="flex items-center gap-4">
         <button onClick={() => navigate('/compliance-reminders')} className="p-2 hover:bg-canvas rounded-lg transition-colors"><ArrowLeft size={20} /></button>
         <div className="flex-1">
