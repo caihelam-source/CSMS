@@ -297,7 +297,12 @@ export default function Personnel() {
       {loading ? (
         <LoadingSpinner size="lg" />
       ) : filtered.length === 0 ? (
-        <EmptyState icon={Users} title="No personnel found" />
+        <EmptyState
+          icon={Users}
+          title="还没有人员"
+          description="录入第一位董事、股东或公司秘书，建立统一人员库"
+          action={<button onClick={openCreate} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加人员</button>}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map(p => {

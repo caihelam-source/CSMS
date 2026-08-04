@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import Modal from './Modal'
-import { AlertTriangle, Paperclip } from 'lucide-react'
+import { AlertTriangle, Paperclip, Plus } from 'lucide-react'
 
 /**
  * LoadingSpinner — reusable loading indicator
@@ -29,12 +29,16 @@ export const LoadingSpinner = ({ size = 'md', text = '', variant = 'centered', c
  * EmptyState — reusable empty state placeholder
  * Usage: <EmptyState icon={FileText} title="暂无数据" description="点击添加" action={<button>...</button>} />
  */
-export const EmptyState = ({ icon: Icon, title = '暂无数据', description = '', action = null }) => (
-  <div className="text-center py-16 text-ink-3">
-    {Icon && <Icon size={48} className="mx-auto mb-4 opacity-30" />}
-    <p className="text-lg font-medium text-ink-2 mb-1">{title}</p>
-    {description && <p className="text-sm text-ink-3 mb-4">{description}</p>}
-    {action}
+export const EmptyState = ({ icon: Icon, title = '暂无数据', description = '', action = null, compact = false }) => (
+  <div className={`flex flex-col items-center justify-center text-center ${compact ? 'py-10' : 'py-16'}`}>
+    {Icon && (
+      <div className={`mb-4 rounded-2xl bg-subtle flex items-center justify-center ${compact ? 'p-3' : 'p-4'}`}>
+        <Icon size={compact ? 28 : 36} className="text-ink-3" />
+      </div>
+    )}
+    <p className={`font-semibold text-ink ${compact ? 'text-sm' : 'text-base'}`}>{title}</p>
+    {description && <p className="mt-1 text-sm text-ink-3 max-w-sm">{description}</p>}
+    {action && <div className="mt-5">{action}</div>}
   </div>
 )
 
@@ -275,6 +279,51 @@ export const TabNav = ({ tabs, active, onChange }) => (
         }`}>
         {Icon && <Icon size={16} />}
         {label}
+      </button>
+    ))}
+  </div>
+)
+
+/**
+ * Toggle — accessible controlled switch (role="switch", aria-checked)
+ * 选中态主题蓝、未选中态中性灰；支持键盘聚焦与 screen reader。
+ * Usage: <Toggle checked={on} onChange={setOn} label="邮件通知" />
+ */
+export const Toggle = ({ checked = false, onChange, label, className = '' }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    onClick={() => onChange?.(!checked)}
+    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${checked ? 'bg-primary-600' : 'bg-ink-3/40'} ${className}`}
+  >
+    <span className={`inline-block h-5 w-5 transform rounded-full bg-surface shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
+  </button>
+)
+
+/**
+ * TabActionBar — 公司工作台各 Tab 统一的「标题(计数) + ＋新建」头部（UX 重构 B3）。
+ * 用单一组件保证：位置(右对齐)、样式(btn-primary + Plus)、间距 全站一致，
+ * 杜绝各 Tab 自行散落按钮导致的入口不一致。
+ * 用法：
+ *   <TabActionBar title="董事、股东及公司秘书" count={links.length} actionLabel="添加关联人员" onAction={openAddLink} />
+ *   // 或跳转到独立页：
+ *   <TabActionBar title="合规提醒" count={n} actionLabel="新增提醒" actionTo="/compliance-reminders/new" />
+ */
+export const TabActionBar = ({ title, count, actionLabel, onAction, actionTo, actionIcon: ActionIcon = Plus, className = '' }) => (
+  <div className={`flex items-center justify-between gap-3 mb-4 ${className}`}>
+    <h2 className="text-lg font-semibold">
+      {title}
+      {count != null && <span className="text-ink-3 text-sm font-normal ml-2">({count})</span>}
+    </h2>
+    {actionLabel && (actionTo ? (
+      <Link to={actionTo} className="btn-primary flex items-center gap-1.5 text-sm shrink-0">
+        <ActionIcon size={14} /> {actionLabel}
+      </Link>
+    ) : (
+      <button onClick={onAction} className="btn-primary flex items-center gap-1.5 text-sm shrink-0">
+        <ActionIcon size={14} /> {actionLabel}
       </button>
     ))}
   </div>

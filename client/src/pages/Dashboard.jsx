@@ -6,7 +6,7 @@ import { LoadingSpinner } from '../components/UIHelpers'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import {
   Building2, Users, FileText, Calendar, Clock, PenLine, CheckCircle2, FileCode,
-  RefreshCw, Settings, Briefcase, SlidersHorizontal, LogOut,
+  RefreshCw, LogOut,
   Pencil, X, Check, ArrowRight, PlusCircle, AlertCircle, AlertTriangle,
 } from 'lucide-react'
 
@@ -270,15 +270,7 @@ export default function Dashboard() {
                     <div className="account__menu-role">Administrator · 监管 {stats?.activeCompanies || 0} 家公司</div>
                   </div>
                 </div>
-                <button type="button" className="account__item" role="menuitem" onClick={() => { setAccountOpen(false); triggerRef.current?.focus() }}>
-                  <Settings size={17} />个人设置
-                </button>
-                <button type="button" className="account__item" role="menuitem" onClick={() => { setAccountOpen(false); triggerRef.current?.focus() }}>
-                  <Briefcase size={17} />切换公司
-                </button>
-                <button type="button" className="account__item" role="menuitem" onClick={() => { setAccountOpen(false); triggerRef.current?.focus() }}>
-                  <SlidersHorizontal size={17} />偏好与主题
-                </button>
+                {/* 个人设置 / 切换公司 / 偏好与主题 暂未实现，先隐藏避免空操作（UX 重构 B7） */}
                 <div className="account__divider"></div>
                 <button type="button" className="account__item account__item--danger" role="menuitem" onClick={() => { setAccountOpen(false); triggerRef.current?.focus(); logout() }}>
                   <LogOut size={17} />退出登录

@@ -222,7 +222,12 @@ export default function Companies() {
       {loading ? (
         <LoadingSpinner size="lg" />
       ) : filtered.length === 0 ? (
-        <EmptyState icon={Building2} title="No companies found" />
+        <EmptyState
+          icon={Building2}
+          title="还没有公司"
+          description="添加第一家公司，开始集中管理你的公司秘书事务"
+          action={<button onClick={openNew} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加公司</button>}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(c => (

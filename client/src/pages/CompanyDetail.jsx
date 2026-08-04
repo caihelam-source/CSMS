@@ -6,10 +6,12 @@ import { companyService, documentService, meetingService, personnelService, comp
 import EquityGraph from './EquityGraph'
 import { formatDate, getStatusColor, generateDocFilename, saveBlob } from '../utils/helpers'
 import { inferRegion } from '../utils/regionHelpers'
-import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, TabNav, taskPriorityColor, jurisdictionLabel } from '../components/UIHelpers'
+import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, TabNav, TabActionBar, taskPriorityColor, jurisdictionLabel } from '../components/UIHelpers'
+import Breadcrumbs from '../components/Breadcrumbs'
 import Modal from '../components/Modal'
 import { useConfirm } from '../components/ConfirmDialog'
 import DocumentManager from '../components/DocumentManager'
+import TaskForm from '../components/TaskForm'
 import { validate, required } from '../utils/validators'
 import { toArray } from '../utils/responseNormalize.js'
 
@@ -93,6 +95,8 @@ export default function CompanyDetail() {
   const [compliance, setCompliance] = useState(null)
   const [reminders, setReminders] = useState([])
   const [tasks, setTasks] = useState([])
+  const [taskModalOpen, setTaskModalOpen] = useState(false)
+  const [taskSaving, setTaskSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('info')
   const [showLinkModal, setShowLinkModal] = useState(false)
@@ -424,6 +428,24 @@ export default function CompanyDetail() {
       saveAsRule: false, ruleName: '', ruleCategory: 'other', ruleFrequency: 'annual',
     })
     setShowReminderModal(true)
+  }
+
+  // B3：公司工作台 tasks Tab 的「＋新建任务」入口（预填本公司，把中枢做实）
+  const openAddTask = () => setTaskModalOpen(true)
+  const handleCreateTask = async (payload) => {
+    setTaskSaving(true)
+    try {
+      await taskService.create({ ...payload, company: id })
+      toast.success('任务已创建')
+      setTaskModalOpen(false)
+      // 仅局部刷新任务列表，避免整页重载闪烁
+      const taskRes = await taskService.getByCompany(id).catch(() => ({ data: { data: [] } }))
+      setTasks(toArray(taskRes?.data?.data, 'tasks'))
+    } catch {
+      toast.error('创建任务失败')
+    } finally {
+      setTaskSaving(false)
+    }
   }
 
   // 选择 Rule 时自动填充（标题/描述/优先级 + 按规则类型计算到期日预览）
@@ -779,6 +801,7 @@ export default function CompanyDetail() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[{ label: 'Companies', to: '/companies' }, { label: company?.name || '—' }]} />
       {/* Header */}
       <DetailHeader
         onBack={() => navigate('/companies')}
@@ -1040,12 +1063,12 @@ export default function CompanyDetail() {
       {/* People Tab */}
       {activeTab === 'people' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">董事、股东及公司秘书</h2>
-            <button onClick={openAddLink} className="btn-primary flex items-center gap-2 text-sm">
-              <Plus size={16} /> Add Link
-            </button>
-          </div>
+          <TabActionBar
+            title="董事、股东及公司秘书"
+            count={(directors?.length || 0) + (shareholders?.length || 0) + (secretaries?.length || 0)}
+            actionLabel="添加关联人员"
+            onAction={openAddLink}
+          />
 
           {/* Directors Section */}
           <div className="card">
@@ -1088,12 +1111,13 @@ export default function CompanyDetail() {
       {/* Documents Tab — 统一文档管理 */}
       {activeTab === 'documents' && (
         <div className="space-y-4">
-          <div className="flex justify-end">
-            <button onClick={() => { setRelForm({ name: '', type: 'other', meetingId: '', file: null }); setUploadRelOpen(true) }}
-              className="btn-secondary flex items-center gap-1.5 text-sm">
-              <Upload size={14} /> 上传并关联会议
-            </button>
-          </div>
+          <TabActionBar
+            title="文件"
+            count={documents.length}
+            actionLabel="上传并关联会议"
+            actionIcon={Upload}
+            onAction={() => { setRelForm({ name: '', type: 'other', meetingId: '', file: null }); setUploadRelOpen(true) }}
+          />
           <DocumentManager companyId={id} embedded showExport onDocumentsChange={setDocuments} />
         </div>
       )}
@@ -1188,11 +1212,14 @@ export default function CompanyDetail() {
       {/* Tasks Tab — 公司关联任务 */}
       {activeTab === 'tasks' && (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold">关联任务 ({tasks.length})</h2>
+          <TabActionBar title="关联任务" count={tasks.length} actionLabel="新增任务" onAction={openAddTask} />
           {tasks.length === 0 ? (
             <div className="card text-center py-10 text-ink-3">
               <CheckSquare size={40} className="mx-auto mb-3 opacity-50" />
-              <p>暂无关联任务</p>
+              <p className="mb-3">暂无关联任务</p>
+              <button onClick={openAddTask} className="btn-primary flex items-center gap-1.5 text-sm mx-auto">
+                <Plus size={14} /> 新增任务
+              </button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1213,20 +1240,27 @@ export default function CompanyDetail() {
         </div>
       )}
 
+      {/* B3：公司工作台「＋新建任务」Modal（复用共享 TaskForm，预填本公司） */}
+      <Modal isOpen={taskModalOpen} onClose={() => setTaskModalOpen(false)} title="新增任务" size="md">
+        <TaskForm
+          initial={{ company: id }}
+          onSave={handleCreateTask}
+          onCancel={() => setTaskModalOpen(false)}
+          loading={taskSaving}
+        />
+      </Modal>
+
       {/* Compliance Tab */}
       {activeTab === 'compliance' && (
         <div className="space-y-4">
           {/* 合规提醒列表 + 新增入口 */}
+          <TabActionBar
+            title="合规提醒"
+            count={reminders.length}
+            actionLabel="新增提醒"
+            onAction={openAddReminder}
+          />
           <div className="card">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">合规提醒 ({reminders.length})</h3>
-              <div className="flex items-center gap-3">
-                <Link to="/compliance-reminders" className="text-sm text-primary-600 hover:underline">查看全部</Link>
-                <button onClick={openAddReminder} className="btn-primary flex items-center gap-1 text-sm py-1.5 px-3">
-                  <Plus size={14} /> 新增提醒
-                </button>
-              </div>
-            </div>
             {reminders.length === 0 ? (
               <p className="text-sm text-ink-3">暂无与该公司的合规提醒，点击"新增提醒"添加</p>
             ) : (
