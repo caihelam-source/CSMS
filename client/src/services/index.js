@@ -15,6 +15,7 @@ import {
   signTasks as mockSignTasks,
   search as mockSearch,
   audit as mockAudit,
+  schedules as mockSchedules,
 } from './mock.js'
 
 // 生产环境通过 VITE_USE_MOCK=false 注入真实 API 模式
@@ -369,6 +370,36 @@ export const taskService = {
     (personnelId) => api.get(`/api/tasks${buildParams({ personnelId })}`),
     mockTasks.getByPersonnel,
   ),
+}
+
+// ====== Results Timetable Service（港股业绩公告排期）======
+export const scheduleService = {
+  generate: wrap(
+    (payload) => api.post('/api/results-timetable/generate', payload),
+    mockSchedules.generate,
+  ),
+  list: wrap(
+    (params) => api.get(`/api/results-timetable/list${buildParams(params)}`),
+    mockSchedules.list,
+  ),
+  getOne: wrap(
+    (id) => api.get(`/api/results-timetable/${id}`),
+    mockSchedules.getOne,
+  ),
+  // 下载 Excel 走 blob（不归一化）；mock 模式提示切真实后端
+  excelDownload: async (id) => {
+    if (useMock()) return mockSchedules.excelDownload(id);
+    const res = await api.get(`/api/results-timetable/${id}/excel`, { responseType: 'blob' });
+    const url = window.URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '1321_业绩排期.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    return { ok: true };
+  },
 }
 
 // ====== Compliance Rule Service ======

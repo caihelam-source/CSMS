@@ -25,6 +25,7 @@ const PersonnelDetail = lazy(() => import('./pages/PersonnelDetail'))
 const AdminPanel = lazy(() => import('./pages/AdminPanel'))
 const Settings = lazy(() => import('./pages/Settings'))
 const SearchResults = lazy(() => import('./pages/SearchResults'))
+const ResultsTimetable = lazy(() => import('./pages/ResultsTimetable'))
 
 // Spinner used during auth check and lazy loading
 const Spinner = () => (
@@ -94,6 +95,7 @@ function App() {
           <Route path="personnel/:id" element={<LazyPage><PersonnelDetail /></LazyPage>} />
           <Route path="tasks" element={<LazyPage><Tasks /></LazyPage>} />
           <Route path="tasks/:id" element={<LazyPage><TaskDetail /></LazyPage>} />
+          <Route path="results-timetable" element={<LazyPage><ResultsTimetable /></LazyPage>} />
           <Route path="compliance-rules" element={<LazyPage><ComplianceRules /></LazyPage>} />
           <Route path="compliance-reminders" element={<LazyPage><ComplianceReminders /></LazyPage>} />
           <Route path="compliance-reminders/:id" element={<LazyPage><ComplianceReminderDetail /></LazyPage>} />

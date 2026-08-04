@@ -9,7 +9,7 @@ const taskSchema = new mongoose.Schema({
   description: String,
   type: {
     type: String,
-    enum: ['filing', 'compliance', 'meeting_preparation', 'document_review', 'signing', 'other'],
+    enum: ['filing', 'compliance', 'meeting_preparation', 'document_review', 'signing', 'other', 'results_timetable'],
     required: true
   },
   company: {
@@ -34,6 +34,17 @@ const taskSchema = new mongoose.Schema({
     enum: ['pending', 'in_progress', 'completed', 'overdue'],
     default: 'pending'
   },
+  // ---- 业绩排期（results_timetable）关联字段 ----
+  resultsTimetable: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ResultsTimetable'
+  },
+  ruleReference: { type: String },          // 上市规则依据（来源于排期任务 B 列）
+  timetablePeriod: {
+    type: String,
+    enum: ['interim', 'annual']
+  },
+  startDate: { type: Date },                // 排期启动日（原 Task 仅有 dueDate=截止日）
   dueDate: {
     type: Date,
     required: true

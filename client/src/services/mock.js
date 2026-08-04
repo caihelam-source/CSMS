@@ -1307,3 +1307,37 @@ export const search = {
     return { data: { data: { results, counts, query: raw } } };
   },
 };
+
+// ====== 业绩排期 Mock（CSMS 集成 POC）======
+// 仅用于 UI 预览；真实生成请切换 VITE_USE_MOCK=false 走后端引擎。
+const SAMPLE_TIMETABLE = {
+  id: 'rt-mock-1',
+  period: 'interim',
+  anchors: { T0: '2026-06-30', T1: '2026-08-20', T2: '2026-09-22' },
+  items: [
+    { index: 1, category: '中期业绩', rule: '附录10 A.3：中期业绩公告前30天内董事不得买卖', title: '禁止买卖期启动+FF05通知HKEX（覆盖1321/2271/672）', priority: '最高优', status: '未启动', project: '中期业绩', owner: '林才贺', agency: '律师(WFW)', startDate: '2026-07-21', endDate: '2026-07-21', file: 'FF005(中期)', note: 'T1-30=7/21' },
+    { index: 2, category: '董事会', rule: '上市规则第13.43条', title: '董事会会议日期公告上载ESS（经ESS）及公司网站', priority: '高优', status: '未启动', project: '董事会', owner: '林才贺/李云巧', agency: '印刷商', startDate: '2026-08-10', endDate: '2026-08-10', file: '董事会日期公告', note: 'T1-10=8/10' },
+    { index: 3, category: '中期报告', rule: '上市规则13.46(2)', title: '上传中期报告至HKEX(ESS)+公司网站（收盘后）', priority: '最高优', status: '未启动', project: '中期报告', owner: '林才贺/李云巧', agency: '印刷商', startDate: '2026-09-22', endDate: '2026-09-22', file: 'ESS上传确认', note: '★9/22 after hours' },
+    { index: 4, category: '中期报告', rule: '（如有）中期股息', title: '派发股息支票（如有）', priority: '中优', status: '未启动', project: '中期报告', owner: '林才贺', agency: '银行/股份过户处', startDate: '2026-09-30', endDate: '2026-09-30', file: '股息支票', note: 'T2+8=9/30' },
+    { index: 5, category: '中期报告', rule: '印刷实务：付印前须与印刷商确认印数', title: '与印刷商确认中期报告印数', priority: '中优', status: '未启动', project: '中期报告', owner: '李云巧', agency: '印刷商', startDate: '2026-09-08', endDate: '2026-09-08', file: '印数确认单', note: 'T1+19=9/8' },
+  ],
+  tasksCreated: 25,
+};
+
+export const schedules = {
+  generate: async (payload) => {
+    await delay();
+    return { data: { data: { ...SAMPLE_TIMETABLE, period: payload?.period || 'interim' } } };
+  },
+  list: async () => {
+    await delay();
+    return { data: { data: { results: [SAMPLE_TIMETABLE] } } };
+  },
+  getOne: async (id) => {
+    await delay();
+    return { data: { data: { ...SAMPLE_TIMETABLE, id } } };
+  },
+  excelDownload: async () => ({
+    data: { data: { ok: false, message: 'Mock 模式不支持下载，请切换真实后端（VITE_USE_MOCK=false）' } },
+  }),
+};
