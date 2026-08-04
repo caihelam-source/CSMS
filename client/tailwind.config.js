@@ -46,6 +46,14 @@ export default {
       fontFamily: {
         sans: ['system-ui', '-apple-system', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', '"PingFang SC"', '"Microsoft YaHei"', '"Hiragino Sans GB"', '"Noto Sans CJK SC"', 'sans-serif'],
       },
+      // 间距令牌显式化：单一事实源为 index.css 的 --space-*（补齐 9/11/14/16）
+      // 编辑 CSS 变量即全局生效；p-4 / gap-6 等工具类自动走令牌，杜绝硬编码像素
+      spacing: {
+        '1': 'var(--space-1)', '2': 'var(--space-2)', '3': 'var(--space-3)', '4': 'var(--space-4)',
+        '5': 'var(--space-5)', '6': 'var(--space-6)', '7': 'var(--space-7)', '8': 'var(--space-8)',
+        '9': 'var(--space-9)', '10': 'var(--space-10)', '11': 'var(--space-11)', '12': 'var(--space-12)',
+        '14': 'var(--space-14)', '16': 'var(--space-16)',
+      },
       transitionDuration: {
         DEFAULT: '200ms',
       },

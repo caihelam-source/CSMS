@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, memo } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
@@ -325,7 +326,7 @@ export default function Meetings() {
       ))}
 
       {/* ========== WIZARD MODAL ========== */}
-      {wizardStep > 0 && (
+      {wizardStep > 0 && createPortal(
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setWizardStep(0)}>
           <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             {/* Wizard Header */}
@@ -565,11 +566,12 @@ export default function Meetings() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* ========== DETAIL VIEW MODAL ========== */}
-      {detailId && detailMeeting && (
+      {detailId && detailMeeting && createPortal(
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setDetailId(null); setDetailMeeting(null) }}>
           <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
@@ -722,7 +724,8 @@ export default function Meetings() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
       {/* ========== CONFIRM DIALOG ========== */}
       {ConfirmDialogComponent}

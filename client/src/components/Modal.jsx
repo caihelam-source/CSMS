@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
@@ -23,7 +24,10 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     xl: 'max-w-3xl',
   }[size]
 
-  return (
+  // Portal 到 body：避免祖先的 contain / overflow / transform 劫持 fixed 定位。
+  // 主内容区 <main> 已启用 container-type: inline-size（容器查询），若不 portal，
+  // contain: layout 会让本弹层以 main 为定位基准，被侧栏挤偏、遮罩无法铺满视口。
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
@@ -47,7 +51,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

@@ -19,8 +19,10 @@ export default function Layout() {
           </div>
         ) : null}
 
-        {/* Page content — pb-24 给手机端底部 Tab 栏留位（lg 以上无 Tab，恢复 pb-6） */}
-        <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6">
+        {/* Page content — pb-24 给手机端底部 Tab 栏留位（lg 以上无 Tab，恢复 pb-6）
+            app-content：注册为容器查询上下文，让内部组件按「内容区真实宽度」而非视口宽度响应。
+            侧栏 lg 以上占位 256px，视口断点会误判中等宽度屏幕，故统一改用 @container app。 */}
+        <main className="app-content flex-1 p-4 lg:p-6 pb-24 lg:pb-6">
           <Outlet />
         </main>
       </div>
