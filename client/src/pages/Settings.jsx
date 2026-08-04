@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useTheme } from '../contexts/ThemeContext.jsx'
+import { useLanguage } from '../contexts/LanguageContext.jsx'
 import toast from 'react-hot-toast'
-import { User, Lock, Bell, SunMoon } from 'lucide-react'
-import { PageHeader, FormField, inputClass, TabNav } from '../components/UIHelpers'
+import { User, Lock, Bell, SunMoon, Check } from 'lucide-react'
+import { PageHeader, FormField, inputClass, TabNav, Toggle } from '../components/UIHelpers'
 import { validate, required, email as emailValidator, minLength } from '../utils/validators'
 
 const PROFILE_RULES = {
@@ -17,9 +18,15 @@ const PASSWORD_RULES = {
   confirmPassword: [required('请确认新密码')],
 }
 
+const NOTIF_KEY = 'claw-notifications'
+const loadNotif = () => {
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY)) || {} } catch { return {} }
+}
+
 export default function Settings() {
   const { user, updateProfile, updatePassword } = useAuth()
   const { theme, setTheme } = useTheme()
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState('profile')
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
@@ -33,6 +40,7 @@ export default function Settings() {
   })
   const [passwordErrors, setPasswordErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [notif, setNotif] = useState(() => ({ email: true, task: true, ...loadNotif() }))
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault()
@@ -74,106 +82,119 @@ export default function Settings() {
     }
   }
 
+  const setNotifKey = (key, value) => {
+    const next = { ...notif, [key]: value }
+    setNotif(next)
+    try { localStorage.setItem(NOTIF_KEY, JSON.stringify(next)) } catch { /* localStorage 不可用时静默 */ }
+  }
+
   const tabs = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'password', label: 'Password', icon: Lock },
-    { id: 'appearance', label: 'Appearance', icon: SunMoon },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'profile', label: t('settingsProfile'), icon: User },
+    { id: 'password', label: t('settingsPassword'), icon: Lock },
+    { id: 'appearance', label: t('settingsAppearance'), icon: SunMoon },
+    { id: 'notifications', label: t('settingsNotifications'), icon: Bell },
   ]
 
   const themeOptions = [
-    { id: 'light', label: 'Light' },
-    { id: 'dark', label: 'Dark' },
-    { id: 'system', label: 'System' },
+    { id: 'light', label: t('themeLight') },
+    { id: 'dark', label: t('themeDark') },
+    { id: 'system', label: t('themeSystem') },
   ]
+
+  const initial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" subtitle="Manage your account settings" icon={User} />
+      <PageHeader title={t('settings')} subtitle={t('settingsSubtitle')} icon={User} />
 
+      {/* 账户信息卡 */}
+      <div className="card p-6 flex items-center gap-4">
+        <div className="w-14 h-14 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xl font-bold shrink-0">
+          {initial}
+        </div>
+        <div className="min-w-0">
+          <p className="text-lg font-semibold text-ink truncate">{user?.name || user?.email}</p>
+          <p className="text-sm text-ink-2 truncate">{user?.email}</p>
+        </div>
+        <span className="ml-auto shrink-0 text-xs font-medium px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 dark:bg-primary-600/10 dark:text-primary-400">
+          {user?.role === 'admin' ? '管理员' : '用户'}
+        </span>
+      </div>
+
+      {/* 设置分组 */}
       <div className="card p-0 overflow-hidden">
         <TabNav
-          tabs={tabs.map(t => ({ key: t.id, label: t.label, icon: t.icon }))}
+          tabs={tabs.map(tab => ({ key: tab.id, label: tab.label, icon: tab.icon }))}
           active={activeTab}
           onChange={setActiveTab}
         />
 
         <div className="p-6">
           {activeTab === 'profile' && (
-            <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-lg">
-              <FormField label="Name" required error={profileErrors.name}>
-                <input
-                  type="text"
-                  className={inputClass}
-                  value={profileForm.name}
-                  onChange={(e) => { setProfileForm({ ...profileForm, name: e.target.value }); setProfileErrors(pe => ({ ...pe, name: '' })) }}
-                />
-              </FormField>
-              <FormField label="Email" required error={profileErrors.email}>
-                <input
-                  type="email"
-                  className={inputClass}
-                  value={profileForm.email}
-                  onChange={(e) => { setProfileForm({ ...profileForm, email: e.target.value }); setProfileErrors(pe => ({ ...pe, email: '' })) }}
-                />
-              </FormField>
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Saving...' : 'Save Changes'}
-              </button>
-            </form>
+            <div className="max-w-lg">
+              <p className="text-sm text-ink-2 mb-4">更新你的基本账户信息，修改后点击保存即可生效。</p>
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
+                <FormField label={t('profileName')} required error={profileErrors.name}>
+                  <input type="text" className={inputClass}
+                    value={profileForm.name}
+                    onChange={(e) => { setProfileForm({ ...profileForm, name: e.target.value }); setProfileErrors(pe => ({ ...pe, name: '' })) }} />
+                </FormField>
+                <FormField label={t('profileEmail')} required error={profileErrors.email}>
+                  <input type="email" className={inputClass}
+                    value={profileForm.email}
+                    onChange={(e) => { setProfileForm({ ...profileForm, email: e.target.value }); setProfileErrors(pe => ({ ...pe, email: '' })) }} />
+                </FormField>
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? t('saving') : t('saveChanges')}
+                </button>
+              </form>
+            </div>
           )}
 
           {activeTab === 'password' && (
-            <form onSubmit={handlePasswordUpdate} className="space-y-4 max-w-lg">
-              <FormField label="Current Password" required error={passwordErrors.currentPassword}>
-                <input
-                  type="password"
-                  className={inputClass}
-                  value={passwordForm.currentPassword}
-                  onChange={(e) => { setPasswordForm({ ...passwordForm, currentPassword: e.target.value }); setPasswordErrors(pe => ({ ...pe, currentPassword: '' })) }}
-                />
-              </FormField>
-              <FormField label="New Password" required error={passwordErrors.newPassword}>
-                <input
-                  type="password"
-                  className={inputClass}
-                  value={passwordForm.newPassword}
-                  onChange={(e) => { setPasswordForm({ ...passwordForm, newPassword: e.target.value }); setPasswordErrors(pe => ({ ...pe, newPassword: '' })) }}
-                  minLength={6}
-                />
-              </FormField>
-              <FormField label="Confirm New Password" required error={passwordErrors.confirmPassword}>
-                <input
-                  type="password"
-                  className={inputClass}
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) => { setPasswordForm({ ...passwordForm, confirmPassword: e.target.value }); setPasswordErrors(pe => ({ ...pe, confirmPassword: '' })) }}
-                />
-              </FormField>
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Updating...' : 'Update Password'}
-              </button>
-            </form>
+            <div className="max-w-lg">
+              <p className="text-sm text-ink-2 mb-4">{t('pwdHint')}</p>
+              <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                <FormField label={t('currentPwd')} required error={passwordErrors.currentPassword}>
+                  <input type="password" className={inputClass}
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => { setPasswordForm({ ...passwordForm, currentPassword: e.target.value }); setPasswordErrors(pe => ({ ...pe, currentPassword: '' })) }} />
+                </FormField>
+                <FormField label={t('newPwd')} required error={passwordErrors.newPassword}>
+                  <input type="password" className={inputClass}
+                    value={passwordForm.newPassword}
+                    onChange={(e) => { setPasswordForm({ ...passwordForm, newPassword: e.target.value }); setPasswordErrors(pe => ({ ...pe, newPassword: '' })) }}
+                    minLength={6} />
+                </FormField>
+                <FormField label={t('confirmPwd')} required error={passwordErrors.confirmPassword}>
+                  <input type="password" className={inputClass}
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => { setPasswordForm({ ...passwordForm, confirmPassword: e.target.value }); setPasswordErrors(pe => ({ ...pe, confirmPassword: '' })) }} />
+                </FormField>
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? t('updating') : t('updatePwd')}
+                </button>
+              </form>
+            </div>
           )}
 
           {activeTab === 'appearance' && (
-            <div className="space-y-4 max-w-lg">
-              <p className="text-sm text-ink-2">选择浅色、深色，或跟随系统设置。</p>
-              <div className="grid grid-cols-3 gap-3">
+            <div className="max-w-lg">
+              <p className="text-sm text-ink-2 mb-4">{t('appearanceDesc')}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {themeOptions.map((opt) => {
                   const active = theme === opt.id
                   return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setTheme(opt.id)}
-                      className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
+                    <button key={opt.id} type="button" onClick={() => setTheme(opt.id)} aria-pressed={active}
+                      className={`relative rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${
                         active
                           ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-600/10 dark:text-primary-400'
                           : 'border-hairline bg-surface text-ink-2 hover:bg-canvas'
-                      }`}
-                    >
-                      {opt.label}
+                      }`}>
+                      <span className="flex items-center justify-between">
+                        {opt.label}
+                        {active && <Check size={16} />}
+                      </span>
                     </button>
                   )
                 })}
@@ -182,27 +203,24 @@ export default function Settings() {
           )}
 
           {activeTab === 'notifications' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-ink-2">Receive email alerts for compliance reminders</p>
+            <div className="max-w-2xl">
+              <div className="divide-y divide-hairline">
+                <div className="flex items-center justify-between gap-4 py-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink">{t('notifEmailTitle')}</p>
+                    <p className="text-sm text-ink-2">{t('notifEmailDesc')}</p>
+                  </div>
+                  <Toggle checked={notif.email} onChange={(v) => setNotifKey('email', v)} label={t('notifEmailTitle')} />
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" defaultChecked />
-                  <div className="w-11 h-6 bg-canvas peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Task Reminders</p>
-                  <p className="text-sm text-ink-2">Get notified of upcoming task deadlines</p>
+                <div className="flex items-center justify-between gap-4 py-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink">{t('notifTaskTitle')}</p>
+                    <p className="text-sm text-ink-2">{t('notifTaskDesc')}</p>
+                  </div>
+                  <Toggle checked={notif.task} onChange={(v) => setNotifKey('task', v)} label={t('notifTaskTitle')} />
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" defaultChecked />
-                  <div className="w-11 h-6 bg-canvas peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                </label>
               </div>
+              <p className="text-xs text-ink-3 pt-2">{t('notifNote')}</p>
             </div>
           )}
         </div>
