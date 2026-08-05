@@ -108,3 +108,7 @@ scripts/pdf_extracts/
 # Vite build temp config files
 vite.config.js.timestamp-*
 client/vite.config.js.timestamp-*
+
+# 本地调试临时产物（lint/build 输出，勿提交）
+/_*.txt
+/_*.js

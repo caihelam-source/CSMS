@@ -21,12 +21,21 @@ const STA_CN2EN = { '未启动': 'pending', '进行中': 'in_progress', '部分�
 
 const periodLabel = (p) => (p === 'annual' ? '年度' : '中期')
 
-// ISO 'YYYY-MM-DD' → 'dd/mm/yyyy'（手动解析，避免 UTC 漂移）
+// ISO 'YYYY-MM-DD' 或 Date / 完整 ISO → 'dd/mm/yyyy'
+// 纯日期手动解析（避免 UTC 漂移）；历史重开排期来自 Atlas 的 Date/ISO 串走 new Date() 本地解析
 const isoToDMY = (s) => {
   if (!s) return ''
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
-  if (!m) return s
-  return `${m[3]}/${m[2]}/${m[1]}`
+  const str = typeof s === 'string' ? s : ''
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str)
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`
+  const d = new Date(s)
+  if (!isNaN(d.getTime())) {
+    const y = d.getFullYear()
+    const mo = String(d.getMonth() + 1).padStart(2, '0')
+    const da = String(d.getDate()).padStart(2, '0')
+    return `${da}/${mo}/${y}`
+  }
+  return str || String(s)
 }
 
 export default function ResultsTimetable() {

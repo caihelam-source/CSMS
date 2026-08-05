@@ -135,7 +135,7 @@ router.get('/:id/excel', auth, async (req, res) => {
 
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     const label = periodLabel(doc.period);
-    res.setHeader('Content-Disposition', `attachment; filename=1321_${label}业绩排期.xlsx`);
+    res.setHeader('Content-Disposition', `attachment; filename=${doc.code || '1321'}_${label}业绩排期.xlsx`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(buf);
   } catch (error) {
