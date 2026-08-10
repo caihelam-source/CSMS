@@ -6,6 +6,31 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// ── 辅助函数 ────────────────────────────────────────────────────
+/**
+ * 将结构化地址对象格式化为单行可读文本。
+ *
+ * Company.registeredAddress / businessAddress 均为
+ * { street, city, state, postalCode, country } 结构。
+ * 渲染模板时直接将对象塞入 {{注册地址}} 会 coerce 成 "[object Object]"，
+ * 因此必须先转换为字符串。
+ *
+ * @param {object} [addr] 地址对象
+ * @returns {string} 例如 "1/F, Central, Hong Kong"
+ */
+const formatAddress = (addr) => {
+  if (!addr || typeof addr !== 'object') return '';
+  return [
+    addr.street,
+    addr.city,
+    addr.state,
+    addr.postalCode,
+    addr.country,
+  ]
+    .filter((part) => part && String(part).trim() !== '')
+    .join(', ');
+};
+
 // GET /api/templates
 router.get('/', auth, async (req, res) => {
   try {
@@ -101,7 +126,7 @@ router.post('/:id/render', auth, async (req, res) => {
       if (company) {
         vars['公司名称'] = company.name;
         vars['公司中文名'] = company.nameChinese || '';
-        vars['注册地址'] = company.registeredAddress || '';
+        vars['注册地址'] = formatAddress(company.registeredAddress);
         vars['成立日期'] = company.incorporationDate ? company.incorporationDate.toLocaleDateString('zh-HK') : '';
         vars['注册号'] = company.registrationNumber || '';
         vars['股票代码'] = company.stockCode || '';
@@ -228,6 +253,83 @@ function getPresetTemplates() {
         { key: '新董事职位', label: '新董事职位', source: 'manual', fieldPath: '' },
         { key: '生效日期', label: '生效日期', source: 'manual', fieldPath: '' },
         { key: '公司秘书姓名', label: '公司秘书姓名', source: 'manual', fieldPath: '' },
+      ],
+    },
+    {
+      name: '公司秘书辞任信',
+      description: '公司秘书辞任通知书（离职秘书签署）',
+      category: 'secretary_change',
+      isPreset: true,
+      content: `<h2 style="text-align:center">Letter of Resignation</h2>
+<h3 style="text-align:center">公司秘书辞任信</h3>
+<p><strong>Date 日期：</strong>{{出具日期}}</p>
+<p><strong>To 致：</strong>The Board of Directors</p>
+<p>{{公司名称}}</p>
+<p>{{公司中文名}}</p>
+<p>(the &quot;Company&quot;)</p>
+<hr/>
+<p>Dear Sirs</p>
+<p><strong>Resignation as company secretary, chief financial officer and authorised representatives of the Company</strong></p>
+<p>I, the undersigned, hereby tender my resignation as (i) the company secretary; (ii) the chief financial officer; (iii) an authorised representative under Rule 3.05 of the Rules Governing the Listing of Securities on The Stock Exchange of Hong Kong Limited (the &quot;Stock Exchange&quot;); and (iv) the authorised representative for accepting service of process or notice in Hong Kong under Part 16 of the Companies Ordinance (Chapter 622 of the Laws of Hong Kong) of the Company with effect from {{生效日期}} (&quot;Resignations&quot;), as {{辞任原因}}.</p>
+<p>I confirm that I have no claim against the Company whatsoever whether by way of compensation, remuneration, severance payments, expenses, damages or otherwise for loss of office. I also confirm that I have no disagreement with the board of directors of the Company and that there is no matter in relation to my Resignations that needs to be brought to the attention of the shareholders of the Company or the Stock Exchange.</p>
+<hr/>
+<p>Yours faithfully</p>
+<br/>
+<p>____________________________</p>
+<p>{{辞任秘书姓名}}（{{辞任秘书中文名}}）</p>`,
+      variables: [
+        { key: '出具日期', label: '出具日期', source: 'manual', fieldPath: '' },
+        { key: '公司名称', label: '公司名称', source: 'company', fieldPath: 'company.name' },
+        { key: '公司中文名', label: '公司中文名', source: 'company', fieldPath: 'company.nameChinese' },
+        { key: '生效日期', label: '辞任生效日期', source: 'manual', fieldPath: '' },
+        { key: '辞任原因', label: '辞任原因（英文表述）', source: 'manual', fieldPath: '' },
+        { key: '辞任秘书姓名', label: '辞任秘书姓名（英文）', source: 'manual', fieldPath: '' },
+        { key: '辞任秘书中文名', label: '辞任秘书中文名', source: 'manual', fieldPath: '' },
+      ],
+    },
+    {
+      name: '公司秘书同意出任函',
+      description: '同意出任公司秘书同意书（新任秘书签署）',
+      category: 'secretary_change',
+      isPreset: true,
+      content: `<h2 style="text-align:center">Consent to Act</h2>
+<h3 style="text-align:center">同意出任公司秘书同意书</h3>
+<p><strong>Date 日期：</strong>{{出具日期}}</p>
+<p><strong>To 致：</strong>The Board of Directors</p>
+<p>{{公司名称}} (the &quot;Company&quot;)</p>
+<p>{{注册地址}}</p>
+<hr/>
+<p>Dear Sirs,</p>
+<p><strong>Consent to act as company secretary and authorised representatives of the Company</strong></p>
+<p>I, the undersigned, hereby consent to my appointment to act as (i) the company secretary; (ii) an authorised representative under Rule 3.05 of the Rules Governing the Listing of Securities on The Stock Exchange of Hong Kong Limited; and (iii) the authorised representative for accepting service of process or notice in Hong Kong under Part 16 of the Companies Ordinance (Chapter 622 of the Laws of Hong Kong) of the Company with effect from {{生效日期}}.</p>
+<p>I designate the following address, telephone number and e-mail address for service of notice. Notice by mail, telephone or e-mail to the following address, number or e-mail address, shall constitute good and sufficient notice to myself and I agree to advise you of any change in these particulars.</p>
+<p>I hereby authorise you to (i) enter my name and address in the Register of Directors and Officers of the Company; and (ii) provide my name, address and other contact details to The Stock Exchange of Hong Kong Limited, the relevant companies registry and other competent authorities.</p>
+<table style="width:100%;border-collapse:collapse">
+<tbody>
+<tr><td style="border:1px solid #ddd;padding:6px;width:38%">Name in full 姓名</td><td style="border:1px solid #ddd;padding:6px">{{同意出任秘书姓名}}</td></tr>
+<tr><td style="border:1px solid #ddd;padding:6px">Nationality 国籍</td><td style="border:1px solid #ddd;padding:6px">{{国籍}}</td></tr>
+<tr><td style="border:1px solid #ddd;padding:6px">Hong Kong Identity Card No. 香港身份证号码</td><td style="border:1px solid #ddd;padding:6px">{{香港身份证号}}</td></tr>
+<tr><td style="border:1px solid #ddd;padding:6px">Correspondence address 通讯地址</td><td style="border:1px solid #ddd;padding:6px">{{通讯地址}}</td></tr>
+<tr><td style="border:1px solid #ddd;padding:6px">Telephone 电话</td><td style="border:1px solid #ddd;padding:6px">{{联系电话}}</td></tr>
+<tr><td style="border:1px solid #ddd;padding:6px">E-mail address 电子邮箱</td><td style="border:1px solid #ddd;padding:6px">{{电子邮箱}}</td></tr>
+</tbody>
+</table>
+<hr/>
+<p>Yours faithfully,</p>
+<br/>
+<p>____________________________</p>
+<p>{{同意出任秘书姓名}}</p>`,
+      variables: [
+        { key: '出具日期', label: '出具日期', source: 'manual', fieldPath: '' },
+        { key: '公司名称', label: '公司名称', source: 'company', fieldPath: 'company.name' },
+        { key: '注册地址', label: '公司注册地址', source: 'company', fieldPath: 'company.registeredAddress' },
+        { key: '生效日期', label: '出任生效日期', source: 'manual', fieldPath: '' },
+        { key: '同意出任秘书姓名', label: '同意出任秘书姓名', source: 'manual', fieldPath: '' },
+        { key: '国籍', label: '国籍', source: 'manual', fieldPath: '' },
+        { key: '香港身份证号', label: '香港身份证号码', source: 'manual', fieldPath: '' },
+        { key: '通讯地址', label: '通讯地址', source: 'manual', fieldPath: '' },
+        { key: '联系电话', label: '联系电话', source: 'manual', fieldPath: '' },
+        { key: '电子邮箱', label: '电子邮箱', source: 'manual', fieldPath: '' },
       ],
     },
   ];

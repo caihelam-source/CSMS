@@ -12,11 +12,12 @@ import { extractVars } from '../utils/helpers'
 import Modal from '../components/Modal'
 import { useConfirm } from '../components/ConfirmDialog'
 
-const CATEGORIES = ['board_resolution', 'agm_resolution', 'director_change', 'shareholder_notice', 'annual_report', 'other']
+const CATEGORIES = ['board_resolution', 'agm_resolution', 'director_change', 'secretary_change', 'shareholder_notice', 'annual_report', 'other']
 const CATEGORY_LABELS = {
   board_resolution: '董事会决议',
   agm_resolution: '股东大会决议',
   director_change: '董事变更',
+  secretary_change: '公司秘书变更',
   shareholder_notice: '股东通知',
   annual_report: '年度报告',
   other: '其他',
@@ -267,6 +268,7 @@ const categoryColor = (c) => ({
   board_resolution: 'bg-canvas text-ink-2',
   agm_resolution: 'bg-success/10 text-success',
   director_change: 'bg-info/10 text-primary-700',
+  secretary_change: 'bg-primary-50 text-primary-700',
   shareholder_notice: 'bg-canvas text-ink-2',
   annual_report: 'bg-warning/10 text-warning',
 }[c] || 'bg-canvas text-ink-2')

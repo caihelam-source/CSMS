@@ -5,7 +5,7 @@ const templateSchema = new mongoose.Schema({
   description: { type: String },
   category: {
     type: String,
-    enum: ['board_resolution', 'minutes', 'agm_resolution', 'director_change', 'other'],
+    enum: ['board_resolution', 'minutes', 'agm_resolution', 'director_change', 'secretary_change', 'other'],
     default: 'other'
   },
 
