@@ -386,6 +386,22 @@ export const scheduleService = {
     (id) => api.get(`/api/results-timetable/${id}`),
     mockSchedules.getOne,
   ),
+  // ─── 规则库管理（Admin Panel「业绩排期规则库」）───
+  // 读取：所有登录用户可读；保存 / 导入：后端 adminAuth 门禁（403）
+  getRules: wrap(
+    () => api.get('/api/results-timetable/rules'),
+    mockSchedules.getRules,
+  ),
+  saveRules: wrap(
+    (lib) => api.put('/api/results-timetable/rules', lib),
+    mockSchedules.saveRules,
+  ),
+  importRules: wrap(
+    (formData) => api.post('/api/results-timetable/rules/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+    mockSchedules.importRules,
+  ),
   // 下载 Excel 走 blob（不归一化）；mock 模式提示切真实后端
   excelDownload: async (id) => {
     if (useMock()) return mockSchedules.excelDownload(id);

@@ -1,3 +1,8 @@
+// 业绩排期引擎（前端 mock 预览专用；规则库真源在后端）：用于生成完整逼真的排期
+import { generate as engineGenerate } from './timetableEngine.js'
+// 规则库前端副本（AUTO-GENERATED），仅供 mock 模式下的「业绩排期规则库」界面预览
+import RULES_MOCK from './timetableData.js'
+
 // ====== 人员数据 ======
 const MOCK_PERSONNEL = [
   {
@@ -155,6 +160,9 @@ const MOCK_COMPANIES = [
   { _id: 'c10', name: 'First Achiever Holdings Ltd (BVI)', registrationNumber: 'N/A', type: 'private_limited', status: 'active', jurisdiction: 'BVI', links: [] },
   { _id: 'c12', name: 'Conyers Trust Company (Cayman) Ltd', registrationNumber: 'N/A', type: 'service_provider', status: 'active', jurisdiction: 'Cayman', links: [] },
 ];
+
+// 全量公司 ID —— 用于给演示账号授予"全部公司"范围（避免默认 demo 账号全站空白）
+const ALL_COMPANY_IDS = MOCK_COMPANIES.map(c => c._id);
 
 // ====== 文档数据（含文档编号 + 分类，支撑编档/批量下载） ======
 // 编号规则：<分类前缀>-<公司简称(注册号后4位)>-<年份>-<类型缩写>-<序号>
@@ -338,20 +346,77 @@ export const DEMO_USER = {
 };
 export { MOCK_COMPANIES as DEMO_COMPANIES, MOCK_PERSONNEL as DEMO_PERSONNEL, MOCK_DOCUMENTS as DEMO_DOCUMENTS, MOCK_MEETINGS as DEMO_MEETINGS, STATS as DEMO_STATS };
 
+// ====== Users Service (Admin — mock) ======
+// 数据范围（accessibleCompanies）在 mock 模式下持久化到 localStorage，
+// 这样管理后台「数据权限」里分配的范围刷新后仍然生效。
+const SCOPE_KEY = 'csms.mock.userScopes';
+
+function loadScopeOverrides() {
+  try {
+    const raw = localStorage.getItem(SCOPE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveScopeOverride(id, ids) {
+  try {
+    const all = loadScopeOverrides();
+    all[id] = Array.isArray(ids) ? ids : [];
+    localStorage.setItem(SCOPE_KEY, JSON.stringify(all));
+  } catch { /* localStorage 不可用时静默降级为内存态 */ }
+}
+
+// 演示账号密码表（与 AuthContext 的 DEMO_ACCOUNTS 一致）
+const PASSWORDS = {
+  'admin@example.com': 'admin123',
+  'demo@example.com': 'demo123',
+  'manager@example.com': 'manager123',
+  'viewer@example.com': 'viewer123',
+  'auditor@example.com': 'auditor123',
+};
+
+// 三态语义：admin/auditor 行级豁免（accessibleCompanies 取值不影响可见性）；
+// manager 受限 c1/c2；viewer 受限 c3（演示"另一套范围"）；demo(secretary) 授予全部公司。
+const BASE_USERS = [
+  { _id: 'u1', name: 'Admin User',      email: 'admin@example.com',   role: 'admin',     isActive: true, joined: '2024-01-01', accessibleCompanies: [] },
+  { _id: 'u2', name: 'Sarah Manager',   email: 'manager@example.com', role: 'manager',   isActive: true, joined: '2024-03-15', accessibleCompanies: ['c1', 'c2'] },
+  { _id: 'u3', name: 'View Only',       email: 'viewer@example.com',  role: 'viewer',    isActive: true, joined: '2024-06-20', accessibleCompanies: ['c3'] },
+  { _id: 'u4', name: 'Audit Only',      email: 'auditor@example.com', role: 'auditor',   isActive: true, joined: '2024-07-01', accessibleCompanies: [] },
+  { _id: 'u5', name: 'Demo Secretary',  email: 'demo@example.com',    role: 'secretary', isActive: true, joined: '2024-02-01', accessibleCompanies: ALL_COMPANY_IDS },
+];
+
+let MOCK_USERS = BASE_USERS.map(u => {
+  const ov = loadScopeOverrides()[u._id];
+  return { ...u, accessibleCompanies: ov ?? u.accessibleCompanies };
+});
+
+/** 按邮箱取 mock 用户（含 accessibleCompanies），供 AuthContext 复用 */
+export function getMockUserByEmail(email) {
+  return MOCK_USERS.find(u => u.email === email) || null;
+}
+
+/** 演示账号切换清单（Navbar 下拉用） */
+export const MOCK_DEMO_ACCOUNTS = [
+  { email: 'admin@example.com',   password: PASSWORDS['admin@example.com'],   label: 'Admin User · 全部数据' },
+  { email: 'demo@example.com',    password: PASSWORDS['demo@example.com'],    label: 'Demo Secretary · 全部公司' },
+  { email: 'manager@example.com', password: PASSWORDS['manager@example.com'], label: 'Sarah Manager · c1/c2' },
+  { email: 'viewer@example.com',  password: PASSWORDS['viewer@example.com'],  label: 'View Only · c3' },
+];
+
 // ====== Auth Service ======
 export const auth = {
   login: async (email, password) => {
     await delay(100);
-    const demoEmail = DEMO_USER.email;
-    const demoPass = 'demo123';
-    if (email === demoEmail && password === demoPass) return { data: { data: DEMO_USER } };
-    if (email === 'admin@example.com' && password === 'admin123') return { data: { data: { ...DEMO_USER, role: 'admin' } } };
-    if (email === 'secretary@example.com' && password === 'secretary123') return { data: { data: { ...DEMO_USER, role: 'secretary' } } };
-    if (email === 'manager@example.com' && password === 'manager123') return { data: { data: { ...DEMO_USER, role: 'manager' } } };
-    if (email === 'viewer@example.com' && password === 'viewer123') return { data: { data: { ...DEMO_USER, role: 'viewer' } } };
-    const err = new Error('Invalid credentials');
-    err.response = { data: { message: 'Invalid credentials' } };
-    throw err;
+    const u = getMockUserByEmail(email);
+    if (!u || PASSWORDS[email] !== password) {
+      const err = new Error('Invalid credentials');
+      err.response = { data: { message: 'Invalid credentials' } };
+      throw err;
+    }
+    return { data: { data: { ...u, id: u._id, token: 'demo-token-xxx' } } };
   },
   register: async () => { await delay(); return { data: { data: DEMO_USER } }; },
   getMe: async () => { await delay(); return { data: { data: DEMO_USER } }; },
@@ -359,13 +424,6 @@ export const auth = {
   updatePassword: async () => { await delay(); return { data: { data: { token: 'new-token' } } }; },
 };
 
-// ====== Users Service (Admin — mock) ======
-let MOCK_USERS = [
-  { _id: 'u1', name: 'Admin User',    email: 'admin@example.com',   role: 'admin',   isActive: true, joined: '2024-01-01', accessibleCompanies: [] },
-  { _id: 'u2', name: 'Sarah Manager', email: 'manager@example.com', role: 'manager', isActive: true, joined: '2024-03-15', accessibleCompanies: ['c1', 'c2'] },
-  { _id: 'u3', name: 'View Only',     email: 'viewer@example.com',  role: 'viewer',  isActive: true, joined: '2024-06-20', accessibleCompanies: [] },
-  { _id: 'u4', name: 'Audit Only',    email: 'auditor@example.com', role: 'auditor', isActive: true, joined: '2024-07-01', accessibleCompanies: [] },
-]
 export const users = {
   getAll: async () => { await delay(80); return { data: { data: MOCK_USERS.map(u => ({ ...u })) } }; },
   create: async (data) => {
@@ -377,6 +435,8 @@ export const users = {
   update: async (id, data) => {
     await delay(120);
     MOCK_USERS = MOCK_USERS.map(u => u._id === id ? { ...u, ...data, _id: u._id } : u);
+    // 数据范围变更持久化，刷新后不丢
+    if (Array.isArray(data.accessibleCompanies)) saveScopeOverride(id, data.accessibleCompanies);
     const updated = MOCK_USERS.find(u => u._id === id);
     return { data: { data: { ...updated } } };
   },
@@ -1309,35 +1369,73 @@ export const search = {
 };
 
 // ====== 业绩排期 Mock（CSMS 集成 POC）======
+// 前端 mock 预览专用：使用 timetableEngine 生成完整逼真的排期（规则库真源在后端）。
 // 仅用于 UI 预览；真实生成请切换 VITE_USE_MOCK=false 走后端引擎。
-const SAMPLE_TIMETABLE = {
-  id: 'rt-mock-1',
-  period: 'interim',
-  anchors: { T0: '2026-06-30', T1: '2026-08-20', T2: '2026-09-22' },
-  items: [
-    { index: 1, category: '中期业绩', rule: '附录10 A.3：中期业绩公告前30天内董事不得买卖', title: '禁止买卖期启动+FF05通知HKEX（覆盖1321/2271/672）', priority: '最高优', status: '未启动', project: '中期业绩', owner: '林才贺', agency: '律师(WFW)', startDate: '2026-07-21', endDate: '2026-07-21', file: 'FF005(中期)', note: 'T1-30=7/21' },
-    { index: 2, category: '董事会', rule: '上市规则第13.43条', title: '董事会会议日期公告上载ESS（经ESS）及公司网站', priority: '高优', status: '未启动', project: '董事会', owner: '林才贺/李云巧', agency: '印刷商', startDate: '2026-08-10', endDate: '2026-08-10', file: '董事会日期公告', note: 'T1-10=8/10' },
-    { index: 3, category: '中期报告', rule: '上市规则13.46(2)', title: '上传中期报告至HKEX(ESS)+公司网站（收盘后）', priority: '最高优', status: '未启动', project: '中期报告', owner: '林才贺/李云巧', agency: '印刷商', startDate: '2026-09-22', endDate: '2026-09-22', file: 'ESS上传确认', note: '★9/22 after hours' },
-    { index: 4, category: '中期报告', rule: '（如有）中期股息', title: '派发股息支票（如有）', priority: '中优', status: '未启动', project: '中期报告', owner: '林才贺', agency: '银行/股份过户处', startDate: '2026-09-30', endDate: '2026-09-30', file: '股息支票', note: 'T2+8=9/30' },
-    { index: 5, category: '中期报告', rule: '印刷实务：付印前须与印刷商确认印数', title: '与印刷商确认中期报告印数', priority: '中优', status: '未启动', project: '中期报告', owner: '李云巧', agency: '印刷商', startDate: '2026-09-08', endDate: '2026-09-08', file: '印数确认单', note: 'T1+19=9/8' },
-  ],
-  tasksCreated: 25,
+const DEFAULT_ANCHORS = {
+  interim: { T0: '2026-06-30', T1: '2026-08-20', T2: '2026-09-22' },
+  annual:  { T0: '2025-12-31', T1: '2026-03-20', T2: '2026-04-30', T3: '2026-06-20', T4: '2026-05-28' },
 };
 
+/**
+ * Mock 模式的规则库修订号。
+ * 真实路径下该值来自 MongoDB `RuleLibrary.revision`（每次保存/导入 +1）；
+ * 前端副本 timetableData.js 是随代码发布的静态文件、没有落库修订概念，故固定为 1。
+ */
+const MOCK_RULE_LIBRARY_VERSION = 1;
+
+/**
+ * 由前端规则库副本构造「生成时刻快照」，形状与后端 buildLibrarySnapshot 严格一致，
+ * 使 ResultsTimetable 预览页在 mock / 真实两条链路上取值代码完全相同。
+ */
+const buildMockLibrarySnapshot = () => ({
+  version: (RULES_MOCK.meta && RULES_MOCK.meta.version) || '',
+  revision: MOCK_RULE_LIBRARY_VERSION,
+  meta: RULES_MOCK.meta || {},
+  parties: RULES_MOCK.parties || {},
+  rules: RULES_MOCK.rules || {},
+  offsets_midyear: RULES_MOCK.offsets_midyear || [],
+  offsets_annual: RULES_MOCK.offsets_annual || [],
+  tasks_midyear: RULES_MOCK.tasks_midyear || [],
+  tasks_annual: RULES_MOCK.tasks_annual || [],
+  compliance_checks: RULES_MOCK.compliance_checks || {},
+  generatedAt: new Date().toISOString(),
+});
+
 export const schedules = {
-  generate: async (payload) => {
+  generate: async (payload = {}) => {
     await delay();
-    return { data: { data: { ...SAMPLE_TIMETABLE, period: payload?.period || 'interim' } } };
+    const period = payload.period === 'annual' ? 'annual' : 'interim';
+    const anchors = payload.anchors && Object.keys(payload.anchors).length ? payload.anchors : DEFAULT_ANCHORS[period];
+    const eng = engineGenerate(period, anchors);
+    return { data: { data: { id: 'rt-mock-' + Date.now(), period, anchors: eng.anchors, items: eng.items, offsets: eng.offsets, compliance: eng.compliance, tasksCreated: eng.items.length, ruleLibraryVersion: MOCK_RULE_LIBRARY_VERSION, ruleLibrarySnapshot: buildMockLibrarySnapshot() } } };
   },
   list: async () => {
     await delay();
-    return { data: { data: { results: [SAMPLE_TIMETABLE] } } };
+    return { data: { data: { results: [ { _id: 'rt-mock-1', company: { name: '中国新城市' }, name: '中国新城市', period: 'interim', createdAt: new Date().toISOString(), ruleLibraryVersion: MOCK_RULE_LIBRARY_VERSION } ] } } };
   },
   getOne: async (id) => {
     await delay();
-    return { data: { data: { ...SAMPLE_TIMETABLE, id } } };
+    const eng = engineGenerate('interim', DEFAULT_ANCHORS.interim);
+    return { data: { data: { id, period: 'interim', anchors: eng.anchors, items: eng.items, offsets: eng.offsets, compliance: eng.compliance, tasksCreated: eng.items.length, ruleLibraryVersion: MOCK_RULE_LIBRARY_VERSION, ruleLibrarySnapshot: buildMockLibrarySnapshot() } } };
   },
-  excelDownload: async () => ({
-    data: { data: { ok: false, message: 'Mock 模式不支持下载，请切换真实后端（VITE_USE_MOCK=false）' } },
-  }),
+  excelDownload: async () => ({ data: { data: { ok: false, message: 'Mock 模式不支持下载 Excel，请切换真实后端（VITE_USE_MOCK=false）' } } }),
+  // ─── 规则库管理（Admin Panel）───
+  // Mock 模式只读前端副本；保存 / 导入不落库，仅回执提示。
+  getRules: async () => {
+    await delay();
+    // 补 revision 字段，使 mock 模式下「· 修订 vN」徽标与快照（MOCK_RULE_LIBRARY_VERSION）口径一致
+    return { data: { data: { ...JSON.parse(JSON.stringify(RULES_MOCK)), revision: MOCK_RULE_LIBRARY_VERSION } } };
+  },
+  saveRules: async (payload) => {
+    await delay();
+    // Mock 模式：把编辑后的规则库写回内存副本，使后续生成能反映参与方指派 / 任务改动
+    if (payload && typeof payload === 'object') {
+      try { Object.assign(RULES_MOCK, JSON.parse(JSON.stringify(payload))); } catch { /* 忽略非序列化内容 */ }
+    }
+    return { data: { data: { ok: true, mock: true, message: 'Mock 模式：修改已写入会话内存副本（不落库，刷新页面即还原）' } } };
+  },
+  importRules: async () => {
+    await delay();
+    return { data: { data: { ok: true, mock: true, message: 'Mock 模式：导入仅预览，不落库' } } };
+  },
 };
