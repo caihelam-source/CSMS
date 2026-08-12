@@ -112,3 +112,21 @@ client/vite.config.js.timestamp-*
 # 本地调试临时产物（lint/build 输出，勿提交）
 /_*.txt
 /_*.js
+
+# Agent 调试探针与缓存（临时验证脚本/输出，勿提交）
+.tmp-dump.mjs
+bb_out.txt
+npmtest_final.txt
+smoke_out.txt
+srv_final.txt
+verify_final.txt
+client/dist-t03b/
+client/runcheck.mjs
+client/signprobe.mjs
+client/signprobe.out.txt
+client/t03b-lines.txt
+client/vcheck.mjs
+client/vcheck.out.txt
+client/vt.out.txt
+client/vtest.out.txt
+client/vitest.config.js.timestamp-*.mjs
