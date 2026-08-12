@@ -1,0 +1,72 @@
+classDiagram
+    class DocumentTemplate {
+        +String engine  // 'schema'
+        +String content  // 旧 HTML 保留留痕
+        +Mixed docSchema
+        +Array~Variable~ variables
+        +ObjectId company
+    }
+    class Variable {
+        +String key
+        +String label
+        +String source  // company|director|meeting|system|manual
+        +String fieldPath
+    }
+    class Personnel {
+        +String name
+        +String nameChinese
+        +String nric
+        +String[] roles   // 如 ['director']
+        +Object address
+        // 注意：无 company 字段
+    }
+    class Company {
+        +Link[] links
+    }
+    class Link {
+        +String linkModel  // 'Personnel'|'Company'
+        +ObjectId link
+        +String[] roles    // 含 'director'
+    }
+    class Meeting {
+        +String title
+        +Date scheduledAt
+        +AgendaItem[] agenda
+        +ObjectId company
+    }
+    class AgendaItem {
+        +String item
+        +String presenter
+    }
+    class TemplateResolver {
+        +resolveValues(template, opts)* values,autoFilled
+        +resolveDirectors(opts) Personnel[]
+        +resolveDirectorValue(directors, fieldPath) String
+        +resolveMeetingValue(meeting, fieldPath) String
+        +resolveCompanyValue(company, fieldPath) String
+        +resolveSystemValue(fieldPath, company, now) String
+        +getByPath(obj, path) unknown
+    }
+    class TemplateResolverPaths {
+        +DIRECTOR_FIELD_PATHS String[]
+        +MEETING_FIELD_PATHS String[]
+    }
+    class HtmlToDocSchemaConverter {
+        +convertHtmlToDocSchema(html)* docSchema,variables,report
+        -splitBlocks(html) Block[]
+        -buildSegments(inner, varKeys, fields) Segment[]
+        -mapBlockToSection(block) Section
+    }
+    class BLANK {
+        +String FULL  // '＿＿＿＿＿＿＿＿'
+        +String MD
+        +String SM
+    }
+
+    TemplateResolver ..> Personnel : 查董事
+    TemplateResolver ..> Company : 聚合 links
+    TemplateResolver ..> Meeting : 查会议
+    TemplateResolver ..> TemplateResolverPaths : 读约定
+    HtmlToDocSchemaConverter ..> BLANK : 复用留白常量
+    HtmlToDocSchemaConverter ..> DocumentTemplate : 产出 docSchema
+    Company "1" *-- "0..*" Link

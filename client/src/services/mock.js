@@ -1,3 +1,5 @@
+import generatedPresetData from '../../../shared/templatePresets.generated.json';
+
 // ====== 人员数据 ======
 const MOCK_PERSONNEL = [
   {
@@ -347,6 +349,7 @@ export const auth = {
     if (email === demoEmail && password === demoPass) return { data: { data: DEMO_USER } };
     if (email === 'admin@example.com' && password === 'admin123') return { data: { data: { ...DEMO_USER, role: 'admin' } } };
     if (email === 'secretary@example.com' && password === 'secretary123') return { data: { data: { ...DEMO_USER, role: 'secretary' } } };
+    if (email === 'demo@example.com' && password === 'demo123') return { data: { data: { ...DEMO_USER, role: 'secretary' } } };
     if (email === 'manager@example.com' && password === 'manager123') return { data: { data: { ...DEMO_USER, role: 'manager' } } };
     if (email === 'viewer@example.com' && password === 'viewer123') return { data: { data: { ...DEMO_USER, role: 'viewer' } } };
     const err = new Error('Invalid credentials');
@@ -1023,13 +1026,20 @@ const MOCK_COMPLIANCE_REMINDERS = [
   { _id: 'rem4', title: 'NAR1 年度申报表 - Zhong An Travel', rule: { _id: 'r1', name: '周年申报表 NAR1' }, company: { _id: 'c2', name: 'Zhong An Travel Ltd (眾安旅遊)' }, dueDate: '2026-09-28', status: 'upcoming', priority: 'medium', completed: true, createdAt: '2026-06-28', task: { _id: 'tt1' }, notes: [] },
 ];
 
-const MOCK_TEMPLATES = [
-  { _id: 'tmpl1', name: '董事委任函', category: 'appointment', description: '标准董事委任书模板', content: '本人/本公司兹委任 {{directorName}} ({{nric}}) 为 {{companyName}} 之董事，任期自 {{appointedDate}} 起。', variables: ['directorName', 'nric', 'companyName', 'appointedDate'], isPreset: true },
-  { _id: 'tmpl2', name: '会议通知', category: 'meeting', description: '董事会/股东会会议通知', content: '{{greeting}}：\n\n兹定于 {{meetingDate}} {{meetingTime}} 召开 {{meetingType}}，\n公司名称：{{companyName}}\n会议地点：{{meetingLocation}}', variables: ['greeting', 'meetingDate', 'meetingTime', 'meetingType', 'companyName', 'meetingLocation'], isPreset: true },
-  { _id: 'tmpl3', name: '董事会纪要', category: 'meeting', description: '董事会会议纪要模板', content: '{{companyName}} 董事会会议纪要\n\n会议日期：{{meetingDate}}\n会议地点：{{meetingLocation}}\n\n出席：\n{{attendees}}\n\n决议：\n{{resolutions}}', variables: ['companyName', 'meetingDate', 'meetingLocation', 'attendees', 'resolutions'], isPreset: true },
-  { _id: 'tmpl4', name: '股东名册 ROM', category: 'register', description: '股东登记册模板', content: '{{companyName}}\nREGISTER OF MEMBERS\n\n编号：{{registrationNumber}}\n生成日期：{{generatedDate}}', variables: ['companyName', 'registrationNumber', 'generatedDate'], isPreset: true },
-];
-
+// ⭐ v2：模板 mock 数据源已切换为 schema 形状（engine:'schema' + docSchema），
+//    且改为从「单一事实源」shared/templatePresets.generated.json 构造，
+//    与后端 server/data/presets/*.js 的 9 个完整预设同源
+//    （旧版手写 4 个简化骨架，section/字段远少于真实预设，导致预览与后端不一致）。
+//
+// 关键约束：
+//   - 通过 Vite 原生 JSON import 引入生成产物；
+//   - 必须深拷贝（JSON.parse(JSON.stringify)）再赋给 MOCK_TEMPLATES，
+//     否则 templateService 的 create/update/duplicate 会就地污染模块级单例（import 进来的对象），
+//     同一会话内改过的模板刷新前不复原，甚至跨测试互相串；
+//   - _id 形如 `preset-${presetKey}`，稳定派生，保证幂等；
+//   - `variables` 由 deriveVariables(docSchema) 产出，含 source:'director'/'meeting'，
+//     是 TemplateFill 渲染「董事多选/会议下拉」选择器的依据。
+const MOCK_TEMPLATES = JSON.parse(JSON.stringify(generatedPresetData.presets));
 const MOCK_SIGN_TASKS = [
   { _id: 'st1', title: '签署 CNC 2025年度会议纪要', template: { _id: 'tmpl3', name: '董事会纪要' }, relatedMeeting: { _id: 'm3', title: '中国新城市集团2025年度董事会会议' }, relatedCompany: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)' }, signers: [
     { _id: 'sg1', name: '施中安', role: '会议主席', status: 'signed', signedAt: '2026-03-28T14:00:00+08:00' },
@@ -1149,16 +1159,81 @@ export const templates = {
   getOne: async (id) => { await delay(); const t = MOCK_TEMPLATES.find(tt => tt._id === id); if (!t) throw new Error('Not found'); return { data: { data: t } }; },
   create: async (data) => { await delay(); const neu = { _id: 'tpl' + Date.now(), isPreset: false, ...data }; MOCK_TEMPLATES.push(neu); return { data: { data: neu } }; },
   update: async (id, data) => { await delay(); const idx = MOCK_TEMPLATES.findIndex(t => t._id === id); if (idx >= 0) { MOCK_TEMPLATES[idx] = { ...MOCK_TEMPLATES[idx], ...data }; return { data: { data: MOCK_TEMPLATES[idx] } }; } throw new Error('Not found'); },
-  delete: async (id) => { await delay(); return { data: { data: { _id: id } } }; },
-  render: async (id, variables) => {
+  delete: async (id) => {
+    await delay();
+    const t = MOCK_TEMPLATES.find(tt => tt._id === id);
+    // 与后端一致：内置模板拒绝删除
+    if (t && t.isPreset) throw new Error('预设模板不可删除');
+    return { data: { data: { _id: id } } };
+  },
+  duplicate: async (id, data = {}) => {
     await delay();
     const t = MOCK_TEMPLATES.find(tt => tt._id === id);
     if (!t) throw new Error('Template not found');
-    let rendered = t.content;
-    Object.entries(variables.data || {}).forEach(([k, v]) => { rendered = rendered.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v); });
-    return { data: { data: { rendered, template: t, variables: variables.data || {} } } };
+    const copy = {
+      ...JSON.parse(JSON.stringify(t)),
+      _id: 'tpl' + Date.now(),
+      name: (data && data.name) || `${t.name}（副本）`,
+      isPreset: false,
+      version: 1,
+    };
+    delete copy.presetKey;
+    MOCK_TEMPLATES.push(copy);
+    return { data: { data: copy } };
   },
-  initPresets: async () => { await delay(); return { data: { data: MOCK_TEMPLATES } }; },
+  // ⭐ B3：render（返回 HTML）已删除，改为只解析预填「值」，不产出任何 HTML。
+  // 支持 director / meeting source：透传 directorIds / meetingId 时返回对应示例值。
+  resolve: async (id, data = {}) => {
+    await delay();
+    const t = MOCK_TEMPLATES.find(tt => tt._id === id);
+    if (!t) throw new Error('Template not found');
+    const today = new Date().toISOString().slice(0, 10);
+    const directorIds = Array.isArray(data.directorIds) ? data.directorIds : [];
+    const meetingId = data.meetingId || '';
+    const selectedDirectors = directorIds.length
+      ? MOCK_PERSONNEL.filter(p => directorIds.includes(p._id))
+      : MOCK_PERSONNEL.slice(0, 2);
+    const selectedMeeting = (MOCK_MEETINGS || []).find(m => m._id === meetingId) || (MOCK_MEETINGS || [])[0];
+    const values = {};
+    const autoFilled = [];
+    (t.variables || []).forEach((v) => {
+      if (!v || !v.key) return;
+      if (v.source === 'company' && v.fieldPath === 'name') {
+        values[v.key] = '示例控股有限公司';
+        autoFilled.push(v.key);
+      } else if (v.source === 'system') {
+        values[v.key] = today;
+        autoFilled.push(v.key);
+      } else if (v.source === 'director') {
+        if (v.fieldPath === 'director.count') {
+          values[v.key] = String(selectedDirectors.length);
+        } else {
+          // 默认返回全体董事姓名清单（boardList / director.name / 其余）
+          values[v.key] = selectedDirectors.map(d => d.name).join('、');
+        }
+        if (values[v.key]) autoFilled.push(v.key);
+      } else if (v.source === 'meeting') {
+        if (v.fieldPath === 'meeting.title') {
+          values[v.key] = selectedMeeting ? selectedMeeting.title : '';
+        } else if (v.fieldPath === 'meeting.date' || v.fieldPath === 'meeting.scheduledAt') {
+          values[v.key] = selectedMeeting && selectedMeeting.scheduledAt ? String(selectedMeeting.scheduledAt).slice(0, 10) : '';
+        } else if (v.fieldPath === 'meeting.agenda') {
+          values[v.key] = selectedMeeting && Array.isArray(selectedMeeting.agenda)
+            ? selectedMeeting.agenda.map(a => a.item).join('、')
+            : '';
+        } else {
+          values[v.key] = selectedMeeting ? selectedMeeting.title : '';
+        }
+        if (values[v.key]) autoFilled.push(v.key);
+      }
+    });
+    return { data: { data: { values, autoFilled } } };
+  },
+  initPresets: async () => {
+    await delay();
+    // 与后端 /initialize 的响应形状对齐：{ deleted, upserted }
+    return { data: { data: { deleted: 0, upserted: MOCK_TEMPLATES.length } } };
+  },
 };
 
 // ====== Sign Tasks ======

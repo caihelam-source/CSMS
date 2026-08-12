@@ -125,7 +125,7 @@ async function start() {
     /api/documents            文档管理 + 自动编号
     /api/compliance-rules     合规规则管理（17条预设）
     /api/compliance-reminders 合规提醒管理
-    /api/templates            文档模板 + 变量渲染
+    /api/templates            文书模板（Schema 引擎）+ 预填解析
     /api/sign-tasks           电子签署流程
     /api/personnel             人员库（董事/股东/职员）
     /api/companies/:id/...     股东条目/董事条目/ROM/ROD
