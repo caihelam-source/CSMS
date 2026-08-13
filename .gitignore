@@ -130,3 +130,7 @@ client/vcheck.out.txt
 client/vt.out.txt
 client/vtest.out.txt
 client/vitest.config.js.timestamp-*.mjs
+
+# 沙箱遗留 MongoDB 回退启动器（未被 deploy-local 引用，沙箱内二进制下载失败）
+# 仅 git 忽略；物理删除留待本机 `git clean -fdX`
+scripts/start-mongo-memory.js

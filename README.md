@@ -6,7 +6,7 @@
 
 **Claw (Company Secretary Management System)** 是一款现代化的全栈香港公司秘书管理系统，提供公司管理、统一人员中枢、会议全生命周期管理、电子签署、合规提醒、文档模板等核心功能。
 
-> 当前版本 **v5.2**（2026-07-20）。v5.0 完成统一人员中枢重构，v5.2 完成会议全生命周期闭环、文件管理升级、移动端适配与签署任务增强。详见 [CHANGELOG](#变更日志)。
+> 当前版本 **v5.2**（2026-07-20），**v5.2.1 增量（2026-08-13）**：Schema 驱动模板系统融合 9 个真实预设、「存档说明」改为可编辑、`npm run deploy:local` 一键本地部署。详见 [CHANGELOG](#变更日志)。
 
 ## ✨ 核心功能
 
@@ -37,7 +37,11 @@
 - 文件上传（本地磁盘 / Cloudflare R2 生产）
 - **多级筛选器**：大类 → 子类型 → 年份 + 面包屑 + 实时数量同步
 - 文档到期状态徽章（绿/橙/红）
-- 文档模板：变量渲染引擎 + 预览
+- **Schema 驱动模板系统（v5.2.1）**：`docSchema` JSON（字段 + 区块 + 变量）经通用引擎渲染，支持列表 / 填写 / 编辑三视图与 Word 导出、HTML 预览、复制文案。
+  - **9 个内置真实预设**：董事遵守标准守则之确认函、董事确认函、DU004G 董事个人资料及履历、部门年度企业管治自评、风险管理及内部监控报告、项目章程（RMIC）、董事会决议（RMIC）、董事辞任信、同意出任董事书。
+  - **可编辑存档说明**：每个预设新增 `archiveNote` 多行字段（默认填好标准说明），取消「打印存档说明」勾选则整行不打印。
+  - **权限**：模板管理（新建 / 编辑）限 `editorAuth`（admin 或 secretary）；填写 / 预览 / 导出所有人可用。
+  - **Demo 账号**：`admin@example.com / admin123`（管理员）、`demo@example.com / demo123`（秘书）；本地预览 `npm run dev`（mock 模式）或 `npm run deploy:local`（真实后端）。
 
 ### ✍️ 电子签署流程 — v5.2 增强
 - **双来源 Task**：`taskSource: meeting | dashboard`，计数实时同步
@@ -184,6 +188,8 @@ Claw/
 
 公网部署（Render + MongoDB Atlas + Cloudflare R2）详见 **[DEPLOY-FULLSTACK.md](./DEPLOY-FULLSTACK.md)**。
 
+**本地一键部署（v5.2.1）**：`npm run deploy:local` 自动完成 `docker` 起 MongoDB → `seed-admin` 建管理员 → 迁移旧 HTML 模板 → 起后端 → 登录取 token → `POST /api/templates/initialize` 写 9 预设（严守「先迁移旧 HTML，后 `/initialize`」红线）。支持 `--skip-mongo` / `--skip-migrate` / `--with-client` 等参数（详见 `scripts/deploy-local.js --help`）。
+
 沙箱无 git 时，用 `scripts/push-no-git.cjs`（Node.js 调 GitHub Git Data API 等效 `git push`，PAT 从 `.workbuddy/memory/SECRETS.md` 读取，不落盘）。
 
 ## 📦 整体搬迁（迁移到新环境）
@@ -204,6 +210,7 @@ Claw/
 
 ## 📄 变更日志
 
+- **v5.2.1** (2026-08-13)：Schema 驱动模板系统融合 —— 接入 9 个真实预设（董事确认函 / 董事守则确认函 / DU004G / 部门自评 / 内控报告 / 项目章程 / 董事会决议 / 董事辞任信 / 同意出任函）；渲染引擎 `note` 区块支持变量引用，「存档说明」改为可编辑 `archiveNote` 字段；修复 mock 模式登录 500；新增 `npm run deploy:local` 一键本地部署脚本（含旧 HTML 迁移 + `/initialize`）。
 - **v5.2** (2026-07-20)：会议全生命周期闭环 + 文件管理升级 + 移动端适配 + 签署任务增强；会议通知/纪要 Tab 补齐「重新生成 / 保存 Word / HTML 预览」，修复编辑后预览丢失。
 - **v5.0** (2026-07-14)：统一人员中枢重构（Director/ShareholderEntry/DirectorEntry → Personnel + Company.links），Personnel 360° 视图，CompanyDetail 打通。
 - **v4.0**：代码优化（React.lazy / 共享组件 / 虚拟列表 / 验证器 / Toast）+ 端到端回归。

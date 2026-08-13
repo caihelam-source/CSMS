@@ -16,6 +16,7 @@ EXCLUDES=(
   --exclude=dist
   --exclude='dist.bak.*'
   --exclude=dist_bak_align
+  --exclude='dist-*'
   --exclude='*.log'
   --exclude='*.err'
   --exclude=build_jur

@@ -130,7 +130,7 @@
 
 ## 6. 已知遗留项（不在本期，记录待办）
 
-- `server/models/Director.js`（含 `appointments` 旧结构）仍被 `templates.js`、`documents.js` 引用。
+- `server/models/Director.js`（含 `appointments` 旧结构）仍被 `documents.js` 引用（`templates.js` 自 v5.2.1 起已改为 Schema 驱动，不再引用 Director）。
   后续迁移：移除 Director 引用 → 统一走 `Personnel` + `Company.links`；删除 Director 模型。
   当前不影响读时聚合（signer 已改 Personnel），列为独立迁移任务。
 
