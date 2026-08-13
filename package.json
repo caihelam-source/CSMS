@@ -12,6 +12,7 @@
     "start": "node server/index.js",
     "verify:presets": "node server/scripts/verifyPresets.mjs",
     "presets:export": "node server/scripts/exportPresets.mjs",
+    "deploy:local": "node scripts/deploy-local.js",
     "setup": "node scripts/run-setup.js",
     "mongo:stop": "node scripts/run-stop-mongo.js",
     "test": "npm run test:client && npm run test:server",
