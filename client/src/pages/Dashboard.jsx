@@ -6,7 +6,7 @@ import { toArray } from '../utils/responseNormalize.js'
 import { LoadingSpinner } from '../components/UIHelpers'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import {
-  Building2, Users, FileText, Calendar, Clock, PenLine, CheckCircle2, FileCode,
+  Building2, Users, FileText, Calendar, Clock, CalendarClock, PenLine, CheckCircle2, FileCode,
   RefreshCw, LogOut,
   Pencil, X, Check, ArrowRight, PlusCircle, AlertCircle, AlertTriangle,
 } from 'lucide-react'
