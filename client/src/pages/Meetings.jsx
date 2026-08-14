@@ -12,6 +12,8 @@ import { meetingService, companyService, personnelService, signTaskService } fro
 import { MEETING_TYPE_LABELS as TYPES, MEETING_STATUSES as STATUS, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClass, labelClass } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
+import { useScope, useScopedItems } from '../hooks/useScope'
+import { NO_SCOPE_HINT } from '../utils/scope'
 import { validate, required } from '../utils/validators'
 import Modal from '../components/Modal'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -47,9 +49,13 @@ export default function Meetings() {
   // Sign minutes form state (replaces window.prompt)
   const [signForm, setSignForm] = useState({ open: false, name: '', title: '董事会主席' })
 
+  // 行级数据权限：渲染期无声过滤（真实模式服务端已过滤，此处幂等 no-op）
+  const { noScope } = useScope()
+  const scopedMeetings = useScopedItems(meetings, m => m.company?._id ?? m.company)
+
   // Search + filter via useSearchFilter
   const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
-    meetings,
+    scopedMeetings,
     (m, q, f) => {
       const matchSearch = !q || m.title?.toLowerCase().includes(q) || m.company?.name?.toLowerCase().includes(q) || m.type?.toLowerCase().includes(q)
       const matchStatus = f.status === 'all' || !f.status || m.status === f.status
@@ -75,6 +81,8 @@ export default function Meetings() {
   const [minutesData, setMinutesData] = useState(null)
   const [saving, setSaving] = useState(false)
   const [companies, setCompanies] = useState([])
+  // 向导/筛选的公司下拉源同样收口到可见范围
+  const scopedCompanies = useScopedItems(companies, c => c._id)
   const [personnelList, setPersonnelList] = useState([])
   const [signTaskMap, setSignTaskMap] = useState({}) // meetingId → count
 
@@ -284,9 +292,9 @@ export default function Meetings() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={Calendar}
-          title="暂无会议数据"
-          description="创建您的第一个会议来开始使用"
-          action={<button onClick={openWizard} className="btn-primary"><Plus size={14} className="inline mr-1" />新建会议</button>}
+          title={noScope ? '暂无可访问的会议' : '暂无会议数据'}
+          description={noScope ? NO_SCOPE_HINT : '创建您的第一个会议来开始使用'}
+          action={noScope ? null : <button onClick={openWizard} className="btn-primary"><Plus size={14} className="inline mr-1" />新建会议</button>}
         />
       ) : filtered.map(m => (
         <div key={m._id} className="card hover:shadow-md transition-shadow cursor-pointer group" onClick={() => navigate(`/meetings/${m._id}`)}>
@@ -358,7 +366,7 @@ export default function Meetings() {
                     <FormField label="关联公司" required error={step1Errors.companyId}>
                       <select className={inputClass} value={step1.companyId} onChange={e => { setStep1({ ...step1, companyId: e.target.value }); setStep1Errors(e => ({ ...e, companyId: '' })) }}>
                         <option value="">请选择公司...</option>
-                        {companies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                        {scopedCompanies.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                       </select>
                     </FormField>
                     <div>

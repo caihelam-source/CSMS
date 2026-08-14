@@ -34,7 +34,7 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
     // Wave 0 rev2 — 行级权限：非 admin/auditor 仅见 accessibleCompanies 内的公司任务
     applyListScope(query, req, 'company');
 
-    const tasks = await Task.find(query)
+    const tasks = await Task.find(query).lean()
       .populate('company', 'name')
       .populate('assignedTo', 'name email')
       .populate('createdBy', 'name')
@@ -57,7 +57,7 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, scopeMiddleware, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id)
+    const task = await Task.findById(req.params.id).lean()
       .populate('company')
       .populate('assignedTo', 'name email phone')
       .populate('createdBy', 'name email')

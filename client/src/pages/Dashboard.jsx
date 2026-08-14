@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { companyService, personnelService, documentService, meetingService, complianceReminderService, templateService, taskService } from '../services/index.js'
+import { companyService, personnelService, documentService, meetingService, complianceReminderService, templateService, taskService, calendarService } from '../services/index.js'
 import { formatDate } from '../utils/helpers'
+import { toArray } from '../utils/responseNormalize.js'
 import { LoadingSpinner } from '../components/UIHelpers'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import {
@@ -11,6 +12,16 @@ import {
 } from 'lucide-react'
 
 const SUBTITLE_KEY = 'csms.dashboardSubtitle'
+
+// 日历来源着色（与 pages/Calendar.jsx 保持一致）
+const SOURCE_COLOR = {
+  compliance_reminder: '#ef4444',
+  task: '#2563EB',
+  company_filing: '#f59e0b',
+  document: '#0ea5e9',
+  meeting: '#8b5cf6',
+  results_timetable: '#ec4899',
+}
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
@@ -24,6 +35,7 @@ export default function Dashboard() {
   const [pendingTasksCount, setPendingTasksCount] = useState(0)
   const [signTasksCount, setSignTasksCount] = useState(0)
   const [templatesCount, setTemplatesCount] = useState(0)
+  const [calendarItems, setCalendarItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [_lastRefreshed, setLastRefreshed] = useState(null)
   const [accountOpen, setAccountOpen] = useState(false)
@@ -99,6 +111,28 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => { loadAll() }, [loadAll])
+
+  // 日历聚合：本月 + 未来 14 天的未完成事件（逾期 + 待办），作为 Dashboard「打开即见」提醒面
+  useEffect(() => {
+    (async () => {
+      try {
+        const now = new Date()
+        const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        const from = ymd(new Date(now.getFullYear(), now.getMonth(), 1))
+        const to = ymd(new Date(now.getFullYear(), now.getMonth() + 1, 14))
+        const res = await calendarService.getEvents(from, to).catch(() => ({ data: { data: { events: [] } } }))
+        const list = toArray(res?.data?.data, 'events')
+        setCalendarItems(
+          list
+            .filter((e) => e.status === 'open' || e.status === 'overdue')
+            .sort((a, b) => new Date(a.date) - new Date(b.date))
+            .slice(0, 8)
+        )
+      } catch {
+        /* 日历面板失败不影响其余卡片 */
+      }
+    })()
+  }, [])
 
   // 账户下拉：外部点击 / Escape 关闭并归还焦点给触发器；打开时聚焦首个菜单项（a11y 键盘可达）
   useEffect(() => {
@@ -395,6 +429,30 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {/* 本月待办 / 临近到期（日历跨模块聚合） */}
+        <section className="mini-col mt-4">
+          <div className="mini-col__head">
+            <h3 className="mini-col__title"><CalendarClock size={18} />本月待办 / 临近到期</h3>
+            <Link to="/calendar" className="mini-col__more">打开日历</Link>
+          </div>
+          {calendarItems.length === 0 ? (
+            <p className="text-ink-3 text-sm py-4 text-center">本月暂无待办 🎉</p>
+          ) : (
+            calendarItems.map((e) => (
+              <Link to={e.link} className="mini-row" key={e.id}>
+                <div className="mr-main">
+                  <p className="mr-t">{e.title}</p>
+                  <p className="mr-s">{e.module} · {e.companyName || '未关联'}</p>
+                </div>
+                <span className="mr-right" style={{ color: e.overdue ? '#b91c1c' : '#64748b' }}>
+                  <i className="mi-dot" style={{ background: e.overdue ? '#ef4444' : (SOURCE_COLOR[e.source] || '#64748b') }}></i>
+                  {e.overdue ? '逾期' : formatDate(e.date)}
+                </span>
+              </Link>
+            ))
+          )}
+        </section>
 
       </div>
     </>

@@ -46,7 +46,7 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
     // Wave 0 rev2 — 行级权限：非 admin/auditor 仅见 accessibleCompanies 内的公司文档
     applyListScope(query, req, 'company');
 
-    const documents = await Document.find(query)
+    const documents = await Document.find(query).lean()
       .populate('company', 'name nameChinese stockCode')
       .populate('uploadedBy', 'name email')
       .sort({ createdAt: -1 });
@@ -60,7 +60,7 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
 // GET /api/documents/:id
 router.get('/:id', auth, scopeMiddleware, async (req, res) => {
   try {
-    const doc = await Document.findById(req.params.id)
+    const doc = await Document.findById(req.params.id).lean()
       .populate('company').populate('uploadedBy', 'name email');
     if (!doc) return res.status(404).json({ message: 'Document not found' });
     // Wave 0 rev2 — 行级权限：越权访问返回 403
@@ -257,7 +257,7 @@ router.delete('/:id', auth, async (req, res) => {
 // GET /api/documents/:id/download — 鉴权流式下载（后端用存储凭证取字节，R2 私有桶/跨域均可用）
 router.get('/:id/download', auth, scopeMiddleware, async (req, res) => {
   try {
-    const doc = await Document.findById(req.params.id);
+    const doc = await Document.findById(req.params.id).lean();
     if (!doc || !doc.filename) return res.status(404).json({ message: 'File not found' });
     if (!inScope(req, doc.company?._id || doc.company)) {
       return res.status(403).json({ message: 'Access denied: document not in your accessible scope' });
@@ -278,7 +278,7 @@ router.get('/:id/download', auth, scopeMiddleware, async (req, res) => {
 // 规避：① 跨域无法带 Authorization 给 <a>/<iframe>；② R2 私有桶公开 URL 不可达。
 router.get('/:id/view', auth, scopeMiddleware, async (req, res) => {
   try {
-    const doc = await Document.findById(req.params.id);
+    const doc = await Document.findById(req.params.id).lean();
     if (!doc || !doc.filename) return res.status(404).json({ message: 'File not found' });
     if (!inScope(req, doc.company?._id || doc.company)) {
       return res.status(403).json({ message: 'Access denied: document not in your accessible scope' });
@@ -309,7 +309,7 @@ router.get('/export', auth, scopeMiddleware, async (req, res) => {
     // 行级权限：非 admin/auditor 仅见 accessibleCompanies 内公司文档
     applyListScope(query, req, 'company');
 
-    const docs = await Document.find(query)
+    const docs = await Document.find(query).lean()
       .populate('company', 'name registrationNumber')
       .populate('personnel', 'name')
       .sort({ createdAt: -1 });
@@ -356,7 +356,7 @@ router.get('/export-zip', auth, scopeMiddleware, async (req, res) => {
     if (req.query.includeStaged !== 'true') query.staged = { $ne: true };
     applyListScope(query, req, 'company');
 
-    const docs = await Document.find(query).populate('company', 'name');
+    const docs = await Document.find(query).lean().populate('company', 'name');
     const JSZip = require('jszip');
     const zip = new JSZip();
     let added = 0;

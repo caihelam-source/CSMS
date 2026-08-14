@@ -19,7 +19,7 @@ router.get('/', auth, async (req, res) => {
       { ruleId: { $regex: search, $options: 'i' } },
       { category: { $regex: search, $options: 'i' } },
     ];
-    const rules = await ComplianceRule.find(query)
+    const rules = await ComplianceRule.find(query).lean()
       .populate('appliedCompanies', 'name nameChinese')
       .sort({ jurisdiction: 1, isListedOnly: 1, ruleId: 1 });
     res.json({ success: true, count: rules.length, rules });
@@ -31,7 +31,7 @@ router.get('/', auth, async (req, res) => {
 // GET /api/compliance-rules/:id
 router.get('/:id', auth, async (req, res) => {
   try {
-    const rule = await ComplianceRule.findById(req.params.id).populate('appliedCompanies', 'name nameChinese jurisdiction');
+    const rule = await ComplianceRule.findById(req.params.id).lean().populate('appliedCompanies', 'name nameChinese jurisdiction');
     if (!rule) return res.status(404).json({ message: 'Rule not found' });
     res.json({ success: true, rule });
   } catch (err) {

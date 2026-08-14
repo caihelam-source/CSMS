@@ -12,7 +12,7 @@ router.use(adminAuth);
 // GET /api/users — 列出全部用户（不含密码）
 router.get('/', async (req, res) => {
   try {
-    const users = await User.find().select('-password').sort({ createdAt: 1 });
+    const users = await User.find().lean().select('-password').sort({ createdAt: 1 });
     res.json({ success: true, data: users });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

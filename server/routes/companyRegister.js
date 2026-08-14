@@ -90,7 +90,7 @@ function drawTable(doc, { headers, colWidths, rows, startX = 40, headerBgColor =
 // ── GET /api/companies/:id/rod — BVI标准 ROD ──────────────────
 router.get('/rod', auth, async (req, res) => {
   try {
-    const company = await Company.findById(req.params.id);
+    const company = await Company.findById(req.params.id).lean();
     if (!company) return res.status(404).json({ message: 'Company not found' });
 
     // 只取董事（不含公司秘书，BVI标准ROD不含秘书）
@@ -209,10 +209,10 @@ router.get('/rod', auth, async (req, res) => {
 // ── GET /api/companies/:id/rom — BVI标准 ROM ──────────────────
 router.get('/rom', auth, async (req, res) => {
   try {
-    const company = await Company.findById(req.params.id);
+    const company = await Company.findById(req.params.id).lean();
     if (!company) return res.status(404).json({ message: 'Company not found' });
 
-    const entries = await ShareholderEntry.find({ company: req.params.id })
+    const entries = await ShareholderEntry.find({ company: req.params.id }).lean()
       .populate('personnelRef')
       .populate('companyRef')
       .sort({ shareholderType: 1, isCurrentMember: -1, dateEnteredAsMember: 1 });

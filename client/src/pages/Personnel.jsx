@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Plus, Users, Pencil, Trash2, Merge, AlertTriangle, Upload, Download } from 'lucide-react'
 import { personnelService, companyService } from '../services/index.js'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClass } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
+import { useScope, useScopedItems, useScopedPersonnel } from '../hooks/useScope'
+import { NO_SCOPE_HINT } from '../utils/scope'
 import { validate, required, email as emailValidator } from '../utils/validators'
 import { useConfirm } from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
@@ -15,6 +17,53 @@ const FORM_RULES = {
   name: [required('姓名为必填')],
   email: [emailValidator('邮箱格式不正确')],
 }
+
+// 角色中文标签（模块级：组件与 PersonRow 共用）
+const ROLE_LABELS = { director: '董事', alternate_director: '替任董事', shareholder: '股东', secretary: '公司秘书', auditor: '审计师', authorized_representative: '授权代表', corporate_secretary: '公司秘书(公司)', other: '其他' }
+const roleLabel = (r) => ROLE_LABELS[r] || r
+
+// 列表行抽成 memo 组件：父组件状态变更时仅数据/选中态变化的行会重渲染
+const PersonRow = memo(function PersonRow({ person: p, selected, dupCount, onEdit, onDelete, onToggleSelect }) {
+  return (
+    <div className={`card flex items-center justify-between hover:shadow-md transition-shadow ${selected ? 'ring-2 ring-primary-500' : ''} ${dupCount ? 'border-l-4 border-l-yellow-400' : ''}`}>
+      <div className="flex items-center gap-3 flex-1">
+        <input type="checkbox" checked={selected} onChange={() => onToggleSelect(p._id)}
+          className="w-4 h-4 text-primary-600 rounded" aria-label={`选择 ${p.name}`} />
+        <Link to={`/personnel/${p._id}`} className="flex items-center gap-3 flex-1">
+          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold">
+            {p.name?.charAt(0) || '?'}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-primary-600 hover:underline">{p.name}</p>
+              {dupCount > 0 && (
+                <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full flex items-center gap-1" title="Duplicate detected">
+                  <AlertTriangle size={10} /> {dupCount}
+                </span>
+              )}
+            </div>
+            {p.roles?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-0.5">
+                {p.roles.map(r => (
+                  <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-700">{roleLabel(r)}</span>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2 text-xs text-ink-3">
+              {p.nric && <span>{p.nric}</span>}
+              {p.nationality && <span>· {p.nationality}</span>}
+              {p.email && <span>· {p.email}</span>}
+            </div>
+          </div>
+        </Link>
+      </div>
+      <div className="flex gap-1">
+        <button onClick={() => onEdit(p)} className="p-2 text-ink-3 hover:text-primary-600 rounded" aria-label={`编辑 ${p.name}`}><Pencil size={14} /></button>
+        <button onClick={() => onDelete(p)} className="p-2 text-ink-3 hover:text-danger rounded" aria-label={`删除 ${p.name}`}><Trash2 size={14} /></button>
+      </div>
+    </div>
+  )
+})
 
 export default function Personnel() {
   const { confirm, ConfirmDialogComponent } = useConfirm()
@@ -38,9 +87,14 @@ export default function Personnel() {
   const [importResult, setImportResult] = useState(null)
   const importFileRef = useRef()
 
+  // 行级数据权限：人员无 company 字段，靠可见公司的 links 反查（渲染期派生，幂等 no-op）
+  const { noScope } = useScope()
+  const scopedCompanies = useScopedItems(companies, c => c._id)
+  const scopedPersonnel = useScopedPersonnel(personnel, scopedCompanies)
+
   // Search + filter via useSearchFilter
   const { search, setSearch, filtered } = useSearchFilter(
-    personnel,
+    scopedPersonnel,
     (p, q) => !q || p.name?.toLowerCase().includes(q) || p.nric?.toLowerCase().includes(q),
     {}
   )
@@ -75,7 +129,7 @@ export default function Personnel() {
   }, [duplicateWarnings])
 
   const openCreate = () => { setForm(EMPTY_FORM); setFormErrors({}); setEditTarget(null); setShowModal(true) }
-  const openEdit = (p) => {
+  const openEdit = useCallback((p) => {
     setForm({
       name: p.name || '',
       nric: p.nric || '',
@@ -87,7 +141,7 @@ export default function Personnel() {
     setFormErrors({})
     setEditTarget(p)
     setShowModal(true)
-  }
+  }, [])
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -117,7 +171,7 @@ export default function Personnel() {
     }
   }
 
-  const handleDelete = async (p) => {
+  const handleDelete = useCallback(async (p) => {
     const ok = await confirm({ title: '删除人员', message: `确定删除 ${p.name}？此操作将移除所有关联任职记录，不可撤销。`, confirmLabel: '确认删除' })
     if (!ok) return
     try {
@@ -127,16 +181,16 @@ export default function Personnel() {
     } catch {
       toast.error('Delete failed')
     }
-  }
+  }, [])
 
   // Merge handlers
-  const toggleSelect = (id) => {
+  const toggleSelect = useCallback((id) => {
     setSelectedIds(ids => {
       if (ids.includes(id)) return ids.filter(x => x !== id)
       if (ids.length >= 2) return ids
       return [...ids, id]
     })
-  }
+  }, [])
 
   const handleMerge = async () => {
     if (selectedIds.length !== 2 || !mergeTargetId) { toast.error('Select exactly 2 personnel and choose target'); return }
@@ -153,10 +207,6 @@ export default function Personnel() {
       toast.error(err.response?.data?.message || 'Merge failed')
     }
   }
-
-  // 角色中文标签
-  const ROLE_LABELS = { director: '董事', alternate_director: '替任董事', shareholder: '股东', secretary: '公司秘书', auditor: '审计师', authorized_representative: '授权代表', corporate_secretary: '公司秘书(公司)', other: '其他' }
-  const roleLabel = (r) => ROLE_LABELS[r] || r
 
   // ---- Excel 批量导入（统一：建人员 + 自动关联任职公司）----
   const downloadTemplate = () => {
@@ -184,7 +234,8 @@ export default function Personnel() {
       let created = 0, linked = 0
       const errors = []
       const companyMap = {}
-      companies.forEach(c => { companyMap[c.name] = c._id })
+      // 只允许关联到可见公司，避免通过导入把人员挂到越权公司
+      scopedCompanies.forEach(c => { companyMap[c.name] = c._id })
       const existing = [...personnel]
       for (const row of rows) {
         const name = (row['姓名'] || row['Name'] || '').toString().trim()
@@ -299,54 +350,23 @@ export default function Personnel() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="还没有人员"
-          description="录入第一位董事、股东或公司秘书，建立统一人员库"
-          action={<button onClick={openCreate} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加人员</button>}
+          title={noScope ? '暂无可访问的人员' : '还没有人员'}
+          description={noScope ? NO_SCOPE_HINT : '录入第一位董事、股东或公司秘书，建立统一人员库'}
+          action={noScope ? null : <button onClick={openCreate} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加人员</button>}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map(p => {
-            const dupGroup = findDuplicateGroup(p._id)
-            return (
-              <div key={p._id} className={`card flex items-center justify-between hover:shadow-md transition-shadow ${selectedIds.includes(p._id) ? 'ring-2 ring-primary-500' : ''} ${dupGroup ? 'border-l-4 border-l-yellow-400' : ''}`}>
-                <div className="flex items-center gap-3 flex-1">
-                  <input type="checkbox" checked={selectedIds.includes(p._id)} onChange={() => toggleSelect(p._id)}
-                    className="w-4 h-4 text-primary-600 rounded" />
-                  <Link to={`/personnel/${p._id}`} className="flex items-center gap-3 flex-1">
-                    <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold">
-                      {p.name?.charAt(0) || '?'}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-primary-600 hover:underline">{p.name}</p>
-                        {dupGroup && (
-                          <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full flex items-center gap-1" title="Duplicate detected">
-                            <AlertTriangle size={10} /> {dupGroup.count}
-                          </span>
-                        )}
-                      </div>
-                      {p.roles?.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-0.5">
-                          {p.roles.map(r => (
-                            <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-700">{roleLabel(r)}</span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex gap-2 text-xs text-ink-3">
-                        {p.nric && <span>{p.nric}</span>}
-                        {p.nationality && <span>· {p.nationality}</span>}
-                        {p.email && <span>· {p.email}</span>}
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={() => openEdit(p)} className="p-2 text-ink-3 hover:text-primary-600 rounded"><Pencil size={14} /></button>
-                  <button onClick={() => handleDelete(p)} className="p-2 text-ink-3 hover:text-danger rounded"><Trash2 size={14} /></button>
-                </div>
-              </div>
-            )
-          })}
+          {filtered.map(p => (
+            <PersonRow
+              key={p._id}
+              person={p}
+              selected={selectedIds.includes(p._id)}
+              dupCount={findDuplicateGroup(p._id)?.count}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+              onToggleSelect={toggleSelect}
+            />
+          ))}
         </div>
       )}
 

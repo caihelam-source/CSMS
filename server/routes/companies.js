@@ -54,7 +54,7 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
     const limitNum = Math.min(parseInt(limit, 10) || 25, 100);
     const total = await Company.countDocuments(query);
 
-    let q = Company.find(query).sort({ name: 1 });
+    let q = Company.find(query).lean().sort({ name: 1 });
     if (usePaging) q = q.skip((pageNum - 1) * limitNum).limit(limitNum);
     const companies = await q;
 
@@ -76,7 +76,7 @@ router.get('/reverse-links', auth, async (req, res) => {
   try {
     const { personnelId } = req.query;
     if (!personnelId) return res.status(400).json({ message: 'personnelId required' });
-    const companies = await Company.find({ 'links.link': personnelId, 'links.linkModel': 'Personnel' })
+    const companies = await Company.find({ 'links.link': personnelId, 'links.linkModel': 'Personnel' }).lean()
       .select('name nameChinese registrationNumber type status links');
     const links = [];
     companies.forEach(c => {
@@ -133,7 +133,7 @@ router.get('/:id', auth, scopeMiddleware, async (req, res) => {
     return res.status(400).json({ message: 'Invalid company id' });
   }
   try {
-    const company = await Company.findById(req.params.id);
+    const company = await Company.findById(req.params.id).lean();
     if (!company) return res.status(404).json({ message: 'Company not found' });
     // Wave 0 rev2 — 行级权限：越权访问返回 403
     if (!inScope(req, company._id)) {
@@ -149,7 +149,7 @@ router.get('/:id', auth, scopeMiddleware, async (req, res) => {
 router.get('/reverse-links/:personnelId', auth, async (req, res) => {
   try {
     const pid = req.params.personnelId;
-    const companies = await Company.find({ 'links.link': pid, 'links.linkModel': 'Personnel' })
+    const companies = await Company.find({ 'links.link': pid, 'links.linkModel': 'Personnel' }).lean()
       .select('name nameChinese registrationNumber type status links');
     const links = [];
     companies.forEach(c => (c.links || []).forEach(l => {

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
@@ -26,6 +27,7 @@ const searchRoutes = require('./routes/search');
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
 const auditRoutes = require('./routes/audit');
+const calendarRoutes = require('./routes/calendar');   // Wave 日历模块 — 跨模块事件聚合 + 邮件摘要
 
 // ── 模型预注册（mongoose 模型需 require 一次才会注册；
 //    Document.generateDocNumber 内部用 mongoose.model('Counter') 取编号计数器，
@@ -48,6 +50,7 @@ const MONGO_URI = safeMongoUri(process.env.MONGODB_URI || process.env.MONGO_URI 
 
 // ── Middleware ──────────────────────────────────────────────
 app.use(cors({ origin: CLIENT_URL, credentials: true }));
+app.use(compression());   // 生产：对 JSON/HTML 响应启用 gzip 压缩，降低传输体积
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -68,6 +71,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/audit', auditRoutes);   // Wave 0 rev2 — 审计日志（admin/auditor 可查）
+app.use('/api/calendar', calendarRoutes);   // Wave 日历模块 — 跨模块事件聚合 + 邮件摘要
 app.use('/api/companies/:id', companyEntriesRoutes);   // shareholder-entries / director-entries
 app.use('/api/companies/:id', companyRegisterRoutes);  // rom / rod PDF
 

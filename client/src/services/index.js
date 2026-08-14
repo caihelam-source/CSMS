@@ -16,6 +16,7 @@ import {
   search as mockSearch,
   audit as mockAudit,
   schedules as mockSchedules,
+  calendar as mockCalendar,
 } from './mock.js'
 
 // 生产环境通过 VITE_USE_MOCK=false 注入真实 API 模式
@@ -590,5 +591,21 @@ export const auditService = {
   getAll: wrap(
     (params) => api.get('/api/audit', { params }),
     mockAudit.getAll,
+  ),
+}
+
+// ====== Calendar Service（Wave 日历模块）======
+// 真实后端：GET /api/calendar/events（聚合 6 类来源，scope 行级过滤）；
+//          POST /api/calendar/digest（本月摘要邮件）。
+// mock：mockCalendar.getEvents 自合成贴近当前月的样例事件。
+// 列表经 toArray(res.data.data, 'events') 防御式提取（见 utils/responseNormalize.js）。
+export const calendarService = {
+  getEvents: (from, to, types) => wrap(
+    () => api.get(`/api/calendar/events${buildParams({ from, to, types: types && types.join(',') })}`),
+    () => mockCalendar.getEvents(from, to, types),
+  ),
+  sendDigest: wrap(
+    () => api.post('/api/calendar/digest'),
+    async () => ({ skipped: true, count: 0 }),
   ),
 }

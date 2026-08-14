@@ -20,7 +20,7 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
     if (company) query.company = company;
     // v5.0 读时聚合：personnelId 反查该人关联公司的会议 + 其作为出席人的会议
     if (personnelId) {
-      const linkedCompanies = await Company.find({ 'links.link': personnelId, 'links.linkModel': 'Personnel' }).select('_id');
+      const linkedCompanies = await Company.find({ 'links.link': personnelId, 'links.linkModel': 'Personnel' }).lean().select('_id');
       query.$or = [
         { 'attendees.ref': personnelId },
         { company: { $in: linkedCompanies.map(c => c._id) } },
@@ -35,7 +35,7 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
     // Wave 0 rev2 — 行级权限：非 admin/auditor 仅见 accessibleCompanies 内的公司会议
     applyListScope(query, req, 'company');
 
-    const meetings = await Meeting.find(query)
+    const meetings = await Meeting.find(query).lean()
       .populate('company', ' name')
       .populate('attendees.ref', 'name email')
       .populate('createdBy', 'name')
@@ -56,7 +56,7 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, scopeMiddleware, async (req, res) => {
   try {
-    const meeting = await Meeting.findById(req.params.id)
+    const meeting = await Meeting.findById(req.params.id).lean()
       .populate('company')
       .populate('attendees.ref', 'name email phone')
       .populate('createdBy', 'name')

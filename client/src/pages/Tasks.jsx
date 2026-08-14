@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, memo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CheckSquare, Plus, Filter, Calendar,
@@ -8,6 +8,8 @@ import {
 import { taskService, documentService, userService } from '../services/index.js'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
+import { useScope, useScopedItems } from '../hooks/useScope'
+import { NO_SCOPE_HINT } from '../utils/scope'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Modal from '../components/Modal'
 import SignTaskForm from '../components/SignTaskForm'
@@ -17,6 +19,75 @@ const statusIcon = (s) => {
   const m = { completed: <CheckCircle2 size={20} className="text-success" />, in_progress: <Clock size={20} className="text-primary-500" />, overdue: <AlertTriangle size={20} className="text-danger" /> }
   return m[s] || <Circle size={20} className="text-ink-3" />
 }
+
+// 列表行抽成 memo 组件：父组件状态变更时仅数据变化的行会重渲染
+const TaskRow = memo(function TaskRow({ task, users, getDaysRemaining, onEdit, onDelete, onQuickComplete, onAddNote, onNavigate }) {
+  const days = getDaysRemaining(task.dueDate)
+  const overdue = task.status !== 'completed' && days < 0
+  return (
+    <div className={`bg-surface rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${overdue ? 'border-danger/20' : 'border-hairline'}`}>
+      <div className="flex items-start gap-4">
+        {/* Quick complete toggle */}
+        <button onClick={() => onQuickComplete(task)} className="mt-0.5 shrink-0 hover:scale-110 transition-transform" title={task.status === 'completed' ? '重新打开' : '标记完成'}>
+          {statusIcon(overdue ? 'overdue' : task.status)}
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <h3
+                onClick={() => onNavigate(`/tasks/${task._id}`)}
+                className={`font-semibold cursor-pointer hover:text-primary-600 transition-colors ${overdue ? 'text-danger' : task.status === 'completed' ? 'line-through text-ink-3' : 'text-ink'}`}
+              >
+                {task.title}
+              </h3>
+              <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${taskPriorityColor(task.priority)}`}>{task.priority}</span>
+              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${taskStatusColor(overdue ? 'overdue' : task.status)}`}>{(overdue ? 'overdue' : task.status).replace('_', ' ')}</span>
+              {task.description && <p className="text-sm text-ink-2 line-clamp-2 mb-2">{task.description}</p>}
+              <div className="flex flex-wrap gap-3 text-xs text-ink-2">
+                <span className={`flex items-center gap-1 ${overdue ? 'text-danger font-medium' : days <= 3 ? 'text-warning' : ''}`}>
+                  <Calendar size={13} />
+                  {overdue ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : `${days}d remaining`}
+                </span>
+                {task.type && <span className="capitalize">{task.type.replace('_', ' ')}</span>}
+                {task.company?.name && <span className="text-primary-700 bg-info/10 px-1.5 py-0.5 rounded">{task.company.name}</span>}
+                {task.meeting?.title && <span className="text-primary-700 bg-canvas px-1.5 py-0.5 rounded border border-hairline">{task.meeting.title}</span>}
+                {task.assignedTo && task.assignedTo.length > 0 && (
+                  <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">
+                    {task.assignedTo.map(a => typeof a === 'object' ? a.name : (users.find(u => u._id === a)?.name || a)).join(', ')}
+                  </span>
+                )}
+                {!task.assignedTo?.length && task.responsiblePerson && (
+                  <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">{task.responsiblePerson}</span>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <button onClick={() => onAddNote(task)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-info/10 rounded-lg transition-colors" title="添加备注">
+                <MessageSquare size={15} />
+              </button>
+              <button onClick={() => onEdit(task)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="编辑任务">
+                <Pencil size={15} />
+              </button>
+              <button onClick={() => onDelete(task)} className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors" title="删除任务">
+                <Trash2 size={15} />
+              </button>
+            </div>
+          </div>
+          {task.status !== 'completed' && (
+            <div className="mt-3 pt-3 border-t border-hairline">
+              <button
+                onClick={() => onQuickComplete(task)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-success/10 text-success border border-success/20 rounded-lg hover:bg-success/10 hover:border-success/30 transition-colors"
+              >
+                <CheckCircle2 size={14} /> 标记完成
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+})
 
 const Tasks = () => {
   const { canEdit } = useAuth()
@@ -36,8 +107,12 @@ const Tasks = () => {
   const fileInputRef = useRef(null)
   const [error, setError] = useState('')
 
+  // 行级数据权限：渲染期无声过滤（真实模式服务端已过滤，此处幂等 no-op）
+  const { noScope } = useScope()
+  const scopedTasks = useScopedItems(tasks, t => t.company?._id ?? t.company)
+
   const { search: searchTerm, setSearch: setSearchTerm, filters, setFilter, filtered } = useSearchFilter(
-    tasks,
+    scopedTasks,
     (t, q, f) => {
       const matchSearch = !q || t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
       const matchStatus = f.status === 'all' || !f.status || t.status === f.status
@@ -68,7 +143,7 @@ const Tasks = () => {
   }, [])
 
   const openNew = (mode = 'regular') => { setEditTarget(null); setNewTaskMode(mode); setError(''); setModalOpen(true) }
-  const openEdit = (t) => { setEditTarget(t); setError(''); setModalOpen(true) }
+  const openEdit = useCallback((t) => { setEditTarget(t); setError(''); setModalOpen(true) }, [])
 
   // 深链：Dashboard「发起签署任务」→ /tasks?mode=signing 自动打开签署任务弹窗
   //        Dashboard「新增一般任务」→ /tasks?open=new 自动打开新建任务弹窗
@@ -110,7 +185,7 @@ const Tasks = () => {
     setDeleteTarget(null)
   }
 
-  const handleQuickComplete = async (task) => {
+  const handleQuickComplete = useCallback(async (task) => {
     if (task.status === 'completed') {
       // Un-complete
       try { await taskService.update(task._id, { status: 'pending' }) } catch { /* ignore */ }
@@ -121,7 +196,12 @@ const Tasks = () => {
     setNoteTarget(task)
     setNoteText('')
     setUploadFile(null)
-  }
+  }, [])
+
+  const handleAddNoteClick = useCallback((task) => {
+    setNoteTarget(task)
+    setNoteText('')
+  }, [])
 
   const handleAddNote = async () => {
     if (!noteTarget || (!noteText.trim() && !uploadFile)) return
@@ -207,86 +287,29 @@ const Tasks = () => {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={CheckSquare}
-          title="还没有任务"
-          description="创建第一个任务，跟踪待办与合规截止"
-          action={
+          title={noScope ? '暂无可访问的任务' : '还没有任务'}
+          description={noScope ? NO_SCOPE_HINT : '创建第一个任务，跟踪待办与合规截止'}
+          action={noScope ? null : (
             <button onClick={openNew} className="btn-primary flex items-center gap-1.5">
               <Plus size={16} /> 新建任务
             </button>
-          }
+          )}
         />
       ) : (
         <div className="space-y-3">
-          {filtered.map(task => {
-            const days = getDaysRemaining(task.dueDate)
-            const overdue = task.status !== 'completed' && days < 0
-            return (
-              <div key={task._id} className={`bg-surface rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${overdue ? 'border-danger/20' : 'border-hairline'}`}>
-                <div className="flex items-start gap-4">
-                  {/* Quick complete toggle — 保持原有圆圈图标，但加 tooltip */}
-                  <button onClick={() => handleQuickComplete(task)} className="mt-0.5 shrink-0 hover:scale-110 transition-transform" title={task.status === 'completed' ? '重新打开' : '标记完成'}>
-                    {statusIcon(overdue ? 'overdue' : task.status)}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        {/* 标题可点击 → 进入详情页 */}
-                        <h3
-                          onClick={() => navigate(`/tasks/${task._id}`)}
-                          className={`font-semibold cursor-pointer hover:text-primary-600 transition-colors ${overdue ? 'text-danger' : task.status === 'completed' ? 'line-through text-ink-3' : 'text-ink'}`}
-                        >
-                          {task.title}
-                        </h3>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${taskPriorityColor(task.priority)}`}>{task.priority}</span>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${taskStatusColor(overdue ? 'overdue' : task.status)}`}>{(overdue ? 'overdue' : task.status).replace('_', ' ')}</span>
-                        {task.description && <p className="text-sm text-ink-2 line-clamp-2 mb-2">{task.description}</p>}
-                        <div className="flex flex-wrap gap-3 text-xs text-ink-2">
-                          <span className={`flex items-center gap-1 ${overdue ? 'text-danger font-medium' : days <= 3 ? 'text-warning' : ''}`}>
-                            <Calendar size={13} />
-                            {overdue ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : `${days}d remaining`}
-                          </span>
-                          {task.type && <span className="capitalize">{task.type.replace('_', ' ')}</span>}
-                          {task.company?.name && <span className="text-primary-700 bg-info/10 px-1.5 py-0.5 rounded">{task.company.name}</span>}
-                          {task.meeting?.title && <span className="text-primary-700 bg-canvas px-1.5 py-0.5 rounded border border-hairline">{task.meeting.title}</span>}
-                          {task.assignedTo && task.assignedTo.length > 0 && (
-                            <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">
-                              {task.assignedTo.map(a => typeof a === 'object' ? a.name : (users.find(u => u._id === a)?.name || a)).join(', ')}
-                            </span>
-                          )}
-                          {!task.assignedTo?.length && task.responsiblePerson && (
-                            <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">{task.responsiblePerson}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <button onClick={() => { setNoteTarget(task); setNoteText('') }}
-                          className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-info/10 rounded-lg transition-colors" title="添加备注">
-                          <MessageSquare size={15} />
-                        </button>
-                        <button onClick={() => openEdit(task)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="编辑任务">
-                          <Pencil size={15} />
-                        </button>
-                        <button onClick={() => setDeleteTarget(task)} className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </div>
-                    {/* 醒目的完成操作按钮（未完成时显示） */}
-                    {task.status !== 'completed' && (
-                      <div className="mt-3 pt-3 border-t border-hairline">
-                        <button
-                          onClick={() => handleQuickComplete(task)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-success/10 text-success border border-success/20 rounded-lg hover:bg-success/10 hover:border-success/30 transition-colors"
-                        >
-                          <CheckCircle2 size={14} /> 标记完成
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+          {filtered.map(task => (
+            <TaskRow
+              key={task._id}
+              task={task}
+              users={users}
+              getDaysRemaining={getDaysRemaining}
+              onEdit={openEdit}
+              onDelete={setDeleteTarget}
+              onQuickComplete={handleQuickComplete}
+              onAddNote={handleAddNoteClick}
+              onNavigate={navigate}
+            />
+          ))}
         </div>
       )}
 

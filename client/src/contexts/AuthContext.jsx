@@ -1,15 +1,20 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { authService } from '../services/index.js'
 import { setForceMock } from '../utils/mockMode.js'
+import { getMockUserByEmail, MOCK_DEMO_ACCOUNTS } from '../services/mock.js'
 
 const AuthContext = createContext(null)
 
-// Demo auto-login user
+// Demo auto-login user —— 种子取自 mock 用户表，确保带上 accessibleCompanies
+// （否则默认演示账号没有数据范围，注入行级过滤后会全站空白）
+const DEMO_SEED = getMockUserByEmail('demo@example.com')
 const DEMO_USER = {
-  id: 'u1',
-  name: 'Demo User',
-  email: 'demo@example.com',
-  role: 'secretary',
+  id: DEMO_SEED?._id || 'u5',
+  _id: DEMO_SEED?._id || 'u5',
+  name: DEMO_SEED?.name || 'Demo Secretary',
+  email: DEMO_SEED?.email || 'demo@example.com',
+  role: DEMO_SEED?.role || 'secretary',
+  accessibleCompanies: DEMO_SEED?.accessibleCompanies ?? [],
   token: 'demo-token-xxx',
 }
 
@@ -53,24 +58,22 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
-  // Known demo accounts (work without backend)
-  const DEMO_ACCOUNTS = [
-    { email: 'admin@example.com', password: 'admin123', name: 'Admin User', role: 'admin' },
-    { email: 'demo@example.com', password: 'demo123', name: 'Demo Secretary', role: 'secretary' },
-    { email: 'manager@example.com', password: 'manager123', name: 'Manager User', role: 'manager' },
-    { email: 'viewer@example.com', password: 'viewer123', name: 'Viewer User', role: 'viewer' },
-  ]
+  // Known demo accounts (work without backend) —— 单一事实源在 services/mock.js
+  const DEMO_ACCOUNTS = MOCK_DEMO_ACCOUNTS
 
   const login = async (email, password) => {
     // 生产环境（VITE_USE_MOCK=false）必须走真实后端，失败直接暴露真实错误
     if (DEMO_MODE) {
       const demo = DEMO_ACCOUNTS.find(a => a.email === email && a.password === password)
       if (!demo) throw new Error('Invalid demo credentials.')
+      const m = getMockUserByEmail(email)
       const userData = {
-        id: `demo-${demo.email}`,
-        name: demo.name,
+        id: m?._id || `demo-${demo.email}`,
+        _id: m?._id || `demo-${demo.email}`,
+        name: m?.name || demo.label,
         email: demo.email,
-        role: demo.role,
+        role: m?.role || 'viewer',
+        accessibleCompanies: m?.accessibleCompanies ?? [],
         token: 'demo-token-xxx',
       }
       localStorage.setItem('token', userData.token)
@@ -139,6 +142,38 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // 演示态账号切换（免密，仅 demo 模式可用）：用于现场演示不同数据范围下的可见性差异
+  const switchDemoAccount = (email) => {
+    const m = getMockUserByEmail(email)
+    if (!m) return null
+    const userData = {
+      id: m._id,
+      _id: m._id,
+      name: m.name,
+      email: m.email,
+      role: m.role,
+      accessibleCompanies: m.accessibleCompanies ?? [],
+      token: 'demo-token-xxx',
+    }
+    localStorage.setItem('token', userData.token)
+    localStorage.setItem('user', JSON.stringify(userData))
+    setForceMock(true)
+    setUser(userData)
+    return userData
+  }
+
+  // 管理后台改完数据权限后，如果改的是当前登录用户，立即同步到登录态（免重新登录）
+  const applyScopeUpdate = (userId, companyIds) => {
+    setUser((prev) => {
+      if (!prev) return prev
+      const uid = prev._id || prev.id
+      if (String(uid) !== String(userId)) return prev
+      const updated = { ...prev, accessibleCompanies: Array.isArray(companyIds) ? companyIds : [] }
+      localStorage.setItem('user', JSON.stringify(updated))
+      return updated
+    })
+  }
+
   const logout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
@@ -153,7 +188,7 @@ export function AuthProvider({ children }) {
   const isDemoMode = DEMO_MODE
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, updatePassword, isAdmin, canEdit, canDelete, isDemo, isDemoMode }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, updatePassword, isAdmin, canEdit, canDelete, isDemo, isDemoMode, switchDemoAccount, applyScopeUpdate, accessibleCompanies: user?.accessibleCompanies }}>
       {children}
     </AuthContext.Provider>
   )

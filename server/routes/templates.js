@@ -41,7 +41,7 @@ router.get('/', auth, async (req, res) => {
       { name: { $regex: search, $options: 'i' } },
       { description: { $regex: search, $options: 'i' } },
     ];
-    const templates = await DocumentTemplate.find(query)
+    const templates = await DocumentTemplate.find(query).lean()
       .populate('company', 'name')
       .sort({ isPreset: -1, name: 1 });
     res.json({ success: true, count: templates.length, templates });
@@ -53,7 +53,7 @@ router.get('/', auth, async (req, res) => {
 // GET /api/templates/:id
 router.get('/:id', auth, async (req, res) => {
   try {
-    const tmpl = await DocumentTemplate.findById(req.params.id).populate('company');
+    const tmpl = await DocumentTemplate.findById(req.params.id).lean().populate('company');
     if (!tmpl) return res.status(404).json({ message: 'Template not found' });
     res.json({ success: true, template: tmpl });
   } catch (err) {

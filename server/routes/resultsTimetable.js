@@ -525,7 +525,7 @@ router.get('/list', auth, async (req, res) => {
     if (req.query.period) q.period = req.query.period;
     // 列表刻意剔除 ruleLibrarySnapshot（整份规则库约百 KB，50 条会把响应撑到数 MB）；
     // ruleLibraryVersion 是标量，保留以便列表页直接标注版本
-    const docs = await ResultsTimetable.find(q)
+    const docs = await ResultsTimetable.find(q).lean()
       .select('-ruleLibrarySnapshot')
       .populate('company', 'name code')
       .sort('-createdAt')
@@ -539,7 +539,7 @@ router.get('/list', auth, async (req, res) => {
 // @route   GET /api/results-timetable/:id
 router.get('/:id', auth, async (req, res) => {
   try {
-    const doc = await ResultsTimetable.findById(req.params.id).populate('company', 'name code');
+    const doc = await ResultsTimetable.findById(req.params.id).lean().populate('company', 'name code');
     if (!doc) return res.status(404).json({ success: false, message: '未找到排期' });
 
     // 依据落库锚点重算偏移量与合规自检，供前端「主要事项」表 / 合规面板 / 打印版 Word 使用。
@@ -565,7 +565,7 @@ router.get('/:id', auth, async (req, res) => {
 // @desc    导出参数驱动 Excel（4 表，结构对齐参考生成器 exportExcel）
 router.get('/:id/excel', auth, async (req, res) => {
   try {
-    const doc = await ResultsTimetable.findById(req.params.id);
+    const doc = await ResultsTimetable.findById(req.params.id).lean();
     if (!doc) return res.status(404).json({ success: false, message: '未找到排期' });
 
     // 导出必须复现「生成当天出具的那一版」：规则库同样优先取结果文档里的快照

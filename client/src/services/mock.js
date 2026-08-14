@@ -1439,3 +1439,38 @@ export const schedules = {
     return { data: { data: { ok: true, mock: true, message: 'Mock 模式：导入仅预览，不落库' } } };
   },
 };
+
+// ====== Calendar（Wave 日历模块 · Mock）======
+// 自合成贴近「当前月」的样例事件，覆盖 6 类来源，含逾期项，保证 mock 模式演示有数据。
+// 真实后端走 /api/calendar/events（server/services/calendarService.js）。
+export const calendar = {
+  getEvents: async (from, to, types) => {
+    await delay();
+    const now = new Date()
+    const addDays = (n) => { const d = new Date(now); d.setDate(d.getDate() + n); return d }
+    const iso = (d) => d.toISOString()
+
+    const all = [
+      { id: 'cr-1', source: 'compliance_reminder', module: '合规提醒', title: '提交周年申报表 (NAR1)', date: iso(addDays(-3)), priority: 'high', status: 'overdue', overdue: true, companyId: 'c-1', companyName: '中国新城市', link: '/compliance-reminders/cr-1' },
+      { id: 'cr-2', source: 'compliance_reminder', module: '合规提醒', title: '备存董事名册', date: iso(addDays(9)), priority: 'medium', status: 'open', overdue: false, companyId: 'c-1', companyName: '中国新城市', link: '/compliance-reminders/cr-2' },
+      { id: 't-1', source: 'task', module: '任务', title: '签署董事会决议', date: iso(addDays(-1)), priority: 'urgent', status: 'overdue', overdue: true, companyId: 'c-2', companyName: 'Abundant Zone', link: '/tasks/t-1' },
+      { id: 't-2', source: 'task', module: '任务', title: '归档会议纪要', date: iso(addDays(14)), priority: 'medium', status: 'open', overdue: false, companyId: 'c-1', companyName: '中国新城市', link: '/tasks/t-2' },
+      { id: 'f-1', source: 'company_filing', module: '公司申报', title: 'AGM 到期 · 中国新城市', date: iso(addDays(20)), priority: 'high', status: 'open', overdue: false, companyId: 'c-1', companyName: '中国新城市', link: '/companies/c-1' },
+      { id: 'd-1', source: 'document', module: '文档', title: '文档到期 · 商业登记证', date: iso(addDays(5)), priority: 'high', status: 'open', overdue: false, companyId: 'c-2', companyName: 'Abundant Zone', link: '/companies/c-2' },
+      { id: 'm-1', source: 'meeting', module: '会议', title: '董事会（审议中期业绩）', date: iso(addDays(11)), priority: 'medium', status: 'open', overdue: false, companyId: 'c-1', companyName: '中国新城市', link: '/meetings/m-1' },
+      { id: 'rt-1', source: 'results_timetable', module: '业绩排期', title: 'T1 董事会/公告 · 中国新城市', date: iso(addDays(16)), priority: 'high', status: 'open', overdue: false, companyId: 'c-1', companyName: '中国新城市', link: '/results-timetable' },
+    ]
+
+    const filtered = types && types.length ? all.filter((e) => types.includes(e.source)) : all
+    // 轻量 from/to 过滤：落在区间内，或逾期未完成（date < from 且 overdue）
+    const fromD = from ? new Date(from) : null
+    const toD = to ? new Date(to) : null
+    const inRange = filtered.filter((e) => {
+      const d = new Date(e.date)
+      if (toD && d > toD) return false
+      if (fromD && d < fromD && !e.overdue) return false
+      return true
+    })
+    return { data: { data: { events: inRange } } }
+  },
+};

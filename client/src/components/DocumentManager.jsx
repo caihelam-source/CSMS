@@ -13,6 +13,8 @@ import { fetchDocBlobUrl, downloadDoc, isPdfDoc, isImageDoc } from '../utils/fil
 import { LoadingSpinner, EmptyState, SearchBar, FormField, inputClass, labelClass } from '../components/UIHelpers'
 import Modal from '../components/Modal'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useScope, useScopedItems, useScopedDocuments } from '../hooks/useScope'
+import { NO_SCOPE_HINT } from '../utils/scope'
 
 // ── 类型 / 分类标签 ──
 export const DOC_TYPE_LABELS = {
@@ -176,14 +178,19 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
     if (!companyId || !personnelId) loadRefs()
   }, [load, loadRefs, companyId, personnelId])
 
-  const filtered = useMemo(() => documents.filter((d) => {
+  // 行级数据权限：文档按公司归属过滤，仅挂人员的文档回退到人员可见性（渲染期派生，幂等 no-op）
+  const { noScope } = useScope()
+  const scopedCompanies = useScopedItems(companies, (c) => c._id)
+  const scopedDocuments = useScopedDocuments(documents, companies)
+
+  const filtered = useMemo(() => scopedDocuments.filter((d) => {
     const q = search.toLowerCase()
     const matchSearch = !q || d.name?.toLowerCase().includes(q) || d.docNumber?.toLowerCase().includes(q)
     const matchType = !filterType || d.type === filterType
     const matchCat = filterCategory === 'all' || d.category === filterCategory
     const matchScope = filterScope === 'all' || d.scope === filterScope
     return matchSearch && matchType && matchCat && matchScope
-  }), [documents, search, filterType, filterCategory, filterScope])
+  }), [scopedDocuments, search, filterType, filterCategory, filterScope])
 
   // ── 选择 ──
   const toggleSelect = useCallback((id) => {
@@ -424,8 +431,9 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
       {/* 列表 */}
       {loading ? <LoadingSpinner />
         : filtered.length === 0 ? (
-          <EmptyState icon={FileText} title="暂无文档"
-            action={<button onClick={() => setShowUpload(true)} className="mt-3 text-primary-600 hover:underline text-sm">+ 上传文档</button>} />
+          <EmptyState icon={FileText} title={noScope ? '暂无可访问的文档' : '暂无文档'}
+            description={noScope ? NO_SCOPE_HINT : undefined}
+            action={noScope ? null : <button onClick={() => setShowUpload(true)} className="mt-3 text-primary-600 hover:underline text-sm">+ 上传文档</button>} />
         ) : (
           <div className="space-y-2">
             {/* 表头行 */}
@@ -546,7 +554,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
               <select className={inputClass} value={uploadMeta.companyId}
                 onChange={(e) => setUploadMeta({ ...uploadMeta, companyId: e.target.value, personnelId: '' })}>
                 <option value="">无</option>
-                {companies.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                {scopedCompanies.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
               </select>
             </FormField>
             <FormField label="关联人员" hint="一人可兼职多公司">
@@ -593,7 +601,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
                 <select className={inputClass} value={editMeta.companyId}
                   onChange={(e) => setEditMeta({ ...editMeta, companyId: e.target.value, personnelId: '' })}>
                   <option value="">无</option>
-                  {companies.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  {scopedCompanies.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
                 </select>
               </FormField>
               <FormField label="关联人员" hint="一人可兼职多公司">

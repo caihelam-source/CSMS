@@ -18,7 +18,7 @@ router.get('/', auth, async (req, res) => {
     if (meetingRef) query.meeting = meetingRef;
     if (search) query.$or = [{ title: { $regex: search, $options: 'i' } }];
 
-    const tasks = await SignTask.find(query)
+    const tasks = await SignTask.find(query).lean()
       .populate('document', 'title docNumber type')
       .populate('company', 'name nameChinese')
       .populate('meeting', 'title date')
@@ -35,7 +35,7 @@ router.get('/', auth, async (req, res) => {
 // GET /api/sign-tasks/:id
 router.get('/:id', auth, async (req, res) => {
   try {
-    const task = await SignTask.findById(req.params.id)
+    const task = await SignTask.findById(req.params.id).lean()
       .populate('document')
       .populate('company')
       .populate('signers.signer', 'name email');

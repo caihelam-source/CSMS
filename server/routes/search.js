@@ -137,7 +137,7 @@ router.get('/', auth, async (req, res) => {
 
     const perEntity = await Promise.all(ENTITIES.map(async (e) => {
       const or = e.fields.map((f) => ({ [f]: regex }))
-      const docs = await e.model.find({ $or: or }).limit(fetchLimit).lean()
+      const docs = await e.model.find({ $or: or }).lean().limit(fetchLimit).lean()
       const scored = docs
         .map((d) => ({ doc: d, score: scoreDoc(d, e.fields, qLower) }))
         .filter((s) => s.score > 0)

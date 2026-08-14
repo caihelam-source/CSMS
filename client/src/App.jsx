@@ -8,6 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Calendar = lazy(() => import('./pages/Calendar'))
 const Meetings = lazy(() => import('./pages/Meetings'))
 const MeetingDetail = lazy(() => import('./pages/MeetingDetail'))
 const Documents = lazy(() => import('./pages/Documents'))
@@ -86,6 +87,7 @@ function App() {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<LazyPage><Dashboard /></LazyPage>} />
+          <Route path="calendar" element={<LazyPage><Calendar /></LazyPage>} />
           <Route path="companies" element={<LazyPage><Companies /></LazyPage>} />
           <Route path="companies/:id" element={<LazyPage><CompanyDetail /></LazyPage>} />
           <Route path="meetings" element={<LazyPage><Meetings /></LazyPage>} />

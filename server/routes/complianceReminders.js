@@ -22,7 +22,7 @@ router.get('/', auth, async (req, res) => {
       { category: { $regex: search, $options: 'i' } },
     ];
 
-    const reminders = await ComplianceReminder.find(query)
+    const reminders = await ComplianceReminder.find(query).lean()
       .populate('company', 'name nameChinese jurisdiction isListed')
       .populate('rule', 'ruleName ruleId category')
       .sort({ dueDate: 1 });
@@ -36,7 +36,7 @@ router.get('/', auth, async (req, res) => {
 // GET /api/compliance-reminders/:id
 router.get('/:id', auth, async (req, res) => {
   try {
-    const reminder = await ComplianceReminder.findById(req.params.id)
+    const reminder = await ComplianceReminder.findById(req.params.id).lean()
       .populate('company').populate('rule');
     if (!reminder) return res.status(404).json({ message: 'Reminder not found' });
     res.json({ success: true, reminder });

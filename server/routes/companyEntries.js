@@ -12,7 +12,7 @@ const router = express.Router({ mergeParams: true }); // 继承 :id 参数
 // GET /api/companies/:id/shareholder-entries
 router.get('/shareholder-entries', auth, async (req, res) => {
   try {
-    const entries = await ShareholderEntry.find({ company: req.params.id })
+    const entries = await ShareholderEntry.find({ company: req.params.id }).lean()
       .populate('personnelRef', 'name nameChinese idNumber nationality residentialAddress correspondenceAddress occupation')
       .populate('companyRef', 'name nameChinese registrationNumber registeredAddress')
       .sort({ isCurrentMember: -1, dateEnteredAsMember: 1 });
@@ -93,7 +93,7 @@ router.delete('/shareholder-entries/:entryId', auth, async (req, res) => {
 // GET /api/companies/:id/director-entries
 router.get('/director-entries', auth, async (req, res) => {
   try {
-    const entries = await DirectorEntry.find({ company: req.params.id })
+    const entries = await DirectorEntry.find({ company: req.params.id }).lean()
       .populate('personnelRef', 'name nameChinese formerName dateOfBirth placeOfBirth nationality idNumber residentialAddress correspondenceAddress occupation')
       .sort({ isCurrent: -1, dateOfAppointment: 1 });
 

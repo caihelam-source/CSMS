@@ -5,16 +5,19 @@ import {
   LayoutDashboard, Calendar, FileText, Building2,
   CheckSquare, LogOut, Menu, X, Briefcase, Crown, Zap,
   Bell, ShieldCheck, FileCode, UserCircle, Settings as SettingsIcon,
-  Sun, Moon, MoreHorizontal, FileSignature, CalendarClock,
+  Sun, Moon, MoreHorizontal, FileSignature, CalendarClock, CalendarDays,
 } from 'lucide-react'
 import { useState, memo, useEffect } from 'react'
 import GlobalSearch from './GlobalSearch'
 import CommandPalette from './CommandPalette'
+import { useScope } from '../hooks/useScope'
+import { MOCK_DEMO_ACCOUNTS } from '../services/mock.js'
 
 // UX 架构重构（2026-08-03）：IA 四组分组，修复 Sign Tasks 导航孤儿 + Templates 归位
 // 分组顺序与标题由 NAV_GROUPS 驱动，新增组无需改渲染逻辑
 export const NAV_ITEMS = [
   { path: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard',  group: 'Command' },
+  { path: '/calendar',     icon: CalendarDays,    label: 'Calendar',   group: 'Command' },
   { path: '/companies',    icon: Building2,       label: 'Companies',  group: 'Command' },
   { path: '/personnel',    icon: UserCircle,      label: 'Personnel',  group: 'Command' },
   { path: '/documents',    icon: FileText,        label: 'Documents',  group: 'Operations' },
@@ -89,10 +92,12 @@ const BottomTab = memo(({ path, icon: Icon, label, active, onClick }) => (
 ))
 
 const Navbar = () => {
-  const { user, logout, isAdmin, isDemo } = useAuth()
+  const { user, logout, isAdmin, isDemo, switchDemoAccount } = useAuth()
+  const { unrestricted, count, noScope } = useScope()
   const location = useLocation()
   const [open, setOpen] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
+  const [scopeMenuOpen, setScopeMenuOpen] = useState(false)
   // P2 命令面板：⌘K / Ctrl+K 全局唤起（与顶部触发按钮共用同一状态）
   useEffect(() => {
     const onKey = (e) => {
@@ -200,6 +205,54 @@ const Navbar = () => {
               </span>
             </div>
           </div>
+
+          {/* 数据范围指示：让用户随时知道自己"看到的是全部还是一部分" */}
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
+              noScope ? 'bg-danger/10 text-danger' : 'bg-canvas text-ink-2'
+            }`}
+            title={noScope ? '尚未分配可访问公司' : undefined}
+          >
+            <ShieldCheck size={13} className="shrink-0" />
+            <span className="truncate">
+              {unrestricted ? '全部数据' : `数据范围 · ${count} 家公司`}
+            </span>
+          </div>
+          {noScope && (
+            <p className="px-3 pb-1 text-[11px] leading-snug text-danger">尚未分配可访问公司</p>
+          )}
+
+          {/* 演示态账号切换：现场对比不同数据范围下的可见性差异 */}
+          {isDemo && (
+            <div className="px-1 pt-1">
+              <button
+                onClick={() => setScopeMenuOpen(o => !o)}
+                className="tap-target flex items-center w-full gap-3 px-2 py-2 text-sm text-ink-2 hover:bg-canvas hover:text-ink rounded-lg transition-colors"
+              >
+                <Zap size={15} className="text-warning shrink-0" />
+                <span className="flex-1 text-left truncate">切换演示账号</span>
+                <MoreHorizontal size={14} className="text-ink-3 shrink-0" />
+              </button>
+              {scopeMenuOpen && (
+                <div className="mt-1 space-y-0.5 pl-1">
+                  {MOCK_DEMO_ACCOUNTS.map(a => (
+                    <button
+                      key={a.email}
+                      onClick={() => { switchDemoAccount(a.email); setScopeMenuOpen(false); closeMobile() }}
+                      className={`block w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors ${
+                        user?.email === a.email
+                          ? 'bg-primary-50 text-primary-700 font-medium'
+                          : 'text-ink-2 hover:bg-canvas hover:text-ink'
+                      }`}
+                    >
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <button
             onClick={logout}
             className="tap-target flex items-center w-full gap-3 px-3 py-2.5 text-sm text-ink-2 hover:bg-canvas hover:text-ink rounded-lg transition-colors"

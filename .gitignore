@@ -18,6 +18,8 @@ client/build/
 # 构建产物备份：为绕过 safe-delete 钩子执行 `mv dist dist_bak` 留下的临时目录
 client/dist_bak*/
 client/dist-build/
+# 前端 mock 预览门禁构建产物（沙箱无法清空 dist-qa，故以 dist-qa* 新目录产出）
+client/dist-qa*
 
 # Environment files
 .env
@@ -112,3 +114,24 @@ client/vite.config.js.timestamp-*
 # 本地调试临时产物（lint/build 输出，勿提交）
 /_*.txt
 /_*.js
+
+# QA / 调试临时脚本与日志（勿提交）
+.qa-*
+.final*
+.final-out.txt
+qa_run*.txt
+tmp_*
+tmp_*.py
+tmp_*.js
+_qa_*
+# 前端预览/构建实验产物（勿提交）
+client/.env.preview
+client/dist-build3/
+client/dist-polish/
+client/dist-rules/
+client/dist-snapshot-v1/
+client/dist-verify/
+client/dist.bak.final/
+client/dist_prev_159/
+client/dist-qa-r2c/
+client/dist-qa-verify/

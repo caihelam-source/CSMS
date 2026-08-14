@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Building2, Plus, Pencil, Trash2, Upload, Download } from 'lucide-react'
@@ -6,6 +6,8 @@ import { companyService } from '../services/index.js'
 import { formatDate, getStatusColor } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
+import { useScope, useScopedItems } from '../hooks/useScope'
+import { NO_SCOPE_HINT } from '../utils/scope'
 import { validate, required } from '../utils/validators'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Modal from '../components/Modal'
@@ -31,6 +33,33 @@ const FORM_RULES = {
   name: [required('公司名称为必填')],
 }
 
+// 列表行抽成 memo 组件：父组件任意 state 变更时，仅数据变化的卡片会重渲染
+const CompanyCard = memo(function CompanyCard({ company: c, onEdit, onDelete }) {
+  return (
+    <Link to={`/companies/${c._id}`} className="card hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="font-semibold text-primary-600 line-clamp-2">{c.name}</h3>
+        <span className={`badge ${getStatusColor(c.status)}`}>{c.status?.replace(/_/g, ' ')}</span>
+      </div>
+      <p className="text-sm text-ink-2">{c.registrationNumber || '-'}</p>
+      <div className="flex gap-2 mt-2">
+        {c.jurisdiction && <span className="badge badge-info text-xs">{jurisdictionLabel(c.jurisdiction)}</span>}
+        {c.type && <span className="badge badge-gray text-xs capitalize">{c.type?.replace(/_/g, ' ')}</span>}
+      </div>
+      {c.incorporationDate && (
+        <p className="text-xs text-ink-3 mt-3">Incorporated: {formatDate(c.incorporationDate)}</p>
+      )}
+      {c.links?.length > 0 && (
+        <p className="text-xs text-ink-3 mt-1">{c.links.length} linked people/companies</p>
+      )}
+      <div className="flex gap-1 mt-3 pt-2 border-t border-hairline" onClick={e => e.preventDefault()}>
+        <button onClick={() => onEdit(c)} className="p-1.5 text-ink-3 hover:text-primary-600 rounded-lg hover:bg-canvas" aria-label={`编辑 ${c.name}`}><Pencil size={14} /></button>
+        <button onClick={() => onDelete(c)} className="p-1.5 text-ink-3 hover:text-danger rounded-lg hover:bg-canvas" aria-label={`删除 ${c.name}`}><Trash2 size={14} /></button>
+      </div>
+    </Link>
+  )
+})
+
 export default function Companies() {
   const { user, canEdit } = useAuth()
   const isDemo = !user?.token || user?.token?.startsWith('demo-')
@@ -48,9 +77,13 @@ export default function Companies() {
   const [importResult, setImportResult] = useState(null)
   const importFileRef = useRef()
 
+  // 行级数据权限：渲染期无声过滤（真实模式服务端已过滤，此处幂等 no-op）
+  const { noScope } = useScope()
+  const scopedCompanies = useScopedItems(companies, c => c._id)
+
   // Search + filter via useSearchFilter
   const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
-    companies,
+    scopedCompanies,
     (c, q, f) => {
       const matchSearch = !q || c.name?.toLowerCase().includes(q) || c.registrationNumber?.toLowerCase().includes(q)
       const matchStatus = !f.status || c.status === f.status
@@ -75,7 +108,7 @@ export default function Companies() {
   useEffect(() => { fetchCompanies() }, [fetchCompanies])
 
   const openNew = () => { setForm(EMPTY_FORM); setFormErrors({}); setEditTarget(null); setModal('new') }
-  const openEdit = (c) => {
+  const openEdit = useCallback((c) => {
     setForm({
       ...EMPTY_FORM,
       name: c.name || '',
@@ -88,7 +121,7 @@ export default function Companies() {
     setFormErrors({})
     setEditTarget(c)
     setModal('edit')
-  }
+  }, [])
 
   const handleSave = async () => {
     const { valid, errors } = validate(form, FORM_RULES)
@@ -185,7 +218,7 @@ export default function Companies() {
       {/* Header */}
       <PageHeader
         title="Companies"
-        subtitle={`${companies.length} companies`}
+        subtitle={`${scopedCompanies.length} companies`}
         icon={Building2}
         actions={
           <>
@@ -224,34 +257,14 @@ export default function Companies() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Building2}
-          title="还没有公司"
-          description="添加第一家公司，开始集中管理你的公司秘书事务"
-          action={<button onClick={openNew} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加公司</button>}
+          title={noScope ? '暂无可访问的公司' : '还没有公司'}
+          description={noScope ? NO_SCOPE_HINT : '添加第一家公司，开始集中管理你的公司秘书事务'}
+          action={noScope ? null : <button onClick={openNew} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加公司</button>}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(c => (
-            <Link key={c._id} to={`/companies/${c._id}`} className="card hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-primary-600 line-clamp-2">{c.name}</h3>
-                <span className={`badge ${getStatusColor(c.status)}`}>{c.status?.replace(/_/g, ' ')}</span>
-              </div>
-              <p className="text-sm text-ink-2">{c.registrationNumber || '-'}</p>
-              <div className="flex gap-2 mt-2">
-                {c.jurisdiction && <span className="badge badge-info text-xs">{jurisdictionLabel(c.jurisdiction)}</span>}
-                {c.type && <span className="badge badge-gray text-xs capitalize">{c.type?.replace(/_/g, ' ')}</span>}
-              </div>
-              {c.incorporationDate && (
-                <p className="text-xs text-ink-3 mt-3">Incorporated: {formatDate(c.incorporationDate)}</p>
-              )}
-              {c.links?.length > 0 && (
-                <p className="text-xs text-ink-3 mt-1">{c.links.length} linked people/companies</p>
-              )}
-              <div className="flex gap-1 mt-3 pt-2 border-t border-hairline" onClick={e => e.preventDefault()}>
-                <button onClick={() => openEdit(c)} className="p-1.5 text-ink-3 hover:text-primary-600 rounded-lg hover:bg-canvas"><Pencil size={14} /></button>
-                <button onClick={() => setDeleteTarget(c)} className="p-1.5 text-ink-3 hover:text-danger rounded-lg hover:bg-canvas"><Trash2 size={14} /></button>
-              </div>
-            </Link>
+            <CompanyCard key={c._id} company={c} onEdit={openEdit} onDelete={setDeleteTarget} />
           ))}
         </div>
       )}

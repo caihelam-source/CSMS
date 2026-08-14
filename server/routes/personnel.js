@@ -10,12 +10,19 @@ const Task = require('../models/Task');
 const ComplianceReminder = require('../models/ComplianceReminder');
 const SignTask = require('../models/SignTask');
 const { auth } = require('../middleware/auth');
+const {
+  scopeMiddleware,
+  inScope,
+  toObjectIds,
+  resolvePersonnelIdsInScope,
+  personnelInScope,
+} = require('../middleware/scope');
 
 const router = express.Router();
 
 // GET /api/personnel — 人员列表（支持搜索/筛选）
 // v5.0 读时聚合：role / company 过滤与 roles 标签均从 Company.links 派生，不依赖 stored appointments
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, scopeMiddleware, async (req, res) => {
   try {
     const { search, role, company, page, limit } = req.query;
     const query = {};
@@ -46,18 +53,34 @@ router.get('/', auth, async (req, res) => {
       query._id = { $in: agg.map(a => a._id) };
     }
 
+    // 行级数据范围：人员靠 Company.links 反查（Personnel 无 company 字段）
+    // 语义：null=不受限；[]=明确无授权（结果为空）；[...]=受限
+    // 与用户显式传入的 ?company= 取「交集」而非覆盖 —— 越权公司过滤后为空列表（无声过滤，不报 403）
+    const scopedPids = await resolvePersonnelIdsInScope(req);
+    if (scopedPids !== null) {
+      const allow = new Set(scopedPids.map(String));
+      query._id = query._id && query._id.$in
+        ? { $in: query._id.$in.filter((id) => allow.has(String(id))) }
+        : { $in: scopedPids };
+    }
+
     // 分页（opt-in：仅当传 page/limit 时启用，兼容旧前端全量拉取）
     const usePaging = !!(page || limit);
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(parseInt(limit, 10) || 25, 100);
     const total = await Personnel.countDocuments(query);
 
-    let q = Personnel.find(query).sort({ name: 1 });
+    let q = Personnel.find(query).lean().sort({ name: 1 });
     if (usePaging) q = q.skip((pageNum - 1) * limitNum).limit(limitNum);
     const personnel = await q;
 
     // 读时聚合：派生的 roles（来自 Company.links），覆盖 stored roles
+    // 受限用户只能从可见公司派生角色标签，否则会带出越权公司的角色（信息泄露）
+    const roleScopeStages = req.scopeCompanies === null
+      ? []
+      : [{ $match: { _id: { $in: toObjectIds(req.scopeCompanies) } } }];
     const roleAgg = await Company.aggregate([
+      ...roleScopeStages,
       { $unwind: '$links' },
       { $match: { 'links.linkModel': 'Personnel' } },
       { $unwind: '$links.roles' },
@@ -85,13 +108,20 @@ router.get('/', auth, async (req, res) => {
 
 // GET /api/personnel/:id
 // v5.0 读时聚合：从 Company.links 反查关联公司（单一事实源），并派生 roles
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, scopeMiddleware, async (req, res) => {
   try {
-    const person = await Personnel.findById(req.params.id);
+    const person = await Personnel.findById(req.params.id).lean();
     if (!person) return res.status(404).json({ message: 'Personnel not found' });
 
-    const companies = await Company.find({ 'links.link': person._id, 'links.linkModel': 'Personnel' })
+    // 详情接口越权直接 403（列表是无声过滤，详情才报错）
+    if (!(await personnelInScope(req, person._id))) {
+      return res.status(403).json({ message: 'Forbidden: out of data scope' });
+    }
+
+    const allCompanies = await Company.find({ 'links.link': person._id, 'links.linkModel': 'Personnel' }).lean()
       .select('name nameChinese registrationNumber type status links');
+    // 反查到的公司也要按 scope 裁剪，避免通过人员详情泄露越权公司
+    const companies = allCompanies.filter(c => inScope(req, c._id));
     const linked = [];
     const roleSet = new Set();
     companies.forEach(c => (c.links || []).forEach(l => {
@@ -192,6 +222,11 @@ async function getByPersonnelAPI(req, res) {
 
     if (!result) return res.status(404).json({ message: 'Personnel not found' })
 
+    // 详情接口越权直接 403
+    if (!(await personnelInScope(req, personId))) {
+      return res.status(403).json({ message: 'Forbidden: out of data scope' })
+    }
+
     // 2) 公司维度关联：顶层 $in 走各自索引（tasks/meetings/reminders.company / documents.personnel）
     const companyIds = (result.companies || []).map((c) => c.company._id)
     const [tasks, meetings, reminders, documents] = await Promise.all([
@@ -205,22 +240,29 @@ async function getByPersonnelAPI(req, res) {
       Document.find({ personnel: personId }).sort({ createdAt: -1 }),
     ])
 
-    // 角色汇总（读时聚合自 Company.links.roles）
-    const roleSet = new Set()
-    ;(result.companies || []).forEach((c) => (c.roles || []).forEach((r) => roleSet.add(r)))
-
     // 剥离中间字段 companyDocs，组装响应
     const { _companyDocs, companies, ...personnel } = result
+
+    // 行级数据范围：聚合结果后置 JS 裁剪（aggregate 内联过滤成本高且易漏，统一在出口收口）
+    const byCompany = (x) => inScope(req, x?.company?._id || x?.company)
+    const visibleCompanies = (companies || []).filter((c) => inScope(req, c.company?._id))
+    // 文档：有 company 归属按公司判定；仅挂人员的文档随「人员本身已通过 403 校验」可见
+    // （与前端 useScopedDocuments 的 company → personnel 回退语义保持一致）
+    const byDocument = (d) => (d?.company ? byCompany(d) : !!d?.personnel)
+
+    // 角色汇总（读时聚合自 Company.links.roles）—— 只统计可见公司，避免越权角色标签泄露
+    const roleSet = new Set()
+    visibleCompanies.forEach((c) => (c.roles || []).forEach((r) => roleSet.add(r)))
 
     res.json({
       data: {
         data: {
           personnel: { ...personnel, roles: [...roleSet] },
-          companies: companies || [],
-          tasks: tasks || [],
-          meetings: meetings || [],
-          documents: documents || [],
-          reminders: reminders || [],
+          companies: visibleCompanies,
+          tasks: (tasks || []).filter(byCompany),
+          meetings: (meetings || []).filter(byCompany),
+          documents: (documents || []).filter(byDocument),
+          reminders: (reminders || []).filter(byCompany),
         },
       },
     })
@@ -228,7 +270,7 @@ async function getByPersonnelAPI(req, res) {
     res.status(500).json({ message: err.message })
   }
 }
-router.get('/:id/aggregate', auth, getByPersonnelAPI);
+router.get('/:id/aggregate', auth, scopeMiddleware, getByPersonnelAPI);
 
 // POST /api/personnel — 创建人员（含重复检测）
 router.post('/', auth, async (req, res) => {
@@ -329,7 +371,7 @@ router.get('/duplicates', auth, async (req, res) => {
       }
     }
 
-    const records = await Personnel.find(query).sort({ name: 1 });
+    const records = await Personnel.find(query).lean().sort({ name: 1 });
 
     // 按 name 分组，找出有重复的记录
     const duplicates = {};
