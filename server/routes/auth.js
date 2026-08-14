@@ -99,7 +99,9 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        company: user.company
+        company: user.company,
+        // 行级数据权限：前端据此做渲染期无声过滤（缺失=不过滤，[]=明确无授权）
+        accessibleCompanies: user.accessibleCompanies || []
       }
     });
   } catch (error) {
@@ -112,7 +114,7 @@ router.post('/login', async (req, res) => {
 // @access  Private
 router.get('/me', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('company', 'name registrationNumber');
+    const user = await User.findById(req.user._id).lean().populate('company', 'name registrationNumber');
     res.json({
       success: true,
       user

@@ -14,6 +14,8 @@
 //  // 详情接口越权检查
 //  if (!inScope(req, resource.company?._id || resource.company)) return res.status(403).json(...)
 
+const mongoose = require('mongoose');
+const Company = require('../models/Company');
 const { SCOPE_BYPASS_ROLES } = require('./rbac');
 
 // 计算当前用户的可见公司 ID 列表；null 表示不受限
@@ -52,4 +54,54 @@ function inScope(req, companyId) {
   return ids.includes(companyId.toString());
 }
 
-module.exports = { scopeMiddleware, applyListScope, inScope, getScopeCompanies };
+// ── Personnel 数据范围（反查）──────────────────────────────────────────────
+// Personnel 本身无 company 字段，唯一事实源是 Company.links[{ link, linkModel:'Personnel' }]。
+// 因此人员的可见性必须通过「可见公司 → links 反查」得到。
+
+// 把 scope 里的公司 ID 字符串转成合法 ObjectId 数组（跳过非法值，避免 CastError）
+function toObjectIds(ids) {
+  return (ids || [])
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+}
+
+// 解析当前用户 scope 内的人员 ID 列表
+// 返回 null 表示不受限（admin/auditor）；返回 [] 表示明确无授权（结果应为空）
+async function resolvePersonnelIdsInScope(req) {
+  const ids = req.scopeCompanies;
+  if (ids === null) return null; // 不受限
+  if (!ids.length) return []; // 明确无授权 → 空集合（绝不可当成"不限"）
+  const oids = toObjectIds(ids);
+  if (!oids.length) return [];
+  const rows = await Company.aggregate([
+    { $match: { _id: { $in: oids } } },
+    { $unwind: '$links' },
+    { $match: { 'links.linkModel': 'Personnel' } },
+    { $group: { _id: '$links.link' } },
+  ]);
+  return rows.map((r) => r._id);
+}
+
+// 人员详情越权检查：该人员是否在当前用户可见公司的 links 中
+async function personnelInScope(req, personnelId) {
+  const ids = req.scopeCompanies;
+  if (ids === null) return true; // 不受限
+  if (!ids.length || !personnelId) return false;
+  const oids = toObjectIds(ids);
+  if (!oids.length) return false;
+  const hit = await Company.exists({
+    _id: { $in: oids },
+    links: { $elemMatch: { linkModel: 'Personnel', link: personnelId } },
+  });
+  return !!hit;
+}
+
+module.exports = {
+  scopeMiddleware,
+  applyListScope,
+  inScope,
+  getScopeCompanies,
+  toObjectIds,
+  resolvePersonnelIdsInScope,
+  personnelInScope,
+};

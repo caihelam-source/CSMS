@@ -15,7 +15,7 @@ router.get('/', auth, async (req, res) => {
     if (action) query.action = action;
     if (entityType) query.entityType = entityType;
     const total = await AuditLog.countDocuments(query);
-    const logs = await AuditLog.find(query)
+    const logs = await AuditLog.find(query).lean()
       .populate('actor', 'name email')
       .sort({ createdAt: -1 })
       .skip((Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10))
