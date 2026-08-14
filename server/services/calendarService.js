@@ -17,7 +17,6 @@
 //   link:      String   // 钻取回来源页的相对路径
 // }
 
-const mongoose = require('mongoose')
 const ComplianceReminder = require('../models/ComplianceReminder')
 const Task = require('../models/Task')
 const Company = require('../models/Company')
@@ -258,7 +257,7 @@ async function getCalendarEvents({ from, to, types, req } = {}) {
 }
 
 // 从 Company 抽取绝对申报日期；财年终点按年循环推算 next occurrence
-function extractFilingDates(c, from, to) {
+function extractFilingDates(c, from, _to) {
   const out = []
   const push = (date, label, priority) => {
     if (date) out.push({ date: new Date(date), kind: label, label, priority })

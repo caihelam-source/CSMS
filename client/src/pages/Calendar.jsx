@@ -20,7 +20,6 @@ const SOURCE_LABEL = {
   meeting: '会议',
   results_timetable: '业绩排期',
 }
-const PRIORITY_LABEL = { urgent: '紧急', high: '高', medium: '中', low: '低' }
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
 const ymd = (d) => {
