@@ -1,6 +1,7 @@
 const express = require('express')
 const { auth } = require('../middleware/auth')
 const { scopeMiddleware } = require('../middleware/scope')
+const { requirePermission } = require('../middleware/rbac')
 const { getCalendarEvents, createEvent, updateEvent, deleteEvent } = require('../services/calendarService')
 const { sendEmail } = require('../utils/mailer')
 
@@ -33,8 +34,8 @@ router.get('/events', auth, scopeMiddleware, async (req, res) => {
 })
 
 // POST /api/calendar/events —— 新建用户自建事件（第 7 源）
-// 权限：登录即可创建；归属 = 当前用户。
-router.post('/events', auth, async (req, res) => {
+// 权限：需 edit 权限（secretary/manager/admin）；归属 = 当前用户。auditor/viewer 仅只读，不可写。
+router.post('/events', auth, requirePermission('edit'), async (req, res) => {
   try {
     const doc = await createEvent(req.body, req.user)
     res.status(201).json({ success: true, event: doc.toEventVO() })
@@ -45,8 +46,8 @@ router.post('/events', auth, async (req, res) => {
 })
 
 // PUT /api/calendar/events/:id —— 编辑用户自建事件
-// 权限：仅创建者 / admin（auditor 仅只读，不可写）。
-router.put('/events/:id', auth, async (req, res) => {
+// 权限：需 edit 权限；仅创建者 / admin（auditor/viewer 仅只读，不可写）。
+router.put('/events/:id', auth, requirePermission('edit'), async (req, res) => {
   try {
     const doc = await updateEvent(req.params.id, req.body, req.user)
     res.json({ success: true, event: doc.toEventVO() })
@@ -57,8 +58,8 @@ router.put('/events/:id', auth, async (req, res) => {
 })
 
 // DELETE /api/calendar/events/:id —— 删除用户自建事件
-// 权限：仅创建者 / admin。
-router.delete('/events/:id', auth, async (req, res) => {
+// 权限：需 edit 权限；仅创建者 / admin（auditor/viewer 仅只读，不可写）。
+router.delete('/events/:id', auth, requirePermission('edit'), async (req, res) => {
   try {
     await deleteEvent(req.params.id, req.user)
     res.json({ success: true })

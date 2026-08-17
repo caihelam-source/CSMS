@@ -28,8 +28,8 @@ const calendarRoutes = require('../routes/calendar')
 let mongoServer
 let app
 let server
-let adminUser, managerUser, otherUser
-let adminToken, managerToken, otherToken
+let adminUser, managerUser, otherUser, auditorUser
+let adminToken, managerToken, otherToken, auditorToken
 let C1, C2
 
 // ── 测试夹具 ────────────────────────────────────────────────
@@ -112,6 +112,9 @@ test.before(async () => {
   adminToken = sign(adminUser)
   managerToken = sign(managerUser)
   otherToken = sign(otherUser)
+  // 审计只读角色（role=auditor，仅 view 权限）—— 用于验证写路由拦截
+  auditorUser = await User.create({ name: 'Auditor', email: 'aud@test.com', password: 'password123', role: 'auditor' })
+  auditorToken = sign(auditorUser)
 
   // 6 系统源（覆盖各来源的当月数据）
   await ComplianceReminder.create({
@@ -256,4 +259,35 @@ test('DELETE /events/:id：非归属非 admin 返回 403', async () => {
 test('DELETE /events/:id：不存在返回 404', async () => {
   const { status } = await request('DELETE', '/api/calendar/events/000000000000000000000000', { token: adminToken })
   assert.strictEqual(status, 404)
+})
+
+// ── T03：写路由权限闸门（auditor 仅只读）────────────────────
+test('POST/PUT/DELETE /events：auditor 仅只读，写操作一律 403', async () => {
+  // 先由 admin 建一个事件，供 PUT/DELETE 验证
+  const created = await request('POST', '/api/calendar/events', {
+    token: adminToken,
+    body: { title: '审计只读验证', date: at(7).toISOString() },
+  })
+  assert.strictEqual(created.status, 201)
+  const id = created.body.event.id
+
+  const post = await request('POST', '/api/calendar/events', {
+    token: auditorToken,
+    body: { title: 'auditor 自建', date: at(8).toISOString() },
+  })
+  assert.strictEqual(post.status, 403, 'auditor 不应能新建事件（缺 edit 权限）')
+
+  const put = await request('PUT', `/api/calendar/events/${id}`, {
+    token: auditorToken,
+    body: { title: 'auditor 改' },
+  })
+  assert.strictEqual(put.status, 403, 'auditor 不应能编辑事件')
+
+  const del = await request('DELETE', `/api/calendar/events/${id}`, { token: auditorToken })
+  assert.strictEqual(del.status, 403, 'auditor 不应能删除事件')
+
+  // 旁观：auditor 仍可正常读取聚合数据
+  const get = await request('GET', '/api/calendar/events', { token: auditorToken })
+  assert.strictEqual(get.status, 200)
+  assert.strictEqual(get.body.success, true)
 })
