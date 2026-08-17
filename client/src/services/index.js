@@ -600,9 +600,22 @@ export const auditService = {
 // mock：mockCalendar.getEvents 自合成贴近当前月的样例事件。
 // 列表经 toArray(res.data.data, 'events') 防御式提取（见 utils/responseNormalize.js）。
 export const calendarService = {
-  getEvents: (from, to, types) => wrap(
-    () => api.get(`/api/calendar/events${buildParams({ from, to, types: types && types.join(',') })}`),
-    () => mockCalendar.getEvents(from, to, types),
+  getEvents: wrap(
+    (from, to, types) => api.get(`/api/calendar/events${buildParams({ from, to, types: types && types.join(',') })}`),
+    (from, to, types) => mockCalendar.getEvents(from, to, types),
+  ),
+  // 自建事件 CRUD（第 7 源）——真实走 POST/PUT/DELETE /api/calendar/events，mock 走内存数组
+  createEvent: wrap(
+    (payload) => api.post('/api/calendar/events', payload),
+    (payload) => mockCalendar.createEvent(payload),
+  ),
+  updateEvent: wrap(
+    (id, payload) => api.put(`/api/calendar/events/${id}`, payload),
+    (id, payload) => mockCalendar.updateEvent(id, payload),
+  ),
+  deleteEvent: wrap(
+    (id) => api.delete(`/api/calendar/events/${id}`),
+    (id) => mockCalendar.deleteEvent(id),
   ),
   sendDigest: wrap(
     () => api.post('/api/calendar/digest'),

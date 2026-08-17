@@ -1443,6 +1443,16 @@ export const schedules = {
 // ====== Calendar（Wave 日历模块 · Mock）======
 // 自合成贴近「当前月」的样例事件，覆盖 6 类来源，含逾期项，保证 mock 模式演示有数据。
 // 真实后端走 /api/calendar/events（server/services/calendarService.js）。
+const mockDate = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d }
+const mockIso = (d) => d.toISOString()
+const MOCK_COMPANY_NAME = { 'c-1': '中国新城市', 'c-2': 'Abundant Zone' }
+
+// 第 7 源（user_event）样例 + 增删改内存数组（刷新页面后重置，符合「mock 仅演示」定位）
+let userEvents = [
+  { id: 'ue-1', source: 'user_event', module: '我的事件', title: '董事会现场会', date: mockIso(mockDate(2)), time: '14:30', allDay: false, priority: 'medium', status: 'open', overdue: false, companyId: 'c-1', companyName: '中国新城市', link: '', category: '会议', note: '' },
+  { id: 'ue-2', source: 'user_event', module: '我的事件', title: '出差 · 深圳', date: mockIso(mockDate(7)), time: '', allDay: true, priority: 'medium', status: 'open', overdue: false, companyId: null, companyName: null, link: '', category: '出差', note: '' },
+]
+
 export const calendar = {
   getEvents: async (from, to, types) => {
     await delay();
@@ -1459,6 +1469,7 @@ export const calendar = {
       { id: 'd-1', source: 'document', module: '文档', title: '文档到期 · 商业登记证', date: iso(addDays(5)), priority: 'high', status: 'open', overdue: false, companyId: 'c-2', companyName: 'Abundant Zone', link: '/companies/c-2' },
       { id: 'm-1', source: 'meeting', module: '会议', title: '董事会（审议中期业绩）', date: iso(addDays(11)), priority: 'medium', status: 'open', overdue: false, companyId: 'c-1', companyName: '中国新城市', link: '/meetings/m-1' },
       { id: 'rt-1', source: 'results_timetable', module: '业绩排期', title: 'T1 董事会/公告 · 中国新城市', date: iso(addDays(16)), priority: 'high', status: 'open', overdue: false, companyId: 'c-1', companyName: '中国新城市', link: '/results-timetable' },
+      ...userEvents,
     ]
 
     const filtered = types && types.length ? all.filter((e) => types.includes(e.source)) : all
@@ -1472,5 +1483,56 @@ export const calendar = {
       return true
     })
     return { data: { data: { events: inRange } } }
+  },
+  // 新建用户自建事件（内存）
+  createEvent: async (payload = {}) => {
+    await delay();
+    const id = 'ue-' + Date.now()
+    const ev = {
+      id,
+      source: 'user_event',
+      module: '我的事件',
+      title: payload.title,
+      date: new Date(payload.date).toISOString(),
+      time: payload.time || '',
+      allDay: payload.allDay !== false,
+      priority: 'medium',
+      status: 'open',
+      overdue: false,
+      companyId: payload.companyId || null,
+      companyName: payload.companyId ? (MOCK_COMPANY_NAME[payload.companyId] || '关联公司') : null,
+      link: '',
+      category: payload.category || '',
+      note: payload.note || '',
+    }
+    userEvents.push(ev)
+    return { data: { data: { success: true, event: ev } } }
+  },
+  // 编辑用户自建事件（内存）
+  updateEvent: async (id, payload = {}) => {
+    await delay();
+    const idx = userEvents.findIndex((e) => e.id === id)
+    if (idx === -1) return { data: { data: { success: false, message: '事件不存在' } } }
+    const cur = userEvents[idx]
+    const merged = {
+      ...cur,
+      ...payload,
+      date: payload.date ? new Date(payload.date).toISOString() : cur.date,
+      time: payload.time !== undefined ? (payload.time || '') : cur.time,
+      allDay: payload.allDay !== undefined ? !!payload.allDay : cur.allDay,
+      companyId: payload.companyId !== undefined ? (payload.companyId || null) : cur.companyId,
+      companyName:
+        payload.companyId !== undefined
+          ? (payload.companyId ? (MOCK_COMPANY_NAME[payload.companyId] || '关联公司') : null)
+          : cur.companyName,
+    }
+    userEvents[idx] = merged
+    return { data: { data: { success: true, event: merged } } }
+  },
+  // 删除用户自建事件（内存）
+  deleteEvent: async (id) => {
+    await delay();
+    userEvents = userEvents.filter((e) => e.id !== id)
+    return { data: { data: { success: true } } }
   },
 };

@@ -1,0 +1,82 @@
+%% SD-A: 修复后加载流程（区分错误/空态）— P0-1
+sequenceDiagram
+    participant P as CalendarPage
+    participant H as useCalendarEvents
+    participant S as calendarServiceFE
+    participant API as GET /api/calendar/events
+    participant N as responseNormalize
+
+    P->>H: load(from,to,types)
+    H->>S: getEvents(from,to,types)
+    S->>API: GET (mock or real)
+    API-->>S: {success,count,events} / 500
+    S->>N: normalize(body)
+    N-->>H: {data:{data:{events:[...]}}}
+    alt 请求失败 (catch / !res.ok)
+        H->>H: set error
+        H-->>P: error != null
+        P->>StatusComponents: <ErrorState/>
+    else 成功且 events 为空
+        H-->>P: events=[]
+        P->>StatusComponents: <EmptyState text="本月暂无事件"/>
+    else 成功有数据
+        H-->>P: events=[...]
+        P->>MonthGridView: events
+    end
+
+%% SD-B: 自建事件创建闭环 — P1-1
+sequenceDiagram
+    participant U as 用户
+    participant M as EventFormModal
+    participant H as useCalendarEvents
+    participant S as calendarServiceFE
+    participant API as POST /api/calendar/events
+    participant SV as CalendarService
+    participant DB as CalendarEvent
+
+    U->>M: 填写标题/日期/公司 → 保存
+    M->>H: createEvent(payload)
+    H->>S: createEvent(payload)
+    S->>API: POST (auth)
+    API->>SV: createEvent(payload, req.user)
+    SV->>DB: create({...payload, createdBy:req.user._id})
+    DB-->>SV: doc
+    SV-->>API: doc.toEventVO()
+    API-->>S: {success, event}
+    S-->>H: ok
+    H->>H: load() 重新拉取（含第7源）
+    H-->>U: 月/周/日/议程视图均出现新事件
+
+%% SD-C: 四视图切换（from/to 计算）— P1-3
+sequenceDiagram
+    participant U as 用户
+    participant P as CalendarPage
+    participant H as useCalendarEvents
+    participant API as GET /api/calendar/events
+
+    U->>P: 切到「周」/「日」/「议程」
+    P->>P: 计算 from/to（周:周日~周六;日:当天;议程:今天~+90d）
+    P->>H: load(from,to,activeSources)
+    H->>API: getEvents(from,to,types)
+    API-->>H: 统一 events[]
+    H-->>P: events
+    P->>WeekView: events (按天分列)
+    Note over P: 月/日/议程同理，仅布局与 from/to 不同
+
+%% SD-D: 当天展开（「+N 更多」可点）— P1-2
+sequenceDiagram
+    participant U as 用户
+    participant G as MonthGridView/WeekView/DayView
+    participant Pop as DayEventsPopover
+    participant P as CalendarPage
+
+    U->>G: 点击某天「+N 更多」
+    G->>P: onMoreClick(date, dayEvents)
+    P->>Pop: open(date, dayEvents)
+    Pop-->>U: 列出当天全部事件(标题/来源/公司/状态)
+    U->>Pop: 点击某条
+    alt 系统事件 (link≠'')
+        Pop->>P: onEventClick(e) → navigate(e.link)
+    else 自建事件 (source='user_event')
+        Pop->>P: onEventClick(e) → 打开 EventFormModal 编辑
+    end

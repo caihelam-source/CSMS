@@ -1,0 +1,81 @@
+classDiagram
+    %% ===== 后端 =====
+    class CalendarEvent {
+        +ObjectId _id
+        +String title
+        +Date date
+        +String time
+        +Boolean allDay
+        +String category
+        +String note
+        +ObjectId companyId
+        +ObjectId createdBy
+        +Date createdAt
+        +Date updatedAt
+        +toEventVO() Object
+    }
+    class CalendarService {
+        +getCalendarEvents(opts) Array~Event~
+        +createEvent(payload, user) CalendarEvent
+        +updateEvent(id, payload, user) CalendarEvent
+        +deleteEvent(id, user) void
+    }
+    class CalendarRouter {
+        +GET /events
+        +POST /events
+        +PUT /events/:id
+        +DELETE /events/:id
+        +POST /digest
+    }
+    CalendarRouter ..> CalendarService : calls
+    CalendarService ..> CalendarEvent : reads/writes
+
+    %% ===== 前端 =====
+    class CalendarPage {
+        +view / cursor / activeSources / onlyOpen
+        +editingEvent / popoverDay
+        +render()
+    }
+    class useCalendarEvents {
+        +events Array
+        +error Object|null
+        +loading Boolean
+        +load(from,to,types)
+        +createEvent(payload)
+        +updateEvent(id,payload)
+        +deleteEvent(id)
+    }
+    class calendarServiceFE {
+        +getEvents(from,to,types)
+        +createEvent(payload)
+        +updateEvent(id,payload)
+        +deleteEvent(id)
+    }
+    class ViewSwitcher
+    class MonthGridView
+    class WeekView
+    class DayView
+    class AgendaView
+    class DayEventsPopover
+    class EventFormModal
+    class StatusComponents
+    class calendarConstants
+
+    CalendarPage *-- ViewSwitcher
+    CalendarPage *-- MonthGridView
+    CalendarPage *-- WeekView
+    CalendarPage *-- DayView
+    CalendarPage *-- AgendaView
+    CalendarPage *-- EventFormModal
+    CalendarPage ..> useCalendarEvents : uses
+    CalendarPage ..> StatusComponents : uses
+    MonthGridView ..> DayEventsPopover : opens
+    WeekView ..> DayEventsPopover : opens
+    DayView ..> DayEventsPopover : opens
+    AgendaView ..> DayEventsPopover : opens
+    useCalendarEvents ..> calendarServiceFE : calls
+    EventFormModal ..> useCalendarEvents : create/update/delete
+    calendarConstants <.. MonthGridView : imports
+    calendarConstants <.. ViewSwitcher : imports
+    calendarConstants <.. EventFormModal : imports
+    note for CalendarEvent "source='user_event' 第7源"

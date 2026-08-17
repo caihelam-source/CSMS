@@ -12,6 +12,8 @@
 const ENTITY_KEYS = [
   'personnel', 'company', 'document', 'meeting', 'task', 'reminder', 'rule', 'template', 'signTask',
   'companies', 'documents', 'meetings', 'tasks', 'reminders', 'rules', 'personnelList', 'links', 'link',
+  // 日历聚合事件列表（GET /api/calendar/events 返回 { success, count, events }）
+  'events',
 ]
 
 export const normalize = (body) => {

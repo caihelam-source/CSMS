@@ -1,91 +1,102 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { calendarService } from '../services/index.js'
+import { calendarService, companyService } from '../services/index.js'
 import { toArray } from '../utils/responseNormalize.js'
+import {
+  SOURCE_COLOR, SOURCE_LABEL, ALL_SOURCES,
+  ymd, startOfMonth, endOfMonth, startOfWeekSunday, endOfWeekSaturday,
+  startOfDay, endOfDay, addDays, addMonths, formatMonthTitle, formatWeekRange, formatDateTitle,
+} from './calendar/calendarConstants'
+import { useCalendarEvents } from './calendar/useCalendarEvents'
+import ViewSwitcher from './calendar/ViewSwitcher'
+import MonthGridView from './calendar/MonthGridView'
+import WeekView from './calendar/WeekView'
+import DayView from './calendar/DayView'
+import AgendaView from './calendar/AgendaView'
+import DayEventsPopover from './calendar/DayEventsPopover'
+import EventFormModal from './calendar/EventFormModal'
+import { ErrorState, EmptyState } from './calendar/StatusComponents'
 
-// 来源 → 着色（内联 hex，避免依赖具体 Tailwind 色阶）
-const SOURCE_COLOR = {
-  compliance_reminder: '#ef4444',
-  task: '#2563EB',
-  company_filing: '#f59e0b',
-  document: '#0ea5e9',
-  meeting: '#8b5cf6',
-  results_timetable: '#ec4899',
-}
-const SOURCE_LABEL = {
-  compliance_reminder: '合规提醒',
-  task: '任务',
-  company_filing: '公司申报',
-  document: '文档',
-  meeting: '会议',
-  results_timetable: '业绩排期',
-}
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
-
-const ymd = (d) => {
-  const x = new Date(d)
-  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`
-}
-
-// 构建 6×7 网格（周日起始）
-function buildGrid(year, month) {
-  const first = new Date(year, month, 1)
-  const startWeekday = first.getDay()
-  const gridStart = new Date(year, month, 1 - startWeekday)
-  const cells = []
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(gridStart)
-    d.setDate(gridStart.getDate() + i)
-    cells.push(d)
-  }
-  return cells
-}
+const AGENDA_DAYS = 90
 
 export default function Calendar() {
   const navigate = useNavigate()
-  const today = new Date()
-  const [cursor, setCursor] = useState({ year: today.getFullYear(), month: today.getMonth() })
-  const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [view, setView] = useState('month')
+  const [cursor, setCursor] = useState(() => new Date())
   const [activeSources, setActiveSources] = useState([]) // 空 = 全部
   const [onlyOpen, setOnlyOpen] = useState(false)
   const [digestState, setDigestState] = useState(null) // {type:'info'|'ok'|'warn', text}
+  const [popover, setPopover] = useState({ open: false, date: null, events: [] })
+  const [form, setForm] = useState({ open: false, initial: null, submitting: false })
+  const [companies, setCompanies] = useState([])
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const from = ymd(new Date(cursor.year, cursor.month, 1))
-      const to = ymd(new Date(cursor.year, cursor.month + 1, 0))
-      const res = await calendarService.getEvents(from, to, activeSources)
-      const list = toArray(res?.data?.data, 'events')
-      setEvents(list)
-    } catch (e) {
-      console.error('[Calendar] 加载事件失败', e)
-      setEvents([])
-    } finally {
-      setLoading(false)
-    }
-  }, [cursor, activeSources])
+  const { events, loading, error, load, createEvent, updateEvent, deleteEvent } = useCalendarEvents()
 
-  useEffect(() => { load() }, [load])
+  // 按当前视图计算请求区间（四视图复用同一 GET /api/calendar/events）
+  const range = useMemo(() => {
+    if (view === 'month') return { from: ymd(startOfMonth(cursor)), to: ymd(endOfMonth(cursor)) }
+    if (view === 'week') return { from: ymd(startOfWeekSunday(cursor)), to: ymd(endOfWeekSaturday(cursor)) }
+    if (view === 'day') return { from: ymd(startOfDay(cursor)), to: ymd(endOfDay(cursor)) }
+    // 议程：未来 90 天 upcoming（默认从 cursor 起）
+    return { from: ymd(cursor), to: ymd(addDays(cursor, AGENDA_DAYS)) }
+  }, [view, cursor])
 
-  const monthEvents = useMemo(() => {
-    let evs = events
-    if (onlyOpen) evs = evs.filter((e) => e.status === 'open' || e.status === 'overdue')
-    // 按日期分组
-    const map = {}
-    for (const e of evs) {
-      const key = ymd(e.date)
-      ;(map[key] = map[key] || []).push(e)
-    }
-    return map
-  }, [events, onlyOpen])
+  useEffect(() => {
+    load(range.from, range.to, activeSources)
+  }, [range.from, range.to, activeSources, load])
 
-  const grid = useMemo(() => buildGrid(cursor.year, cursor.month), [cursor])
-  const isCurrentMonth = (d) => d.getMonth() === cursor.month
+  // 关联公司下拉数据（scope 内公司）
+  useEffect(() => {
+    companyService
+      .getAll()
+      .then((res) => {
+        const list = toArray(res?.data?.data, 'companies', 'company', 'data')
+        setCompanies(list.map((c) => ({ id: c._id || c.id, name: c.name })))
+      })
+      .catch(() => {})
+  }, [])
+
+  const counts = useMemo(() => {
+    const c = {}
+    for (const e of events) c[e.source] = (c[e.source] || 0) + 1
+    return c
+  }, [events])
+
+  const overdueCount = events.filter((e) => e.overdue).length
+
+  // ── 事件点击：自建事件打开编辑；系统事件跳原模块 ──
+  const handleEventClick = useCallback(
+    (e) => {
+      if (e.source === 'user_event' || !e.link) {
+        setForm({ open: true, initial: e, submitting: false })
+      } else {
+        navigate(e.link)
+      }
+    },
+    [navigate],
+  )
+
+  const openMore = useCallback((date, dayEvents) => {
+    setPopover({ open: true, date, events: dayEvents })
+  }, [])
+
+  // ── 导航（随视图语义变化）──
+  const goPrev = () => {
+    if (view === 'month') setCursor((c) => addMonths(c, -1))
+    else if (view === 'week') setCursor((c) => addDays(c, -7))
+    else if (view === 'day') setCursor((c) => addDays(c, -1))
+    else setCursor((c) => addDays(c, -AGENDA_DAYS))
+  }
+  const goNext = () => {
+    if (view === 'month') setCursor((c) => addMonths(c, 1))
+    else if (view === 'week') setCursor((c) => addDays(c, 7))
+    else if (view === 'day') setCursor((c) => addDays(c, 1))
+    else setCursor((c) => addDays(c, AGENDA_DAYS))
+  }
+  const goToday = () => setCursor(new Date())
 
   const toggleSource = (s) => {
-    setActiveSources((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])
+    setActiveSources((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
   }
 
   const sendDigest = async () => {
@@ -105,13 +116,56 @@ export default function Calendar() {
     }
   }
 
-  const counts = useMemo(() => {
-    const c = {}
-    for (const e of events) c[e.source] = (c[e.source] || 0) + 1
-    return c
-  }, [events])
+  // ── 自建事件 CRUD ──
+  const reload = useCallback(() => load(range.from, range.to, activeSources), [range, activeSources, load])
 
-  const overdueCount = events.filter((e) => e.overdue).length
+  const handleFormSubmit = async (payload) => {
+    setForm((f) => ({ ...f, submitting: true }))
+    try {
+      if (form.initial?.id) await updateEvent(form.initial.id, payload)
+      else await createEvent(payload)
+      setForm({ open: false, initial: null, submitting: false })
+      await reload()
+    } catch (e) {
+      setForm((f) => ({ ...f, submitting: false }))
+      window.alert('保存失败：' + (e?.message || e))
+    }
+  }
+
+  const handleFormDelete = async (ev) => {
+    if (!window.confirm(`确认删除事件「${ev.title}」？`)) return
+    setForm((f) => ({ ...f, submitting: true }))
+    try {
+      await deleteEvent(ev.id)
+      setForm({ open: false, initial: null, submitting: false })
+      await reload()
+    } catch (e) {
+      setForm((f) => ({ ...f, submitting: false }))
+      window.alert('删除失败：' + (e?.message || e))
+    }
+  }
+
+  const openNew = () => setForm({ open: true, initial: null, submitting: false })
+  const closeForm = () => setForm({ open: false, initial: null, submitting: false })
+
+  const emptyText = useMemo(() => {
+    if (view === 'month') return '本月暂无事件 🎉'
+    if (view === 'week') return '本周暂无事件 🎉'
+    if (view === 'day') return '当日暂无事件 🎉'
+    return '未来没有待办事件 🎉'
+  }, [view])
+
+  const agendaRangeText = useMemo(
+    () => (view === 'agenda' ? `未来 ${AGENDA_DAYS} 天（${formatDateTitle(cursor)} 起）` : ''),
+    [view, cursor],
+  )
+
+  const title = useMemo(() => {
+    if (view === 'month') return formatMonthTitle(cursor)
+    if (view === 'week') return formatWeekRange(cursor)
+    if (view === 'day') return formatDateTitle(cursor)
+    return ''
+  }, [view, cursor])
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -120,31 +174,50 @@ export default function Calendar() {
         <div>
           <h1 className="text-2xl font-bold text-ink">日历</h1>
           <p className="text-sm text-ink-3 mt-1">
-            跨模块聚合 · 本月 {events.length} 项
+            跨模块聚合 · 当前 {events.length} 项
             {overdueCount > 0 && <span className="text-danger font-medium">（逾期 {overdueCount} 项）</span>}
           </p>
         </div>
-        <button
-          onClick={sendDigest}
-          className="tap-target px-3 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors"
-        >
-          发送本月摘要
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={sendDigest}
+            className="tap-target px-3 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors"
+          >
+            发送本月摘要
+          </button>
+          <button
+            onClick={openNew}
+            className="tap-target px-3 py-2 rounded-lg bg-surface border border-hairline text-ink-2 text-sm font-medium hover:bg-canvas transition-colors"
+          >
+            + 新建
+          </button>
+        </div>
       </div>
 
       {digestState && (
         <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm ${
           digestState.type === 'ok' ? 'bg-primary-50 text-primary-700'
-          : digestState.type === 'warn' ? 'bg-warning/10 text-warning'
-          : 'bg-canvas text-ink-2'
+            : digestState.type === 'warn' ? 'bg-warning/10 text-warning'
+              : 'bg-canvas text-ink-2'
         }`}>
           {digestState.text}
         </div>
       )}
 
-      {/* 过滤器 */}
+      {/* 控制栏：视图切换 + 导航 + 标题 */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <ViewSwitcher view={view} onChange={setView} />
+        <div className="flex items-center gap-2">
+          <button onClick={goPrev} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="上一个区间">‹</button>
+          <button onClick={goToday} className="tap-target px-3 h-9 rounded-lg bg-surface border border-hairline text-sm text-ink-2 hover:bg-canvas transition-colors">今天</button>
+          <button onClick={goNext} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="下一个区间">›</button>
+        </div>
+        {title && <h2 className="text-lg font-semibold text-ink hidden sm:block">{title}</h2>}
+      </div>
+
+      {/* 过滤器（四视图共用） */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        {Object.keys(SOURCE_LABEL).map((s) => {
+        {ALL_SOURCES.map((s) => {
           const active = activeSources.length === 0 || activeSources.includes(s)
           const color = SOURCE_COLOR[s]
           return (
@@ -171,71 +244,80 @@ export default function Calendar() {
         </label>
       </div>
 
-      {/* 月导航 */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setCursor((c) => c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 })}
-            className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors">‹</button>
-          <button onClick={() => setCursor({ year: today.getFullYear(), month: today.getMonth() })}
-            className="tap-target px-3 h-9 rounded-lg bg-surface border border-hairline text-sm text-ink-2 hover:bg-canvas transition-colors">今天</button>
-          <button onClick={() => setCursor((c) => c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 })}
-            className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors">›</button>
-        </div>
-        <h2 className="text-lg font-semibold text-ink">{cursor.year} 年 {cursor.month + 1} 月</h2>
-        <div className="w-[140px]" />
-      </div>
+      {/* 视图内容 / 状态 */}
+      {error ? (
+        <ErrorState error={error} onRetry={reload} />
+      ) : (
+        <>
+          {view === 'month' && (
+            <MonthGridView
+              cursor={cursor}
+              events={events}
+              onlyOpen={onlyOpen}
+              onEventClick={handleEventClick}
+              onMoreClick={openMore}
+              onPrev={goPrev}
+              onNext={goNext}
+              onToday={goToday}
+            />
+          )}
+          {view === 'week' && (
+            <WeekView
+              cursor={cursor}
+              events={events}
+              onlyOpen={onlyOpen}
+              onEventClick={handleEventClick}
+              onMoreClick={openMore}
+              onPrev={goPrev}
+              onNext={goNext}
+              onToday={goToday}
+            />
+          )}
+          {view === 'day' && (
+            <DayView
+              cursor={cursor}
+              events={events}
+              onlyOpen={onlyOpen}
+              onEventClick={handleEventClick}
+              onMoreClick={openMore}
+              onPrev={goPrev}
+              onNext={goNext}
+              onToday={goToday}
+            />
+          )}
+          {view === 'agenda' && (
+            <AgendaView
+              events={events}
+              onlyOpen={onlyOpen}
+              onEventClick={handleEventClick}
+              rangeText={agendaRangeText}
+            />
+          )}
 
-      {/* 星期表头 */}
-      <div className="grid grid-cols-7 gap-1.5 mb-1.5">
-        {WEEKDAYS.map((w) => (
-          <div key={w} className="text-center text-xs font-medium text-ink-3 py-1">{w}</div>
-        ))}
-      </div>
-
-      {/* 日期网格 */}
-      <div className="grid grid-cols-7 gap-1.5">
-        {grid.map((d, i) => {
-          const key = ymd(d)
-          const dayEvents = monthEvents[key] || []
-          const inMonth = isCurrentMonth(d)
-          const isToday = ymd(d) === ymd(today)
-          return (
-            <div
-              key={i}
-              className={`min-h-[92px] rounded-lg border p-1.5 flex flex-col transition-colors ${
-                isToday ? 'border-primary-600 bg-primary-50/40' : 'border-hairline bg-surface'
-              } ${inMonth ? '' : 'opacity-40'}`}
-            >
-              <div className={`text-xs font-medium mb-1 ${isToday ? 'text-primary-700' : 'text-ink-2'}`}>{d.getDate()}</div>
-              <div className="space-y-1 overflow-hidden">
-                {dayEvents.slice(0, 3).map((e) => (
-                  <button
-                    key={e.id}
-                    onClick={() => navigate(e.link)}
-                    title={`${e.module} · ${e.title}`}
-                    className="w-full text-left truncate rounded px-1.5 py-0.5 text-[11px] font-medium flex items-center gap-1 hover:brightness-95 transition"
-                    style={{
-                      backgroundColor: e.overdue ? '#fee2e2' : `${SOURCE_COLOR[e.source]}1a`,
-                      color: e.overdue ? '#b91c1c' : SOURCE_COLOR[e.source],
-                    }}
-                  >
-                    {e.overdue && <span className="text-[9px]">●</span>}
-                    <span className="truncate">{e.title}</span>
-                  </button>
-                ))}
-                {dayEvents.length > 3 && (
-                  <div className="text-[10px] text-ink-3 px-1.5">+{dayEvents.length - 3} 更多</div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {loading && <p className="text-center text-sm text-ink-3 mt-4">加载中…</p>}
-      {!loading && events.length === 0 && (
-        <p className="text-center text-sm text-ink-3 mt-6">本月暂无事件 🎉</p>
+          {loading && <p className="text-center text-sm text-ink-3 mt-4">加载中…</p>}
+          {!loading && events.length === 0 && <EmptyState text={emptyText} />}
+        </>
       )}
+
+      {/* 当天事件弹层（四视图共用） */}
+      <DayEventsPopover
+        open={popover.open}
+        date={popover.date}
+        events={popover.events}
+        onClose={() => setPopover((p) => ({ ...p, open: false }))}
+        onEventClick={handleEventClick}
+      />
+
+      {/* 新建 / 编辑事件表单 */}
+      <EventFormModal
+        open={form.open}
+        initial={form.initial}
+        companies={companies}
+        submitting={form.submitting}
+        onClose={closeForm}
+        onSubmit={handleFormSubmit}
+        onDelete={handleFormDelete}
+      />
     </div>
   )
 }

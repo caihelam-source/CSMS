@@ -23,6 +23,8 @@ const Company = require('../models/Company')
 const Document = require('../models/Document')
 const Meeting = require('../models/Meeting')
 const ResultsTimetable = require('../models/ResultsTimetable')
+const CalendarEvent = require('../models/CalendarEvent')
+const mongoose = require('mongoose')
 const { applyListScope } = require('../middleware/scope')
 
 const SOURCE_MODULE = {
@@ -32,6 +34,7 @@ const SOURCE_MODULE = {
   document: '文档',
   meeting: '会议',
   results_timetable: '业绩排期',
+  user_event: '我的事件',
 }
 
 // 优先级归一化：合规提醒用「紧急/高/中/低」，任务用 urgent/high/medium/low
@@ -251,9 +254,159 @@ async function getCalendarEvents({ from, to, types, req } = {}) {
     }
   }
 
+  // ── 7. 用户自建事件（第 7 源 user_event）────────────────────
+  // 权限遵循 Q4：
+  //   - admin / auditor（req.scopeCompanies === null）：看全部
+  //   - 其余角色：companyId ∈ scope  OR  createdBy === 本人
+  if (want('user_event')) {
+    const q = { date: { $gte: from, $lte: to } }
+    if (req && req.scopeCompanies !== null) {
+      const or = []
+      if (Array.isArray(req.scopeCompanies) && req.scopeCompanies.length) {
+        or.push({ companyId: { $in: req.scopeCompanies } })
+      }
+      if (req.user && req.user._id) {
+        or.push({ createdBy: req.user._id })
+      }
+      if (or.length) q.$or = or
+      else q._id = { $in: [] } // 明确无授权 → 空集合（绝不退化成不限）
+    }
+    const rows = await CalendarEvent.find(q)
+      .populate('companyId', 'name nameChinese')
+      .populate('createdBy', 'name email')
+      .sort({ date: 1 })
+    for (const ev of rows) {
+      const companyId = ev.companyId ? String(ev.companyId._id) : null
+      const companyName = ev.companyId ? ev.companyId.name || ev.companyId.nameChinese || null : null
+      events.push({
+        id: String(ev._id),
+        source: 'user_event',
+        module: SOURCE_MODULE.user_event,
+        title: ev.title,
+        date: ev.date,
+        time: ev.time || null,
+        allDay: ev.allDay !== false,
+        priority: 'medium',
+        status: 'open',
+        overdue: false,
+        companyId,
+        companyName,
+        link: '',
+      })
+    }
+  }
+
   // 按日期升序
   events.sort((a, b) => new Date(a.date) - new Date(b.date))
   return events
+}
+
+// 是否为事件归属者或管理员（admin 可管理全部；auditor 仅只读，不可写）
+function assertOwnershipOrAdmin(doc, user) {
+  if (!user) return false
+  if (user.role === 'admin') return true
+  if (!doc.createdBy) return false
+  return String(doc.createdBy) === String(user._id)
+}
+
+/**
+ * 创建用户自建事件（第 7 源）。
+ * @param {Object} payload { title, date, time?, allDay?, category?, note?, companyId? }
+ * @param {Object} user    Express req.user（mongoose 文档）
+ * @returns {Promise<Object>} 新建的 CalendarEvent 文档
+ */
+async function createEvent(payload = {}, user) {
+  if (!payload || !payload.title || !payload.date) {
+    const e = new Error('标题与日期为必填项')
+    e.statusCode = 400
+    throw e
+  }
+  const date = new Date(payload.date)
+  if (isNaN(date.getTime())) {
+    const e = new Error('日期格式无效')
+    e.statusCode = 400
+    throw e
+  }
+  const companyId =
+    payload.companyId && mongoose.Types.ObjectId.isValid(payload.companyId) ? payload.companyId : null
+  const doc = new CalendarEvent({
+    title: String(payload.title).trim(),
+    date,
+    time: payload.time || null,
+    allDay: payload.allDay !== false,
+    category: payload.category || '',
+    note: payload.note || '',
+    companyId,
+    createdBy: user && user._id,
+  })
+  await doc.save()
+  return doc
+}
+
+/**
+ * 编辑用户自建事件（仅创建者 / admin）。
+ */
+async function updateEvent(id, payload = {}, user) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const e = new Error('事件 ID 无效')
+    e.statusCode = 400
+    throw e
+  }
+  const doc = await CalendarEvent.findById(id)
+  if (!doc) {
+    const e = new Error('事件不存在')
+    e.statusCode = 404
+    throw e
+  }
+  if (!assertOwnershipOrAdmin(doc, user)) {
+    const e = new Error('无权限修改该事件')
+    e.statusCode = 403
+    throw e
+  }
+  if (payload.title !== undefined) doc.title = String(payload.title).trim()
+  if (payload.date !== undefined) {
+    const d = new Date(payload.date)
+    if (isNaN(d.getTime())) {
+      const e = new Error('日期格式无效')
+      e.statusCode = 400
+      throw e
+    }
+    doc.date = d
+  }
+  if (payload.time !== undefined) doc.time = payload.time || null
+  if (payload.allDay !== undefined) doc.allDay = !!payload.allDay
+  if (payload.category !== undefined) doc.category = payload.category || ''
+  if (payload.note !== undefined) doc.note = payload.note || ''
+  if (payload.companyId !== undefined) {
+    doc.companyId =
+      payload.companyId && mongoose.Types.ObjectId.isValid(payload.companyId) ? payload.companyId : null
+  }
+  await doc.save()
+  return doc
+}
+
+/**
+ * 删除用户自建事件（仅创建者 / admin）。
+ */
+async function deleteEvent(id, user) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const e = new Error('事件 ID 无效')
+    e.statusCode = 400
+    throw e
+  }
+  const doc = await CalendarEvent.findById(id)
+  if (!doc) {
+    const e = new Error('事件不存在')
+    e.statusCode = 404
+    throw e
+  }
+  if (!assertOwnershipOrAdmin(doc, user)) {
+    const e = new Error('无权限删除该事件')
+    e.statusCode = 403
+    throw e
+  }
+  await doc.deleteOne()
+  return { id }
 }
 
 // 从 Company 抽取绝对申报日期；财年终点按年循环推算 next occurrence
@@ -286,4 +439,4 @@ function nextAnnualDate(month, day, from) {
   return null
 }
 
-module.exports = { getCalendarEvents, SOURCE_MODULE }
+module.exports = { getCalendarEvents, createEvent, updateEvent, deleteEvent, SOURCE_MODULE }
