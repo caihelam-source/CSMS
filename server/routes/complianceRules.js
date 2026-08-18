@@ -2,6 +2,7 @@ const express = require('express');
 const ComplianceRule = require('../models/ComplianceRule');
 const { auth } = require('../middleware/auth');
 const { initPresetRules, generateForRule, generateBatch } = require('../services/complianceService');
+const { parsePaging, pagingEnvelope } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -19,10 +20,16 @@ router.get('/', auth, async (req, res) => {
       { ruleId: { $regex: search, $options: 'i' } },
       { category: { $regex: search, $options: 'i' } },
     ];
-    const rules = await ComplianceRule.find(query).lean()
+    const { page, limit, usePaging, skip } = parsePaging(req.query);
+    const total = await ComplianceRule.countDocuments(query);
+
+    let q = ComplianceRule.find(query).lean()
       .populate('appliedCompanies', 'name nameChinese')
       .sort({ jurisdiction: 1, isListedOnly: 1, ruleId: 1 });
-    res.json({ success: true, count: rules.length, rules });
+    if (usePaging) q = q.skip(skip).limit(limit);
+    const rules = await q;
+
+    res.json(pagingEnvelope('rules', rules, { usePaging, page, limit, total }));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

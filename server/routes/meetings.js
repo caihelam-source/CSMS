@@ -4,6 +4,7 @@ const Company = require('../models/Company');
 const { auth } = require('../middleware/auth');
 const { scopeMiddleware, applyListScope, inScope } = require('../middleware/scope');
 const { logAudit } = require('../utils/audit');
+const { parsePaging, pagingEnvelope } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -35,17 +36,18 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
     // Wave 0 rev2 — 行级权限：非 admin/auditor 仅见 accessibleCompanies 内的公司会议
     applyListScope(query, req, 'company');
 
-    const meetings = await Meeting.find(query).lean()
+    const { page, limit, usePaging, skip } = parsePaging(req.query);
+    const total = await Meeting.countDocuments(query);
+
+    let q = Meeting.find(query).lean()
       .populate('company', ' name')
       .populate('attendees.ref', 'name email')
       .populate('createdBy', 'name')
       .sort({ date: -1 });
+    if (usePaging) q = q.skip(skip).limit(limit);
+    const meetings = await q;
 
-    res.json({
-      success: true,
-      count: meetings.length,
-      meetings
-    });
+    res.json(pagingEnvelope('meetings', meetings, { usePaging, page, limit, total }));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

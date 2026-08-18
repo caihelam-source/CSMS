@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, memo } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo, memo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CheckSquare, Plus, Filter, Calendar,
@@ -12,6 +12,7 @@ import { useScope, useScopedItems } from '../hooks/useScope'
 import { NO_SCOPE_HINT } from '../utils/scope'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Modal from '../components/Modal'
+import VirtualList from '../components/VirtualList'
 import SignTaskForm from '../components/SignTaskForm'
 import TaskForm, { TASK_STATUSES, TASK_PRIORITIES } from '../components/TaskForm'
 
@@ -21,11 +22,11 @@ const statusIcon = (s) => {
 }
 
 // 列表行抽成 memo 组件：父组件状态变更时仅数据变化的行会重渲染
-const TaskRow = memo(function TaskRow({ task, users, getDaysRemaining, onEdit, onDelete, onQuickComplete, onAddNote, onNavigate }) {
+const TaskRow = memo(function TaskRow({ task, users, getDaysRemaining, onEdit, onDelete, onQuickComplete, onAddNote, onNavigate, style }) {
   const days = getDaysRemaining(task.dueDate)
   const overdue = task.status !== 'completed' && days < 0
   return (
-    <div className={`bg-surface rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${overdue ? 'border-danger/20' : 'border-hairline'}`}>
+    <div style={style} className={`bg-surface rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${overdue ? 'border-danger/20' : 'border-hairline'}`}>
       <div className="flex items-start gap-4">
         {/* Quick complete toggle */}
         <button onClick={() => onQuickComplete(task)} className="mt-0.5 shrink-0 hover:scale-110 transition-transform" title={task.status === 'completed' ? '重新打开' : '标记完成'}>
@@ -248,6 +249,20 @@ const Tasks = () => {
     return diff
   }, [])
 
+  // C1：下传给虚拟列表行的稳定回调（避免父 state 抖动触发行重渲染）
+  const taskItemProps = useMemo(
+    () => ({
+      users,
+      getDaysRemaining,
+      onEdit: openEdit,
+      onDelete: setDeleteTarget,
+      onQuickComplete: handleQuickComplete,
+      onAddNote: handleAddNoteClick,
+      onNavigate: navigate,
+    }),
+    [users, getDaysRemaining, openEdit, handleQuickComplete, handleAddNoteClick, setDeleteTarget, navigate]
+  )
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -296,21 +311,14 @@ const Tasks = () => {
           )}
         />
       ) : (
-        <div className="space-y-3">
-          {filtered.map(task => (
-            <TaskRow
-              key={task._id}
-              task={task}
-              users={users}
-              getDaysRemaining={getDaysRemaining}
-              onEdit={openEdit}
-              onDelete={setDeleteTarget}
-              onQuickComplete={handleQuickComplete}
-              onAddNote={handleAddNoteClick}
-              onNavigate={navigate}
-            />
-          ))}
-        </div>
+        <VirtualList
+          mode="list"
+          items={filtered}
+          rowComponent={TaskRow}
+          rowHeight={112}
+          itemKey="task"
+          itemProps={taskItemProps}
+        />
       )}
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? 'Edit Task' : 'New Task'} size="md">

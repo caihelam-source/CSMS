@@ -7,6 +7,7 @@ const { auth } = require('../middleware/auth');
 const { scopeMiddleware, applyListScope, inScope } = require('../middleware/scope');
 const { logAudit } = require('../utils/audit');
 const { storage: fileStorage } = require('../storage/r2');
+const { parsePaging, pagingEnvelope } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -46,12 +47,17 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
     // Wave 0 rev2 — 行级权限：非 admin/auditor 仅见 accessibleCompanies 内的公司文档
     applyListScope(query, req, 'company');
 
-    const documents = await Document.find(query).lean()
+    const { page, limit, usePaging, skip } = parsePaging(req.query);
+    const total = await Document.countDocuments(query);
+
+    let q = Document.find(query).lean()
       .populate('company', 'name nameChinese stockCode')
       .populate('uploadedBy', 'name email')
       .sort({ createdAt: -1 });
+    if (usePaging) q = q.skip(skip).limit(limit);
+    const documents = await q;
 
-    res.json({ success: true, count: documents.length, documents });
+    res.json(pagingEnvelope('documents', documents, { usePaging, page, limit, total }));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

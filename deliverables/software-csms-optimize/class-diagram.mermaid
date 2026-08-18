@@ -1,0 +1,80 @@
+classDiagram
+  class PaginationUtil {
+    +parsePaging(query, opts) : {page, limit, usePaging, skip}
+    +pagingEnvelope(resourceKey, items, meta) : Object
+  }
+  class TasksRouter {
+    +GET / : buildPaging → countDocuments → find.lean().skip().limit() → pagingEnvelope('tasks')
+  }
+  class MeetingsRouter {
+    +GET / : buildPaging → pagingEnvelope('meetings')
+  }
+  class DocumentsRouter {
+    +GET / : buildPaging → pagingEnvelope('documents')
+  }
+  class SignTasksRouter {
+    +GET / : buildPaging → pagingEnvelope('tasks')
+  }
+  class ComplianceRemindersRouter {
+    +GET / : buildPaging → pagingEnvelope('reminders')
+  }
+  class ComplianceRulesRouter {
+    +GET / : buildPaging → pagingEnvelope('rules')
+  }
+  PaginationUtil <.. TasksRouter
+  PaginationUtil <.. MeetingsRouter
+  PaginationUtil <.. DocumentsRouter
+  PaginationUtil <.. SignTasksRouter
+  PaginationUtil <.. ComplianceRemindersRouter
+  PaginationUtil <.. ComplianceRulesRouter
+
+  class VirtualList {
+    +mode: 'list'|'grid'
+    +items: Array
+    +rowComponent: Component
+    +rowHeight: number
+    +renderRow(props): VNode
+  }
+  class Companies {
+    +fetchAll() : uses companyService.getAll
+    -CompanyCard(memo)
+  }
+  class Personnel {
+    +loadPersonnel()
+    -PersonRow(memo)
+  }
+  class Tasks {
+    +fetchTasks()
+    -TaskRow(memo)
+  }
+  VirtualList <.. Companies : 包裹
+  VirtualList <.. Personnel : 包裹
+  VirtualList <.. Tasks : 包裹
+
+  class AdminPanelShell {
+    +tab: string
+    +TabNav
+  }
+  class UserManagementTab { +useUsers() }
+  class RulesLibraryTab { +useRulesLibrary() }
+  class AuditLogTab { +useAuditLogs() }
+  AdminPanelShell --> UserManagementTab : 按 tab 渲染
+  AdminPanelShell --> RulesLibraryTab
+  AdminPanelShell --> AuditLogTab
+  useUsers .. UserManagementTab
+  useRulesLibrary .. RulesLibraryTab
+  useAuditLogs .. AuditLogTab
+
+  class CompanyDetailShell {
+    +companyId: string
+    +activeTab: string
+  }
+  class CompanyTasksTab { +useCompanyTasks() }
+  class CompanyComplianceTab { +useRuleLibrary() }
+  class CompanyRegistersTab { +useMeetingSignatures() }
+  CompanyDetailShell --> CompanyTasksTab
+  CompanyDetailShell --> CompanyComplianceTab
+  CompanyDetailShell --> CompanyRegistersTab
+  useCompanyTasks .. CompanyTasksTab
+  useRuleLibrary .. CompanyComplianceTab
+  useMeetingSignatures .. CompanyRegistersTab

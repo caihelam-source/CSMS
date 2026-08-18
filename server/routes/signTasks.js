@@ -2,6 +2,7 @@ const express = require('express');
 const SignTask = require('../models/SignTask');
 const Document = require('../models/Document');
 const { auth } = require('../middleware/auth');
+const { parsePaging, pagingEnvelope } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -18,15 +19,20 @@ router.get('/', auth, async (req, res) => {
     if (meetingRef) query.meeting = meetingRef;
     if (search) query.$or = [{ title: { $regex: search, $options: 'i' } }];
 
-    const tasks = await SignTask.find(query).lean()
+    const { page, limit, usePaging, skip } = parsePaging(req.query);
+    const total = await SignTask.countDocuments(query);
+
+    let q = SignTask.find(query).lean()
       .populate('document', 'title docNumber type')
       .populate('company', 'name nameChinese')
       .populate('meeting', 'title date')
       .populate('createdBy', 'name email')
       .populate('signers.signer', 'name email')
       .sort({ createdAt: -1 });
+    if (usePaging) q = q.skip(skip).limit(limit);
+    const tasks = await q;
 
-    res.json({ success: true, count: tasks.length, tasks });
+    res.json(pagingEnvelope('tasks', tasks, { usePaging, page, limit, total }));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

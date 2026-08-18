@@ -1,0 +1,62 @@
+sequenceDiagram
+  participant C as Client
+  participant Comp as compression()
+  participant R as Express Router
+  participant H as Route Handler
+  C->>Comp: HTTP GET /api/tasks (Accept-Encoding: gzip)
+  Comp->>R: 透传（无 body 时不压缩）
+  R->>H: 路由匹配
+  H-->>Comp: res.json({...}) 生成 body
+  Comp-->>C: gzip 编码响应 (Content-Encoding: gzip)
+  Note over Comp: app.use(compression()) 位于 index.js:53，<br/>早于所有 app.use('/api', ...)（index.js:59+）
+
+---
+
+sequenceDiagram
+  participant FE as Frontend (全量)
+  participant Svc as services/index.js
+  participant RT as Route (tasks.js)
+  participant PG as utils/pagination.js
+  participant MG as Mongoose
+  FE->>Svc: taskService.getAll()  // 本次不传 page/limit
+  Svc->>RT: GET /api/tasks
+  RT->>PG: parsePaging(req.query)  // usePaging=false
+  RT->>MG: Task.countDocuments(query)
+  RT->>MG: Task.find(query).lean().populate(...).sort(...)
+  MG-->>RT: 全量 tasks[]
+  RT->>PG: pagingEnvelope('tasks', tasks, {usePaging:false,total})
+  RT-->>Svc: {success,count,total,tasks}  // 无 page/pageSize
+  Svc->>Svc: normalize() → {data:{data: tasks[]}}
+  Svc-->>FE: setTasks(data.data)
+  Note over FE: 未来若传 page/limit → usePaging=true → 回显 page/pageSize
+
+---
+
+sequenceDiagram
+  participant P as Companies 页面
+  participant VL as VirtualList (react-window)
+  participant RC as CompanyCard (memo)
+  P->>P: fetchAll → setCompanies(全量 N 条)
+  P->>VL: <VirtualList items={companies} rowComponent={CompanyCard}/>
+  VL->>VL: 仅按可视区高度计算 startIndex/endIndex
+  loop 仅可视区 items
+    VL->>RC: renderRow({company, onEdit, onDelete})
+    RC-->>VL: 卡片 DOM
+  end
+  Note over P,RC: 父 state 抖动（搜索框 onChange）→ RC 已 memo，<br/>未变化的卡片因 props 引用稳定而跳过重渲染
+
+---
+
+sequenceDiagram
+  participant Shell as AdminPanel (Shell)
+  participant Tab as RulesLibraryTab
+  participant Hook as useRulesLibrary
+  participant API as scheduleService
+  Shell->>Shell: 持 tab 选中态（useState）
+  Shell->>Tab: <RulesLibraryTab/>  （仅布局+选中态下传）
+  Tab->>Hook: useRulesLibrary()
+  Hook->>API: scheduleService.getRules()
+  API-->>Hook: rules[]
+  Hook-->>Tab: {rules, loading, save, import}
+  Tab-->>Shell: 自管内部 state/派生，父不持数据
+  Note over Shell,Tab: 等价重构：Tab 切换/表单/Modal 行为与原版一致，<br/>re-render 作用域收窄到单个 Tab

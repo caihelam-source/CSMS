@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, memo } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Plus, Users, Pencil, Trash2, Merge, AlertTriangle, Upload, Download } from 'lucide-react'
@@ -10,6 +10,7 @@ import { NO_SCOPE_HINT } from '../utils/scope'
 import { validate, required, email as emailValidator } from '../utils/validators'
 import { useConfirm } from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
+import VirtualList from '../components/VirtualList'
 
 const EMPTY_FORM = { name: '', nric: '', email: '', phone: '', nationality: '', address: { country: '' } }
 
@@ -23,11 +24,11 @@ const ROLE_LABELS = { director: '董事', alternate_director: '替任董事', sh
 const roleLabel = (r) => ROLE_LABELS[r] || r
 
 // 列表行抽成 memo 组件：父组件状态变更时仅数据/选中态变化的行会重渲染
-const PersonRow = memo(function PersonRow({ person: p, selected, dupCount, onEdit, onDelete, onToggleSelect }) {
+const PersonRow = memo(function PersonRow({ person: p, onEdit, onDelete, onToggleSelect, style }) {
   return (
-    <div className={`card flex items-center justify-between hover:shadow-md transition-shadow ${selected ? 'ring-2 ring-primary-500' : ''} ${dupCount ? 'border-l-4 border-l-yellow-400' : ''}`}>
+    <div style={style} className={`card flex items-center justify-between hover:shadow-md transition-shadow ${p.selected ? 'ring-2 ring-primary-500' : ''} ${p.dupCount ? 'border-l-4 border-l-yellow-400' : ''}`}>
       <div className="flex items-center gap-3 flex-1">
-        <input type="checkbox" checked={selected} onChange={() => onToggleSelect(p._id)}
+        <input type="checkbox" checked={p.selected} onChange={() => onToggleSelect(p._id)}
           className="w-4 h-4 text-primary-600 rounded" aria-label={`选择 ${p.name}`} />
         <Link to={`/personnel/${p._id}`} className="flex items-center gap-3 flex-1">
           <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold">
@@ -36,9 +37,9 @@ const PersonRow = memo(function PersonRow({ person: p, selected, dupCount, onEdi
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <p className="font-medium text-primary-600 hover:underline">{p.name}</p>
-              {dupCount > 0 && (
+              {p.dupCount > 0 && (
                 <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full flex items-center gap-1" title="Duplicate detected">
-                  <AlertTriangle size={10} /> {dupCount}
+                  <AlertTriangle size={10} /> {p.dupCount}
                 </span>
               )}
             </div>
@@ -283,6 +284,20 @@ export default function Personnel() {
     e.target.value = ''
   }
 
+  // C1：把 per-row 的选中态/重复标记烘焙进数据项，并以稳定引用下传回调
+  const personnelRows = useMemo(
+    () => filtered.map(p => ({
+      ...p,
+      selected: selectedIds.includes(p._id),
+      dupCount: findDuplicateGroup(p._id)?.count || 0,
+    })),
+    [filtered, selectedIds, findDuplicateGroup]
+  )
+  const personnelItemProps = useMemo(
+    () => ({ onEdit: openEdit, onDelete: handleDelete, onToggleSelect: toggleSelect }),
+    [openEdit, handleDelete, toggleSelect]
+  )
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -355,19 +370,14 @@ export default function Personnel() {
           action={noScope ? null : <button onClick={openCreate} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加人员</button>}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map(p => (
-            <PersonRow
-              key={p._id}
-              person={p}
-              selected={selectedIds.includes(p._id)}
-              dupCount={findDuplicateGroup(p._id)?.count}
-              onEdit={openEdit}
-              onDelete={handleDelete}
-              onToggleSelect={toggleSelect}
-            />
-          ))}
-        </div>
+        <VirtualList
+          mode="list"
+          items={personnelRows}
+          rowComponent={PersonRow}
+          rowHeight={64}
+          itemKey="person"
+          itemProps={personnelItemProps}
+        />
       )}
 
       {/* Excel 导入 */}

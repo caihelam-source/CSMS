@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, memo } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Building2, Plus, Pencil, Trash2, Upload, Download } from 'lucide-react'
@@ -11,6 +11,7 @@ import { NO_SCOPE_HINT } from '../utils/scope'
 import { validate, required } from '../utils/validators'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Modal from '../components/Modal'
+import VirtualList from '../components/VirtualList'
 
 // jurisdiction 归一化（与服务器端 companies.js 逻辑一致）
 const normalizeJurisdiction = (v) => {
@@ -36,7 +37,7 @@ const FORM_RULES = {
 // 列表行抽成 memo 组件：父组件任意 state 变更时，仅数据变化的卡片会重渲染
 const CompanyCard = memo(function CompanyCard({ company: c, onEdit, onDelete }) {
   return (
-    <Link to={`/companies/${c._id}`} className="card hover:shadow-md transition-shadow">
+    <Link to={`/companies/${c._id}`} className="card hover:shadow-md transition-shadow w-full h-full">
       <div className="flex items-start justify-between mb-3">
         <h3 className="font-semibold text-primary-600 line-clamp-2">{c.name}</h3>
         <span className={`badge ${getStatusColor(c.status)}`}>{c.status?.replace(/_/g, ' ')}</span>
@@ -213,6 +214,12 @@ export default function Companies() {
     e.target.value = ''
   }
 
+  // C1：下传给虚拟网格卡片的稳定回调（避免父 state 抖动触发卡片重渲染）
+  const companyItemProps = useMemo(
+    () => ({ onEdit: openEdit, onDelete: setDeleteTarget }),
+    [openEdit, setDeleteTarget]
+  )
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -262,11 +269,15 @@ export default function Companies() {
           action={noScope ? null : <button onClick={openNew} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加公司</button>}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(c => (
-            <CompanyCard key={c._id} company={c} onEdit={openEdit} onDelete={setDeleteTarget} />
-          ))}
-        </div>
+        <VirtualList
+          mode="grid"
+          items={filtered}
+          rowComponent={CompanyCard}
+          rowHeight={240}
+          columns={3}
+          itemKey="company"
+          itemProps={companyItemProps}
+        />
       )}
 
       {/* New/Edit Modal */}

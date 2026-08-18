@@ -1,6 +1,7 @@
 const express = require('express');
 const ComplianceReminder = require('../models/ComplianceReminder');
 const { auth } = require('../middleware/auth');
+const { parsePaging, pagingEnvelope } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -22,12 +23,17 @@ router.get('/', auth, async (req, res) => {
       { category: { $regex: search, $options: 'i' } },
     ];
 
-    const reminders = await ComplianceReminder.find(query).lean()
+    const { page, limit, usePaging, skip } = parsePaging(req.query);
+    const total = await ComplianceReminder.countDocuments(query);
+
+    let q = ComplianceReminder.find(query).lean()
       .populate('company', 'name nameChinese jurisdiction isListed')
       .populate('rule', 'ruleName ruleId category')
       .sort({ dueDate: 1 });
+    if (usePaging) q = q.skip(skip).limit(limit);
+    const reminders = await q;
 
-    res.json({ success: true, count: reminders.length, reminders });
+    res.json(pagingEnvelope('reminders', reminders, { usePaging, page, limit, total }));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
