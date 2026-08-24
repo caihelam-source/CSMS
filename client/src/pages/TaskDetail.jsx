@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   Building2, Calendar, CheckCircle2, Circle,
-  MessageSquare, AlertTriangle, Paperclip,
+  MessageSquare, AlertTriangle, Paperclip, Users,
 } from 'lucide-react'
 import { taskService, documentService, companyService, signTaskService, complianceReminderService } from '../services/index.js'
 import { formatDate, taskRequiresAttachment, buildCtcDocName } from '../utils/helpers'
@@ -326,6 +326,9 @@ export default function TaskDetail() {
             {task.isCTC && (
               <div className="flex justify-between"><span className="text-ink-2">CTC 文件</span><span className="text-danger font-medium">是</span></div>
             )}
+            {task.completer && (
+              <div className="flex justify-between"><span className="text-ink-2">完成人</span><span>{task.completer.name || task.completer.email || '—'}</span></div>
+            )}
           </dl>
         </div>
         <div className="card">
@@ -340,6 +343,26 @@ export default function TaskDetail() {
           )}
         </div>
       </div>
+
+      {/* T06：参与者区块——渲染全部参与者（姓名 / 角色 / 邮箱） */}
+      {task.assignedTo && task.assignedTo.length > 0 && (
+        <div className="card">
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><Users size={16} /> 参与者（{task.assignedTo.length}）</h3>
+          <ul className="space-y-3">
+            {task.assignedTo.map((a, i) => (
+              <li key={i} className="flex items-center gap-3 text-sm">
+                <span className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-medium shrink-0">
+                  {(a.name || a.email || '?').charAt(0)}
+                </span>
+                <div className="min-w-0">
+                  <p className="font-medium text-ink truncate">{a.name || a.email || a._id}</p>
+                  <p className="text-xs text-ink-3 capitalize">{[a.role, a.email].filter(Boolean).join(' · ')}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* 关联文档（签署/CTC 任务中央数据库联动） */}
       {task.sourceDocumentId && (

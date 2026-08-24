@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CheckSquare, Plus, Filter, Calendar,
   AlertTriangle, Clock, CheckCircle2, Circle,
-  Pencil, Trash2, MessageSquare
+  Pencil, Trash2, MessageSquare, Users
 } from 'lucide-react'
 import { taskService, documentService, userService } from '../services/index.js'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
@@ -54,7 +54,10 @@ const TaskRow = memo(function TaskRow({ task, users, getDaysRemaining, onEdit, o
                 {task.meeting?.title && <span className="text-primary-700 bg-canvas px-1.5 py-0.5 rounded border border-hairline">{task.meeting.title}</span>}
                 {task.assignedTo && task.assignedTo.length > 0 && (
                   <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">
-                    {task.assignedTo.map(a => typeof a === 'object' ? a.name : (users.find(u => u._id === a)?.name || a)).join(', ')}
+                    {task.assignedTo.map(a => {
+                      const name = typeof a === 'object' ? a.name : (users.find(u => u._id === a)?.name || a)
+                      return a.role ? `${name} (${a.role})` : name
+                    }).join(', ')}
                   </span>
                 )}
                 {!task.assignedTo?.length && task.responsiblePerson && (
@@ -107,6 +110,8 @@ const Tasks = () => {
   const [uploadFile, setUploadFile] = useState(null)
   const fileInputRef = useRef(null)
   const [error, setError] = useState('')
+  // T02：列表视图切换——全部 / 我的任务（"我的任务"仅 scope 可见集合的子集，决策 #3 不变）
+  const [view, setView] = useState('all')
 
   // 行级数据权限：渲染期无声过滤（真实模式服务端已过滤，此处幂等 no-op）
   const { noScope } = useScope()
@@ -126,14 +131,16 @@ const Tasks = () => {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true)
-      const { data } = await taskService.getAll()
+      // T02：切到「我的任务」时向后端传 assignedTo=me，由后端翻译为当前用户并 $in 过滤
+      const params = view === 'mine' ? { assignedTo: 'me' } : {}
+      const { data } = await taskService.getAll(params)
       setTasks(data.data || [])
     } catch {
       setTasks([])
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [view])
 
   useEffect(() => { fetchTasks() }, [fetchTasks])
 
@@ -278,6 +285,23 @@ const Tasks = () => {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
+        {/* T02：全部 / 我的任务 分段切换（响应式：窄屏全宽堆叠，Q5） */}
+        <div className="inline-flex w-full sm:w-auto rounded-lg border border-hairline overflow-hidden text-sm">
+          <button
+            type="button"
+            onClick={() => setView('all')}
+            className={`flex-1 sm:flex-none px-4 py-2 font-medium transition-colors ${view === 'all' ? 'bg-primary-600 text-white' : 'bg-surface text-ink-2 hover:bg-canvas'}`}
+          >
+            全部
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('mine')}
+            className={`flex flex-1 sm:flex-none items-center justify-center gap-1.5 px-4 py-2 border-l border-hairline font-medium transition-colors ${view === 'mine' ? 'bg-primary-600 text-white' : 'bg-surface text-ink-2 hover:bg-canvas'}`}
+          >
+            <Users size={14} /> 我的任务
+          </button>
+        </div>
         <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search tasks..." />
         <div className="relative">
           <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />

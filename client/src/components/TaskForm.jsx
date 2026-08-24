@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { companyService, meetingService } from '../services/index.js'
 import { fmtDateShort } from '../utils/helpers'
 import { FormField, inputClass, labelClass } from '../components/UIHelpers'
+import UserMultiSelect from './UserMultiSelect'
 import { validate, required } from '../utils/validators'
 
 // 任务表单共享常量（Tasks 页与公司工作台复用，单一事实源）
@@ -23,6 +24,14 @@ export default function TaskForm({ initial = {}, onSave, onCancel, loading, user
     if (!first) return ''
     return typeof first === 'object' ? first._id || '' : String(first)
   }
+  // 将 initial.assignedTo（可能是对象数组 / id 数组 / 单值）解析为 id 字符串数组
+  const toIdArray = (ref) => {
+    if (!ref) return []
+    const arr = Array.isArray(ref) ? ref : [ref]
+    return arr
+      .map((x) => (x && typeof x === 'object' ? (x._id || '') : String(x)))
+      .filter(Boolean)
+  }
   const [form, setForm] = useState({
     title: initial.title || '',
     description: initial.description || '',
@@ -32,7 +41,7 @@ export default function TaskForm({ initial = {}, onSave, onCancel, loading, user
     dueDate: initial.dueDate ? fmtDateShort(initial.dueDate) : '',
     company: firstIdOf(initial.company),
     meeting: firstIdOf(initial.meeting),
-    assignedTo: firstIdOf(initial.assignedTo),
+    assignedTo: toIdArray(initial.assignedTo),
   })
   const [errors, setErrors] = useState({})
   const [options, setOptions] = useState({ companies: [], meetings: [] })
@@ -86,7 +95,7 @@ export default function TaskForm({ initial = {}, onSave, onCancel, loading, user
       ...form,
       company: form.company || undefined,
       meeting: form.meeting || undefined,
-      assignedTo: form.assignedTo ? [form.assignedTo] : undefined,
+      assignedTo: form.assignedTo?.length ? form.assignedTo : undefined,
     }
     onSave(payload)
   }
@@ -143,13 +152,13 @@ export default function TaskForm({ initial = {}, onSave, onCancel, loading, user
           </select>
         </div>
         <div>
-          <label className={labelClass}>跟进人 / 负责人</label>
-          <select className={inputClass} value={form.assignedTo} onChange={e => set('assignedTo', e.target.value)} disabled={loadingOptions}>
-            <option value="">-- 请选择 --</option>
-            {users.map(u => (
-              <option key={u._id} value={u._id}>{u.name || u.email || u._id}</option>
-            ))}
-          </select>
+          <UserMultiSelect
+            users={users}
+            value={form.assignedTo}
+            onChange={(v) => set('assignedTo', v)}
+            label="跟进人 / 负责人"
+            disabled={loadingOptions}
+          />
         </div>
       </div>
       <div className="flex justify-end gap-3 pt-2">

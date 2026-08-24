@@ -77,6 +77,12 @@ const taskSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  // v-incremental(2026-08-19)：完成人审计字段（Q6）——标记完成时写入，
+  // 与 completedDate 并存，完善「谁把任务标记完成」的责任链。非破坏性新增。
+  completer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   notes: [{
     content: String,
     createdBy: {
@@ -118,5 +124,7 @@ taskSchema.index({ status: 1, dueDate: 1 });
 taskSchema.index({ company: 1, status: 1 });
 // 全文本搜索索引（搜索增强 M2.1）
 taskSchema.index({ title: 'text', description: 'text' });
+// v-incremental(2026-08-19)：参与者查询索引（P1-4，非破坏性，可累加），支撑「我的任务」过滤性能
+taskSchema.index({ assignedTo: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);
