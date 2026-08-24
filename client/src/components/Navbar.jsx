@@ -92,7 +92,7 @@ const BottomTab = memo(({ path, icon: Icon, label, active, onClick }) => (
 ))
 
 const Navbar = () => {
-  const { user, logout, isAdmin, isDemo, switchDemoAccount } = useAuth()
+  const { user, logout, isAdmin, isDemoMode, switchDemoAccount } = useAuth()
   const { unrestricted, count, noScope } = useScope()
   const location = useLocation()
   const [open, setOpen] = useState(false)
@@ -154,7 +154,7 @@ const Navbar = () => {
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          {isDemo && (
+          {isDemoMode && (
             <span className="flex items-center gap-1 text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-medium shrink-0">
               <Zap size={11} />Demo
             </span>
@@ -223,7 +223,7 @@ const Navbar = () => {
           )}
 
           {/* 演示态账号切换：现场对比不同数据范围下的可见性差异 */}
-          {isDemo && (
+          {isDemoMode && (
             <div className="px-1 pt-1">
               <button
                 onClick={() => setScopeMenuOpen(o => !o)}

@@ -16,6 +16,9 @@ const DEMO_ACCOUNTS = [
   { label: 'Secretary', email: 'demo@example.com', password: 'demo123', color: 'bg-success/10 text-success hover:bg-success/20' },
 ]
 
+// 生产环境（VITE_USE_MOCK !== 'true'）不再展示 demo 快捷登录与注册入口
+const DEMO_MODE = import.meta.env.VITE_USE_MOCK === 'true'
+
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -145,28 +148,30 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Demo accounts */}
-          <div className="mt-6 pt-5 border-t border-hairline">
-            <p className="text-xs text-ink-3 mb-3 flex items-center gap-1.5">
-              <Zap size={13} />
-              Quick demo — click to fill credentials:
-            </p>
-            <div className="flex gap-2">
-              {DEMO_ACCOUNTS.map(acc => (
-                <button
-                  key={acc.label}
-                  type="button"
-                  onClick={() => fillDemo(acc)}
-                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors ${acc.color}`}
-                >
-                  {acc.label}
-                </button>
-              ))}
+          {/* Demo accounts — 仅 demo 模式展示 */}
+          {DEMO_MODE && (
+            <div className="mt-6 pt-5 border-t border-hairline">
+              <p className="text-xs text-ink-3 mb-3 flex items-center gap-1.5">
+                <Zap size={13} />
+                Quick demo — click to fill credentials:
+              </p>
+              <div className="flex gap-2">
+                {DEMO_ACCOUNTS.map(acc => (
+                  <button
+                    key={acc.label}
+                    type="button"
+                    onClick={() => fillDemo(acc)}
+                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors ${acc.color}`}
+                  >
+                    {acc.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-ink-3 mt-2 text-center">
+                Click a role above, then Sign In
+              </p>
             </div>
-            <p className="text-xs text-ink-3 mt-2 text-center">
-              Click a role above, then Sign In
-            </p>
-          </div>
+          )}
         </div>
       </div>
     </div>
