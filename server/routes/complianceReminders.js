@@ -2,6 +2,7 @@ const express = require('express');
 const ComplianceReminder = require('../models/ComplianceReminder');
 const { auth } = require('../middleware/auth');
 const { parsePaging, pagingEnvelope } = require('../utils/pagination');
+const { createTaskFromReminder, createTasksBatch } = require('../services/taskFromReminder');
 
 const router = express.Router();
 
@@ -61,6 +62,20 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// POST /api/compliance-reminders/create-tasks/batch — 批量：提醒→任务（闭环第二跳）
+router.post('/create-tasks/batch', auth, async (req, res) => {
+  try {
+    const { ids, assignedTo, notes } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'ids 不能为空' });
+    }
+    const result = await createTasksBatch(ids, { userId: req.user._id, assignedTo, notes });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // PUT /api/compliance-reminders/:id
 router.put('/:id', auth, async (req, res) => {
   try {
@@ -83,6 +98,21 @@ router.post('/:id/complete', auth, async (req, res) => {
     ).populate('company', 'name');
     if (!reminder) return res.status(404).json({ message: 'Reminder not found' });
     res.json({ success: true, reminder });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/compliance-reminders/:id/create-task — 单条：提醒→任务（闭环第二跳）
+router.post('/:id/create-task', auth, async (req, res) => {
+  try {
+    const { assignedTo, notes } = req.body || {};
+    const { task, created } = await createTaskFromReminder(req.params.id, {
+      userId: req.user._id,
+      assignedTo,
+      notes,
+    });
+    res.status(created ? 201 : 200).json({ success: true, created, task });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

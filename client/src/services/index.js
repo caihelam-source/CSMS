@@ -501,6 +501,15 @@ export const complianceReminderService = {
     () => api.post('/api/compliance-reminders/trigger-check'),
     mockComplianceReminders.triggerCheck,
   ),
+  // v6.x 合规闭环第二跳：提醒 → 任务
+  createTask: wrap(
+    (id, payload) => api.post(`/api/compliance-reminders/${id}/create-task`, payload || {}),
+    mockComplianceReminders.createTask,
+  ),
+  createTasksBatch: wrap(
+    (payload) => api.post('/api/compliance-reminders/create-tasks/batch', payload || {}),
+    mockComplianceReminders.createTasksBatch,
+  ),
 }
 
 // ====== Template Service ======

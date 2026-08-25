@@ -28,6 +28,8 @@ const complianceReminderSchema = new mongoose.Schema({
   completedAt: { type: Date },
   completedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   notes: { type: String },
+  // v6.x 合规闭环：衍生出的任务（Reminder→Task 第二跳），供前端回跳
+  task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
 
   // 通知记录
   notificationsSent: [{

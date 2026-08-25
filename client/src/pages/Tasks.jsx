@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CheckSquare, Plus, Filter, Calendar,
   AlertTriangle, Clock, CheckCircle2, Circle,
-  Pencil, Trash2, MessageSquare, Users
+  Pencil, Trash2, MessageSquare, Users, Link2
 } from 'lucide-react'
 import { taskService, documentService, userService } from '../services/index.js'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
@@ -52,6 +52,11 @@ const TaskRow = memo(function TaskRow({ task, users, getDaysRemaining, onEdit, o
                 {task.type && <span className="capitalize">{task.type.replace('_', ' ')}</span>}
                 {task.company?.name && <span className="text-primary-700 bg-info/10 px-1.5 py-0.5 rounded">{task.company.name}</span>}
                 {task.meeting?.title && <span className="text-primary-700 bg-canvas px-1.5 py-0.5 rounded border border-hairline">{task.meeting.title}</span>}
+                {task.complianceRuleId && (
+                  <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded" title="来源：合规提醒">
+                    <Link2 size={12} /> 合规·{task.complianceRuleId}
+                  </span>
+                )}
                 {task.assignedTo && task.assignedTo.length > 0 && (
                   <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">
                     {task.assignedTo.map(a => {

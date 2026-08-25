@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import {
   Bell, Plus, RefreshCw,
   CheckCircle2, Clock,
-  Pencil, Trash2, Link2
+  Pencil, Trash2, Link2, PlusCircle
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { complianceReminderService, companyService, documentService } from '../services/index.js'
@@ -251,6 +251,18 @@ const ComplianceReminders = () => {
     setCompleteModal(true)
   }
 
+  // v6.x 合规闭环第二跳：提醒 → 任务
+  const handleCreateTask = async (r) => {
+    try {
+      const { data: res } = await complianceReminderService.createTask(r._id, {})
+      toast.success(res.created ? '已生成关联任务' : '该提醒已存在关联任务')
+      // 更新本地列表，使「查看关联任务」立即生效
+      setReminders(rs => rs.map(x => x._id === r._id ? { ...x, task: (res.task && res.task._id) || res.task } : x))
+    } catch (e) {
+      toast.error(e.response?.data?.message || '生成任务失败')
+    }
+  }
+
   const handleDelete = async () => {
     if (!editTarget) return
     setSaving(true)
@@ -370,6 +382,12 @@ const ComplianceReminders = () => {
                     )}
                   </div>
                   <div className="flex gap-1 shrink-0">
+                    {!r.task && r.status !== 'completed' && (
+                      <button onClick={() => handleCreateTask(r)}
+                        className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="生成关联任务">
+                        <PlusCircle size={15} />
+                      </button>
+                    )}
                     {r.status !== 'completed' && r.status !== 'expired' && (
                       <button onClick={() => handleQuickComplete(r)}
                         className="p-1.5 text-ink-3 hover:text-success hover:bg-success/10 rounded-lg transition-colors" title="标记完成">

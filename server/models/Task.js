@@ -68,6 +68,10 @@ const taskSchema = new mongoose.Schema({
   isCTC: { type: Boolean, default: false },
   // v6.x 签署闭环：关联源文档（发起签署时选定的待签文件），完成时普通签署就地替换该文档、CTC 新建 (ctc) 文档
   sourceDocumentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Document' },
+  // v6.x 合规闭环（Reminder→Task 第二跳）：单向可追溯来源
+  complianceReminder: { type: mongoose.Schema.Types.ObjectId, ref: 'ComplianceReminder' },
+  complianceRule: { type: mongoose.Schema.Types.ObjectId, ref: 'ComplianceRule' },
+  complianceRuleId: { type: String },          // 冗余存 ruleId，便于查询/前端展示
   // CTC 盖章参数：随任务保存，便于完成页重新生成 CTC 盖章件供签字
   ctcFullName: { type: String },
   ctcTitle: { type: String },
@@ -129,5 +133,8 @@ taskSchema.index({ assignedTo: 1 });
 // P1 性能修复（2026-08-20）：复合索引，支撑「我的任务」实际查询（company $in + assignedTo）走索引；
 // 与上方单字段索引共存（索引名不同，不会重复创建导致启动报错）。
 taskSchema.index({ company: 1, assignedTo: 1 });
+// v6.x 合规闭环：按来源提醒/规则查询任务（可追溯、去重判定）
+taskSchema.index({ complianceReminder: 1 });
+taskSchema.index({ complianceRule: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);
