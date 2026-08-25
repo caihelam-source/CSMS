@@ -38,6 +38,28 @@ test('rules 空列表也应返回数组而非兜底整包', () => {
   expect(normalize(body)).toEqual({ data: { data: [] } })
 })
 
+test('扁平响应提取主负载实体键 (templates 列表) —— 修复 B1 模板页白屏', () => {
+  const body = { success: true, count: 2, templates: [{ _id: 't1' }, { _id: 't2' }] }
+  const out = normalize(body)
+  expect(Array.isArray(out.data.data)).toBe(true)
+  expect(out).toEqual({ data: { data: [{ _id: 't1' }, { _id: 't2' }] } })
+})
+
+test('扁平响应提取主负载实体键 (template 单条)', () => {
+  const body = { success: true, template: { _id: 't1', name: '董事确认函' } }
+  expect(normalize(body)).toEqual({ data: { data: { _id: 't1', name: '董事确认函' } } })
+})
+
+test('templates 空列表也应返回数组而非兜底整包', () => {
+  const body = { success: true, count: 0, templates: [] }
+  expect(normalize(body)).toEqual({ data: { data: [] } })
+})
+
+test('单数 template 优先于复数 templates（两者同时存在时取单条）', () => {
+  const body = { success: true, template: { _id: 't1' }, templates: [{ _id: 't2' }] }
+  expect(normalize(body)).toEqual({ data: { data: { _id: 't1' } } })
+})
+
 test('兜底：未知形状整包作为 payload', () => {
   const body = { foo: 'bar' }
   expect(normalize(body)).toEqual({ data: { data: { foo: 'bar' } } })

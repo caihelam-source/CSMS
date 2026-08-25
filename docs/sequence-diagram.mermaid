@@ -1,0 +1,47 @@
+sequenceDiagram
+    autonumber
+    participant S as migrateHtmlTemplates.cjs
+    participant DB as DocumentTemplate
+    participant C as HtmlToDocSchemaConverter
+    participant V as assertValidDocSchema
+
+    Note over S: 决策1 运行迁移脚本
+    S->>DB: find({engine:'html'})
+    DB-->>S: 命中 N 条
+    S->>S: 写 backups/html-templates-<ts>.json (原始留痕)
+    loop 每条 doc
+        S->>C: convertHtmlToDocSchema(doc.content)
+        C-->>S: {docSchema, variables, report}
+        S->>V: assertValidDocSchema(docSchema)
+        alt 合法
+            S->>DB: updateOne({_id},{$set:{engine:'schema',docSchema,variables}})
+        else 非法
+            S->>S: 记入 report.failed
+        end
+    end
+    S->>S: 写 migration-reports + 控制台摘要
+    S->>DB: disconnect()
+
+    Note over S,DB: 重跑 -> engine 已 'schema' -> find 为空 -> no-op
+
+    participant TF as TemplateFill(前端)
+    participant TS as templateService
+    participant R as POST /:id/resolve
+    participant TR as TemplateResolver
+    participant P as Personnel/Company
+    participant M as Meeting
+
+    Note over TF,M: 决策2 选董事/会议 -> /resolve
+    TF->>TS: resolve(id, {companyId, directorIds, meetingId})
+    TS->>R: POST /api/templates/:id/resolve
+    R->>TR: resolveValues(template, {companyId, directorIds, meetingId})
+    TR->>P: Personnel.find / Company.links 聚合
+    TR->>M: Meeting.findById(meetingId)
+    TR-->>R: {values, autoFilled}
+    R-->>TF: {values, autoFilled}
+    TF->>TF: 合并进表单 (绿色高亮)
+
+    Note over TF: 决策3 点击「复制 HTML」
+    TF->>TF: serializePreviewToHtml(previewRef.current)
+    TF->>TF: copyHtmlToClipboard(html)
+    TF-->>TF: toast「已复制 HTML 到剪贴板」

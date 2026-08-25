@@ -1,0 +1,5220 @@
+{
+  "_README": "本文件由 `npm run presets:export` 生成，请勿手改。单一事实源是 server/data/presets/*.js。",
+  "_source": "server/data/presets/*.js",
+  "generatedCount": 9,
+  "presets": [
+    {
+      "presetKey": "director-confirmation",
+      "name": "董事确认函",
+      "description": "年报定稿后发予各董事签署，确认已阅读年报「风险管理及内部监控」H 段、已提出询问且无反对意见；独立非执行董事须额外确认已作独立审视。",
+      "category": "annual_report",
+      "engine": "schema",
+      "schemaVersion": 1,
+      "docSchema": {
+        "schemaVersion": 1,
+        "layoutMode": "custom",
+        "meta": {
+          "docTitle": "董 事 确 认 函",
+          "docSubtitle": "LETTER OF CONFIRMATION — Risk Management and Internal Control",
+          "companyField": "companyName",
+          "headerMeta": {
+            "left": [
+              {
+                "text": "股份代号："
+              },
+              {
+                "var": "stockCode",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ],
+            "right": [
+              {
+                "text": "日期："
+              },
+              {
+                "var": "letterDate",
+                "format": "date",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ]
+          },
+          "fileNamePattern": "{{companyName}}-董事确认函-{{fiscalYear}}-{{directorName}}"
+        },
+        "fields": [
+          {
+            "key": "companyName",
+            "label": "公司名称",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：××控股有限公司",
+            "source": "company",
+            "fieldPath": "name"
+          },
+          {
+            "key": "stockCode",
+            "label": "股份代号",
+            "type": "text",
+            "placeholder": "如：0XXXX.HK",
+            "source": "company",
+            "fieldPath": "stockCode"
+          },
+          {
+            "key": "fiscalYear",
+            "label": "财政年度",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：2025",
+            "source": "system",
+            "fieldPath": "fiscalYear"
+          },
+          {
+            "key": "fiscalYearEnd",
+            "label": "财政年度结算日",
+            "type": "date",
+            "source": "system",
+            "fieldPath": "fiscalYearEnd"
+          },
+          {
+            "key": "directorName",
+            "label": "董事姓名",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：陈大文",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "directorType",
+            "label": "董事类别",
+            "type": "select",
+            "required": true,
+            "options": [
+              "执行董事",
+              "非执行董事",
+              "独立非执行董事"
+            ],
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "letterDate",
+            "label": "发函日期",
+            "type": "date",
+            "required": true,
+            "source": "system",
+            "fieldPath": "today"
+          },
+          {
+            "key": "confirmations",
+            "label": "确认事项列表",
+            "type": "checklist",
+            "required": true,
+            "default": [
+              {
+                "text": "本人已细阅本公司上述财政年度之年度报告全文，尤其是「风险管理及内部监控」一节（企业管治报告 H 段）之全部内容。",
+                "checked": false
+              },
+              {
+                "text": "本人已就风险管理及内部监控事宜向管理层、公司秘书及／或内部审核职能提出询问，并已就所提问题获得管理层之答复。",
+                "checked": false
+              },
+              {
+                "text": "本人对年度报告「风险管理及内部监控」一节所载之陈述及披露内容并无反对意见，亦无保留意见须予记录。",
+                "checked": false
+              },
+              {
+                "text": "本人认为本公司之风险管理及内部监控系统于该财政年度内在各重大方面属充足及有效，并已涵盖财务、营运、合规监控及风险管理职能。",
+                "checked": false
+              }
+            ],
+            "newItemText": "（请填写确认事项内容）",
+            "addLabel": "添加确认事项",
+            "emptyHint": "暂无确认事项，请点击「添加」新增。",
+            "hint": "每条可勾选／编辑／删除，亦可添加自定义确认事项；至少勾选一项，建议全数确认。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "independentReview",
+            "label": "独立非执行董事附加确认",
+            "type": "boolean",
+            "default": false,
+            "checkboxLabel": "本人已以独立非执行董事身份，独立审视本公司风险管理及内部监控系统之设计及执行成效，审视过程未受管理层不当影响。",
+            "hint": "仅独立非执行董事需要确认。",
+            "visibleWhen": {
+              "op": "eq",
+              "field": "directorType",
+              "value": "独立非执行董事"
+            },
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "remarks",
+            "label": "备注／保留意见",
+            "type": "textarea",
+            "placeholder": "如无保留意见可留空；如有，请逐条列明（每行一条）。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "signDate",
+            "label": "签字日期",
+            "type": "date",
+            "source": "system",
+            "fieldPath": "today"
+          },
+          {
+            "key": "printArchiveNote",
+            "label": "打印存档说明",
+            "type": "boolean",
+            "default": true,
+            "checkboxLabel": "在文件末尾打印存档说明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "archiveNote",
+            "label": "存档说明内容",
+            "type": "textarea",
+            "default": "存档说明：本函正本由公司秘书存入年度企业管治底稿（档案编号：CG-Confirmation-年度-董事编号），保存期不少于七年。",
+            "source": "manual",
+            "fieldPath": "",
+            "hint": "可修改存档说明文字；取消「打印存档说明」勾选则整行不打印。"
+          }
+        ],
+        "rules": [
+          {
+            "id": "dc-ined-review-required",
+            "scope": "form",
+            "when": {
+              "all": [
+                {
+                  "op": "eq",
+                  "field": "directorType",
+                  "value": "独立非执行董事"
+                },
+                {
+                  "op": "falsy",
+                  "field": "independentReview"
+                }
+              ]
+            },
+            "message": "董事类别为「独立非执行董事」时，必须完成独立非执行董事附加确认。"
+          }
+        ],
+        "layout": {
+          "sections": [
+            {
+              "type": "paragraph",
+              "flat": true,
+              "segments": [
+                {
+                  "text": "致：",
+                  "bold": true
+                },
+                {
+                  "var": "companyName",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": " 董事会 及 公司秘书"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "bold": true,
+              "segments": [
+                {
+                  "text": "敬启者："
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "bold": true,
+              "visibleWhen": {
+                "op": "truthy",
+                "field": "fiscalYearEnd"
+              },
+              "segments": [
+                {
+                  "text": "事由：截至 "
+                },
+                {
+                  "var": "fiscalYear",
+                  "blank": "＿＿＿＿"
+                },
+                {
+                  "text": " 年财政年度（结算日："
+                },
+                {
+                  "var": "fiscalYearEnd",
+                  "format": "date",
+                  "blank": "＿＿＿＿"
+                },
+                {
+                  "text": "）年度报告 —— 风险管理及内部监控之董事确认"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "bold": true,
+              "visibleWhen": {
+                "op": "falsy",
+                "field": "fiscalYearEnd"
+              },
+              "segments": [
+                {
+                  "text": "事由：截至 "
+                },
+                {
+                  "var": "fiscalYear",
+                  "blank": "＿＿＿＿"
+                },
+                {
+                  "text": " 年财政年度年度报告 —— 风险管理及内部监控之董事确认"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本人 "
+                },
+                {
+                  "var": "directorName",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": "，现任本公司"
+                },
+                {
+                  "var": "directorType",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": "。就本公司上述财政年度之年度报告及其中有关风险管理及内部监控之披露，本人谨此确认下列事项："
+                }
+              ]
+            },
+            {
+              "type": "checkList",
+              "field": "confirmations",
+              "placeholder": "（尚未设置确认事项）"
+            },
+            {
+              "type": "group",
+              "visibleWhen": {
+                "op": "eq",
+                "field": "directorType",
+                "value": "独立非执行董事"
+              },
+              "children": [
+                {
+                  "type": "paragraph",
+                  "flat": true,
+                  "bold": true,
+                  "segments": [
+                    {
+                      "text": "独立非执行董事附加确认："
+                    }
+                  ]
+                },
+                {
+                  "type": "checkList",
+                  "mode": "single",
+                  "field": "independentReview",
+                  "text": "本人已以独立非执行董事身份，独立审视本公司风险管理及内部监控系统之设计及执行成效，审视过程未受管理层不当影响；并已就重大风险事项与外聘核数师及／或内部审核人员作独立沟通。"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "bold": true,
+              "segments": [
+                {
+                  "text": "备注／保留意见："
+                }
+              ]
+            },
+            {
+              "type": "clauseList",
+              "field": "remarks",
+              "variant": "plain",
+              "quote": true,
+              "placeholder": "无。"
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本人明白本确认函将由公司秘书存档，作为董事会履行《香港联合交易所有限公司证券上市规则》附录 C1《企业管治守则》项下风险管理及内部监控责任之书面证据，并可供外聘核数师及监管机构查阅。"
+                }
+              ]
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "signBlock",
+              "items": [
+                {
+                  "label": "董事姓名",
+                  "value": [
+                    {
+                      "var": "directorName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "董事类别",
+                  "value": [
+                    {
+                      "var": "directorType",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "董事签署",
+                  "value": [
+                    {
+                      "blank": true
+                    }
+                  ]
+                },
+                {
+                  "label": "签署日期",
+                  "value": [
+                    {
+                      "var": "signDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "note",
+              "visibleWhen": {
+                "field": "printArchiveNote",
+                "op": "ne",
+                "value": false
+              },
+              "text": {
+                "var": "archiveNote"
+              }
+            }
+          ]
+        }
+      },
+      "sampleData": {
+        "companyName": "示例控股有限公司",
+        "stockCode": "01234.HK",
+        "fiscalYear": "2025",
+        "fiscalYearEnd": "2025-12-31",
+        "directorName": "陈大文",
+        "directorType": "独立非执行董事",
+        "letterDate": "2026-03-20",
+        "confirmations": [
+          {
+            "text": "本人已细阅本公司上述财政年度之年度报告全文，尤其是「风险管理及内部监控」一节（企业管治报告 H 段）之全部内容。",
+            "checked": true
+          },
+          {
+            "text": "本人已就风险管理及内部监控事宜向管理层、公司秘书及／或内部审核职能提出询问，并已就所提问题获得管理层之答复。",
+            "checked": true
+          },
+          {
+            "text": "本人对年度报告「风险管理及内部监控」一节所载之陈述及披露内容并无反对意见，亦无保留意见须予记录。",
+            "checked": true
+          },
+          {
+            "text": "本人认为本公司之风险管理及内部监控系统于该财政年度内在各重大方面属充足及有效，并已涵盖财务、营运、合规监控及风险管理职能。",
+            "checked": true
+          }
+        ],
+        "independentReview": true,
+        "remarks": "",
+        "signDate": "2026-03-22"
+      },
+      "_id": "preset-director-confirmation",
+      "isPreset": true,
+      "version": 1,
+      "variables": [
+        {
+          "key": "companyName",
+          "label": "公司名称",
+          "source": "company",
+          "fieldPath": "name"
+        },
+        {
+          "key": "stockCode",
+          "label": "股份代号",
+          "source": "company",
+          "fieldPath": "stockCode"
+        },
+        {
+          "key": "fiscalYear",
+          "label": "财政年度",
+          "source": "system",
+          "fieldPath": "fiscalYear"
+        },
+        {
+          "key": "fiscalYearEnd",
+          "label": "财政年度结算日",
+          "source": "system",
+          "fieldPath": "fiscalYearEnd"
+        },
+        {
+          "key": "directorName",
+          "label": "董事姓名",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "directorType",
+          "label": "董事类别",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "letterDate",
+          "label": "发函日期",
+          "source": "system",
+          "fieldPath": "today"
+        },
+        {
+          "key": "confirmations",
+          "label": "确认事项列表",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "independentReview",
+          "label": "独立非执行董事附加确认",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "remarks",
+          "label": "备注／保留意见",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "signDate",
+          "label": "签字日期",
+          "source": "system",
+          "fieldPath": "today"
+        },
+        {
+          "key": "printArchiveNote",
+          "label": "打印存档说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "archiveNote",
+          "label": "存档说明内容",
+          "source": "manual",
+          "fieldPath": ""
+        }
+      ]
+    },
+    {
+      "presetKey": "du004g-undertaking",
+      "name": "DU004G 董事声明及承诺",
+      "description": "港交所标准表格 DU004G：IPO 或董事委任／变更时由董事签署，声明个人资料真确并作出遵守《上市规则》等标准承诺，年度底稿须保存。",
+      "category": "ipo_filing",
+      "engine": "schema",
+      "schemaVersion": 1,
+      "docSchema": {
+        "schemaVersion": 1,
+        "layoutMode": "custom",
+        "meta": {
+          "docTitle": "董 事 声 明 及 承 诺",
+          "docSubtitle": "FORM DU004G — Declaration and Undertaking with regard to Directors",
+          "companyField": "companyName",
+          "headerMeta": {
+            "left": [
+              {
+                "text": "表格编号：DU004G ／ 股份代号："
+              },
+              {
+                "var": "stockCode",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ],
+            "right": [
+              {
+                "text": "签署日期："
+              },
+              {
+                "var": "signDate",
+                "format": "date",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ]
+          },
+          "fileNamePattern": "{{companyName}}-DU004G-{{directorName}}-{{today}}"
+        },
+        "fields": [
+          {
+            "key": "companyName",
+            "label": "公司名称",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：××控股有限公司",
+            "source": "company",
+            "fieldPath": "name"
+          },
+          {
+            "key": "stockCode",
+            "label": "股份代号",
+            "type": "text",
+            "placeholder": "如：0XXXX.HK（IPO 前可留空）",
+            "source": "company",
+            "fieldPath": "stockCode"
+          },
+          {
+            "key": "directorName",
+            "label": "董事姓名（中文）",
+            "type": "text",
+            "required": true,
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "directorNameEn",
+            "label": "董事姓名（英文）",
+            "type": "text",
+            "placeholder": "如：CHAN Tai Man",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "position",
+            "label": "拟任／现任职位",
+            "type": "select",
+            "required": true,
+            "options": [
+              "执行董事",
+              "非执行董事",
+              "独立非执行董事"
+            ],
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "idType",
+            "label": "身份证明文件类别",
+            "type": "select",
+            "required": true,
+            "options": [
+              "香港身份证",
+              "中国居民身份证",
+              "护照",
+              "其他身份证明文件"
+            ],
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "idNumber",
+            "label": "身份证明文件号码",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：A123456(7)",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "appointDate",
+            "label": "委任生效日期",
+            "type": "date",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "undertakings",
+            "label": "标准承诺条款",
+            "type": "clauses",
+            "required": true,
+            "default": [
+              "本人承诺遵守《香港联合交易所有限公司证券上市规则》之各项规定，包括但不限于附录 C3《上市发行人董事进行证券交易的标准守则》。",
+              "本人承诺遵守本公司之组织章程大纲及细则，并按其规定履行董事职责。",
+              "本人承诺遵守香港特别行政区及本公司注册成立地之一切适用法例、法规及监管规定，包括《证券及期货条例》项下之披露责任。",
+              "本人承诺于本人之个人资料、于本公司或其相联法团证券之权益、所担任之其他职务或本表格所载任何事项发生变动时，即时以书面通知本公司及联交所。",
+              "本人承诺就联交所、证券及期货事务监察委员会或其他监管机构之任何查询给予充分配合，并提供真实、准确及完整之资料。",
+              "本人承诺投入充分时间及精力履行董事职责，并持续接受适当之董事培训以维持所需之技能及知识。"
+            ],
+            "newItemText": "（请填写承诺条款内容）",
+            "addLabel": "添加承诺条款",
+            "emptyHint": "暂无承诺条款，请点击「添加」新增。",
+            "hint": "港交所标准条款，默认全数承诺；可逐条编辑／删除／添加，如有例外须于备注说明。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "truthDeclaration",
+            "label": "资料真确声明",
+            "type": "boolean",
+            "required": true,
+            "default": true,
+            "checkboxLabel": "本人声明，本表格及随附文件所载之一切资料在各重大方面均属真实、准确及完整，并无遗漏任何重要事实。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "remarks",
+            "label": "备注／例外说明",
+            "type": "textarea",
+            "placeholder": "如无例外可留空。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "signDate",
+            "label": "签署日期",
+            "type": "date",
+            "required": true,
+            "source": "system",
+            "fieldPath": "today"
+          },
+          {
+            "key": "witnessName",
+            "label": "见证人姓名及职衔",
+            "type": "text",
+            "placeholder": "如：公司秘书 李小明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "printArchiveNote",
+            "label": "打印存档说明",
+            "type": "boolean",
+            "default": true,
+            "checkboxLabel": "在文件末尾打印存档说明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "archiveNote",
+            "label": "存档说明内容",
+            "type": "textarea",
+            "default": "存档说明：本表格正本连同董事个人资料表由公司秘书存入董事档案（档案编号：DIR-DU004G-年度-董事编号），并按《上市规则》要求提交联交所。",
+            "source": "manual",
+            "fieldPath": "",
+            "hint": "可修改存档说明文字；取消「打印存档说明」勾选则整行不打印。"
+          }
+        ],
+        "rules": [
+          {
+            "id": "du004g-truth-declaration-required",
+            "scope": "form",
+            "when": {
+              "op": "falsy",
+              "field": "truthDeclaration"
+            },
+            "message": "必须勾选「资料真确声明」，否则本表格不得提交联交所。"
+          }
+        ],
+        "layout": {
+          "sections": [
+            {
+              "type": "heading",
+              "text": "第一部分 — 董事个人资料",
+              "autoNumber": false
+            },
+            {
+              "type": "infoTable",
+              "rows": [
+                {
+                  "label": "上市发行人名称",
+                  "value": [
+                    {
+                      "var": "companyName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "董事姓名（中文）",
+                  "value": [
+                    {
+                      "var": "directorName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "董事姓名（英文）",
+                  "value": [
+                    {
+                      "var": "directorNameEn",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "拟任／现任职位",
+                  "value": [
+                    {
+                      "var": "position",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "身份证明文件类别及号码",
+                  "value": [
+                    {
+                      "var": "idType",
+                      "blank": "＿＿＿＿"
+                    },
+                    {
+                      "text": " ／ "
+                    },
+                    {
+                      "var": "idNumber",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "委任生效日期",
+                  "value": [
+                    {
+                      "var": "appointDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "第二部分 — 声明",
+              "autoNumber": false
+            },
+            {
+              "type": "checkList",
+              "mode": "single",
+              "field": "truthDeclaration",
+              "text": "本人声明，本表格及随附文件所载之一切资料在各重大方面均属真实、准确及完整，并无遗漏任何重要事实；本人明白如作出虚假陈述，可能须承担《证券及期货条例》及其他适用法例项下之法律责任。"
+            },
+            {
+              "type": "heading",
+              "text": "第三部分 — 承诺",
+              "autoNumber": false
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本人以拟任／现任"
+                },
+                {
+                  "var": "position",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": "之身份，向香港联合交易所有限公司（「联交所」）及"
+                },
+                {
+                  "var": "companyName",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": "作出下列承诺："
+                }
+              ]
+            },
+            {
+              "type": "clauseList",
+              "field": "undertakings",
+              "variant": "checked",
+              "placeholder": "（尚未设置承诺条款）"
+            },
+            {
+              "type": "heading",
+              "text": "第四部分 — 备注／例外说明",
+              "autoNumber": false
+            },
+            {
+              "type": "clauseList",
+              "field": "remarks",
+              "variant": "plain",
+              "quote": true,
+              "placeholder": "无。"
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "signBlock",
+              "items": [
+                {
+                  "label": "董事签署",
+                  "value": [
+                    {
+                      "blank": true
+                    }
+                  ]
+                },
+                {
+                  "label": "董事姓名",
+                  "value": [
+                    {
+                      "var": "directorName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "签署日期",
+                  "value": [
+                    {
+                      "var": "signDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "见证人签署",
+                  "value": [
+                    {
+                      "var": "witnessName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "note",
+              "visibleWhen": {
+                "field": "printArchiveNote",
+                "op": "ne",
+                "value": false
+              },
+              "text": {
+                "var": "archiveNote"
+              }
+            }
+          ]
+        }
+      },
+      "sampleData": {
+        "companyName": "示例控股有限公司",
+        "stockCode": "01234.HK",
+        "directorName": "陈大文",
+        "directorNameEn": "CHAN Tai Man",
+        "position": "执行董事",
+        "idType": "香港身份证",
+        "idNumber": "A123456(7)",
+        "appointDate": "2026-01-05",
+        "undertakings": [
+          "本人承诺遵守《香港联合交易所有限公司证券上市规则》之各项规定，包括但不限于附录 C3《上市发行人董事进行证券交易的标准守则》。",
+          "本人承诺遵守本公司之组织章程大纲及细则，并按其规定履行董事职责。",
+          "本人承诺遵守香港特别行政区及本公司注册成立地之一切适用法例、法规及监管规定，包括《证券及期货条例》项下之披露责任。",
+          "本人承诺于本人之个人资料、于本公司或其相联法团证券之权益、所担任之其他职务或本表格所载任何事项发生变动时，即时以书面通知本公司及联交所。",
+          "本人承诺就联交所、证券及期货事务监察委员会或其他监管机构之任何查询给予充分配合，并提供真实、准确及完整之资料。",
+          "本人承诺投入充分时间及精力履行董事职责，并持续接受适当之董事培训以维持所需之技能及知识。"
+        ],
+        "truthDeclaration": true,
+        "remarks": "",
+        "signDate": "2026-01-05",
+        "witnessName": "公司秘书 李小明"
+      },
+      "_id": "preset-du004g-undertaking",
+      "isPreset": true,
+      "version": 1,
+      "variables": [
+        {
+          "key": "companyName",
+          "label": "公司名称",
+          "source": "company",
+          "fieldPath": "name"
+        },
+        {
+          "key": "stockCode",
+          "label": "股份代号",
+          "source": "company",
+          "fieldPath": "stockCode"
+        },
+        {
+          "key": "directorName",
+          "label": "董事姓名（中文）",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "directorNameEn",
+          "label": "董事姓名（英文）",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "position",
+          "label": "拟任／现任职位",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "idType",
+          "label": "身份证明文件类别",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "idNumber",
+          "label": "身份证明文件号码",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "appointDate",
+          "label": "委任生效日期",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "undertakings",
+          "label": "标准承诺条款",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "truthDeclaration",
+          "label": "资料真确声明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "remarks",
+          "label": "备注／例外说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "signDate",
+          "label": "签署日期",
+          "source": "system",
+          "fieldPath": "today"
+        },
+        {
+          "key": "witnessName",
+          "label": "见证人姓名及职衔",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "printArchiveNote",
+          "label": "打印存档说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "archiveNote",
+          "label": "存档说明内容",
+          "source": "manual",
+          "fieldPath": ""
+        }
+      ]
+    },
+    {
+      "presetKey": "department-self-assessment",
+      "name": "部门管理层年度内控自评表",
+      "description": "各部门负责人就其职能范围内之内部监控作年度自评，逐项以 Y／N 表述并填写证据索引；凡选择 N 者必须填写缺陷说明及整改安排。自评模块可按部门实际情况增删改。",
+      "category": "internal_control",
+      "engine": "schema",
+      "schemaVersion": 1,
+      "docSchema": {
+        "schemaVersion": 1,
+        "layoutMode": "custom",
+        "meta": {
+          "docTitle": "部门管理层年度内部监控自评表",
+          "docSubtitle": "Departmental Internal Control Self-Assessment",
+          "companyField": "companyName",
+          "headerMeta": {
+            "left": [
+              {
+                "text": "财政年度："
+              },
+              {
+                "var": "fiscalYear",
+                "blank": "＿＿＿＿＿＿＿＿"
+              },
+              {
+                "text": " 年"
+              }
+            ],
+            "right": [
+              {
+                "text": "填报日期："
+              },
+              {
+                "var": "signDate",
+                "format": "date",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ]
+          },
+          "fileNamePattern": "{{companyName}}-{{departmentName}}-内控自评表-{{fiscalYear}}"
+        },
+        "fields": [
+          {
+            "key": "companyName",
+            "label": "公司名称",
+            "type": "text",
+            "required": true,
+            "source": "company",
+            "fieldPath": "name"
+          },
+          {
+            "key": "departmentName",
+            "label": "部门名称",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：财务部",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "ownerName",
+            "label": "部门负责人姓名",
+            "type": "text",
+            "required": true,
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "ownerTitle",
+            "label": "负责人职衔",
+            "type": "text",
+            "placeholder": "如：财务总监",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "fiscalYear",
+            "label": "财政年度",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：2025",
+            "source": "system",
+            "fieldPath": "fiscalYear"
+          },
+          {
+            "key": "assessmentItems",
+            "label": "自评模块列表",
+            "type": "objectList",
+            "required": true,
+            "itemTitleKey": "module",
+            "addLabel": "添加自评模块",
+            "emptyHint": "暂无自评模块，请点击「添加」新增。",
+            "hint": "「编辑」可修改模块名称及是否须提供证据；「删除」移除该模块；「添加」在末尾新增模块。",
+            "itemDefFields": [
+              {
+                "key": "module",
+                "label": "模块名称",
+                "type": "text",
+                "placeholder": "如：财务汇报（账务处理、月结复核）"
+              },
+              {
+                "key": "evidenceRequired",
+                "label": "本模块须提供证据索引",
+                "type": "boolean"
+              }
+            ],
+            "itemDataFields": [
+              {
+                "key": "effective",
+                "label": "是否有效",
+                "type": "select",
+                "options": [
+                  {
+                    "value": "Y",
+                    "label": "Y — 有效"
+                  },
+                  {
+                    "value": "N",
+                    "label": "N — 存在缺陷"
+                  },
+                  {
+                    "value": "N/A",
+                    "label": "N/A — 不适用"
+                  }
+                ]
+              },
+              {
+                "key": "evidence",
+                "label": "证据索引",
+                "type": "text",
+                "placeholder": "如 FIN-2025-Q4-001"
+              },
+              {
+                "key": "note",
+                "label": "说明（选 N 必填）",
+                "type": "text",
+                "placeholder": "缺陷描述及整改安排"
+              }
+            ],
+            "default": [
+              {
+                "module": "财务汇报（账务处理、月结复核、财务报表编制及披露）",
+                "evidenceRequired": true,
+                "effective": "",
+                "evidence": "",
+                "note": ""
+              },
+              {
+                "module": "营运管理（业务流程、采购与销售循环、存货及资产管理）",
+                "evidenceRequired": true,
+                "effective": "",
+                "evidence": "",
+                "note": ""
+              },
+              {
+                "module": "合规管理（上市规则、反贪、制裁、数据私隐、行业牌照）",
+                "evidenceRequired": true,
+                "effective": "",
+                "evidence": "",
+                "note": ""
+              },
+              {
+                "module": "信息科技（系统权限、数据备份、网络安全、变更管理）",
+                "evidenceRequired": true,
+                "effective": "",
+                "evidence": "",
+                "note": ""
+              },
+              {
+                "module": "人力资源（招聘与离职、薪酬审批、利益冲突申报）",
+                "evidenceRequired": true,
+                "effective": "",
+                "evidence": "",
+                "note": ""
+              },
+              {
+                "module": "授权审批（授权表、资金支付、关联交易及重大合约审批）",
+                "evidenceRequired": true,
+                "effective": "",
+                "evidence": "",
+                "note": ""
+              }
+            ],
+            "newItem": {
+              "module": "",
+              "evidenceRequired": true,
+              "effective": "",
+              "evidence": "",
+              "note": ""
+            },
+            "newItemTitle": "（请填写模块名称）",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "overallConclusion",
+            "label": "整体自评结论",
+            "type": "select",
+            "required": true,
+            "options": [
+              "有效",
+              "基本有效（存在可改善事项）",
+              "存在重大缺陷"
+            ],
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "improvementPlan",
+            "label": "改善计划及时间表",
+            "type": "list",
+            "default": [],
+            "newItemText": "（请填写改善事项、完成时间及责任人）",
+            "addLabel": "添加改善事项",
+            "emptyHint": "暂无改善事项，可点击「添加」新增。",
+            "hint": "每条一项，如：2026Q1 完成采购授权表更新，责任人：×××",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "signDate",
+            "label": "签署日期",
+            "type": "date",
+            "required": true,
+            "source": "system",
+            "fieldPath": "today"
+          },
+          {
+            "key": "printArchiveNote",
+            "label": "打印存档说明",
+            "type": "boolean",
+            "default": true,
+            "checkboxLabel": "在文件末尾打印存档说明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "archiveNote",
+            "label": "存档说明内容",
+            "type": "textarea",
+            "default": "存档说明：本表格由公司秘书汇总归入年度内控评估底稿（档案编号：IC-SA-年度-部门代码），并作为董事会评估结论之支持证据。",
+            "source": "manual",
+            "fieldPath": "",
+            "hint": "可修改存档说明文字；取消「打印存档说明」勾选则整行不打印。"
+          }
+        ],
+        "rules": [
+          {
+            "scope": "item:assessmentItems",
+            "when": {
+              "field": "$item.module",
+              "op": "falsy"
+            },
+            "message": "自评模块第 {{$index1}} 项尚未填写模块名称。"
+          },
+          {
+            "scope": "item:assessmentItems",
+            "when": {
+              "field": "$item.effective",
+              "op": "falsy"
+            },
+            "message": "自评模块「{{$item.module}}」尚未选择是否有效。"
+          },
+          {
+            "scope": "item:assessmentItems",
+            "when": {
+              "all": [
+                {
+                  "field": "$item.effective",
+                  "op": "eq",
+                  "value": "N"
+                },
+                {
+                  "field": "$item.note",
+                  "op": "falsy"
+                }
+              ]
+            },
+            "message": "自评模块「{{$item.module}}」选择 N，必须填写说明及整改安排。"
+          },
+          {
+            "scope": "item:assessmentItems",
+            "when": {
+              "all": [
+                {
+                  "field": "$item.evidenceRequired",
+                  "op": "truthy"
+                },
+                {
+                  "field": "$item.effective",
+                  "op": "truthy"
+                },
+                {
+                  "field": "$item.effective",
+                  "op": "ne",
+                  "value": "N/A"
+                },
+                {
+                  "field": "$item.evidence",
+                  "op": "falsy"
+                }
+              ]
+            },
+            "message": "自评模块「{{$item.module}}」须填写证据索引。"
+          }
+        ],
+        "layout": {
+          "sections": [
+            {
+              "type": "infoTable",
+              "rows": [
+                {
+                  "label": "部门名称",
+                  "value": [
+                    {
+                      "var": "departmentName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "负责人姓名／职衔",
+                  "value": [
+                    {
+                      "join": [
+                        "ownerName",
+                        "ownerTitle"
+                      ],
+                      "separator": " ／ ",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "自评范围",
+                  "value": [
+                    {
+                      "text": "本部门于上述财政年度内之全部职能流程及相关内部监控措施"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "内控模块自评结果",
+              "autoNumber": true
+            },
+            {
+              "type": "objectTable",
+              "field": "assessmentItems",
+              "emptyText": "（尚未设置自评模块）",
+              "columns": [
+                {
+                  "key": "$index",
+                  "label": "序号",
+                  "type": "index",
+                  "width": 6,
+                  "align": "center"
+                },
+                {
+                  "key": "module",
+                  "label": "内控模块",
+                  "type": "value",
+                  "width": 38,
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "key": "effective",
+                  "label": "是否有效",
+                  "type": "value",
+                  "width": 10,
+                  "align": "center",
+                  "blank": "＿＿"
+                },
+                {
+                  "key": "evidence",
+                  "label": "证据索引",
+                  "type": "value",
+                  "width": 18,
+                  "blankWhen": {
+                    "cond": {
+                      "field": "$item.evidenceRequired",
+                      "op": "truthy"
+                    },
+                    "whenTrue": "＿＿＿＿",
+                    "whenFalse": "—"
+                  }
+                },
+                {
+                  "key": "note",
+                  "label": "说明／缺陷描述及整改安排",
+                  "type": "value",
+                  "width": 28,
+                  "blankWhen": {
+                    "cond": {
+                      "field": "$item.effective",
+                      "op": "eq",
+                      "value": "N"
+                    },
+                    "whenTrue": "须补充说明",
+                    "whenFalse": "—"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "整体自评结论",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本人就本部门于 "
+                },
+                {
+                  "var": "fiscalYear",
+                  "blank": "＿＿＿＿"
+                },
+                {
+                  "text": " 年财政年度之内部监控作出整体评估，结论为："
+                },
+                {
+                  "var": "overallConclusion",
+                  "blank": "＿＿＿＿＿＿",
+                  "bold": true
+                },
+                {
+                  "text": "。"
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "改善计划及时间表",
+              "autoNumber": true
+            },
+            {
+              "type": "clauseList",
+              "field": "improvementPlan",
+              "variant": "ordered",
+              "placeholder": "本年度并无须跟进之改善事项。"
+            },
+            {
+              "type": "heading",
+              "text": "负责人声明",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本人确认上述自评结果乃基于本部门实际运作情况作出，所列证据索引均可供内部审核、公司秘书及外聘核数师查阅；本人明白本表格将纳入本公司年度风险管理及内部监控评估底稿。"
+                }
+              ]
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "signBlock",
+              "items": [
+                {
+                  "label": "负责人签署",
+                  "value": [
+                    {
+                      "blank": true
+                    }
+                  ]
+                },
+                {
+                  "label": "姓名／职衔",
+                  "value": [
+                    {
+                      "join": [
+                        "ownerName",
+                        "ownerTitle"
+                      ],
+                      "separator": " ／ ",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "部门",
+                  "value": [
+                    {
+                      "var": "departmentName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "日期",
+                  "value": [
+                    {
+                      "var": "signDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "note",
+              "visibleWhen": {
+                "field": "printArchiveNote",
+                "op": "ne",
+                "value": false
+              },
+              "text": {
+                "var": "archiveNote"
+              }
+            }
+          ]
+        }
+      },
+      "sampleData": {
+        "companyName": "示例控股有限公司",
+        "departmentName": "财务部",
+        "ownerName": "王丽华",
+        "ownerTitle": "财务总监",
+        "fiscalYear": "2025",
+        "assessmentItems": [
+          {
+            "module": "财务汇报（账务处理、月结复核、财务报表编制及披露）",
+            "evidenceRequired": true,
+            "effective": "Y",
+            "evidence": "FIN-2025-Q4-001",
+            "note": ""
+          },
+          {
+            "module": "营运管理（业务流程、采购与销售循环、存货及资产管理）",
+            "evidenceRequired": true,
+            "effective": "Y",
+            "evidence": "OPS-2025-11-007",
+            "note": ""
+          },
+          {
+            "module": "合规管理（上市规则、反贪、制裁、数据私隐、行业牌照）",
+            "evidenceRequired": true,
+            "effective": "Y",
+            "evidence": "CMP-2025-AR-003",
+            "note": ""
+          },
+          {
+            "module": "信息科技（系统权限、数据备份、网络安全、变更管理）",
+            "evidenceRequired": true,
+            "effective": "N",
+            "evidence": "IT-2025-ACC-012",
+            "note": "ERP 离职账号未及时停用，已于 2026Q1 上线自动停用流程。"
+          },
+          {
+            "module": "人力资源（招聘与离职、薪酬审批、利益冲突申报）",
+            "evidenceRequired": true,
+            "effective": "Y",
+            "evidence": "HR-2025-COI-020",
+            "note": ""
+          },
+          {
+            "module": "授权审批（授权表、资金支付、关联交易及重大合约审批）",
+            "evidenceRequired": true,
+            "effective": "Y",
+            "evidence": "AUT-2025-DOA-002",
+            "note": ""
+          }
+        ],
+        "overallConclusion": "基本有效（存在可改善事项）",
+        "improvementPlan": [
+          "2026Q1 完成 ERP 离职账号自动停用流程上线，责任人：资讯科技部主管。",
+          "2026Q2 完成部门授权审批表年度复核，责任人：财务总监。"
+        ],
+        "signDate": "2026-02-10"
+      },
+      "_id": "preset-department-self-assessment",
+      "isPreset": true,
+      "version": 1,
+      "variables": [
+        {
+          "key": "companyName",
+          "label": "公司名称",
+          "source": "company",
+          "fieldPath": "name"
+        },
+        {
+          "key": "departmentName",
+          "label": "部门名称",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "ownerName",
+          "label": "部门负责人姓名",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "ownerTitle",
+          "label": "负责人职衔",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "fiscalYear",
+          "label": "财政年度",
+          "source": "system",
+          "fieldPath": "fiscalYear"
+        },
+        {
+          "key": "assessmentItems",
+          "label": "自评模块列表",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "overallConclusion",
+          "label": "整体自评结论",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "improvementPlan",
+          "label": "改善计划及时间表",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "signDate",
+          "label": "签署日期",
+          "source": "system",
+          "fieldPath": "today"
+        },
+        {
+          "key": "printArchiveNote",
+          "label": "打印存档说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "archiveNote",
+          "label": "存档说明内容",
+          "source": "manual",
+          "fieldPath": ""
+        }
+      ]
+    },
+    {
+      "presetKey": "internal-control-report",
+      "name": "内控评估报告模板",
+      "description": "年度风险管理及内部监控体系有效性评估报告，含未设内审职能时的替代安排说明。",
+      "category": "internal_control",
+      "engine": "schema",
+      "schemaVersion": 1,
+      "isPreset": true,
+      "docSchema": {
+        "schemaVersion": 1,
+        "layoutMode": "custom",
+        "meta": {
+          "docTitle": "内 部 监 控 评 估 报 告",
+          "docSubtitle": "Internal Control Assessment Report",
+          "companyField": "companyName",
+          "headerMeta": {
+            "left": [
+              {
+                "text": "评估期间："
+              },
+              {
+                "var": "reportPeriod",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ],
+            "right": [
+              {
+                "text": "报告日期："
+              },
+              {
+                "var": "reportDate",
+                "format": "date",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ]
+          },
+          "fileNamePattern": "{{companyName}}-内控评估报告-{{reportPeriod}}"
+        },
+        "fields": [
+          {
+            "key": "companyName",
+            "label": "公司名称",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：××控股有限公司",
+            "source": "company",
+            "fieldPath": "name"
+          },
+          {
+            "key": "reportPeriod",
+            "label": "评估期间",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：2025年1月1日 至 2025年12月31日",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "scope",
+            "label": "评估范围",
+            "type": "list",
+            "required": true,
+            "default": [],
+            "newItemText": "（请填写评估范围要点）",
+            "addLabel": "添加评估范围",
+            "emptyHint": "暂无评估范围，请点击「添加」新增。",
+            "hint": "每条一项，如：集团总部及三家主要营运附属公司之财务汇报流程。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "methods",
+            "label": "评估方法",
+            "type": "checklist",
+            "required": true,
+            "default": [
+              {
+                "text": "文件及政策审阅（Document Review）",
+                "checked": false
+              },
+              {
+                "text": "抽样测试（Sample Testing）",
+                "checked": false
+              },
+              {
+                "text": "穿行测试（Walkthrough Test）",
+                "checked": false
+              },
+              {
+                "text": "管理层及关键岗位访谈（Interview）",
+                "checked": false
+              },
+              {
+                "text": "信息系统一般控制核查（ITGC）",
+                "checked": false
+              }
+            ],
+            "newItemText": "（请填写评估方法）",
+            "addLabel": "添加评估方法",
+            "emptyHint": "暂无评估方法，请点击「添加」新增。",
+            "hint": "每条可勾选／编辑／删除，亦可添加自定义评估方法；至少勾选一项。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "conclusion",
+            "label": "执行摘要结论",
+            "type": "select",
+            "required": true,
+            "options": [
+              "有效",
+              "基本有效（存在可改善事项）",
+              "存在重大缺陷"
+            ],
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "keyFindings",
+            "label": "关键发现",
+            "type": "list",
+            "required": true,
+            "default": [],
+            "newItemText": "【低】（请填写发现描述 — 影响 — 建议）",
+            "addLabel": "添加关键发现",
+            "emptyHint": "暂无关键发现，请点击「添加」新增。",
+            "hint": "每条一项发现，建议格式：【等级】发现描述 — 影响 — 建议。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "managementConfirmation",
+            "label": "管理层确认",
+            "type": "list",
+            "default": [],
+            "newItemText": "（请填写管理层回应／整改承诺及时间表）",
+            "addLabel": "添加管理层确认段落",
+            "emptyHint": "暂无管理层确认段落，可点击「添加」新增。",
+            "hint": "每条一段，逐条列明管理层对发现之回应、整改承诺及时间表。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "noInternalAudit",
+            "label": "本公司未设立内部审计职能",
+            "type": "boolean",
+            "default": false,
+            "checkboxLabel": "本公司于评估期间未设立独立内部审核职能，须填写下方替代安排说明。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "alternativeArrangement",
+            "label": "无内审之替代安排说明",
+            "type": "textarea",
+            "placeholder": "说明替代安排（如委聘外部顾问、审核委员会年度检讨）及其充分性评估。",
+            "visibleWhen": {
+              "op": "truthy",
+              "field": "noInternalAudit"
+            },
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "preparedBy",
+            "label": "编制人",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：张启明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "preparerTitle",
+            "label": "编制人职衔／机构",
+            "type": "text",
+            "placeholder": "如：内部审核主管 ／ ××顾问有限公司",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "reportDate",
+            "label": "报告日期",
+            "type": "date",
+            "required": true,
+            "source": "system",
+            "fieldPath": "today"
+          },
+          {
+            "key": "printArchiveNote",
+            "label": "打印存档说明",
+            "type": "boolean",
+            "default": true,
+            "checkboxLabel": "在文件末尾打印存档说明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "archiveNote",
+            "label": "存档说明内容",
+            "type": "textarea",
+            "default": "存档说明：本报告连同底稿由公司秘书归入年度风险管理及内部监控档案（档案编号：IC-REPORT-年度-001）。",
+            "source": "manual",
+            "fieldPath": "",
+            "hint": "可修改存档说明文字；取消「打印存档说明」勾选则整行不打印。"
+          }
+        ],
+        "rules": [
+          {
+            "id": "icr-alternative-required",
+            "scope": "form",
+            "when": {
+              "all": [
+                {
+                  "op": "truthy",
+                  "field": "noInternalAudit"
+                },
+                {
+                  "op": "falsy",
+                  "field": "alternativeArrangement"
+                }
+              ]
+            },
+            "message": "已勾选「未设立内部审计职能」，必须填写替代安排说明。"
+          }
+        ],
+        "layout": {
+          "sections": [
+            {
+              "type": "heading",
+              "text": "执行摘要",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本报告乃就 "
+                },
+                {
+                  "var": "companyName",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": " 于 "
+                },
+                {
+                  "var": "reportPeriod",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": " 期间之风险管理及内部监控系统进行评估后编制。基于下述评估范围及方法，我们认为本公司之风险管理及内部监控系统于评估期间内属"
+                },
+                {
+                  "var": "conclusion",
+                  "bold": true,
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": "。本结论已提交审核委员会及董事会审阅。"
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "评估范围",
+              "autoNumber": true
+            },
+            {
+              "type": "clauseList",
+              "field": "scope",
+              "variant": "ordered",
+              "placeholder": "（未填写评估范围）"
+            },
+            {
+              "type": "heading",
+              "text": "评估依据及方法",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本次评估以《香港联合交易所有限公司证券上市规则》附录 C1《企业管治守则》第 D.2 节及 COSO 内部控制整合框架为依据，采用下列方法："
+                }
+              ]
+            },
+            {
+              "type": "checkList",
+              "field": "methods",
+              "placeholder": "（尚未设置评估方法）"
+            },
+            {
+              "type": "heading",
+              "text": "关键发现",
+              "autoNumber": true
+            },
+            {
+              "type": "clauseList",
+              "field": "keyFindings",
+              "variant": "ordered",
+              "placeholder": "（未填写关键发现）"
+            },
+            {
+              "type": "heading",
+              "text": "管理层确认",
+              "autoNumber": true
+            },
+            {
+              "type": "clauseList",
+              "field": "managementConfirmation",
+              "variant": "plain",
+              "placeholder": "（管理层回应待补充）"
+            },
+            {
+              "type": "group",
+              "visibleWhen": {
+                "op": "truthy",
+                "field": "noInternalAudit"
+              },
+              "children": [
+                {
+                  "type": "heading",
+                  "text": "未设独立内部审核职能之替代安排说明",
+                  "autoNumber": true
+                },
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "text": "本公司于评估期间内并未设立独立内部审核职能。按《企业管治守则》守则条文 D.2.5 之要求，本公司已作出下列替代安排，并每年检讨其充分性："
+                    }
+                  ]
+                },
+                {
+                  "type": "clauseList",
+                  "field": "alternativeArrangement",
+                  "variant": "plain",
+                  "placeholder": "（未填写替代安排说明）"
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "报告用途及限制",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本报告仅供本公司董事会、审核委员会及管理层作内部监控检讨之用，并可按需要提供予外聘核数师及监管机构。本报告并非审计意见，亦不构成对本公司财务报表之保证。"
+                }
+              ]
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "signBlock",
+              "items": [
+                {
+                  "label": "编制人签署",
+                  "value": [
+                    {
+                      "blank": true
+                    }
+                  ]
+                },
+                {
+                  "label": "姓名／职衔",
+                  "value": [
+                    {
+                      "join": [
+                        "preparedBy",
+                        "preparerTitle"
+                      ],
+                      "separator": " ／ ",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "报告日期",
+                  "value": [
+                    {
+                      "var": "reportDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "审核委员会主席复核",
+                  "value": [
+                    {
+                      "blank": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "note",
+              "visibleWhen": {
+                "field": "printArchiveNote",
+                "op": "ne",
+                "value": false
+              },
+              "text": {
+                "var": "archiveNote"
+              }
+            }
+          ]
+        }
+      },
+      "sampleData": {
+        "companyName": "宏基国际控股有限公司",
+        "reportPeriod": "2025年1月1日 至 2025年12月31日",
+        "scope": [
+          "集团总部及三家主要营运附属公司之财务汇报流程；",
+          "采购与付款循环、销售与收款循环；",
+          "资讯科技一般控制（用户权限、数据备份、变更管理）；",
+          "上市规则合规监控（关连交易、内幕消息、董事证券交易）。"
+        ],
+        "methods": [
+          {
+            "text": "文件及政策审阅（Document Review）",
+            "checked": true
+          },
+          {
+            "text": "抽样测试（Sample Testing）",
+            "checked": true
+          },
+          {
+            "text": "穿行测试（Walkthrough Test）",
+            "checked": true
+          },
+          {
+            "text": "管理层及关键岗位访谈（Interview）",
+            "checked": true
+          },
+          {
+            "text": "信息系统一般控制核查（ITGC）",
+            "checked": true
+          }
+        ],
+        "conclusion": "基本有效（存在可改善事项）",
+        "keyFindings": [
+          "【中】ERP 系统离职员工账号未于离职当日停用，抽查 30 宗有 3 宗延迟逾 7 天 — 存在未经授权访问风险 — 建议由人力资源部与资讯科技部建立离职联动清单。",
+          "【低】部分采购申请单缺少第二层审批签署，抽查 50 宗有 4 宗 — 建议于系统内设强制审批节点。",
+          "【低】关连交易内部登记册更新滞后一季 — 建议由公司秘书按季核对并留痕。"
+        ],
+        "managementConfirmation": [
+          "管理层接纳全部三项发现，并已制定整改时间表；",
+          "离职账号联动流程于 2026 年第一季完成上线，责任人：资讯科技部主管；",
+          "采购系统强制审批节点于 2026 年第二季完成配置，责任人：营运总监；",
+          "关连交易登记册改为按季核对，自 2026 年第一季起执行，责任人：公司秘书。"
+        ],
+        "noInternalAudit": true,
+        "alternativeArrangement": "本公司未设立独立内部审核职能，改为委聘××顾问有限公司按年执行内部监控审阅；\n审核委员会每年至少一次检讨该替代安排之充分性，并于会议记录留痕；\n经检讨，董事会认为上述替代安排就本集团现时业务规模及复杂程度而言属充分及有效。",
+        "preparedBy": "张启明",
+        "preparerTitle": "内部审核主管",
+        "reportDate": "2026-02-28"
+      },
+      "_id": "preset-internal-control-report",
+      "version": 1,
+      "variables": [
+        {
+          "key": "companyName",
+          "label": "公司名称",
+          "source": "company",
+          "fieldPath": "name"
+        },
+        {
+          "key": "reportPeriod",
+          "label": "评估期间",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "scope",
+          "label": "评估范围",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "methods",
+          "label": "评估方法",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "conclusion",
+          "label": "执行摘要结论",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "keyFindings",
+          "label": "关键发现",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "managementConfirmation",
+          "label": "管理层确认",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "noInternalAudit",
+          "label": "本公司未设立内部审计职能",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "alternativeArrangement",
+          "label": "无内审之替代安排说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "preparedBy",
+          "label": "编制人",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "preparerTitle",
+          "label": "编制人职衔／机构",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "reportDate",
+          "label": "报告日期",
+          "source": "system",
+          "fieldPath": "today"
+        },
+        {
+          "key": "printArchiveNote",
+          "label": "打印存档说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "archiveNote",
+          "label": "存档说明内容",
+          "source": "manual",
+          "fieldPath": ""
+        }
+      ]
+    },
+    {
+      "presetKey": "board-resolution",
+      "name": "董事会声明和决议记录",
+      "description": "董事会会议之声明与决议记录，含出席董事名单及逐项决议条款。",
+      "category": "board_resolution",
+      "engine": "schema",
+      "schemaVersion": 1,
+      "isPreset": true,
+      "docSchema": {
+        "schemaVersion": 1,
+        "layoutMode": "custom",
+        "meta": {
+          "docTitle": "董 事 会 声 明 及 决 议 记 录",
+          "docSubtitle": "Board Statement and Resolution Record — Risk Management and Internal Control",
+          "companyField": "companyName",
+          "headerMeta": {
+            "left": [
+              {
+                "text": "会议日期："
+              },
+              {
+                "var": "meetingDate",
+                "format": "date",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ],
+            "right": [
+              {
+                "text": "记录人：公司秘书"
+              }
+            ]
+          },
+          "fileNamePattern": "{{companyName}}-董事会决议记录-{{meetingDate}}"
+        },
+        "fields": [
+          {
+            "key": "companyName",
+            "label": "公司名称",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：××控股有限公司",
+            "source": "company",
+            "fieldPath": "name"
+          },
+          {
+            "key": "meetingDate",
+            "label": "会议日期",
+            "type": "date",
+            "required": true,
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "meetingPlace",
+            "label": "会议地点／方式",
+            "type": "text",
+            "placeholder": "如：香港中环××大厦 28 楼会议室 ／ 视像会议",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "attendees",
+            "label": "出席董事",
+            "type": "list",
+            "required": true,
+            "default": [],
+            "newItemText": "（请填写董事姓名及职务）",
+            "addLabel": "添加出席人员",
+            "emptyHint": "暂无出席董事，请点击「添加」新增。",
+            "hint": "每条一位，如：陈大文（主席／执行董事）。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "reportsReceived",
+            "label": "收到之报告清单",
+            "type": "list",
+            "required": true,
+            "default": [],
+            "newItemText": "（请填写报告名称、提交人及日期）",
+            "addLabel": "添加报告",
+            "emptyHint": "暂无报告，请点击「添加」新增。",
+            "hint": "每条一份，如：《2025年度内部监控评估报告》（内部审核主管提交，2026年2月28日）。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "discussion",
+            "label": "董事质询与管理层答辩摘要",
+            "type": "list",
+            "required": true,
+            "default": [],
+            "newItemText": "（董事姓名：质询内容 ／ 管理层：答辩内容）",
+            "addLabel": "添加质询与答辩",
+            "emptyHint": "暂无质询与答辩摘要，请点击「添加」新增。",
+            "hint": "每条一项，建议格式：董事姓名：质询内容 ／ 管理层：答辩内容。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "resolutions",
+            "label": "决议内容",
+            "type": "clauses",
+            "required": true,
+            "default": [],
+            "newItemText": "（请填写决议事项）",
+            "addLabel": "添加决议",
+            "emptyHint": "暂无决议内容，请点击「添加」新增。",
+            "hint": "每条一项决议，如：采纳评估报告所载三项改善建议，并要求管理层于每季汇报进度。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "chairmanName",
+            "label": "主席姓名",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：陈大文",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "signDate",
+            "label": "签署日期",
+            "type": "date",
+            "source": "system",
+            "fieldPath": "today"
+          },
+          {
+            "key": "printArchiveNote",
+            "label": "打印存档说明",
+            "type": "boolean",
+            "default": true,
+            "checkboxLabel": "在文件末尾打印存档说明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "archiveNote",
+            "label": "存档说明内容",
+            "type": "textarea",
+            "default": "存档说明：本决议记录连同随附报告由公司秘书存入董事会会议档案（档案编号：BM-年度-会议编号-RMIC），并作为年报披露之支持证据。",
+            "source": "manual",
+            "fieldPath": "",
+            "hint": "可修改存档说明文字；取消「打印存档说明」勾选则整行不打印。"
+          }
+        ],
+        "rules": [],
+        "layout": {
+          "sections": [
+            {
+              "type": "infoTable",
+              "rows": [
+                {
+                  "label": "公司名称",
+                  "value": [
+                    {
+                      "var": "companyName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "会议日期",
+                  "value": [
+                    {
+                      "var": "meetingDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "会议地点／方式",
+                  "value": [
+                    {
+                      "var": "meetingPlace",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "出席董事",
+              "autoNumber": true
+            },
+            {
+              "type": "clauseList",
+              "field": "attendees",
+              "variant": "plain",
+              "placeholder": "（未填写出席董事）"
+            },
+            {
+              "type": "heading",
+              "text": "董事会收到之报告",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "董事会确认于会上收取并审阅下列有关风险管理及内部监控之报告及文件："
+                }
+              ]
+            },
+            {
+              "type": "clauseList",
+              "field": "reportsReceived",
+              "variant": "ordered",
+              "placeholder": "（未填写报告清单）"
+            },
+            {
+              "type": "heading",
+              "text": "董事质询与管理层答辩摘要",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "董事会就上述报告所载事项与管理层进行了实质讨论，主要质询及答辩摘要如下："
+                }
+              ]
+            },
+            {
+              "type": "clauseList",
+              "field": "discussion",
+              "variant": "ordered",
+              "placeholder": "（未填写质询与答辩摘要）"
+            },
+            {
+              "type": "heading",
+              "text": "议决事项",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "经详细审议及讨论后，董事会明确议决同意下列事项："
+                }
+              ]
+            },
+            {
+              "type": "clauseList",
+              "field": "resolutions",
+              "variant": "ordered",
+              "placeholder": "（未填写决议内容）"
+            },
+            {
+              "type": "heading",
+              "text": "声明",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "董事会声明：本公司之风险管理及内部监控系统由董事会负责，管理层负责设计及执行；董事会已按《香港联合交易所有限公司证券上市规则》附录 C1《企业管治守则》第 D.2 节之要求，对本公司及其附属公司之风险管理及内部监控系统作出年度检讨，检讨范围涵盖财务监控、营运监控、合规监控及风险管理职能，并已考虑会计、内部审核及财务汇报职能之资源、员工资历及经验是否充足。"
+                }
+              ]
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "signBlock",
+              "items": [
+                {
+                  "label": "主席签署",
+                  "value": [
+                    {
+                      "blank": true
+                    }
+                  ]
+                },
+                {
+                  "label": "主席姓名",
+                  "value": [
+                    {
+                      "var": "chairmanName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "签署日期",
+                  "value": [
+                    {
+                      "var": "signDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "公司秘书复核",
+                  "value": [
+                    {
+                      "blank": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "note",
+              "visibleWhen": {
+                "field": "printArchiveNote",
+                "op": "ne",
+                "value": false
+              },
+              "text": {
+                "var": "archiveNote"
+              }
+            }
+          ]
+        }
+      },
+      "sampleData": {
+        "companyName": "宏基国际控股有限公司",
+        "meetingDate": "2026-03-15",
+        "meetingPlace": "香港中环××大厦 28 楼董事会会议室（部分董事以视像方式出席）",
+        "attendees": [
+          "陈大文（主席／执行董事）",
+          "林志强（执行董事／行政总裁）",
+          "黄慧敏（非执行董事）",
+          "李国雄（独立非执行董事／审核委员会主席）",
+          "周敏仪（独立非执行董事）",
+          "列席：公司秘书 李小明；内部审核主管 张启明；财务总监 王丽华"
+        ],
+        "reportsReceived": [
+          "《2025年度内部监控评估报告》— 内部审核主管张启明提交，日期 2026年2月28日；",
+          "《2025年度各部门内控自评汇总表》— 公司秘书汇编，涵盖 6 个部门；",
+          "《2025年度风险登记册及重大风险变动分析》— 财务总监提交。"
+        ],
+        "discussion": [
+          "李国雄（独立非执行董事）：质询 ERP 离职账号延迟停用之最长延迟日数及是否已发生未经授权访问。管理层（资讯科技部主管）答辩：最长延迟 11 天，经日志复核未发现未经授权访问纪录，已于 2026年1月上线自动停用流程。",
+          "周敏仪（独立非执行董事）：质询采购审批缺失之 4 宗个案金额及是否涉及关连方。管理层（营运总监）答辩：合计金额约港币 86 万元，均为独立第三方供应商，已补办审批并纳入系统强制节点。",
+          "黄慧敏（非执行董事）：质询内部审核资源是否足以覆盖新增海外业务。管理层答辩：2026年度将增聘一名内审人员并委聘外部顾问协助海外分部审阅。"
+        ],
+        "resolutions": [
+          "董事会确认已收取并详细审阅上述报告，并已就当中之发现向管理层作出询问及取得满意答复。",
+          "董事会同意采纳《2025年度内部监控评估报告》所载三项改善建议，并要求管理层于每季董事会会议汇报整改进度。",
+          "董事会同意批准 2026 年度内部审核增聘一名人员及委聘外部顾问协助海外分部审阅之资源安排。",
+          "经考虑上述评估结果及管理层答复，董事会认为本公司之风险管理及内部监控系统于截至 2025年12月31日止年度内在各重大方面属有效及充足，并同意于 2025 年年报企业管治报告内作相应披露。"
+        ],
+        "chairmanName": "陈大文",
+        "signDate": "2026-03-15"
+      },
+      "_id": "preset-board-resolution",
+      "version": 1,
+      "variables": [
+        {
+          "key": "companyName",
+          "label": "公司名称",
+          "source": "company",
+          "fieldPath": "name"
+        },
+        {
+          "key": "meetingDate",
+          "label": "会议日期",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "meetingPlace",
+          "label": "会议地点／方式",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "attendees",
+          "label": "出席董事",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "reportsReceived",
+          "label": "收到之报告清单",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "discussion",
+          "label": "董事质询与管理层答辩摘要",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "resolutions",
+          "label": "决议内容",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "chairmanName",
+          "label": "主席姓名",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "signDate",
+          "label": "签署日期",
+          "source": "system",
+          "fieldPath": "today"
+        },
+        {
+          "key": "printArchiveNote",
+          "label": "打印存档说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "archiveNote",
+          "label": "存档说明内容",
+          "source": "manual",
+          "fieldPath": ""
+        }
+      ]
+    },
+    {
+      "presetKey": "project-charter",
+      "name": "项目章程（项目立项）",
+      "description": "项目立项章程，明确项目目标、范围、里程碑与治理责任人。",
+      "category": "project_governance",
+      "engine": "schema",
+      "schemaVersion": 1,
+      "isPreset": true,
+      "docSchema": {
+        "schemaVersion": 1,
+        "layoutMode": "custom",
+        "meta": {
+          "docTitle": "项 目 章 程",
+          "docSubtitle": "PROJECT CHARTER",
+          "companyField": "companyName",
+          "headerMeta": {
+            "left": [
+              {
+                "text": "项目名称："
+              },
+              {
+                "var": "projectName",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ],
+            "right": [
+              {
+                "text": "签批日期："
+              },
+              {
+                "var": "signDate",
+                "format": "date",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ]
+          },
+          "fileNamePattern": "{{companyName}}-{{projectName}}-项目章程-{{signDate}}"
+        },
+        "fields": [
+          {
+            "key": "projectName",
+            "label": "项目名称",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：2026年度风险管理及内部监控合规提升项目",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "companyName",
+            "label": "公司名称",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：××控股有限公司",
+            "source": "company",
+            "fieldPath": "name"
+          },
+          {
+            "key": "sponsor",
+            "label": "发起人／汇报人（公司秘书）",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：公司秘书 李小明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "approver",
+            "label": "批准人（董事长）",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：董事长 陈大文",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "startDate",
+            "label": "项目开始日期",
+            "type": "date",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "endDate",
+            "label": "项目完成日期",
+            "type": "date",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "objectives",
+            "label": "项目目标要点",
+            "type": "list",
+            "required": true,
+            "default": [],
+            "newItemText": "（请填写项目目标，建议可量化）",
+            "addLabel": "添加目标",
+            "emptyHint": "暂无项目目标，请点击「添加」新增。",
+            "hint": "每条一项目标，建议可量化。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "scope",
+            "label": "项目范围要点",
+            "type": "list",
+            "required": true,
+            "default": [],
+            "newItemText": "纳入：（请填写范围）",
+            "addLabel": "添加范围",
+            "emptyHint": "暂无项目范围，请点击「添加」新增。",
+            "hint": "每条一项，注明纳入范围；如有不纳入事项亦请列明。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "reportingCycle",
+            "label": "汇报周期",
+            "type": "select",
+            "required": true,
+            "options": [
+              "月度",
+              "季度",
+              "半年度",
+              "年度"
+            ],
+            "default": "季度",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "reportingTo",
+            "label": "汇报对象",
+            "type": "text",
+            "default": "董事会及审核委员会",
+            "placeholder": "如：董事会及审核委员会",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "milestones",
+            "label": "关键里程碑",
+            "type": "list",
+            "required": true,
+            "default": [],
+            "newItemText": "YYYY-MM 里程碑名称 — 交付物 — 责任人",
+            "addLabel": "添加里程碑",
+            "emptyHint": "暂无里程碑，请点击「添加」新增。",
+            "hint": "每条一项，建议格式：YYYY-MM 里程碑名称 — 交付物 — 责任人。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "resources",
+            "label": "资源及预算",
+            "type": "list",
+            "default": [],
+            "newItemText": "（请填写人力、外部顾问或预算金额）",
+            "addLabel": "添加资源项",
+            "emptyHint": "暂无资源及预算安排，可点击「添加」新增。",
+            "hint": "每条一项，如：内部 公司秘书办公室 2 人；外部 顾问预算港币 45 万元。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "signDate",
+            "label": "签批日期",
+            "type": "date",
+            "required": true,
+            "source": "system",
+            "fieldPath": "today"
+          },
+          {
+            "key": "printArchiveNote",
+            "label": "打印存档说明",
+            "type": "boolean",
+            "default": true,
+            "checkboxLabel": "在文件末尾打印存档说明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "archiveNote",
+            "label": "存档说明内容",
+            "type": "textarea",
+            "default": "存档说明：本章程正本由公司秘书存入项目档案（档案编号：PRJ-RMIC-年度-001），并于每次汇报时附上进度更新页。",
+            "source": "manual",
+            "fieldPath": "",
+            "hint": "可修改存档说明文字；取消「打印存档说明」勾选则整行不打印。"
+          }
+        ],
+        "rules": [],
+        "layout": {
+          "sections": [
+            {
+              "type": "infoTable",
+              "rows": [
+                {
+                  "label": "项目名称",
+                  "value": [
+                    {
+                      "var": "projectName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "所属公司",
+                  "value": [
+                    {
+                      "var": "companyName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "发起人／汇报人",
+                  "value": [
+                    {
+                      "var": "sponsor",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "批准人",
+                  "value": [
+                    {
+                      "var": "approver",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "项目周期",
+                  "value": [
+                    {
+                      "var": "startDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿"
+                    },
+                    {
+                      "text": " 至 "
+                    },
+                    {
+                      "var": "endDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "汇报机制",
+                  "value": [
+                    {
+                      "text": "按 "
+                    },
+                    {
+                      "var": "reportingCycle",
+                      "blank": "＿＿"
+                    },
+                    {
+                      "text": " 向 "
+                    },
+                    {
+                      "var": "reportingTo",
+                      "blank": "＿＿＿＿"
+                    },
+                    {
+                      "text": " 汇报进度"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "项目背景及目标",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "为持续符合《香港联合交易所有限公司证券上市规则》附录 C1《企业管治守则》第 D.2 节有关风险管理及内部监控之要求，并确保董事会年度检讨具备完整证据支持，现立项推动本项目。项目目标如下："
+                }
+              ]
+            },
+            {
+              "type": "clauseList",
+              "field": "objectives",
+              "variant": "ordered",
+              "placeholder": "（未填写项目目标）"
+            },
+            {
+              "type": "heading",
+              "text": "项目范围",
+              "autoNumber": true
+            },
+            {
+              "type": "clauseList",
+              "field": "scope",
+              "variant": "ordered",
+              "placeholder": "（未填写项目范围）"
+            },
+            {
+              "type": "heading",
+              "text": "汇报机制",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "项目由 "
+                },
+                {
+                  "var": "sponsor",
+                  "blank": "＿＿＿＿"
+                },
+                {
+                  "text": " 统筹执行，按 "
+                },
+                {
+                  "var": "reportingCycle",
+                  "blank": "＿＿"
+                },
+                {
+                  "text": " 向 "
+                },
+                {
+                  "var": "reportingTo",
+                  "blank": "＿＿＿＿"
+                },
+                {
+                  "text": " 提交进度报告；如出现重大风险事项或里程碑延误，须于知悉后五个工作日内以书面形式呈报批准人。"
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "关键里程碑",
+              "autoNumber": true
+            },
+            {
+              "type": "clauseList",
+              "field": "milestones",
+              "variant": "ordered",
+              "placeholder": "（未填写关键里程碑）"
+            },
+            {
+              "type": "heading",
+              "text": "资源及预算",
+              "autoNumber": true
+            },
+            {
+              "type": "clauseList",
+              "field": "resources",
+              "variant": "plain",
+              "placeholder": "（未填写资源及预算安排）"
+            },
+            {
+              "type": "heading",
+              "text": "签批",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "兹批准本项目章程，授权发起人按上述目标、范围及汇报机制推动执行，并调配所列资源。"
+                }
+              ]
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "signBlock",
+              "items": [
+                {
+                  "label": "发起人签署",
+                  "value": [
+                    {
+                      "var": "sponsor",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "日期",
+                  "value": [
+                    {
+                      "var": "signDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "批准人（董事长）签署",
+                  "value": [
+                    {
+                      "blank": true
+                    }
+                  ]
+                },
+                {
+                  "label": "日期",
+                  "value": [
+                    {
+                      "blank": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "note",
+              "visibleWhen": {
+                "field": "printArchiveNote",
+                "op": "ne",
+                "value": false
+              },
+              "text": {
+                "var": "archiveNote"
+              }
+            }
+          ]
+        }
+      },
+      "sampleData": {
+        "projectName": "2026年度风险管理及内部监控合规提升项目",
+        "companyName": "宏基国际控股有限公司",
+        "sponsor": "公司秘书 李小明",
+        "approver": "董事长 陈大文",
+        "startDate": "2026-04-01",
+        "endDate": "2026-12-31",
+        "objectives": [
+          "建立覆盖集团及主要附属公司之年度内控自评机制，部门覆盖率达 100%；",
+          "完成风险登记册重检并将重大风险控制至可接受水平；",
+          "确保 2026 年年报企业管治报告 H 段披露具备完整证据链，可追溯至底稿；",
+          "完成全体董事年度风控合规培训，出席率不低于 90%。"
+        ],
+        "scope": [
+          "纳入：集团总部及三家主要营运附属公司之财务、营运、合规、资讯科技及人力资源内控；",
+          "纳入：董事会及审核委员会有关风控之议程设置、文件模板与留痕机制；",
+          "纳入：年度内控评估报告及董事确认函之统一模板与归档；",
+          "不纳入：财务报表审计工作（由外聘核数师独立执行）。"
+        ],
+        "reportingCycle": "季度",
+        "reportingTo": "董事会及审核委员会",
+        "milestones": [
+          "2026-04 项目启动会 — 项目章程签批、工作小组成立 — 责任人：公司秘书；",
+          "2026-06 内控自评表下发及回收 — 6 个部门自评表 — 责任人：各部门负责人；",
+          "2026-09 内部审核抽样测试完成 — 中期发现清单 — 责任人：内部审核主管；",
+          "2026-11 年度内控评估报告初稿 — 评估报告 — 责任人：内部审核主管；",
+          "2026-12 董事会审议及决议留痕 — 决议记录、董事确认函 — 责任人：公司秘书。"
+        ],
+        "resources": [
+          "内部：公司秘书办公室 2 人、内部审核 2 人、各部门联络人 6 人；",
+          "外部：委聘外部合规顾问协助海外分部审阅，预算港币 45 万元。"
+        ],
+        "signDate": "2026-03-25"
+      },
+      "_id": "preset-project-charter",
+      "version": 1,
+      "variables": [
+        {
+          "key": "projectName",
+          "label": "项目名称",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "companyName",
+          "label": "公司名称",
+          "source": "company",
+          "fieldPath": "name"
+        },
+        {
+          "key": "sponsor",
+          "label": "发起人／汇报人（公司秘书）",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "approver",
+          "label": "批准人（董事长）",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "startDate",
+          "label": "项目开始日期",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "endDate",
+          "label": "项目完成日期",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "objectives",
+          "label": "项目目标要点",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "scope",
+          "label": "项目范围要点",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "reportingCycle",
+          "label": "汇报周期",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "reportingTo",
+          "label": "汇报对象",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "milestones",
+          "label": "关键里程碑",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "resources",
+          "label": "资源及预算",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "signDate",
+          "label": "签批日期",
+          "source": "system",
+          "fieldPath": "today"
+        },
+        {
+          "key": "printArchiveNote",
+          "label": "打印存档说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "archiveNote",
+          "label": "存档说明内容",
+          "source": "manual",
+          "fieldPath": ""
+        }
+      ]
+    },
+    {
+      "presetKey": "director-resignation",
+      "name": "董事辞任信",
+      "description": "董事向公司董事会递交之书面辞任通知（Letter of Resignation），涵盖辞任职务与生效日期、随同辞去之委员会职务、上市规则第 13.51(2) 条「意见分歧」及「须提请股东垂注事项」声明，以及交还公司财产之确认。",
+      "category": "director_change",
+      "engine": "schema",
+      "schemaVersion": 1,
+      "isPreset": true,
+      "docSchema": {
+        "schemaVersion": 1,
+        "layoutMode": "custom",
+        "meta": {
+          "docTitle": "董 事 辞 任 信",
+          "docSubtitle": "LETTER OF RESIGNATION — Director",
+          "companyField": "companyName",
+          "headerMeta": {
+            "left": [
+              {
+                "text": "股份代号："
+              },
+              {
+                "var": "stockCode"
+              }
+            ],
+            "right": [
+              {
+                "text": "辞任生效日期："
+              },
+              {
+                "var": "effectiveDate",
+                "format": "date"
+              }
+            ]
+          },
+          "fileNamePattern": "{{companyName}}-董事辞任信-{{effectiveDate}}"
+        },
+        "fields": [
+          {
+            "key": "companyName",
+            "label": "公司名称",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：××控股有限公司",
+            "source": "company",
+            "fieldPath": "name"
+          },
+          {
+            "key": "stockCode",
+            "label": "股份代号",
+            "type": "text",
+            "placeholder": "例：01288",
+            "hint": "自动带入页眉；非上市主体可留空。",
+            "source": "company",
+            "fieldPath": "stockCode"
+          },
+          {
+            "key": "directorName",
+            "label": "辞任董事姓名",
+            "type": "text",
+            "required": true,
+            "placeholder": "例：陈志明",
+            "hint": "须与董事登记册所载姓名一致。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "directorType",
+            "label": "现任董事类别",
+            "type": "select",
+            "required": true,
+            "options": [
+              "执行董事",
+              "非执行董事",
+              "独立非执行董事"
+            ],
+            "hint": "独立非执行董事辞任可能触发上市规则第 3.10／3.10A／3.11 条三个月补足期及第 3.21 条审核委员会人数下限，须另行核查。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "effectiveDate",
+            "label": "辞任生效日期",
+            "type": "date",
+            "required": true,
+            "hint": "同时用于页眉、正文与导出文件名。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "committeeRoles",
+            "label": "随同辞去之委员会及其他职务",
+            "type": "checklist",
+            "default": [],
+            "options": [
+              "审核委员会主席",
+              "审核委员会成员",
+              "薪酬委员会主席",
+              "薪酬委员会成员",
+              "提名委员会主席",
+              "提名委员会成员",
+              "企业管治委员会成员",
+              "风险管理委员会成员",
+              "授权代表（上市规则第 3.05 条）",
+              "法律程序代理人（《公司条例》第 16 部）",
+              "本公司附属公司之董事职务"
+            ],
+            "newItemText": "（请填写随同辞去之职务）",
+            "addLabel": "添加职务",
+            "emptyHint": "如并无兼任委员会或其他职务，请留空，正文将自动生成「并无兼任」声明。",
+            "hint": "多选；委员会职务变动直接影响上市规则第 3.21 条（审核委员会）与第 3.25 条（薪酬委员会）之合规，请据实勾选。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "hasDisagreement",
+            "label": "与董事会是否存在意见分歧",
+            "type": "boolean",
+            "checkboxLabel": "本人与本公司董事会存在意见分歧（上市规则第 13.51(2) 条须予披露）",
+            "hint": "🔴 必须明示选择，无默认值：该声明将原文进入港交所公告，未作选择前不得导出。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "disagreementDetail",
+            "label": "意见分歧详情",
+            "type": "textarea",
+            "placeholder": "请具体说明分歧事项、涉及之董事会决议及日期",
+            "hint": "本栏文字将原文或实质性地写入港交所公告，须经公司法律顾问逐字审阅；系统不作任何自动改写或摘要。",
+            "visibleWhen": {
+              "op": "eq",
+              "field": "hasDisagreement",
+              "value": true
+            },
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "shareholderMatter",
+            "label": "须提请股东及联交所垂注之事项",
+            "type": "textarea",
+            "placeholder": "如无请留空，系统将自动生成「并无」声明",
+            "hint": "上市规则第 13.51(2) 条必备要素；留空即自动生成否定声明，确保文书必然载有该项声明。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "returnUndertakings",
+            "label": "交还公司财产及持续责任条款",
+            "type": "clauses",
+            "default": [
+              "本人已于／将于辞任生效日期或之前，交还所有属于本公司或其附属公司之财产、文件、会计记录、公司印章、门禁卡、名片及电子设备。",
+              "本人已删除或交还所有以电子形式持有之本公司机密资料，并不会保留任何形式之副本。",
+              "本人明白并同意，本人对本公司所负之保密责任于本人辞任后仍然持续有效，并将继续遵守普通法及本人任职期间根据《公司条例》(Cap. 622) 所承担而于离任后仍具效力之责任。",
+              "本人同意在本公司提出合理要求时，签署及办理一切与本人辞任有关之文件（包括但不限于向香港公司注册处提交之 Form ND2A 及联交所所需之确认文件）。"
+            ],
+            "newItemText": "（请填写交还／持续责任条款）",
+            "addLabel": "添加条款",
+            "emptyHint": "暂无条款，请点击「添加」新增。",
+            "hint": "默认为上市公司通用之四条交接条款，可按实际交接情况增删；本清单兼作公司秘书离任交接工作底稿。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "printArchiveNote",
+            "label": "打印存档说明",
+            "type": "boolean",
+            "default": true,
+            "checkboxLabel": "在文件末尾打印存档说明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "archiveNote",
+            "label": "存档说明内容",
+            "type": "textarea",
+            "default": "本辞任信一经本公司收讫即告送达。公司秘书须于生效日期起 15 日内向香港公司注册处提交 Form ND2A，更新董事登记册，并按上市规则第 13.51(2) 条于联交所网站刊发公告；如上文载有意见分歧或须提请股东垂注之事项，该等内容须原文纳入公告。",
+            "source": "manual",
+            "fieldPath": "",
+            "hint": "可修改存档说明文字；取消「打印存档说明」勾选则整行不打印。"
+          }
+        ],
+        "rules": [
+          {
+            "id": "dr-disagreement-must-declare",
+            "scope": "form",
+            "when": {
+              "op": "nin",
+              "field": "hasDisagreement",
+              "value": [
+                true,
+                false
+              ]
+            },
+            "message": "请明确声明是否与董事会存在意见分歧 —— 该声明将原文进入港交所公告"
+          },
+          {
+            "id": "dr-disagreement-detail-required",
+            "scope": "form",
+            "when": {
+              "all": [
+                {
+                  "op": "eq",
+                  "field": "hasDisagreement",
+                  "value": true
+                },
+                {
+                  "op": "falsy",
+                  "field": "disagreementDetail"
+                }
+              ]
+            },
+            "message": "已声明与董事会存在意见分歧，必须填写「意见分歧详情」—— 该内容须原文纳入港交所公告。"
+          }
+        ],
+        "layout": {
+          "sections": [
+            {
+              "type": "paragraph",
+              "flat": true,
+              "segments": [
+                {
+                  "text": "致：",
+                  "bold": true
+                },
+                {
+                  "var": "companyName"
+                },
+                {
+                  "text": "（「本公司」）董事会"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "bold": true,
+              "segments": [
+                {
+                  "text": "敬启者："
+                }
+              ]
+            },
+            {
+              "type": "infoTable",
+              "rows": [
+                {
+                  "label": "辞任人姓名",
+                  "value": [
+                    {
+                      "var": "directorName"
+                    }
+                  ]
+                },
+                {
+                  "label": "现任职务",
+                  "value": [
+                    {
+                      "var": "directorType"
+                    }
+                  ]
+                },
+                {
+                  "label": "公司名称",
+                  "value": [
+                    {
+                      "var": "companyName"
+                    }
+                  ]
+                },
+                {
+                  "label": "股份代号",
+                  "value": [
+                    {
+                      "var": "stockCode"
+                    }
+                  ]
+                },
+                {
+                  "label": "辞任生效日期",
+                  "value": [
+                    {
+                      "var": "effectiveDate",
+                      "format": "date"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "autoNumber": true,
+              "text": "辞任声明"
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本人 "
+                },
+                {
+                  "var": "directorName"
+                },
+                {
+                  "text": "，现任本公司"
+                },
+                {
+                  "var": "directorType"
+                },
+                {
+                  "text": "，谨此通知 贵董事会，本人决定辞去本人于本公司所担任之"
+                },
+                {
+                  "var": "directorType"
+                },
+                {
+                  "text": "职务，并自 "
+                },
+                {
+                  "var": "effectiveDate",
+                  "format": "date"
+                },
+                {
+                  "text": "起生效。"
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "autoNumber": true,
+              "text": "随同辞去之委员会及其他职务"
+            },
+            {
+              "type": "paragraph",
+              "visibleWhen": {
+                "op": "truthy",
+                "field": "committeeRoles"
+              },
+              "segments": [
+                {
+                  "text": "除上述董事职务外，本人同时辞去下列于本公司之职务，并同样自 "
+                },
+                {
+                  "var": "effectiveDate",
+                  "format": "date"
+                },
+                {
+                  "text": "起生效："
+                }
+              ]
+            },
+            {
+              "type": "checkList",
+              "field": "committeeRoles",
+              "visibleWhen": {
+                "op": "truthy",
+                "field": "committeeRoles"
+              },
+              "placeholder": "（尚未选择随同辞去之职务）"
+            },
+            {
+              "type": "paragraph",
+              "visibleWhen": {
+                "op": "falsy",
+                "field": "committeeRoles"
+              },
+              "segments": [
+                {
+                  "text": "除上述董事职务外，本人并无兼任本公司或其任何附属公司之委员会职务或其他职务。"
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "autoNumber": true,
+              "text": "上市规则第 13.51(2) 条声明"
+            },
+            {
+              "type": "paragraph",
+              "visibleWhen": {
+                "op": "eq",
+                "field": "hasDisagreement",
+                "value": false
+              },
+              "segments": [
+                {
+                  "text": "本人确认，本人与本公司董事会并无任何意见分歧（no disagreement with the Board），本人之辞任纯属个人决定。"
+                }
+              ]
+            },
+            {
+              "type": "group",
+              "visibleWhen": {
+                "op": "eq",
+                "field": "hasDisagreement",
+                "value": true
+              },
+              "children": [
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "text": "本人与本公司董事会存在意见分歧。有关分歧之详情如下："
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "var": "disagreementDetail"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "visibleWhen": {
+                "op": "falsy",
+                "field": "shareholderMatter"
+              },
+              "segments": [
+                {
+                  "text": "本人确认，并无任何有关本人辞任之事项须提请本公司股东及香港联合交易所有限公司垂注。"
+                }
+              ]
+            },
+            {
+              "type": "group",
+              "visibleWhen": {
+                "op": "truthy",
+                "field": "shareholderMatter"
+              },
+              "children": [
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "text": "本人谨此知会下列有关本人辞任之事项，认为须提请本公司股东及香港联合交易所有限公司垂注："
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "var": "shareholderMatter"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "autoNumber": true,
+              "text": "交还公司财产及持续责任"
+            },
+            {
+              "type": "clauseList",
+              "field": "returnUndertakings",
+              "variant": "checked",
+              "placeholder": "（尚未设置交还条款）"
+            },
+            {
+              "type": "heading",
+              "autoNumber": true,
+              "text": "申索及致意"
+            },
+            {
+              "type": "group",
+              "children": [
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "text": "本人确认，除截至 "
+                    },
+                    {
+                      "var": "effectiveDate",
+                      "format": "date"
+                    },
+                    {
+                      "text": "止应付予本人之董事袍金及本人于任职期间已实际产生并按本公司政策可获报销之开支外，本人不会就本人之辞任或任期终止向本公司或其任何附属公司提出任何补偿、赔偿或其他形式之申索。"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "text": "本人谨借此机会衷心感谢董事会同仁于本人任期内给予之支持与协助，并祝愿本公司业务蒸蒸日上。"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "group",
+              "children": [
+                {
+                  "type": "paragraph",
+                  "flat": true,
+                  "bold": true,
+                  "segments": [
+                    {
+                      "text": "辞任董事"
+                    }
+                  ]
+                },
+                {
+                  "type": "signBlock",
+                  "items": [
+                    {
+                      "label": "董事签署",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    },
+                    {
+                      "label": "姓名",
+                      "value": [
+                        {
+                          "var": "directorName"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "职务",
+                      "value": [
+                        {
+                          "var": "directorType"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "日期",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "flat": true,
+                  "bold": true,
+                  "segments": [
+                    {
+                      "text": "本公司收讫"
+                    }
+                  ]
+                },
+                {
+                  "type": "signBlock",
+                  "items": [
+                    {
+                      "label": "公司秘书签署",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    },
+                    {
+                      "label": "姓名",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    },
+                    {
+                      "label": "收件日期",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "note",
+                  "visibleWhen": {
+                    "field": "printArchiveNote",
+                    "op": "ne",
+                    "value": false
+                  },
+                  "text": {
+                    "var": "archiveNote"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "sampleData": {
+        "companyName": "华瑞控股有限公司",
+        "stockCode": "01288",
+        "directorName": "陈志明",
+        "directorType": "独立非执行董事",
+        "effectiveDate": "2026-03-31",
+        "committeeRoles": [
+          {
+            "text": "审核委员会主席",
+            "checked": true
+          },
+          {
+            "text": "薪酬委员会成员",
+            "checked": true
+          }
+        ],
+        "hasDisagreement": true,
+        "disagreementDetail": "本人就本公司拟收购目标公司之估值基础及尽职审查范围，与董事会其他成员持不同意见。本人曾于二零二六年二月十八日董事会会议上要求委聘独立估值师复核收购代价，惟该项建议未获采纳。",
+        "shareholderMatter": "本人建议本公司股东留意上述收购事项之估值假设，并关注本公司于二零二五年年报所披露之关连交易内部监控程序于实际执行层面之落实情况。",
+        "returnUndertakings": [
+          "本人已于／将于 2026 年 3 月 31 日或之前，交还所有属于本公司或其附属公司之财产、文件、会计记录、公司印章、门禁卡、名片及电子设备。",
+          "本人已删除或交还所有以电子形式持有之本公司机密资料，并不会保留任何形式之副本。",
+          "本人明白并同意，本人对本公司所负之保密责任于本人辞任后仍然持续有效，并将继续遵守普通法及本人任职期间根据《公司条例》(Cap. 622) 所承担而于离任后仍具效力之责任。",
+          "本人同意在本公司提出合理要求时，签署及办理一切与本人辞任有关之文件（包括但不限于向香港公司注册处提交之 Form ND2A 及联交所所需之确认文件）。"
+        ]
+      },
+      "_id": "preset-director-resignation",
+      "version": 1,
+      "variables": [
+        {
+          "key": "companyName",
+          "label": "公司名称",
+          "source": "company",
+          "fieldPath": "name"
+        },
+        {
+          "key": "stockCode",
+          "label": "股份代号",
+          "source": "company",
+          "fieldPath": "stockCode"
+        },
+        {
+          "key": "directorName",
+          "label": "辞任董事姓名",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "directorType",
+          "label": "现任董事类别",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "effectiveDate",
+          "label": "辞任生效日期",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "committeeRoles",
+          "label": "随同辞去之委员会及其他职务",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "hasDisagreement",
+          "label": "与董事会是否存在意见分歧",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "disagreementDetail",
+          "label": "意见分歧详情",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "shareholderMatter",
+          "label": "须提请股东及联交所垂注之事项",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "returnUndertakings",
+          "label": "交还公司财产及持续责任条款",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "printArchiveNote",
+          "label": "打印存档说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "archiveNote",
+          "label": "存档说明内容",
+          "source": "manual",
+          "fieldPath": ""
+        }
+      ]
+    },
+    {
+      "presetKey": "director-consent-to-act",
+      "name": "同意出任董事函",
+      "description": "获委任人士就出任公司董事作出之书面同意及资格确认（Consent to Act as Director），涵盖《公司条例》(Cap. 622) 委任董事之资格要求、上市规则第 3.08 / 3.09 条适格性、第 3.13 条独立非执行董事独立性确认，以及个人资料披露同意。",
+      "category": "director_change",
+      "engine": "schema",
+      "schemaVersion": 1,
+      "isPreset": true,
+      "docSchema": {
+        "schemaVersion": 1,
+        "layoutMode": "custom",
+        "meta": {
+          "docTitle": "同 意 出 任 董 事 函",
+          "docSubtitle": "CONSENT TO ACT AS DIRECTOR — Companies Ordinance (Cap. 622) / Form ND2A",
+          "companyField": "companyName",
+          "headerMeta": {
+            "left": [
+              {
+                "text": "股份代号："
+              },
+              {
+                "var": "stockCode"
+              }
+            ],
+            "right": [
+              {
+                "text": "委任生效日期："
+              },
+              {
+                "var": "effectiveDate",
+                "format": "date"
+              }
+            ]
+          },
+          "fileNamePattern": "{{companyName}}-同意出任董事函-{{effectiveDate}}"
+        },
+        "fields": [
+          {
+            "key": "companyName",
+            "label": "公司名称",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：××控股有限公司",
+            "source": "company",
+            "fieldPath": "name"
+          },
+          {
+            "key": "stockCode",
+            "label": "股份代号",
+            "type": "text",
+            "placeholder": "例：01288",
+            "source": "company",
+            "fieldPath": "stockCode"
+          },
+          {
+            "key": "appointeeName",
+            "label": "获委任人姓名（中文）",
+            "type": "text",
+            "required": true,
+            "placeholder": "例：林嘉慧",
+            "hint": "须与身份证明文件所载姓名完全一致。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "appointeeNameEn",
+            "label": "获委任人姓名（英文）",
+            "type": "text",
+            "required": true,
+            "placeholder": "例：LAM Ka Wai, Karen",
+            "hint": "Form ND2A 及董事登记册均须载列英文姓名。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "idNumber",
+            "label": "香港身份证／护照号码",
+            "type": "text",
+            "required": true,
+            "placeholder": "例：K123456(7)",
+            "hint": "非香港居民请填写护照号码及签发国家。本栏属《个人资料（私隐）条例》(Cap. 486) 项下敏感个人资料，导出件须按机密文件管理。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "directorType",
+            "label": "获委任董事类别",
+            "type": "select",
+            "required": true,
+            "options": [
+              "执行董事",
+              "非执行董事",
+              "独立非执行董事"
+            ],
+            "hint": "选择「独立非执行董事」时，将自动展开上市规则第 3.13 条独立性确认章节。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "effectiveDate",
+            "label": "委任生效日期",
+            "type": "date",
+            "required": true,
+            "hint": "同意应在委任前作出；如生效日期早于实际签署日，即构成追溯同意，法律效力存疑。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "serviceAddress",
+            "label": "送达地址（Correspondence Address）",
+            "type": "textarea",
+            "required": true,
+            "placeholder": "例：香港中环德辅道中 100 号 XX 大厦 28 楼 2805 室",
+            "hint": "须为可送达之实际地址。请勿填写住址 —— 董事住址受新查册安排保护，不对公众开放。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "qualificationConfirmations",
+            "label": "资格确认",
+            "type": "checklist",
+            "required": true,
+            "default": [
+              {
+                "text": "本人已年满 18 岁，并具备完全行为能力（《公司条例》(Cap. 622) 有关董事最低年龄之规定）",
+                "checked": false
+              },
+              {
+                "text": "本人为自然人，并非以法团身分出任本职务",
+                "checked": false
+              },
+              {
+                "text": "本人现时并非未获解除破产之破产人，亦无任何未履行完毕之个人自愿安排、债务重组安排或未偿还之法院判定债项",
+                "checked": false
+              },
+              {
+                "text": "本人从未被任何法院或监管机构颁令取消担任董事之资格，现时亦无任何取消资格令或类似命令对本人生效",
+                "checked": false
+              },
+              {
+                "text": "本人从未因涉及欺诈、不诚实、贪污或与公司管理有关之行为被裁定罪名成立",
+                "checked": false
+              },
+              {
+                "text": "本人并非本公司或其任何附属公司之核数师，亦非该核数师事务所之合伙人或雇员",
+                "checked": false
+              },
+              {
+                "text": "本人具备上市规则第 3.09 条所要求之品格、经验及诚信，并能证明本人具备与职位相称之能力水平",
+                "checked": false
+              },
+              {
+                "text": "本人明白并接受上市规则第 3.08 条所载董事须履行之受信责任，以及应尽之谨慎、技能及勤勉责任",
+                "checked": false
+              },
+              {
+                "text": "本人现时并无任何未向本公司董事会披露、而可能构成利益冲突之职务、权益或安排",
+                "checked": false
+              }
+            ],
+            "newItemText": "（请填写资格确认事项内容）",
+            "addLabel": "添加资格确认事项",
+            "emptyHint": "暂无资格确认事项，请点击「添加」新增。",
+            "hint": "须由签署人本人逐项确认，不得由公司秘书代为勾选。全数勾选方视为合资格；未全选者须另附书面说明。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "independenceConfirmed",
+            "label": "已作出上市规则第 3.13 条独立性确认",
+            "type": "boolean",
+            "default": false,
+            "checkboxLabel": "本人确认符合《上市规则》第 3.13 条所载之全部独立性指引，可作出无保留确认。",
+            "hint": "如存在须披露之关系而董事会仍认定其属独立，请勿勾选 —— 正文将改用「已另行书面披露」之表述。",
+            "visibleWhen": {
+              "op": "eq",
+              "field": "directorType",
+              "value": "独立非执行董事"
+            },
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "otherDirectorships",
+            "label": "现时及过去三年其他上市公司董事职务",
+            "type": "textarea",
+            "placeholder": "如无请留空，系统将自动生成「并无」声明",
+            "hint": "供上市规则第 13.51(2) 条委任公告披露之用。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "independenceClauses",
+            "label": "独立性确认条款（第 3.13 条）",
+            "type": "list",
+            "default": [
+              "本人及本人之紧密联系人于本公司或其任何附属公司之已发行股本中，概无持有 1% 或以上之权益。",
+              "本人于紧接委任日期前两年内，并未担任本公司或其任何附属公司之董事、高级管理人员或雇员，亦未提供任何受薪服务。",
+              "本人并非本公司任何核心关连人士之董事、合伙人、主要行政人员或雇员，亦非其代表。",
+              "除董事袍金及一般董事保险安排外，本人并未从本公司或其任何关连人士收取任何重大财务利益、贷款、担保或补贴。",
+              "本人与本公司之任何董事、最高行政人员、控股股东或主要股东，并无重大财务上或家族上之关连。",
+              "本人现时并无从事任何与本公司业务构成直接竞争之业务，亦无任何其他可能影响本人独立判断之情况。"
+            ],
+            "newItemText": "（请填写独立性确认条款）",
+            "addLabel": "添加独立性条款",
+            "emptyHint": "暂无独立性条款，请点击「添加」新增。",
+            "hint": "默认六条系归纳自《上市规则》第 3.13 条 (1)–(8) 项。首次启用前须由公司秘书对照最新版上市规则逐项核对；一般情况下无须改动。",
+            "visibleWhen": {
+              "op": "eq",
+              "field": "directorType",
+              "value": "独立非执行董事"
+            },
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "undertakings",
+            "label": "承诺及持续责任条款",
+            "type": "list",
+            "default": [
+              "本人承诺以本公司整体利益为依归，履行《上市规则》第 3.08 条所载之受信责任，并以合理之谨慎、技能及勤勉程度行事。",
+              "本人承诺遵守本公司之组织章程细则、《公司条例》(Cap. 622)、《证券及期货条例》(Cap. 571)、《上市规则》及一切适用之法律法规。",
+              "本人承诺遵守《上市规则》附录所载《上市发行人董事进行证券交易的标准守则》，并按规定申报本人于本公司证券之权益及淡仓。",
+              "本人承诺在合理可行范围内出席董事会及所属委员会会议，并按《上市规则》之要求参加持续专业发展培训。",
+              "本人承诺，一旦发生任何足以影响本人出任董事资格、独立性或本函所载任何确认之真确性之事项，将立即以书面知会本公司公司秘书。",
+              "本人承诺配合本公司办理一切与本人获委任有关之法定申报、公告及披露事宜，包括签署联交所所需之董事声明及承诺，并及时提供所需资料。"
+            ],
+            "newItemText": "（请填写承诺条款）",
+            "addLabel": "添加承诺条款",
+            "emptyHint": "暂无承诺条款，请点击「添加」新增。",
+            "hint": "默认六条为标准承诺文本，一般情况下无须改动。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "printArchiveNote",
+            "label": "打印存档说明",
+            "type": "boolean",
+            "default": true,
+            "checkboxLabel": "在文件末尾打印存档说明",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "archiveNote",
+            "label": "存档说明内容",
+            "type": "textarea",
+            "default": "本同意书须于董事委任生效前签妥并交回本公司。公司秘书须于委任生效后 15 日内向香港公司注册处提交 Form ND2A 并更新董事登记册；上市公司另须按上市规则第 13.51(2) 条刊发委任公告，并确保获委任人已签署联交所之董事声明及承诺（Declaration and Undertaking，Form B / H / I）。",
+            "source": "manual",
+            "fieldPath": "",
+            "hint": "可修改存档说明文字；取消「打印存档说明」勾选则整行不打印。"
+          }
+        ],
+        "rules": [],
+        "layout": {
+          "sections": [
+            {
+              "type": "paragraph",
+              "flat": true,
+              "segments": [
+                {
+                  "text": "致：",
+                  "bold": true
+                },
+                {
+                  "var": "companyName"
+                },
+                {
+                  "text": "（「本公司」）董事会"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "bold": true,
+              "segments": [
+                {
+                  "text": "敬启者："
+                }
+              ]
+            },
+            {
+              "type": "infoTable",
+              "rows": [
+                {
+                  "label": "姓名（中文）",
+                  "value": [
+                    {
+                      "var": "appointeeName"
+                    }
+                  ]
+                },
+                {
+                  "label": "姓名（英文）",
+                  "value": [
+                    {
+                      "var": "appointeeNameEn"
+                    }
+                  ]
+                },
+                {
+                  "label": "身份证／护照号码",
+                  "value": [
+                    {
+                      "var": "idNumber"
+                    }
+                  ]
+                },
+                {
+                  "label": "获委任职务",
+                  "value": [
+                    {
+                      "var": "directorType"
+                    }
+                  ]
+                },
+                {
+                  "label": "委任生效日期",
+                  "value": [
+                    {
+                      "var": "effectiveDate",
+                      "format": "date"
+                    }
+                  ]
+                },
+                {
+                  "label": "送达地址",
+                  "value": [
+                    {
+                      "var": "serviceAddress"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "同意出任",
+              "autoNumber": true
+            },
+            {
+              "type": "group",
+              "children": [
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "text": "本人"
+                    },
+                    {
+                      "var": "appointeeName"
+                    },
+                    {
+                      "text": "（"
+                    },
+                    {
+                      "var": "appointeeNameEn"
+                    },
+                    {
+                      "text": "），身份证／护照号码 "
+                    },
+                    {
+                      "var": "idNumber"
+                    },
+                    {
+                      "text": "，兹此确认本人同意获委任为"
+                    },
+                    {
+                      "var": "companyName"
+                    },
+                    {
+                      "text": "之"
+                    },
+                    {
+                      "var": "directorType"
+                    },
+                    {
+                      "text": "，并自 "
+                    },
+                    {
+                      "var": "effectiveDate",
+                      "format": "date"
+                    },
+                    {
+                      "text": " 起生效。"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "text": "本同意书乃根据香港《公司条例》(Cap. 622) 有关委任董事须事先取得当事人同意之规定，以及《香港联合交易所有限公司证券上市规则》之相关要求而作出，并可由本公司用作向香港公司注册处提交 Form ND2A 之支持文件。"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "资格确认",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本人谨此逐项确认下列各项于本函签署日及委任生效日均属真实、完整及准确："
+                }
+              ]
+            },
+            {
+              "type": "checkList",
+              "field": "qualificationConfirmations",
+              "placeholder": "（尚未设置资格确认事项）"
+            },
+            {
+              "type": "note",
+              "text": "上列各项如有任何一项未获勾选，本人已就该项另附书面说明，并已向本公司董事会及提名委员会全面披露有关情况。"
+            },
+            {
+              "type": "group",
+              "visibleWhen": {
+                "op": "eq",
+                "field": "directorType",
+                "value": "独立非执行董事"
+              },
+              "children": [
+                {
+                  "type": "heading",
+                  "text": "独立性确认（仅适用于独立非执行董事）",
+                  "autoNumber": true
+                },
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "text": "本人明白本公司拟委任本人为独立非执行董事。参照《上市规则》第 3.13 条所载评估独立性之指引，本人确认下列各项："
+                    }
+                  ]
+                },
+                {
+                  "type": "clauseList",
+                  "field": "independenceClauses",
+                  "variant": "checked",
+                  "placeholder": "（尚未设置独立性确认条款）"
+                },
+                {
+                  "type": "paragraph",
+                  "visibleWhen": {
+                    "all": [
+                      {
+                        "op": "eq",
+                        "field": "directorType",
+                        "value": "独立非执行董事"
+                      },
+                      {
+                        "op": "eq",
+                        "field": "independenceConfirmed",
+                        "value": true
+                      }
+                    ]
+                  },
+                  "segments": [
+                    {
+                      "text": "据此，本人确认本人符合《上市规则》第 3.13 条所载之独立性指引，属独立于本公司之人士。本人并承诺，一旦本人之独立性状况出现任何变动，本人将立即以书面知会本公司董事会及公司秘书。"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "visibleWhen": {
+                    "all": [
+                      {
+                        "op": "eq",
+                        "field": "directorType",
+                        "value": "独立非执行董事"
+                      },
+                      {
+                        "op": "eq",
+                        "field": "independenceConfirmed",
+                        "value": false
+                      }
+                    ]
+                  },
+                  "segments": [
+                    {
+                      "text": "本人未能就上述全部独立性指引作出无保留确认。本人已另行以书面向本公司董事会及提名委员会披露有关情况，并明白本公司须于委任公告中说明董事会认定本人仍属独立之理由。"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "其他上市公司董事职务",
+              "autoNumber": true
+            },
+            {
+              "type": "paragraph",
+              "visibleWhen": {
+                "op": "truthy",
+                "field": "otherDirectorships"
+              },
+              "segments": [
+                {
+                  "text": "本人现时及于紧接本函日期前三年内，于其他上市公司担任之董事职务如下："
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "visibleWhen": {
+                "op": "truthy",
+                "field": "otherDirectorships"
+              },
+              "segments": [
+                {
+                  "var": "otherDirectorships"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "visibleWhen": {
+                "op": "falsy",
+                "field": "otherDirectorships"
+              },
+              "segments": [
+                {
+                  "text": "本人现时及于紧接本函日期前三年内，并无于任何其他上市公司担任董事职务。"
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "text": "承诺及持续责任",
+              "autoNumber": true
+            },
+            {
+              "type": "clauseList",
+              "field": "undertakings",
+              "variant": "ordered",
+              "placeholder": "（尚未设置承诺条款）"
+            },
+            {
+              "type": "heading",
+              "text": "个人资料之收集、使用及披露",
+              "autoNumber": true
+            },
+            {
+              "type": "group",
+              "children": [
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "text": "本人明白本公司须按《公司条例》(Cap. 622) 备存董事登记册，并须向香港公司注册处处长申报本人之个人资料（包括姓名、送达地址及身份识别号码）；有关资料之若干部分可供公众查阅。"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "segments": [
+                    {
+                      "text": "本人同意本公司为履行法定及监管义务（包括向香港公司注册处、香港联合交易所有限公司、香港证券及期货事务监察委员会及本公司核数师作出申报或披露）之目的，收集、持有、处理及披露本人之个人资料。本人明白本人享有《个人资料（私隐）条例》(Cap. 486) 项下查阅及更正个人资料之权利，并可向本公司公司秘书提出有关要求。"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "segments": [
+                {
+                  "text": "本人指定之送达地址为："
+                },
+                {
+                  "var": "serviceAddress"
+                },
+                {
+                  "text": "。本人承诺，如该地址有任何变更，将于变更后七日内以书面知会本公司公司秘书，以便本公司及时提交 Form ND2B。"
+                }
+              ]
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "group",
+              "children": [
+                {
+                  "type": "paragraph",
+                  "flat": true,
+                  "bold": true,
+                  "segments": [
+                    {
+                      "text": "获委任人"
+                    }
+                  ]
+                },
+                {
+                  "type": "signBlock",
+                  "items": [
+                    {
+                      "label": "签署",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    },
+                    {
+                      "label": "姓名（中文）",
+                      "value": [
+                        {
+                          "var": "appointeeName"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "姓名（英文）",
+                      "value": [
+                        {
+                          "var": "appointeeNameEn"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "日期",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "group",
+              "children": [
+                {
+                  "type": "paragraph",
+                  "flat": true,
+                  "bold": true,
+                  "segments": [
+                    {
+                      "text": "见证人"
+                    }
+                  ]
+                },
+                {
+                  "type": "signBlock",
+                  "items": [
+                    {
+                      "label": "见证人签署",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    },
+                    {
+                      "label": "见证人姓名",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    },
+                    {
+                      "label": "见证人身分／职衔",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    },
+                    {
+                      "label": "日期",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "group",
+              "children": [
+                {
+                  "type": "paragraph",
+                  "flat": true,
+                  "bold": true,
+                  "segments": [
+                    {
+                      "text": "本公司收讫"
+                    }
+                  ]
+                },
+                {
+                  "type": "signBlock",
+                  "items": [
+                    {
+                      "label": "公司秘书签署",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    },
+                    {
+                      "label": "姓名",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    },
+                    {
+                      "label": "收件日期",
+                      "value": [
+                        {
+                          "blank": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "note",
+              "visibleWhen": {
+                "field": "printArchiveNote",
+                "op": "ne",
+                "value": false
+              },
+              "text": {
+                "var": "archiveNote"
+              }
+            }
+          ]
+        }
+      },
+      "sampleData": {
+        "companyName": "华瑞控股有限公司",
+        "stockCode": "01288",
+        "appointeeName": "林嘉慧",
+        "appointeeNameEn": "LAM Ka Wai, Karen",
+        "idNumber": "K123456(7)",
+        "directorType": "独立非执行董事",
+        "effectiveDate": "2026-04-01",
+        "serviceAddress": "香港中环德辅道中 100 号华瑞商业大厦 28 楼 2805 室",
+        "qualificationConfirmations": [
+          {
+            "text": "本人已年满 18 岁，并具备完全行为能力（《公司条例》(Cap. 622) 有关董事最低年龄之规定）",
+            "checked": true
+          },
+          {
+            "text": "本人为自然人，并非以法团身分出任本职务",
+            "checked": true
+          },
+          {
+            "text": "本人现时并非未获解除破产之破产人，亦无任何未履行完毕之个人自愿安排、债务重组安排或未偿还之法院判定债项",
+            "checked": true
+          },
+          {
+            "text": "本人从未被任何法院或监管机构颁令取消担任董事之资格，现时亦无任何取消资格令或类似命令对本人生效",
+            "checked": true
+          },
+          {
+            "text": "本人从未因涉及欺诈、不诚实、贪污或与公司管理有关之行为被裁定罪名成立",
+            "checked": true
+          },
+          {
+            "text": "本人并非本公司或其任何附属公司之核数师，亦非该核数师事务所之合伙人或雇员",
+            "checked": true
+          },
+          {
+            "text": "本人具备上市规则第 3.09 条所要求之品格、经验及诚信，并能证明本人具备与职位相称之能力水平",
+            "checked": true
+          },
+          {
+            "text": "本人明白并接受上市规则第 3.08 条所载董事须履行之受信责任，以及应尽之谨慎、技能及勤勉责任",
+            "checked": true
+          },
+          {
+            "text": "本人现时并无任何未向本公司董事会披露、而可能构成利益冲突之职务、权益或安排",
+            "checked": true
+          }
+        ],
+        "independenceConfirmed": true,
+        "otherDirectorships": "现任裕丰国际控股有限公司（股份代号：00987）独立非执行董事，自二零二一年六月起；曾于二零二三年一月至二零二五年五月出任明辉科技集团有限公司（股份代号：08123）独立非执行董事。",
+        "independenceClauses": [
+          "本人及本人之紧密联系人于本公司或其任何附属公司之已发行股本中，概无持有 1% 或以上之权益。",
+          "本人于紧接委任日期前两年内，并未担任本公司或其任何附属公司之董事、高级管理人员或雇员，亦未提供任何受薪服务。",
+          "本人并非本公司任何核心关连人士之董事、合伙人、主要行政人员或雇员，亦非其代表。",
+          "除董事袍金及一般董事保险安排外，本人并未从本公司或其任何关连人士收取任何重大财务利益、贷款、担保或补贴。",
+          "本人与本公司之任何董事、最高行政人员、控股股东或主要股东，并无重大财务上或家族上之关连。",
+          "本人现时并无从事任何与本公司业务构成直接竞争之业务，亦无任何其他可能影响本人独立判断之情况。"
+        ],
+        "undertakings": [
+          "本人承诺以本公司整体利益为依归，履行《上市规则》第 3.08 条所载之受信责任，并以合理之谨慎、技能及勤勉程度行事。",
+          "本人承诺遵守本公司之组织章程细则、《公司条例》(Cap. 622)、《证券及期货条例》(Cap. 571)、《上市规则》及一切适用之法律法规。",
+          "本人承诺遵守《上市规则》附录所载《上市发行人董事进行证券交易的标准守则》，并按规定申报本人于本公司证券之权益及淡仓。",
+          "本人承诺在合理可行范围内出席董事会及所属委员会会议，并按《上市规则》之要求参加持续专业发展培训。",
+          "本人承诺，一旦发生任何足以影响本人出任董事资格、独立性或本函所载任何确认之真确性之事项，将立即以书面知会本公司公司秘书。",
+          "本人承诺配合本公司办理一切与本人获委任有关之法定申报、公告及披露事宜，包括签署联交所所需之董事声明及承诺，并及时提供所需资料。"
+        ]
+      },
+      "_id": "preset-director-consent-to-act",
+      "version": 1,
+      "variables": [
+        {
+          "key": "companyName",
+          "label": "公司名称",
+          "source": "company",
+          "fieldPath": "name"
+        },
+        {
+          "key": "stockCode",
+          "label": "股份代号",
+          "source": "company",
+          "fieldPath": "stockCode"
+        },
+        {
+          "key": "appointeeName",
+          "label": "获委任人姓名（中文）",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "appointeeNameEn",
+          "label": "获委任人姓名（英文）",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "idNumber",
+          "label": "香港身份证／护照号码",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "directorType",
+          "label": "获委任董事类别",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "effectiveDate",
+          "label": "委任生效日期",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "serviceAddress",
+          "label": "送达地址（Correspondence Address）",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "qualificationConfirmations",
+          "label": "资格确认",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "independenceConfirmed",
+          "label": "已作出上市规则第 3.13 条独立性确认",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "otherDirectorships",
+          "label": "现时及过去三年其他上市公司董事职务",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "independenceClauses",
+          "label": "独立性确认条款（第 3.13 条）",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "undertakings",
+          "label": "承诺及持续责任条款",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "printArchiveNote",
+          "label": "打印存档说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "archiveNote",
+          "label": "存档说明内容",
+          "source": "manual",
+          "fieldPath": ""
+        }
+      ]
+    },
+    {
+      "presetKey": "director-code-compliance-confirmation",
+      "name": "董事遵守标准守则之确认函",
+      "description": "董事就其于报告期间内一直遵守本公司所采纳、条文不逊于《上市规则》附录 C3《上市发行人董事进行证券交易的标准守则》之证券买卖守则，所作出之书面确认函。可生成半年度（截至六个月期间）或年度（截至十二个月期间）确认函。",
+      "category": "compliance_filing",
+      "engine": "schema",
+      "schemaVersion": 1,
+      "isPreset": true,
+      "docSchema": {
+        "schemaVersion": 1,
+        "layoutMode": "custom",
+        "meta": {
+          "docTitle": "董 事 遵 守 标 准 守 则 之 确 认 函",
+          "docSubtitle": "LETTER OF CONFIRMATION — Compliance with the Model Code (Listing Rules Appendix C3)",
+          "companyField": "companyName",
+          "headerMeta": {
+            "right": [
+              {
+                "text": "日期："
+              },
+              {
+                "var": "signDate",
+                "format": "date",
+                "blank": "＿＿＿＿＿＿＿＿"
+              }
+            ]
+          },
+          "fileNamePattern": "{{companyName}}-董事遵守标准守则之确认函-{{periodType}}-{{periodEndDate}}-{{directorName}}"
+        },
+        "fields": [
+          {
+            "key": "companyName",
+            "label": "公司名称",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：众安集团有限公司",
+            "source": "company",
+            "fieldPath": "name"
+          },
+          {
+            "key": "addressLine1",
+            "label": "公司地址（第一行）",
+            "type": "text",
+            "placeholder": "如：中国浙江省杭州市",
+            "hint": "按原件抬头分两行排印；如地址较短可只填第一行。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "addressLine2",
+            "label": "公司地址（第二行）",
+            "type": "text",
+            "placeholder": "如：萧山区萧绍路996号",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "periodEndDate",
+            "label": "截至期间结算日",
+            "type": "date",
+            "required": true,
+            "placeholder": "如：2026-06-30",
+            "hint": "中期报告填半年度结算日，年度报告填财政年度结算日。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "periodType",
+            "label": "确认期间类别",
+            "type": "select",
+            "required": true,
+            "options": [
+              "半年度",
+              "年度"
+            ],
+            "default": "半年度",
+            "placeholder": "选择半年度或年度确认",
+            "hint": "中期报告填「半年度」（截至六个月期间）；年度报告填「年度」（截至十二个月期间）。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "directorName",
+            "label": "董事姓名",
+            "type": "text",
+            "required": true,
+            "placeholder": "如：陈大文",
+            "hint": "须与董事登记册所载姓名完全一致。",
+            "source": "manual",
+            "fieldPath": ""
+          },
+          {
+            "key": "signDate",
+            "label": "签署日期",
+            "type": "date",
+            "source": "system",
+            "fieldPath": "today"
+          },
+          {
+            "key": "printArchiveNote",
+            "label": "打印存档说明",
+            "type": "boolean",
+            "default": true,
+            "source": "manual",
+            "fieldPath": "",
+            "hint": "取消勾选：正式文档不打印底部「存档说明」一行（部分场景无需归档底稿说明）。"
+          },
+          {
+            "key": "archiveNote",
+            "label": "存档说明内容",
+            "type": "textarea",
+            "default": "存档说明：本确认函正本由公司秘书存入合规底稿（中期／年度）（档案编号：MC-Compliance-期间-董事编号），作为《上市规则》附录 C3 标准守则遵守情况披露之书面证据，保存期不少于七年。",
+            "source": "manual",
+            "fieldPath": "",
+            "hint": "可修改存档说明文字；取消「打印存档说明」勾选则整行不打印。"
+          }
+        ],
+        "rules": [],
+        "layout": {
+          "sections": [
+            {
+              "type": "paragraph",
+              "flat": true,
+              "segments": [
+                {
+                  "text": "致：",
+                  "bold": true
+                },
+                {
+                  "text": " 董事会"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "segments": [
+                {
+                  "var": "companyName",
+                  "blank": "＿＿＿＿＿＿"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "segments": [
+                {
+                  "var": "addressLine1",
+                  "blank": "＿＿＿＿＿＿"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "segments": [
+                {
+                  "var": "addressLine2",
+                  "blank": "＿＿＿＿＿＿"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "bold": true,
+              "segments": [
+                {
+                  "text": "敬启者："
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "bold": true,
+              "visibleWhen": {
+                "field": "periodType",
+                "op": "eq",
+                "value": "半年度"
+              },
+              "segments": [
+                {
+                  "text": "有关："
+                },
+                {
+                  "var": "companyName",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": "（「贵公司」）遵守标准守则之中期确认函"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "flat": true,
+              "bold": true,
+              "visibleWhen": {
+                "field": "periodType",
+                "op": "eq",
+                "value": "年度"
+              },
+              "segments": [
+                {
+                  "text": "有关："
+                },
+                {
+                  "var": "companyName",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": "（「贵公司」）遵守标准守则之年度确认函"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "visibleWhen": {
+                "field": "periodType",
+                "op": "eq",
+                "value": "半年度"
+              },
+              "segments": [
+                {
+                  "text": "本人为贵公司的董事，确认本人于截至 "
+                },
+                {
+                  "var": "periodEndDate",
+                  "format": "date",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": " 止六个月期间，一直遵守贵公司采纳有关董事进行证券交易之证券买卖守则，其条文不逊于《香港联合交易所有限公司证券上市规则》附录 C3 所载之上市发行人董事进行证券交易的标准守则所规定之标准。"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "visibleWhen": {
+                "field": "periodType",
+                "op": "eq",
+                "value": "年度"
+              },
+              "segments": [
+                {
+                  "text": "本人为贵公司的董事，确认本人于截至 "
+                },
+                {
+                  "var": "periodEndDate",
+                  "format": "date",
+                  "blank": "＿＿＿＿＿＿"
+                },
+                {
+                  "text": " 止十二个月期间（年度），一直遵守贵公司采纳有关董事进行证券交易之证券买卖守则，其条文不逊于《香港联合交易所有限公司证券上市规则》附录 C3 所载之上市发行人董事进行证券交易的标准守则所规定之标准。"
+                }
+              ]
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "signBlock",
+              "items": [
+                {
+                  "label": "董事签署",
+                  "value": [
+                    {
+                      "blank": true
+                    }
+                  ]
+                },
+                {
+                  "label": "姓名",
+                  "value": [
+                    {
+                      "var": "directorName",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                },
+                {
+                  "label": "日期",
+                  "value": [
+                    {
+                      "var": "signDate",
+                      "format": "date",
+                      "blank": "＿＿＿＿＿＿"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "note",
+              "visibleWhen": {
+                "field": "printArchiveNote",
+                "op": "ne",
+                "value": false
+              },
+              "text": {
+                "var": "archiveNote"
+              }
+            }
+          ]
+        }
+      },
+      "sampleData": {
+        "companyName": "众安集团有限公司",
+        "addressLine1": "中国浙江省杭州市",
+        "addressLine2": "萧山区萧绍路996号",
+        "periodEndDate": "2026-06-30",
+        "periodType": "半年度",
+        "directorName": "陈大文",
+        "signDate": "2026-07-15"
+      },
+      "_id": "preset-director-code-compliance-confirmation",
+      "version": 1,
+      "variables": [
+        {
+          "key": "companyName",
+          "label": "公司名称",
+          "source": "company",
+          "fieldPath": "name"
+        },
+        {
+          "key": "addressLine1",
+          "label": "公司地址（第一行）",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "addressLine2",
+          "label": "公司地址（第二行）",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "periodEndDate",
+          "label": "截至期间结算日",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "periodType",
+          "label": "确认期间类别",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "directorName",
+          "label": "董事姓名",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "signDate",
+          "label": "签署日期",
+          "source": "system",
+          "fieldPath": "today"
+        },
+        {
+          "key": "printArchiveNote",
+          "label": "打印存档说明",
+          "source": "manual",
+          "fieldPath": ""
+        },
+        {
+          "key": "archiveNote",
+          "label": "存档说明内容",
+          "source": "manual",
+          "fieldPath": ""
+        }
+      ]
+    }
+  ]
+}

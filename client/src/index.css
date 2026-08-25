@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Schema 驱动合规文书引擎 · 文书区样式（.doc-* 全套 + 暗色防污染 + @media print） */
+@import './schemaDoc/document.css';
+
 /* ============================================================
    设计令牌（单一事实源）— Wave 0：Lumina 蓝 + 白 + 橙
    - 颜色以 RGB 通道存储，配合 tailwind rgb(var()/alpha) 支持透明度修饰符

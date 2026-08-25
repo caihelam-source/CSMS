@@ -2,10 +2,10 @@
 
 Claw 公司秘书管理系统的开发路线图、版本计划和任务追踪。
 
-## 📌 当前状态：v5.2 稳定版
+## 📌 当前状态：v5.2（v5.2.1 增量已交付）
 
-**最后更新**: 2026-07-20
-**当前阶段**: v5.2 已交付（会议闭环 + 文件管理 + 移动端 + 签署增强）；下一步 M1 后端数据迁移 `--apply` 与 M4 微信端细化。
+**最后更新**: 2026-08-13
+**当前阶段**: v5.2 已交付（会议闭环 + 文件管理 + 移动端 + 签署增强）；**v5.2.1 增量**：Schema 驱动模板系统融合 9 预设 + 可编辑存档说明 + 一键本地部署 `deploy:local`。下一步 M1 后端数据迁移 `--apply` 与 M4 微信端细化。
 
 ---
 
@@ -55,6 +55,15 @@ Claw 公司秘书管理系统的开发路线图、版本计划和任务追踪。
 - [x] **移动端适配**：pb-safe 20px / tap-target 44px / DetailHeader 折行 / TabNav 选中加深
 - [x] **Dashboard 签署任务增强**：双来源 Task（meeting/dashboard 计数同步）+ 模态发起 + 直接归档公司库（CTC 命名）
 - [x] **会议通知/纪要 Tab 完善**：补齐「重新生成 / 保存 Word / HTML 预览」，修复编辑后预览丢失
+
+### ✅ v5.2.1 - Schema 驱动模板系统（已完成，2026-08-13）
+- [x] **模板引擎重构**：`docSchema` JSON（字段 + 区块 + 变量）经通用引擎渲染，列表 / 填写 / 编辑三视图 + Word 导出 + HTML 预览 + 复制文案
+- [x] **9 个真实预设**：董事遵守标准守则之确认函、董事确认函、DU004G 董事个人资料及履历、部门年度企业管治自评、风险管理及内部监控报告、项目章程（RMIC）、董事会决议（RMIC）、董事辞任信、同意出任董事书
+- [x] **可编辑存档说明**：渲染引擎 `note` 区块支持变量引用；每个预设新增 `archiveNote` 多行字段（默认标准说明），「打印存档说明」勾选控制整行是否打印
+- [x] **旧 HTML 模板迁移**：`scripts/migrateHtmlTemplates.cjs`（dry-run / 备份 / assertValidDocSchema 校验）升级旧 `engine:'html'` 模板为 schema 引擎
+- [x] **`/initialize` 端点**：聚合 `presets/*.js` 写 9 预设（严守「先迁移旧 HTML，后 `/initialize`」红线）
+- [x] **一键本地部署**：`npm run deploy:local`（`scripts/deploy-local.js`）自动起 MongoDB → seed-admin → 迁移 → 起后端 → 登录取 token → 写预设
+- [x] **修复**：mock 模式（`VITE_USE_MOCK`）登录 500、两处 lint 自退、补齐 demo 秘书账号
 
 ---
 

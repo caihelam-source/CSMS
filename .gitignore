@@ -135,3 +135,25 @@ client/dist.bak.final/
 client/dist_prev_159/
 client/dist-qa-r2c/
 client/dist-qa-verify/
+
+# Agent 调试探针与缓存（临时验证脚本/输出，勿提交）
+.tmp-dump.mjs
+bb_out.txt
+npmtest_final.txt
+smoke_out.txt
+srv_final.txt
+verify_final.txt
+client/dist-t03b/
+client/runcheck.mjs
+client/signprobe.mjs
+client/signprobe.out.txt
+client/t03b-lines.txt
+client/vcheck.mjs
+client/vcheck.out.txt
+client/vt.out.txt
+client/vtest.out.txt
+client/vitest.config.js.timestamp-*.mjs
+
+# 沙箱遗留 MongoDB 回退启动器（未被 deploy-local 引用，沙箱内二进制下载失败）
+# 仅 git 忽略；物理删除留待本机 `git clean -fdX`
+scripts/start-mongo-memory.js

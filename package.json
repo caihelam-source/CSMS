@@ -10,8 +10,14 @@
     "server:start": "node server/index.js",
     "client:build": "cd client && npm run build",
     "start": "node server/index.js",
+    "verify:presets": "node server/scripts/verifyPresets.mjs",
+    "presets:export": "node server/scripts/exportPresets.mjs",
+    "deploy:local": "node scripts/deploy-local.js",
     "setup": "node scripts/run-setup.js",
-    "mongo:stop": "node scripts/run-stop-mongo.js"
+    "mongo:stop": "node scripts/run-stop-mongo.js",
+    "test": "npm run test:client && npm run test:server",
+    "test:client": "node client/node_modules/vitest/vitest.mjs run",
+    "test:server": "node --test server/tests/*.test.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1083.0",

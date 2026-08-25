@@ -1,0 +1,32 @@
+{
+  "values": [
+    "board_resolution",
+    "agm_resolution",
+    "minutes",
+    "director_change",
+    "secretary_change",
+    "shareholder_notice",
+    "annual_report",
+    "internal_control",
+    "risk_management",
+    "ipo_filing",
+    "compliance_filing",
+    "project_governance",
+    "other"
+  ],
+  "labels": {
+    "board_resolution": "董事会决议",
+    "agm_resolution": "股东大会决议",
+    "minutes": "会议记录",
+    "director_change": "董事变更",
+    "secretary_change": "公司秘书变更",
+    "shareholder_notice": "股东通知",
+    "annual_report": "年度报告",
+    "internal_control": "内部监控",
+    "risk_management": "风险管理",
+    "ipo_filing": "IPO 及申报",
+    "compliance_filing": "合规申报",
+    "project_governance": "项目治理",
+    "other": "其他"
+  }
+}

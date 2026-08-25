@@ -11,7 +11,7 @@
 // 导致组件上 .filter / .map 调用报 "xxx.filter is not a function" 白屏。
 const ENTITY_KEYS = [
   'personnel', 'company', 'document', 'meeting', 'task', 'reminder', 'rule', 'template', 'signTask',
-  'companies', 'documents', 'meetings', 'tasks', 'reminders', 'rules', 'personnelList', 'links', 'link',
+  'companies', 'documents', 'meetings', 'tasks', 'reminders', 'rules', 'templates', 'personnelList', 'links', 'link',
   // 日历聚合事件列表（GET /api/calendar/events 返回 { success, count, events }）
   'events',
 ]

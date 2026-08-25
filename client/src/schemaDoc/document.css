@@ -1,0 +1,288 @@
+/* =========================================================
+ * document.css — 正式文书排版（预览区 & 打印共用）
+ * 移植自 MVP hk-compliance-templates/src/index.css 的 .doc-* 段。
+ * ⚠️ 所有 class 必须与 schemaUtils.js 的 DOC_CLASS 注册表逐一对应，
+ *    且与 client/src/utils/docxFromDom.js 的 convertElement 分派键一致。
+ * ========================================================= */
+
+.doc-page {
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 20mm 18mm;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
+  box-sizing: border-box;
+}
+
+.doc {
+  font-family: "Songti SC", "SimSun", "Times New Roman", "Noto Serif CJK SC",
+    serif;
+  color: #0f172a;
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.doc-company {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin: 0 0 4px;
+}
+
+.doc-title {
+  text-align: center;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  margin: 10px 0 2px;
+}
+
+.doc-subtitle {
+  text-align: center;
+  font-size: 12.5px;
+  letter-spacing: 1px;
+  color: #475569;
+  margin: 0 0 6px;
+}
+
+.doc-rule {
+  border: none;
+  border-top: 1.5px solid #0f172a;
+  margin: 12px 0 18px;
+}
+
+.doc-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: #334155;
+  margin-bottom: 10px;
+}
+
+.doc-p {
+  text-indent: 2em;
+  margin: 9px 0;
+  text-align: justify;
+}
+
+.doc-p-flat {
+  text-indent: 0;
+}
+
+.doc-h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 20px 0 6px;
+  letter-spacing: 1px;
+}
+
+.doc-label {
+  font-weight: 700;
+}
+
+.doc-blank {
+  color: #94a3b8;
+  letter-spacing: 0.08em;
+}
+
+.doc-quote {
+  margin: 8px 0 8px 2em;
+  padding-left: 12px;
+  border-left: 3px solid #cbd5e1;
+  color: #1e293b;
+}
+
+/* 表格 */
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 10px 0;
+}
+
+.doc-table th,
+.doc-table td {
+  border: 1px solid #334155;
+  padding: 6px 8px;
+  vertical-align: top;
+  line-height: 1.7;
+}
+
+.doc-table th {
+  background: #f1f5f9;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.doc-table .doc-th-key {
+  width: 30%;
+  background: #f8fafc;
+}
+
+.doc-table td.doc-center,
+.doc-table th.doc-center {
+  text-align: center;
+}
+
+/* 勾选清单 */
+.doc-list {
+  list-style: none;
+  padding-left: 2em;
+  margin: 8px 0;
+}
+
+.doc-list li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 4px 0;
+  text-align: justify;
+}
+
+.doc-box {
+  flex: none;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.doc-ol {
+  padding-left: 2.4em;
+  margin: 8px 0;
+}
+
+.doc-ol li {
+  margin: 5px 0;
+  text-align: justify;
+}
+
+/* 签署区 */
+.doc-sign {
+  margin-top: 30px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.doc-sign-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 32px;
+}
+
+.doc-sign-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  font-size: 13.5px;
+}
+
+.doc-sign-label {
+  flex: none;
+  font-weight: 700;
+}
+
+.doc-line {
+  flex: 1;
+  min-width: 110px;
+  border-bottom: 1px solid #0f172a;
+  min-height: 22px;
+  padding: 0 4px 2px;
+}
+
+.doc-note {
+  margin-top: 22px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.8;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 8px;
+}
+
+.doc-empty {
+  padding: 40px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+/* =========================================================
+ * ⚠️ 暗色主题防污染（设计 §7.6）
+ * 正式公文与打印件必须白底黑字宋体，绝不受 .dark 主题污染。
+ * ========================================================= */
+.doc-page,
+.dark .doc-page {
+  background: #ffffff;
+  color: #000000;
+}
+
+.doc,
+.dark .doc,
+.doc *,
+.dark .doc * {
+  color: #000000 !important;
+  font-family: "宋体", "SimSun", "Times New Roman", "Noto Serif CJK SC", serif;
+}
+
+/* =========================================================
+ * 打印样式：仅输出右侧文档（设计 §4.4 / §7.6）
+ * ========================================================= */
+@page {
+  size: A4;
+  margin: 16mm 15mm;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  .app-shell,
+  .app-body,
+  .preview-scroll {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .doc-page {
+    width: auto !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .doc-table th {
+    background: #eeeeee !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .doc-table {
+    page-break-inside: auto;
+  }
+
+  .doc-table tr {
+    page-break-inside: avoid;
+  }
+
+  .doc-h2 {
+    page-break-after: avoid;
+  }
+}

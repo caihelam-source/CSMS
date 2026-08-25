@@ -525,12 +525,21 @@ export const templateService = {
     (id) => api.delete(`/api/templates/${id}`),
     mockTemplates.delete,
   ),
-  render: wrap(
-    (id, variables) => api.post(`/api/templates/${id}/render`, { variables }),
-    mockTemplates.render,
+  // ⭐ R-P1-6：另存副本（仅 admin）
+  duplicate: wrap(
+    (id, data) => api.post(`/api/templates/${id}/duplicate`, data || {}),
+    mockTemplates.duplicate,
   ),
+  // ⭐ B3 修复：/:id/render（返回 HTML 字符串）已整体删除。
+  //    Q1 废弃 {{变量}} 字符串替换 + Q2 渲染移至前端 SchemaDocRenderer，
+  //    后端只解析公司 / 系统变量的预填「值」，不再产出任何 HTML。
+  resolve: wrap(
+    (id, data) => api.post(`/api/templates/${id}/resolve`, data || {}),
+    mockTemplates.resolve,
+  ),
+  // ⭐ B2 修复：由不存在的 /init-presets 改为后端真实路由 /initialize
   initPresets: wrap(
-    () => api.post('/api/templates/init-presets'),
+    () => api.post('/api/templates/initialize'),
     mockTemplates.initPresets,
   ),
 }
