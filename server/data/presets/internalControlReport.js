@@ -21,7 +21,7 @@
  * 以免破坏 headerMeta 与 rules[icr-alternative-required] 的既有引用。
  */
 
-const { SCHEMA_VERSION, BLANK, BLANK_MD, BLANK_SM, toCheckItems } = require('./_shared');
+const { SCHEMA_VERSION, BLANK, BLANK_MD, toCheckItems } = require('./_shared');
 
 /** 默认评估方法文案（与 MVP ASSESSMENT_METHOD_TEXTS 逐字一致） */
 const ASSESSMENT_METHOD_TEXTS = [

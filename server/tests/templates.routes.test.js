@@ -17,7 +17,6 @@ const User = require('../models/User');
 const Company = require('../models/Company');
 const Personnel = require('../models/Personnel');
 const Meeting = require('../models/Meeting');
-const DocumentTemplate = require('../models/DocumentTemplate');
 const router = require('../routes/templates');
 
 /** 构造一个能通过 assertValidDocSchema 的最小 docSchema。 */

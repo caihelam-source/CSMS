@@ -23,7 +23,7 @@ const taskRoutes = require('../routes/tasks')
 
 let mongoServer, app, server
 let adminUser, c1Manager, c1Stranger, c2User
-let adminToken, c1ManagerToken, c1StrangerToken, c2Token
+let adminToken, c1ManagerToken, c1StrangerToken, _c2Token
 let C1, C2
 
 const at = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d }
@@ -72,7 +72,7 @@ test.before(async () => {
   adminToken = sign(adminUser)
   c1ManagerToken = sign(c1Manager)
   c1StrangerToken = sign(c1Stranger)
-  c2Token = sign(c2User)
+  _c2Token = sign(c2User)
 
   // 跨公司任务（C2，创建者 admin，参与者 c2User）
   await Task.create({ title: 'cross-task', type: 'other', dueDate: at(5), status: 'pending', company: C2._id, assignedTo: [c2User._id], createdBy: adminUser._id })

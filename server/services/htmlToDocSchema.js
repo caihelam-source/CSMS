@@ -98,7 +98,7 @@ function inferFieldSource(rawKey) {
 }
 
 /** 顶层块级标签 */
-const BLOCK_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', 'ul', 'ol', 'table', 'hr'];
+const _BLOCK_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', 'ul', 'ol', 'table', 'hr'];
 
 /** 字段 key 命名规则（与 templateSchema.FIELD_KEY_PATTERN 一致） */
 const FIELD_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;

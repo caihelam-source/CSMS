@@ -17,7 +17,7 @@
  *    故正文措辞一律照抄 MVP，禁止回退为「阅悉」「一致通过」等空泛表述。
  */
 
-const { SCHEMA_VERSION, BLANK, BLANK_MD, BLANK_SM } = require('./_shared');
+const { SCHEMA_VERSION, BLANK, BLANK_MD } = require('./_shared');
 
 /** @type {Object} preset 定义 */
 const boardResolution = {
