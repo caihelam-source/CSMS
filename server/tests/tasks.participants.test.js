@@ -199,10 +199,13 @@ test('PUT /:id：非创建者/非参与者/非 admin → 403', async () => {
   assert.ok(body.message.includes('Access denied'), `错误信息应含 Access denied，实际：${body.message}`)
 })
 
+// 注：本测试原用 viewerToken（scope C2）重新打开 C1 任务；现因 PUT 已挂载 scope 校验（P0 修复），
+// 跨 scope 编辑返回 403，故改为 scope 内但非创建者/非参与者的 otherToken 来验证
+// 「重新打开（status≠completed）不触发完成权限 403」这一原本意图。
 test('PUT /:id：重新打开（status≠completed）不受完成权限限制 → 200', async () => {
   const t = await Task.findOne({ title: 'manager-assigned' })
   const { status } = await request('PUT', `/api/tasks/${t._id}`, {
-    token: viewerToken,
+    token: otherToken,
     body: { status: 'pending' },
   })
   assert.strictEqual(status, 200, '重新打开不应触发完成权限 403')

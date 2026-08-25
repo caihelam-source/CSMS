@@ -43,8 +43,13 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
       if (assignedTo === 'me') {
         query.assignedTo = req.user._id;
       } else if (assignedTo.includes(',')) {
+        // P1 正确性/隐私修复（2026-08-20）：逗号分支同样翻译 'me' → 当前用户，
+        // 避免 mixed 值（如 'me,otherId'）漏翻导致漏查本人任务及可探测 scope 内同事指派。
         query.assignedTo = {
-          $in: assignedTo.split(',').map((s) => s.trim()).filter(Boolean),
+          $in: assignedTo.split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .map((tok) => (tok === 'me' ? req.user._id : tok)),
         };
       } else {
         query.assignedTo = assignedTo;
@@ -142,11 +147,35 @@ router.post('/', auth, async (req, res) => {
 // @route   PUT /api/tasks/:id
 // @desc    Update task
 // @access  Private
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, scopeMiddleware, async (req, res) => {
   try {
     const existing = await Task.findById(req.params.id);
     if (!existing) {
       return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // P0 安全修复（2026-08-20）：写接口挂载行级 scope 校验，确保只能操作本人 scope 内的任务，
+    // 阻断「跨公司 PUT 自加为参与者 → 再 PUT completed 越权完成」的攻击链。
+    const taskCompany = existing.company?._id || existing.company;
+    if (!inScope(req, taskCompany)) {
+      return res.status(403).json({
+        message: 'Access denied: task not in your accessible scope',
+      });
+    }
+
+    // P0 安全修复（2026-08-20）：assignedTo 变更闸门——
+    // 仅 创建者 / admin / 原参与者 可修改参与者列表，防止 scope 内非授权用户自加为参与者后越权完成。
+    if (req.body.assignedTo !== undefined) {
+      const isAdmin = req.user.role === 'admin';
+      const isCreator = existing.createdBy && existing.createdBy.toString() === req.user._id.toString();
+      const isOriginalParticipant = (existing.assignedTo || [])
+        .map((id) => id.toString())
+        .includes(req.user._id.toString());
+      if (!isAdmin && !isCreator && !isOriginalParticipant) {
+        return res.status(403).json({
+          message: 'Access denied: only the creator, an assignee, or admin may change task participants',
+        });
+      }
     }
 
     const updateData = { ...req.body };

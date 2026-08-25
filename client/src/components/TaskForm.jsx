@@ -95,7 +95,9 @@ export default function TaskForm({ initial = {}, onSave, onCancel, loading, user
       ...form,
       company: form.company || undefined,
       meeting: form.meeting || undefined,
-      assignedTo: form.assignedTo?.length ? form.assignedTo : undefined,
+      // P1 功能修复（2026-08-20）：清空参与者时显式传 [] 而非 undefined，
+      // 避免 undefined 经 JSON 序列化被丢弃导致 PUT 不含该字段、清空静默失败（仅编辑受影响，创建正常）。
+      assignedTo: form.assignedTo ?? [],
     }
     onSave(payload)
   }

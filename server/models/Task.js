@@ -126,5 +126,8 @@ taskSchema.index({ company: 1, status: 1 });
 taskSchema.index({ title: 'text', description: 'text' });
 // v-incremental(2026-08-19)：参与者查询索引（P1-4，非破坏性，可累加），支撑「我的任务」过滤性能
 taskSchema.index({ assignedTo: 1 });
+// P1 性能修复（2026-08-20）：复合索引，支撑「我的任务」实际查询（company $in + assignedTo）走索引；
+// 与上方单字段索引共存（索引名不同，不会重复创建导致启动报错）。
+taskSchema.index({ company: 1, assignedTo: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);
