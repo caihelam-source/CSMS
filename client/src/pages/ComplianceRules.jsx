@@ -230,10 +230,17 @@ const ComplianceRules = () => {
     setSaving(true)
     try {
       const { data: res } = await complianceRuleService.generateReminders(editTarget._id, { companyIds })
-      // Mock 返回 remindersGenerated，真实后端返回 created，两者都兼容
+      // Mock 返回 remindersGenerated，真实后端返回 created/blocked，两者都兼容
       const payload = res?.data || res || {}
       const generated = payload.remindersGenerated ?? payload.created ?? 0
-      setGenResult({ success: true, message: `成功生成 ${generated} 条提醒，跳过 ${payload.skipped || 0} 条` })
+      setGenResult({
+        success: true,
+        message: `成功生成 ${generated} 条提醒，跳过 ${payload.skipped || 0} 条`,
+        blocked: payload.blocked || 0,
+        blockedByField: payload.blockedByField || {},
+        blockedByReason: payload.blockedByReason || {},
+        blockedDetails: payload.blockedDetails || [],
+      })
       setTimeout(() => { setModal(null); setGenResult(null) }, 2500)
     } catch (e) {
       setGenResult({ success: false, message: e.response?.data?.message || '生成失败' })
@@ -393,6 +400,17 @@ const ComplianceRules = () => {
           <div className={`p-4 rounded-lg text-sm ${genResult.success ? 'bg-success/10 border border-success/20 text-success' : 'bg-danger/10 border border-danger/20 text-danger'}`}>
             <p className="font-medium">{genResult.success ? '✓ 生成成功' : '✗ 生成失败'}</p>
             <p>{genResult.message}</p>
+            {genResult.blocked > 0 && (
+              <div className="mt-2 pt-2 border-t border-current/20 space-y-1">
+                <p className="font-medium">⚠️ {genResult.blocked} 条因以下原因未生成：</p>
+                {Object.keys(genResult.blockedByField || {}).map((f) => (
+                  <p key={f}>• 缺 <code className="font-mono">{f}</code>：{(genResult.blockedByField || {})[f]} 条</p>
+                ))}
+                {genResult.blockedByReason?.not_listed ? <p>• 仅上市公司适用（所选公司均非上市）：{genResult.blockedByReason.not_listed} 条</p> : null}
+                {genResult.blockedByReason?.jurisdiction_mismatch ? <p>• 司法管辖不匹配：{genResult.blockedByReason.jurisdiction_mismatch} 条</p> : null}
+                {genResult.blockedByReason?.listing_location_mismatch ? <p>• 上市地不匹配：{genResult.blockedByReason.listing_location_mismatch} 条</p> : null}
+              </div>
+            )}
           </div>
         ) : (
           <GenerateModal rule={editTarget} companies={companies} onConfirm={handleGenerate} onCancel={() => setModal(null)} loading={saving} />

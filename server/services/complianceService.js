@@ -114,14 +114,38 @@ function addDays(date, days) {
 }
 
 /**
+ * 诊断某条规则对某公司为何无法计算截止日（供生成统计的 blocked 明细使用）。
+ * 仅覆盖"因公司缺字段"的情况；jurisdiction/isListed/listingLocation 不适用由调用方记录。
+ * @returns {{reason:string, missingFields:string[]}}
+ */
+function diagnoseDueDate(rule, company) {
+  const missing = [];
+  if (rule.baseDateType === 'incorporationDate' && !company.incorporationDate) {
+    missing.push('incorporationDate');
+  } else if (rule.baseDateType === 'financialYearEnd') {
+    const fye = company.financialYearEnd;
+    if (!fye || fye.month == null || fye.day == null) missing.push('financialYearEnd');
+  } else if (rule.baseDateType === 'fixed') {
+    const ap = rule.anchorPayload;
+    if (ap && ap.reference === 'brExpiryDate' && !company.brExpiryDate) {
+      missing.push('brExpiryDate');
+    }
+  }
+  return { reason: missing.length ? 'missing_field' : 'other', missingFields: missing };
+}
+
+/**
  * 为某条规则+公司生成提醒（支持多级提醒）
  */
 async function generateRemindersForRule(rule, company) {
-  if (rule.status !== '启用') return { created: 0, skipped: 0 };
-  if (rule.baseDateType === 'trigger') return { created: 0, skipped: 0 };
+  if (rule.status !== '启用') return { created: 0, skipped: 0, blocked: 0, blockedReason: 'rule_disabled', missingFields: [] };
+  if (rule.baseDateType === 'trigger') return { created: 0, skipped: 0, blocked: 0, blockedReason: 'trigger', missingFields: [] };
 
   const dueDate = calcDueDate(rule, company);
-  if (!dueDate) return { created: 0, skipped: 0 };
+  if (!dueDate) {
+    const diag = diagnoseDueDate(rule, company);
+    return { created: 0, skipped: 0, blocked: 1, blockedReason: diag.reason, missingFields: diag.missingFields };
+  }
 
   let created = 0, skipped = 0;
 
@@ -157,7 +181,7 @@ async function generateRemindersForRule(rule, company) {
     else throw err;
   }
 
-  return { created, skipped };
+  return { created, skipped, blocked: 0, missingFields: [] };
 }
 
 /**
@@ -167,34 +191,80 @@ async function generateBatch(ruleIds, companyIds) {
   const rules = await ComplianceRule.find({ _id: { $in: ruleIds }, status: '启用' });
   const companies = await Company.find({ _id: { $in: companyIds } });
 
-  let totalCreated = 0, totalSkipped = 0;
+  let totalCreated = 0, totalSkipped = 0, totalBlocked = 0;
+  const blockedByField = {};
+  const blockedByReason = {};
+  const blockedDetails = [];
+
+  const recordBlock = (reason, rule, company, missingFields = []) => {
+    totalBlocked++;
+    blockedByReason[reason] = (blockedByReason[reason] || 0) + 1;
+    if (missingFields && missingFields.length) {
+      for (const f of missingFields) blockedByField[f] = (blockedByField[f] || 0) + 1;
+    }
+    if (blockedDetails.length < 50) {
+      blockedDetails.push({ ruleId: rule.ruleId, company: company.name, reason, missingFields });
+    }
+  };
+
   for (const rule of rules) {
     for (const company of companies) {
-      // 检查规则适用性
-      if (rule.jurisdiction !== 'ALL' && rule.jurisdiction !== company.jurisdiction) continue;
-      if (rule.isListedOnly && !company.isListed) continue;
-      if (rule.listingLocation && company.listingLocation !== rule.listingLocation) continue;
+      // 检查规则适用性（记录不适用原因，避免静默跳过）
+      if (rule.jurisdiction !== 'ALL' && rule.jurisdiction !== company.jurisdiction) {
+        recordBlock('jurisdiction_mismatch', rule, company);
+        continue;
+      }
+      if (rule.isListedOnly && !company.isListed) {
+        recordBlock('not_listed', rule, company);
+        continue;
+      }
+      if (rule.listingLocation && company.listingLocation !== rule.listingLocation) {
+        recordBlock('listing_location_mismatch', rule, company);
+        continue;
+      }
 
-      const { created, skipped } = await generateRemindersForRule(rule, company);
-      totalCreated += created;
-      totalSkipped += skipped;
+      const r = await generateRemindersForRule(rule, company);
+      totalCreated += r.created;
+      totalSkipped += r.skipped;
+      if (r.blocked) {
+        recordBlock(r.blockedReason || 'other', rule, company, r.missingFields);
+      }
     }
   }
-  return { created: totalCreated, skipped: totalSkipped };
+  return { created: totalCreated, skipped: totalSkipped, blocked: totalBlocked, blockedByField, blockedByReason, blockedDetails };
 }
 
 /**
  * 为一条规则的所有已应用公司生成提醒
  */
-async function generateForRule(rule) {
-  const companies = await Company.find({ _id: { $in: rule.appliedCompanies } });
-  let totalCreated = 0, totalSkipped = 0;
+async function generateForRule(rule, companyIds) {
+  const ids = (companyIds && Array.isArray(companyIds) && companyIds.length) ? companyIds : rule.appliedCompanies;
+  const companies = await Company.find({ _id: { $in: ids } });
+  let totalCreated = 0, totalSkipped = 0, totalBlocked = 0;
+  const blockedByField = {};
+  const blockedByReason = {};
+  const blockedDetails = [];
+
+  const recordBlock = (reason, company, missingFields = []) => {
+    totalBlocked++;
+    blockedByReason[reason] = (blockedByReason[reason] || 0) + 1;
+    if (missingFields && missingFields.length) {
+      for (const f of missingFields) blockedByField[f] = (blockedByField[f] || 0) + 1;
+    }
+    if (blockedDetails.length < 50) {
+      blockedDetails.push({ ruleId: rule.ruleId, company: company.name, reason, missingFields });
+    }
+  };
+
   for (const company of companies) {
-    const { created, skipped } = await generateRemindersForRule(rule, company);
-    totalCreated += created;
-    totalSkipped += skipped;
+    const r = await generateRemindersForRule(rule, company);
+    totalCreated += r.created;
+    totalSkipped += r.skipped;
+    if (r.blocked) {
+      recordBlock(r.blockedReason || 'other', company, r.missingFields);
+    }
   }
-  return { created: totalCreated, skipped: totalSkipped };
+  return { created: totalCreated, skipped: totalSkipped, blocked: totalBlocked, blockedByField, blockedByReason, blockedDetails };
 }
 
 module.exports = { initPresetRules, generateRemindersForRule, generateBatch, generateForRule, calcDueDate };

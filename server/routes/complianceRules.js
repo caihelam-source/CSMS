@@ -100,7 +100,7 @@ router.post('/:id/generate', auth, async (req, res) => {
   try {
     const rule = await ComplianceRule.findById(req.params.id);
     if (!rule) return res.status(404).json({ message: 'Rule not found' });
-    const result = await generateForRule(rule);
+    const result = await generateForRule(rule, req.body?.companyIds);
     res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ message: err.message });
