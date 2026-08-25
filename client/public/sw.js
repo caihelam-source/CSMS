@@ -16,6 +16,11 @@ self.addEventListener('activate', (event) => {
   )
 })
 
+// 安装页调用 → 跳过 waiting，立即激活新 SW（配合 main.jsx 的「刷新」提示）
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting()
+})
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return

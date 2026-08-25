@@ -244,6 +244,7 @@ export default function Dashboard() {
     { to: '/compliance-reminders', label: '逾期合规', count: expiredReminders.length, icon: AlertTriangle, tone: 'danger' },
     { to: '/tasks', label: '紧急任务', count: urgentTasks.length, icon: AlertCircle, tone: 'warn' },
     { to: '/compliance-reminders', label: '即将到期', count: upcomingReminders.length, icon: Clock, tone: 'info' },
+    { to: '/results-timetable', label: '业绩排期', icon: CalendarClock, tone: 'info' },
     { to: '/tasks?open=new', label: '新增一般任务', icon: PlusCircle, tone: 'action' },
     { to: '/tasks?mode=signing', label: '新增签署任务', icon: PenLine, tone: 'action' },
   ]
