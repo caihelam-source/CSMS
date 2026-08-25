@@ -12,17 +12,17 @@ export default function WeekView({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2 mb-3">
         <div className="flex items-center gap-2">
           <button onClick={onPrev} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="上周">‹</button>
           <button onClick={onToday} className="tap-target px-3 h-9 rounded-lg bg-surface border border-hairline text-sm text-ink-2 hover:bg-canvas transition-colors">今天</button>
           <button onClick={onNext} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="下周">›</button>
         </div>
-        <h2 className="text-lg font-semibold text-ink">{ymd(weekStart)} ~ {ymd(addDays(weekStart, 6))}</h2>
-        <div className="w-[140px]" />
+        <h2 className="flex-1 min-w-0 text-center text-sm sm:text-lg font-semibold text-ink truncate">{ymd(weekStart)} ~ {ymd(addDays(weekStart, 6))}</h2>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="overflow-x-auto sm:overflow-visible -mx-1 px-1">
+        <div className="grid grid-cols-7 gap-1.5 min-w-[600px] sm:min-w-0">
         {days.map((d, i) => {
           const dayEvents = sortDayEvents(byDay[ymd(d)] || [])
           const today = isToday(d)
@@ -65,6 +65,7 @@ export default function WeekView({
             </div>
           )
         })}
+        </div>
       </div>
     </div>
   )

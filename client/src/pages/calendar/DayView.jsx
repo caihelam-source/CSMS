@@ -16,14 +16,13 @@ export default function DayView({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2 mb-3">
         <div className="flex items-center gap-2">
           <button onClick={onPrev} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="前一天">‹</button>
           <button onClick={onToday} className="tap-target px-3 h-9 rounded-lg bg-surface border border-hairline text-sm text-ink-2 hover:bg-canvas transition-colors">今天</button>
           <button onClick={onNext} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="后一天">›</button>
         </div>
-        <h2 className="text-lg font-semibold text-ink">{formatDateTitle(cursor)}{isToday(cursor) ? ' · 今天' : ''}</h2>
-        <div className="w-[140px]" />
+        <h2 className="flex-1 min-w-0 text-center text-sm sm:text-lg font-semibold text-ink truncate">{formatDateTitle(cursor)}{isToday(cursor) ? ' · 今天' : ''}</h2>
       </div>
 
       {allDay.length > 0 && (
@@ -37,8 +36,8 @@ export default function DayView({
             >
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: SOURCE_COLOR[e.source] || '#94a3b8' }} />
               <span className="text-[11px] font-medium" style={{ color: SOURCE_COLOR[e.source] }}>{SOURCE_LABEL[e.source] || e.source}</span>
-              <span className="text-ink font-medium truncate">{e.title}</span>
-              <span className="text-xs text-ink-3 ml-auto">{e.companyName || '个人'}</span>
+              <span className="text-ink font-medium truncate min-w-0 flex-1">{e.title}</span>
+              <span className="text-xs text-ink-3 ml-auto truncate max-w-[45%]">{e.companyName || '个人'}</span>
             </button>
           ))}
         </div>
