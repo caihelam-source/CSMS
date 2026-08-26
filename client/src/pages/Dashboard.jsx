@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { companyService, personnelService, documentService, meetingService, complianceReminderService, templateService, taskService, calendarService } from '../services/index.js'
 import { formatDate } from '../utils/helpers'
@@ -13,7 +13,7 @@ import {
   CsmsIconAddTask, CsmsIconAddSign,
 } from '../components/CsmsIcons'
 import {
-  RefreshCw, LogOut,
+  RefreshCw,
   Pencil, X, Check, ArrowRight,
 } from 'lucide-react'
 
@@ -29,8 +29,10 @@ const SOURCE_COLOR = {
   results_timetable: '#ec4899',
 }
 
+const fmtTime = (d) => d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '—'
+
 export default function Dashboard() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const displayName = user?.name || '林才贺'
   const [stats, setStats] = useState(null)
   const [upcomingMeetings, setUpcomingMeetings] = useState([])
@@ -43,14 +45,10 @@ export default function Dashboard() {
   const [templatesCount, setTemplatesCount] = useState(0)
   const [calendarItems, setCalendarItems] = useState([])
   const [loading, setLoading] = useState(true)
-  const [_lastRefreshed, setLastRefreshed] = useState(null)
-  const [accountOpen, setAccountOpen] = useState(false)
+  const [lastRefreshed, setLastRefreshed] = useState(null)
   const [customSubtitle, setCustomSubtitle] = useState(() => localStorage.getItem(SUBTITLE_KEY) || '')
   const [editingSubtitle, setEditingSubtitle] = useState(false)
   const [draftSubtitle, setDraftSubtitle] = useState('')
-  const accountRef = useRef(null)
-  const triggerRef = useRef(null)
-  const menuRef = useRef(null)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -140,58 +138,6 @@ export default function Dashboard() {
     })()
   }, [])
 
-  // 账户下拉：外部点击 / Escape 关闭并归还焦点给触发器；打开时聚焦首个菜单项（a11y 键盘可达）
-  useEffect(() => {
-    if (!accountOpen) return
-    const onDocClick = (e) => {
-      if (accountRef.current && !accountRef.current.contains(e.target)) {
-        setAccountOpen(false)
-        triggerRef.current?.focus()
-      }
-    }
-    const onKey = (e) => {
-      if (e.key === 'Escape') {
-        setAccountOpen(false)
-        triggerRef.current?.focus()
-      }
-    }
-    document.addEventListener('click', onDocClick)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('click', onDocClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [accountOpen])
-
-  // 打开时把焦点移到首个菜单项，支持纯键盘进入菜单
-  useEffect(() => {
-    if (accountOpen && menuRef.current) {
-      menuRef.current.querySelector('.account__item')?.focus()
-    }
-  }, [accountOpen])
-
-  // 菜单内方向键导航（ArrowUp/Down 循环，Home/End 跳首尾）
-  const handleMenuKeyDown = (e) => {
-    const menu = menuRef.current
-    if (!menu) return
-    const items = Array.from(menu.querySelectorAll('.account__item'))
-    if (items.length === 0) return
-    const idx = items.indexOf(document.activeElement)
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      const n = idx < 0 ? 0 : (idx + 1) % items.length
-      items[n].focus()
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      const n = idx < 0 ? items.length - 1 : (idx - 1 + items.length) % items.length
-      items[n].focus()
-    } else if (e.key === 'Home') {
-      e.preventDefault(); items[0].focus()
-    } else if (e.key === 'End') {
-      e.preventDefault(); items[items.length - 1].focus()
-    }
-  }
-
   // 时段问候（纯视图逻辑，不调接口）
   const getGreeting = () => {
     const h = new Date().getHours()
@@ -233,16 +179,16 @@ export default function Dashboard() {
   }
   const cancelEditSubtitle = () => setEditingSubtitle(false)
 
-  // 8 项核心指标（标签 / 数据不变，趋势用预览静态串）
+  // 8 项核心指标（标签 / 数据不变；副文案用真实派生数据，去除占位 trend 串）
   const metrics = [
-    { icon: CsmsIconCompanies, label: '公司总数', value: stats?.totalCompanies || 0, trend: '▲ 2 · 较上月', trendCls: 'm-trend--up', to: '/companies' },
-    { icon: CsmsIconPersonnel, label: '人员库', value: stats?.totalPersonnel || 0, trend: '▲ 12 · 本月', trendCls: 'm-trend--up', to: '/personnel' },
-    { icon: CsmsIconDocuments, label: '文档', value: stats?.totalDocuments || 0, trend: '▲ 28 · 本月', trendCls: 'm-trend--up', to: '/documents' },
-    { icon: CsmsIconMeetings, label: '会议', value: stats?.totalMeetings || 0, trend: '▲ 3 · 较上月', trendCls: 'm-trend--up', to: '/meetings' },
-    { icon: CsmsIconTasks, label: '待办 Task', value: pendingTasksCount, trend: '▼ 4 · 改善', trendCls: 'm-trend--down', to: '/tasks' },
-    { icon: CsmsIconSign, label: '签署任务', value: signTasksCount, trend: '— 持平', trendCls: 'm-trend--flat', to: '/sign-tasks' },
-    { icon: CsmsIconCompliance, label: '合规提醒', value: upcomingReminders.length, trend: '▲ 1 · 关注', trendCls: 'm-trend--warn', to: '/compliance-reminders' },
-    { icon: CsmsIconTemplate, label: '模板', value: templatesCount, trend: '▲ 3 · 本月', trendCls: 'm-trend--up', to: '/templates' },
+    { icon: CsmsIconCompanies, label: '公司总数', value: stats?.totalCompanies || 0, sub: `在管 ${stats?.activeCompanies || 0} 家`, to: '/companies' },
+    { icon: CsmsIconPersonnel, label: '人员库', value: stats?.totalPersonnel || 0, sub: '董事 · 股东 · 员工', to: '/personnel' },
+    { icon: CsmsIconDocuments, label: '文档', value: stats?.totalDocuments || 0, sub: '归档与模板', to: '/documents' },
+    { icon: CsmsIconMeetings, label: '会议', value: stats?.totalMeetings || 0, sub: '本年度排期', to: '/meetings' },
+    { icon: CsmsIconTasks, label: '待办 Task', value: pendingTasksCount, sub: `${urgentTasks.length} 项紧急`, to: '/tasks' },
+    { icon: CsmsIconSign, label: '签署任务', value: signTasksCount, sub: '待签署', to: '/sign-tasks' },
+    { icon: CsmsIconCompliance, label: '合规提醒', value: upcomingReminders.length, sub: `${expiredReminders.length} 项逾期`, to: '/compliance-reminders' },
+    { icon: CsmsIconTemplate, label: '模板', value: templatesCount, sub: '可复用', to: '/templates' },
   ]
 
   // 快捷操作：状态快捷入口 + 创建快捷入口（全部使用 CSMS 专属定制图标）
@@ -279,49 +225,7 @@ export default function Dashboard() {
       <a className="skip-link" href="#main">跳到主内容</a>
       <div id="main" className="max-w-[var(--fluid-content-max)] mx-auto w-full">
 
-        {/* 页面头：品牌 Logo + CSMS / Dashboard + 刷新 + 账户控件 */}
-        <div className="page-header">
-          <div className="page-header__brand">
-            <BrandLogo variant="icon" size="md" />
-            <h1 className="page-header__title">CSMS<span>/ Dashboard</span></h1>
-          </div>
-          <div className="page-header__actions">
-            <button className="page-header__icon-btn" onClick={loadAll} title="刷新数据" aria-label="刷新数据">
-              <RefreshCw size={18} />
-            </button>
-            <div className={`account ${accountOpen ? 'open' : ''}`} ref={accountRef}>
-              <button
-                ref={triggerRef}
-                className="account__btn"
-                onClick={(e) => { e.stopPropagation(); setAccountOpen(o => !o) }}
-                aria-haspopup="true"
-                aria-expanded={accountOpen}
-                aria-controls="accountMenu"
-                aria-label="账户菜单"
-              >
-                <span className="account__avatar">{displayName.charAt(0)}</span>
-                <span className="account__name">{displayName}</span>
-                <svg className="account__caret" viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              </button>
-              <div className="account__menu" id="accountMenu" role="menu" aria-label="账户" ref={menuRef} onKeyDown={handleMenuKeyDown}>
-                <div className="account__menu-head">
-                  <span className="account__avatar account__avatar--lg">{displayName.charAt(0)}</span>
-                  <div>
-                    <div className="account__menu-name">{displayName}</div>
-                    <div className="account__menu-role">Administrator · 监管 {stats?.activeCompanies || 0} 家公司</div>
-                  </div>
-                </div>
-                {/* 个人设置 / 切换公司 / 偏好与主题 暂未实现，先隐藏避免空操作（UX 重构 B7） */}
-                <div className="account__divider"></div>
-                <button type="button" className="account__item account__item--danger" role="menuitem" onClick={() => { setAccountOpen(false); triggerRef.current?.focus(); logout() }}>
-                  <LogOut size={17} />退出登录
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Hero 横幅：主 CTA + 可编辑欢迎词 + 关键摘要徽章（navy 印章系列） */}
+        {/* Hero 横幅：品牌深蓝印章 + 问候 + 可编辑欢迎词 + 关键摘要徽章（navy 印章系列） */}
         <div className="hero-card">
           <div className="hero-card__body">
             {/* 白色印章线框图标，与 CSMS logo 同源 */}
@@ -359,7 +263,7 @@ export default function Dashboard() {
           </div>
           <div className="hero-card__cta">
             <Link to="/compliance-reminders" className="hero-card__btn">
-              <CsmsIconDocuments size={18} /> 生成合规月报 <ArrowRight size={16} />
+              <CsmsIconCompliance size={18} /> 查看全部提醒 <ArrowRight size={16} />
             </Link>
             <div className="hero-card__badges">
               <span className="hero-card__badge hero-card__badge--danger"><i></i>{expiredReminders.length} 项逾期</span>
@@ -387,19 +291,25 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* 核心指标卡片网格 */}
+        {/* 核心指标：分区眉标 + 刷新（去掉占位 trend，副文案改用真实派生数据） */}
+        <div className="dash-eyebrow">
+          <h2 className="dash-eyebrow__title">核心指标</h2>
+          <button className="dash-eyebrow__action" onClick={loadAll} title="刷新数据">
+            <RefreshCw size={15} /> 刷新数据
+          </button>
+        </div>
         <div className="metric-grid">
           {metrics.map((m, i) => (
             <Link to={m.to} className="metric-card" key={i} aria-label={`查看${m.label}`}>
               <div className="m-ico"><m.icon size={20} /></div>
               <p className="m-label">{m.label}</p>
               <p className="m-value">{m.value}</p>
-              <span className={`m-trend ${m.trendCls}`}>{m.trend}</span>
+              <p className="m-sub">{m.sub}</p>
             </Link>
           ))}
         </div>
 
-        {/* 迷你双栏：会议 / 逾期与紧急 */}
+        {/* 近期动态：会议 / 逾期与紧急 / 本月待办（日历整卡，三卡同栅格对齐） */}
         <div className="mini-grid">
           <div className="mini-col">
             <div className="mini-col__head">
@@ -443,31 +353,38 @@ export default function Dashboard() {
               })
             )}
           </div>
+
+          <div className="mini-col mini-col--full">
+            <div className="mini-col__head">
+              <h3 className="mini-col__title"><CsmsIconUpcoming size={18} />本月待办 / 临近到期</h3>
+              <Link to="/calendar" className="mini-col__more">打开日历</Link>
+            </div>
+            {calendarItems.length === 0 ? (
+              <p className="text-ink-3 text-sm py-4 text-center">本月暂无待办 🎉</p>
+            ) : (
+              <div className="mini-col__grid">
+                {calendarItems.map((e) => (
+                  <Link to={e.link} className="mini-row" key={e.id}>
+                    <div className="mr-main">
+                      <p className="mr-t">{e.title}</p>
+                      <p className="mr-s">{e.module} · {e.companyName || '未关联'}</p>
+                    </div>
+                    <span className="mr-right" style={{ color: e.overdue ? '#b91c1c' : '#64748b' }}>
+                      <i className="mi-dot" style={{ background: e.overdue ? '#ef4444' : (SOURCE_COLOR[e.source] || '#64748b') }}></i>
+                      {e.overdue ? '逾期' : formatDate(e.date)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* 本月待办 / 临近到期（日历跨模块聚合） */}
-        <section className="mini-col mt-4">
-          <div className="mini-col__head">
-            <h3 className="mini-col__title"><CsmsIconUpcoming size={18} />本月待办 / 临近到期</h3>
-            <Link to="/calendar" className="mini-col__more">打开日历</Link>
-          </div>
-          {calendarItems.length === 0 ? (
-            <p className="text-ink-3 text-sm py-4 text-center">本月暂无待办 🎉</p>
-          ) : (
-            calendarItems.map((e) => (
-              <Link to={e.link} className="mini-row" key={e.id}>
-                <div className="mr-main">
-                  <p className="mr-t">{e.title}</p>
-                  <p className="mr-s">{e.module} · {e.companyName || '未关联'}</p>
-                </div>
-                <span className="mr-right" style={{ color: e.overdue ? '#b91c1c' : '#64748b' }}>
-                  <i className="mi-dot" style={{ background: e.overdue ? '#ef4444' : (SOURCE_COLOR[e.source] || '#64748b') }}></i>
-                  {e.overdue ? '逾期' : formatDate(e.date)}
-                </span>
-              </Link>
-            ))
-          )}
-        </section>
+        {/* 页脚：收尾，给页面完整感 */}
+        <footer className="dash-footer">
+          <span className="dash-footer__brand"><BrandLogo variant="icon" size="sm" /> CSMS</span>
+          <span className="dash-footer__meta">香港公司秘书管理系统 · 最后更新 {fmtTime(lastRefreshed)}</span>
+        </footer>
 
       </div>
     </>

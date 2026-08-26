@@ -322,7 +322,7 @@
 
   /* 核心指标 2x4 网格（卡片版：白底 + 柔阴影 + 左上图标 + 蓝大数字 + 趋势微标注） */
   .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4);
-    margin-bottom: var(--fluid-section-xl); max-width: 1680px; margin-left: auto; margin-right: auto; }
+    margin-bottom: var(--fluid-section-xl); max-width: var(--fluid-content-max); margin-left: auto; margin-right: auto; }
   @container app (min-width: 760px) { .metric-grid { grid-template-columns: repeat(4, 1fr); } }
   .metric-card { position: relative; display: block; padding: var(--fluid-metric-pad);
     background: rgb(var(--surface)); border: 1px solid rgb(var(--border)); border-radius: var(--radius-xl);
@@ -432,4 +432,33 @@
 }
 @media (min-width: 2560px) {
   :root { --fluid-content-max: 2200px; --fluid-mvalue: clamp(2.5rem, 5.5vw, 5.5rem); --fluid-hero: clamp(1.75rem, 3.4vw, 3.5rem); }
+}
+
+@layer components {
+  /* ===== Dashboard 完整性打磨（eyebrow 眉标 / 指标副文案 / 日历整卡 / 页脚） ===== */
+  .dash-eyebrow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+    max-width: var(--fluid-content-max); margin: 0 auto var(--space-4); }
+  .dash-eyebrow__title { font-size: var(--text-lg); font-weight: 800; letter-spacing: -.01em; color: rgb(var(--text-1));
+    display: flex; align-items: center; gap: var(--space-2); }
+  .dash-eyebrow__title::before { content: ""; width: 4px; height: 1.05em; border-radius: var(--radius-full);
+    background: rgb(var(--brand-navy)); }
+  .dash-eyebrow__action { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: 600;
+    color: rgb(var(--text-2)); background: rgb(var(--surface)); border: 1px solid rgb(var(--border));
+    border-radius: var(--radius-full); padding: 7px 14px; cursor: pointer; transition: all var(--dur-fast); }
+  .dash-eyebrow__action:hover { color: rgb(var(--text-1)); background: rgb(var(--subtle)); border-color: transparent; }
+  .dash-eyebrow__action svg { width: 15px; height: 15px; }
+
+  .metric-card .m-sub { font-size: var(--text-xs); color: rgb(var(--text-3)); margin-top: 2px; font-weight: 500; }
+
+  /* 日历整卡：跨两列，内部单列承载更多条目（与上方双栏等高对齐） */
+  .mini-col--full { grid-column: 1 / -1; }
+  .mini-col__grid { display: block; }
+
+  /* 页脚：收尾，给页面完整感 */
+  .dash-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+    max-width: var(--fluid-content-max); margin: var(--fluid-section-xl) auto 0; padding-top: var(--space-5);
+    border-top: 1px solid rgb(var(--border)); font-size: var(--text-xs); color: rgb(var(--text-3)); flex-wrap: wrap; }
+  .dash-footer__brand { display: inline-flex; align-items: center; gap: var(--space-2); font-weight: 700; color: rgb(var(--text-2)); }
+  .dash-footer__brand img { width: 24px; height: 24px; display: block; }
+  .dash-footer__meta { font-variant-numeric: tabular-nums; }
 }
