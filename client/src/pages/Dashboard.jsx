@@ -5,6 +5,7 @@ import { formatDate } from '../utils/helpers'
 import { toArray } from '../utils/responseNormalize.js'
 import { LoadingSpinner } from '../components/UIHelpers'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import BrandLogo from '../components/BrandLogo'
 import {
   Building2, Users, FileText, Calendar, Clock, CalendarClock, PenLine, CheckCircle2, FileCode,
   RefreshCw, LogOut,
@@ -276,7 +277,7 @@ export default function Dashboard() {
         {/* 页面头：品牌 Logo + CSMS / Dashboard + 刷新 + 账户控件 */}
         <div className="page-header">
           <div className="page-header__brand">
-            <div className="page-header__logo"><Building2 size={20} /></div>
+            <BrandLogo variant="icon" size="md" />
             <h1 className="page-header__title">CSMS<span>/ Dashboard</span></h1>
           </div>
           <div className="page-header__actions">

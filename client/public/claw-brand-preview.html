@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>CSMS 品牌预览 · Brand Preview</title>
+<style>
+  :root{
+    --primary:#2563EB; --primary-700:#1D4ED8; --navy:#0F2A5E; --accent:#EA580C;
+    --ink:#0F172A; --ink-2:#475569; --ink-3:#94A3B8;
+    --border:#E2E8F0; --surface:#FFFFFF; --bg:#F8FAFC; --shadow:0 12px 32px rgba(15,23,42,.12);
+    --radius:16px; --font:"Inter","Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",Roboto,Helvetica,Arial,sans-serif;
+  }
+  body.dark{ --ink:#F8FAFC; --ink-2:#94A3B8; --border:#1E293B; --surface:#0F172A; --bg:#0B1120; --shadow:0 12px 32px rgba(0,0,0,.6); }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:var(--font); background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; line-height:1.5;}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 20px 64px;}
+
+  /* top control bar */
+  .topbar{position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:12px;
+    padding:12px 20px; background:color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);}
+  .topbar__brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:-.02em; font-size:15px;}
+  .topbar__brand img{width:28px; height:28px; border-radius:7px;}
+  .topbar__spacer{margin-left:auto; display:flex; gap:8px;}
+  .btn{font-family:var(--font); font-size:13px; font-weight:600; padding:8px 14px; border-radius:10px; cursor:pointer;
+    border:1px solid var(--border); background:var(--surface); color:var(--ink-2); transition:.15s;}
+  .btn:hover{color:var(--ink); border-color:var(--ink-3);}
+  .btn--on{background:var(--primary); color:#fff; border-color:var(--primary);}
+
+  /* section */
+  .sec{margin-top:40px;}
+  .sec__h{font-size:13px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em; margin:0 0 14px;}
+  .sec__d{font-size:13px; color:var(--ink-2); margin:-6px 0 16px;}
+
+  /* ---------- LOGIN ---------- */
+  .login-stage{position:relative; overflow:hidden; border:1px solid var(--border); border-radius:var(--radius);
+    background:linear-gradient(135deg,#EFF4FF 0%, #F1F5F9 100%); padding:56px 20px;}
+  .login-stage .watermark{position:absolute; right:-40px; top:-30px; width:340px; height:340px; opacity:.06; color:var(--navy); pointer-events:none;}
+  body.dark .login-stage{background:linear-gradient(135deg,#101a33 0%, #0b1120 100%);}
+  .login-card{position:relative; max-width:380px; margin:0 auto; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:28px;}
+  .brand-head{display:flex; align-items:center; gap:12px; justify-content:center; margin-bottom:6px;}
+  .brand-head img{width:52px; height:52px; border-radius:13px;}
+  .brand-head .wm{font-weight:800; font-size:26px; letter-spacing:-.02em; line-height:1;}
+  .brand-head .sub{font-size:11.5px; color:var(--ink-3); margin-top:4px;}
+  .slogan{text-align:center; color:var(--ink-2); font-size:13px; font-weight:600; margin:10px 0 22px;}
+  .field{display:block; margin-bottom:14px;}
+  .field span{display:block; font-size:12.5px; font-weight:600; color:var(--ink-2); margin-bottom:6px;}
+  .field input{width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:11px; background:var(--surface); color:var(--ink); font-size:14px; outline:none; transition:.15s;}
+  .field input:focus{border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,.25);}
+  .cta{width:100%; padding:11px; border:0; border-radius:12px; background:var(--primary); color:#fff; font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 4px 16px rgba(37,99,235,.35);}
+  .cta:hover{background:var(--primary-700);}
+
+  /* ---------- DASHBOARD BANNER ---------- */
+  .banner{position:relative; overflow:hidden; border-radius:var(--radius); padding:32px; min-height:170px; display:flex; align-items:center; gap:20px;}
+  .banner::before{content:""; position:absolute; inset:0; opacity:.12; pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23ffffff' stroke-width='2' stroke-opacity='1'/%3E%3Cpath d='M32 18 A14 14 0 1 0 32 46' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-size:130px;}
+  .banner--navy{background:var(--navy); color:#fff;}
+  .banner--light{background:linear-gradient(135deg,var(--primary) 0%, var(--navy) 100%); color:#fff;}
+  .banner__seal{flex:none; width:56px; height:56px;}
+  .banner__body{min-width:0; position:relative;}
+  .banner__title{font-size:24px; font-weight:800; letter-spacing:-.02em; line-height:1.15;}
+  .banner__sub{font-size:13.5px; opacity:.9; margin-top:6px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; min-height:22px;}
+  .banner__cta{margin-left:auto; position:relative; align-self:center; display:inline-flex; align-items:center; gap:8px; padding:11px 18px; background:#fff; color:var(--navy); border-radius:12px; font-weight:700; text-decoration:none; white-space:nowrap;}
+  .banner__cta:hover{transform:translateY(-2px);}
+
+  /* ---------- CONSISTENCY ---------- */
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  @media(max-width:680px){.grid3{grid-template-columns:1fr;}}
+  .ctx{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; text-align:center; box-shadow:var(--shadow);}
+  .ctx__label{font-size:12px; font-weight:700; color:var(--ink-2);}
+  .ctx__where{font-size:11.5px; color:var(--ink-3); margin-bottom:14px;}
+  .ctx__marks{display:flex; align-items:center; justify-content:center; gap:18px;}
+  .ctx img{display:block;}
+  .ctx__note{margin-top:14px; font-size:11px; color:var(--accent); font-weight:600;}
+
+  /* ---------- GALLERY ---------- */
+  .asset{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px; margin-bottom:16px; display:flex; align-items:center; gap:20px; flex-wrap:wrap;}
+  .asset__meta{flex:1; min-width:200px;}
+  .asset__name{font-weight:700; font-size:14px;}
+  .asset__file{font-size:12px; color:var(--ink-3); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; margin-top:2px;}
+  .asset__use{font-size:12.5px; color:var(--ink-2); margin-top:8px;}
+  .asset__img{background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; align-items:center; justify-content:center;}
+  .asset__img--navy{background:var(--navy); border-color:var(--navy);}
+  .asset__img img{display:block;}
+
+  footer{margin-top:48px; padding-top:18px; border-top:1px solid var(--border); font-size:12px; color:var(--ink-3);}
+</style>
+</head>
+<body>
+
+<!-- hidden symbol defs (single-source white seal for navy surfaces) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="seal-white" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="20" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+    <path d="M32 18 A14 14 0 1 0 32 46" fill="none" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M25 32 l5 5 l10 -11" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</defs></svg>
+
+<header class="topbar">
+  <div class="topbar__brand"><img src="icon.svg" alt="CSMS"/> CSMS 品牌预览</div>
+  <div class="topbar__spacer">
+    <button class="btn" id="themeBtn" aria-pressed="false">明 / 暗</button>
+    <button class="btn btn--on" id="bannerBtn">Banner：深蓝 / 浅蓝</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- A. LOGIN -->
+  <section class="sec">
+    <h2 class="sec__h">A · 登录页 Login</h2>
+    <p class="sec__d">顶部 CSMS 印章 Logo + 副标题 + slogan「井然有序，合規無憂」+ 极淡印章水印背景。</p>
+    <div class="login-stage">
+      <svg class="watermark" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <circle cx="32" cy="32" r="26" stroke="currentColor" stroke-width="3"/>
+        <path d="M32 16 A16 16 0 1 0 32 48" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+        <path d="M24 33 l6 6 l11 -13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="login-card">
+        <div class="brand-head">
+          <img src="icon.svg" alt="CSMS"/>
+          <div>
+            <div class="wm">CSMS</div>
+            <div class="sub">香港公司秘书管理系统 · Company Secretary Management System</div>
+          </div>
+        </div>
+        <div class="slogan">井然有序，合規無憂</div>
+        <form onsubmit="return false">
+          <label class="field"><span>邮箱 Email</span><input type="email" placeholder="you@firm.com.hk"/></label>
+          <label class="field"><span>密码 Password</span><input type="password" placeholder="••••••••"/></label>
+          <button class="cta" type="submit">登录 Sign in</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- B. DASHBOARD BANNER -->
+  <section class="sec">
+    <h2 class="sec__h">B · Dashboard 欢迎区 Banner</h2>
+    <p class="sec__d">深蓝锚点 #0F2A5E + 印章线框纹理 + CSMS 字标（点右上「Banner：深蓝 / 浅蓝」切换）。</p>
+    <div class="banner banner--navy" id="banner">
+      <svg class="banner__seal"><use href="#seal-white"/></svg>
+      <div class="banner__body">
+        <div class="banner__title">CSMS</div>
+        <div class="banner__sub"><span>早上好，陈小姐</span><span>·</span><span>今日 3 项待办 · 2 份待签文件</span></div>
+      </div>
+      <a class="banner__cta" href="#">查看待办 →</a>
+    </div>
+  </section>
+
+  <!-- C. CONSISTENCY -->
+  <section class="sec">
+    <h2 class="sec__h">C · 三处 Logo 一致性（同源 icon.svg）</h2>
+    <p class="sec__d">浏览器标签 / 侧栏顶部 / Dashboard 页头 均引用同一图标资产，杜绝散乱。</p>
+    <div class="grid3">
+      <div class="ctx">
+        <div class="ctx__label">Favicon</div>
+        <div class="ctx__where">浏览器标签 · 主屏</div>
+        <div class="ctx__marks"><img src="icon.svg" width="16" height="16" alt=""/><img src="icon.svg" width="32" height="32" alt=""/></div>
+        <div class="ctx__note">同源 · 16 / 32px</div>
+      </div>
+      <div class="ctx">
+        <div class="ctx__label">Navbar</div>
+        <div class="ctx__where">侧栏 / 顶栏左上</div>
+        <div class="ctx__marks"><img src="icon.svg" width="28" height="28" alt=""/><span style="font-weight:800;font-size:18px">CSMS</span></div>
+        <div class="ctx__note">同源 · 28px</div>
+      </div>
+      <div class="ctx">
+        <div class="ctx__label">Dashboard</div>
+        <div class="ctx__where">页面头页眉</div>
+        <div class="ctx__marks"><img src="icon.svg" width="32" height="32" alt=""/><span style="font-weight:800;font-size:18px">CSMS</span></div>
+        <div class="ctx__note">同源 · 32px</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- D. ASSET GALLERY -->
+  <section class="sec">
+    <h2 class="sec__h">D · Logo 家族资源</h2>
+    <p class="sec__d">icon.svg（图标 / App Icon / Favicon / Maskable）· logo-full.svg（横版主标）· logo-reversed.svg（反白）。</p>
+
+    <div class="asset">
+      <div class="asset__img"><img src="icon.svg" width="64" height="64" alt="icon"/></div>
+      <div class="asset__meta">
+        <div class="asset__name">icon.svg</div>
+        <div class="asset__file">public/icon.svg</div>
+        <div class="asset__use">图标版 · 64×64 · #0F2A5E 方底 + 白印章 · 可作 App Icon / Favicon / Maskable。</div>
+      </div>
+    </div>
+
+    <div class="asset">
+      <div class="asset__img"><img src="logo-full.svg" width="280" height="54" alt="logo-full"/></div>
+      <div class="asset__meta">
+        <div class="asset__name">logo-full.svg</div>
+        <div class="asset__file">public/logo-full.svg</div>
+        <div class="asset__use">横版主 Logo · 印章 + CSMS 字标(800) + 双语副标题 · viewBox 330×64。</div>
+      </div>
+    </div>
+
+    <div class="asset">
+      <div class="asset__img asset__img--navy"><img src="logo-reversed.svg" width="280" height="54" alt="logo-reversed"/></div>
+      <div class="asset__meta">
+        <div class="asset__name">logo-reversed.svg</div>
+        <div class="asset__file">public/logo-reversed.svg</div>
+        <div class="asset__use">反白版 · 深蓝卡底 + 白描边 + 白字 · 用于深色模式 / 深蓝表面。</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    本预览为品牌评审用资产，未改动生产前端代码（index.html / Login / Navbar / Dashboard 暂未动）。
+    规范见 <code>E:\CSMS\DESIGN.md</code>。点击右上「明 / 暗」可验证反白版；「Banner」可切换深浅蓝欢迎区。
+  </footer>
+</main>
+
+<!-- Pretext framework (design-html skill): CJK/Arabic line-breaking typography engine, bundled per skill -->
+<script type="module" src="./vendor/pretext.js"></script>
+<script>
+  (function(){
+    var body=document.body, themeBtn=document.getElementById('themeBtn'), banner=document.getElementById('banner'), bannerBtn=document.getElementById('bannerBtn');
+    themeBtn.addEventListener('click',function(){ body.classList.toggle('dark'); themeBtn.setAttribute('aria-pressed', body.classList.contains('dark')); });
+    bannerBtn.addEventListener('click',function(){
+      var light=banner.classList.toggle('banner--light');
+      banner.classList.toggle('banner--navy', !light);
+      bannerBtn.classList.toggle('btn--on', !light);
+    });
+  })();
+</script>
+</body>
+</html>

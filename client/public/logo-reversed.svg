@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 64" width="400" height="64" role="img" aria-label="CSMS reversed">
+  <rect width="400" height="64" rx="14" fill="#0F2A5E"/>
+  <circle cx="32" cy="32" r="26" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+  <circle cx="32" cy="32" r="21" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.35"/>
+  <path d="M32 16 A16 16 0 1 0 32 48" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/>
+  <path d="M24 33 l6 6 l11 -13" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="72" y="40" font-family="Inter, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif" font-size="30" font-weight="800" fill="#FFFFFF" letter-spacing="-1">CSMS</text>
+  <text x="73" y="54" font-family="Inter, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif" font-size="9.5" font-weight="500" fill="#FFFFFF" opacity="0.72">香港公司秘书管理系统 · Company Secretary Management System</text>
+</svg>

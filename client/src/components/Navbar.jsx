@@ -3,13 +3,14 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 import {
   LayoutDashboard, Calendar, FileText, Building2,
-  CheckSquare, LogOut, Menu, X, Briefcase, Crown, Zap,
+  CheckSquare, LogOut, Menu, X, Crown, Zap,
   Bell, ShieldCheck, FileCode, UserCircle, Settings as SettingsIcon,
   Sun, Moon, MoreHorizontal, FileSignature, CalendarClock, CalendarDays,
 } from 'lucide-react'
 import { useState, memo, useEffect } from 'react'
 import GlobalSearch from './GlobalSearch'
 import CommandPalette from './CommandPalette'
+import BrandLogo from './BrandLogo'
 import { useScope } from '../hooks/useScope'
 import { MOCK_DEMO_ACCOUNTS } from '../services/mock.js'
 
@@ -140,12 +141,8 @@ const Navbar = () => {
       `}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-hairline">
-          <div className="p-2 bg-primary-600 rounded-xl shadow-sm">
-            <Briefcase size={19} className="text-white" />
-          </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-bold text-ink leading-none">CSMS</h1>
-            <p className="text-xs text-ink-3 mt-0.5 truncate">公司秘书管理</p>
+            <BrandLogo variant="full" size="sm" className="max-w-full" />
           </div>
           <button
             onClick={toggle}

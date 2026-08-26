@@ -25,6 +25,8 @@ export default {
         // 中性表面 / 文字 / 发丝边框令牌（主题感知，见 index.css 变量，支持透明度）
         canvas: 'rgb(var(--bg) / <alpha-value>)',
         surface: 'rgb(var(--surface) / <alpha-value>)',
+        // 品牌深蓝锚点（印章环 / 反白底 / 权威感来源）
+        navy: 'rgb(var(--brand-navy) / <alpha-value>)',
         ink: 'rgb(var(--text-1) / <alpha-value>)',
         'ink-2': 'rgb(var(--text-2) / <alpha-value>)',
         'ink-3': 'rgb(var(--text-3) / <alpha-value>)',

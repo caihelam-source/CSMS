@@ -29,6 +29,8 @@
   /* 品牌主色 / 点缀 */
   --color-primary:37 99 235; --color-primary-hover:29 78 216;
   --color-accent:234 88 12; --color-accent-hover:249 115 22; --rgb-accent:234 88 12;
+  /* 品牌深蓝锚点（印章环 / 反白底 / 权威感来源，DESIGN.md §3） */
+  --brand-navy:15 42 94;
   /* 字体（原文） */
   --font-sans: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","PingFang SC","Microsoft YaHei","Hiragino Sans GB","Noto Sans CJK SC",sans-serif;
   /* 字阶 */

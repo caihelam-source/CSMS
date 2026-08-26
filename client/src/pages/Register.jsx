@@ -1,5 +1,6 @@
 import { useNavigate, Link } from 'react-router-dom'
-import { Briefcase, ShieldCheck, ArrowLeft, UserCog } from 'lucide-react'
+import { ShieldCheck, ArrowLeft, UserCog } from 'lucide-react'
+import BrandLogo from '../components/BrandLogo'
 
 // 注册模式：仅管理员后台开通（安全设计，公开自注册已关闭）。
 // 此页不再调用被禁用的 /api/auth/register，改为清晰说明 + 返回登录，避免 403 误导。
@@ -11,11 +12,8 @@ const Register = () => {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4 shadow-lg">
-            <Briefcase size={30} className="text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-ink">CSMS</h1>
-          <p className="text-ink-2 mt-1 text-sm">公司秘书管理系统</p>
+          <BrandLogo variant="full" size="lg" className="mx-auto mb-3" />
+          <p className="text-ink-2 mt-1 text-sm">井然有序，合規無憂</p>
         </div>
 
         {/* Card */}

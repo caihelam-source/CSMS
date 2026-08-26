@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Briefcase, Mail, Lock, AlertCircle, Zap } from 'lucide-react'
+import { Mail, Lock, AlertCircle, Zap } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { LoadingSpinner, FormField, inputClass } from '../components/UIHelpers'
+import BrandLogo from '../components/BrandLogo'
 import { validate, required, email as emailValidator } from '../utils/validators'
 
 const LOGIN_RULES = {
@@ -57,11 +58,8 @@ const Login = () => {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4 shadow-lg">
-            <Briefcase size={30} className="text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-ink">CSMS</h1>
-          <p className="text-ink-2 mt-1 text-sm">公司秘书管理系统</p>
+          <BrandLogo variant="full" size="lg" className="mx-auto mb-3" />
+          <p className="text-ink-2 mt-1 text-sm">井然有序，合規無憂</p>
         </div>
 
         {/* Card */}
