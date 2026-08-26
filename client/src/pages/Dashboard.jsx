@@ -7,7 +7,11 @@ import { LoadingSpinner } from '../components/UIHelpers'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import BrandLogo from '../components/BrandLogo'
 import {
-  Building2, Users, FileText, Calendar, Clock, CalendarClock, PenLine, CheckCircle2, FileCode,
+  CsmsIconCompanies, CsmsIconPersonnel, CsmsIconDocuments, CsmsIconMeetings,
+  CsmsIconTasks, CsmsIconSign, CsmsIconCompliance, CsmsIconTemplate,
+} from '../components/CsmsIcons'
+import {
+  FileText, Calendar, Clock, CalendarClock, PenLine,
   RefreshCw, LogOut,
   Pencil, X, Check, ArrowRight, PlusCircle, AlertCircle, AlertTriangle,
 } from 'lucide-react'
@@ -230,14 +234,14 @@ export default function Dashboard() {
 
   // 8 项核心指标（标签 / 数据不变，趋势用预览静态串）
   const metrics = [
-    { icon: Building2, label: '公司总数', value: stats?.totalCompanies || 0, trend: '▲ 2 · 较上月', trendCls: 'm-trend--up', to: '/companies' },
-    { icon: Users, label: '人员库', value: stats?.totalPersonnel || 0, trend: '▲ 12 · 本月', trendCls: 'm-trend--up', to: '/personnel' },
-    { icon: FileText, label: '文档', value: stats?.totalDocuments || 0, trend: '▲ 28 · 本月', trendCls: 'm-trend--up', to: '/documents' },
-    { icon: Calendar, label: '会议', value: stats?.totalMeetings || 0, trend: '▲ 3 · 较上月', trendCls: 'm-trend--up', to: '/meetings' },
-    { icon: CheckCircle2, label: '待办 Task', value: pendingTasksCount, trend: '▼ 4 · 改善', trendCls: 'm-trend--down', to: '/tasks' },
-    { icon: PenLine, label: '签署任务', value: signTasksCount, trend: '— 持平', trendCls: 'm-trend--flat', to: '/sign-tasks' },
-    { icon: Clock, label: '合规提醒', value: upcomingReminders.length, trend: '▲ 1 · 关注', trendCls: 'm-trend--warn', to: '/compliance-reminders' },
-    { icon: FileCode, label: '模板', value: templatesCount, trend: '▲ 3 · 本月', trendCls: 'm-trend--up', to: '/templates' },
+    { icon: CsmsIconCompanies, label: '公司总数', value: stats?.totalCompanies || 0, trend: '▲ 2 · 较上月', trendCls: 'm-trend--up', to: '/companies' },
+    { icon: CsmsIconPersonnel, label: '人员库', value: stats?.totalPersonnel || 0, trend: '▲ 12 · 本月', trendCls: 'm-trend--up', to: '/personnel' },
+    { icon: CsmsIconDocuments, label: '文档', value: stats?.totalDocuments || 0, trend: '▲ 28 · 本月', trendCls: 'm-trend--up', to: '/documents' },
+    { icon: CsmsIconMeetings, label: '会议', value: stats?.totalMeetings || 0, trend: '▲ 3 · 较上月', trendCls: 'm-trend--up', to: '/meetings' },
+    { icon: CsmsIconTasks, label: '待办 Task', value: pendingTasksCount, trend: '▼ 4 · 改善', trendCls: 'm-trend--down', to: '/tasks' },
+    { icon: CsmsIconSign, label: '签署任务', value: signTasksCount, trend: '— 持平', trendCls: 'm-trend--flat', to: '/sign-tasks' },
+    { icon: CsmsIconCompliance, label: '合规提醒', value: upcomingReminders.length, trend: '▲ 1 · 关注', trendCls: 'm-trend--warn', to: '/compliance-reminders' },
+    { icon: CsmsIconTemplate, label: '模板', value: templatesCount, trend: '▲ 3 · 本月', trendCls: 'm-trend--up', to: '/templates' },
   ]
 
   // 快捷操作：状态快捷入口 + 创建快捷入口
