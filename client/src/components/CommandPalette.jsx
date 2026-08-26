@@ -68,7 +68,7 @@ export default function CommandPalette({ isOpen, onClose }) {
         id: 'nav-/admin',
         group: 'System',
         icon: Crown,
-        label: 'Admin Panel',
+        label: '管理后台',
         path: '/admin',
         run: () => navigate('/admin'),
       })

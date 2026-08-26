@@ -61,7 +61,7 @@ const Login = () => {
             <Briefcase size={30} className="text-white" />
           </div>
           <h1 className="text-3xl font-bold text-ink">CSMS</h1>
-          <p className="text-ink-2 mt-1 text-sm">Company Secretary Management System</p>
+          <p className="text-ink-2 mt-1 text-sm">公司秘书管理系统</p>
         </div>
 
         {/* Card */}
