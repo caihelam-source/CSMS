@@ -1,51 +1,10 @@
-import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import { Briefcase, Mail, Lock, User, AlertCircle } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext.jsx'
-import { LoadingSpinner, FormField, inputClass, labelClass } from '../components/UIHelpers'
-import { validate, required, email as emailValidator, minLength } from '../utils/validators'
+import { Briefcase, ShieldCheck, ArrowLeft, UserCog } from 'lucide-react'
 
-const REGISTER_RULES = {
-  name: [required('请输入姓名')],
-  email: [required('请输入邮箱'), emailValidator('邮箱格式不正确')],
-  password: [required('请输入密码'), minLength(6, '密码至少6位')],
-}
-
-const ROLES = [
-  { value: 'secretary', label: 'Company Secretary' },
-  { value: 'admin', label: 'Administrator' },
-  { value: 'viewer', label: 'Viewer' },
-]
-
+// 注册模式：仅管理员后台开通（安全设计，公开自注册已关闭）。
+// 此页不再调用被禁用的 /api/auth/register，改为清晰说明 + 返回登录，避免 403 误导。
 const Register = () => {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [role, setRole] = useState('secretary')
-  const [errors, setErrors] = useState({})
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { register } = useAuth()
   const navigate = useNavigate()
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    const { valid, errors: vErrors } = validate({ name, email, password }, REGISTER_RULES)
-    if (!valid) { setErrors(vErrors); return }
-    setErrors({})
-    setError('')
-    setLoading(true)
-    try {
-      await register(name, email, password, role)
-      toast.success('Account created successfully!')
-      navigate('/dashboard', { replace: true })
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Registration failed')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-gray-100 px-4">
@@ -61,89 +20,46 @@ const Register = () => {
 
         {/* Card */}
         <div className="bg-surface rounded-2xl shadow-sm border border-hairline p-8">
-          <h2 className="text-xl font-semibold text-ink mb-6">Create your account</h2>
-
-          {error && (
-            <div className="mb-5 p-3.5 bg-danger/10 border border-danger/20 rounded-lg flex items-start gap-2.5 text-danger">
-              <AlertCircle size={17} className="mt-0.5 shrink-0" />
-              <span className="text-sm">{error}</span>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-11 h-11 rounded-xl bg-info/10 text-primary-700 flex items-center justify-center shrink-0">
+              <ShieldCheck size={22} />
             </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <FormField label="Full Name" required error={errors.name}>
-              <div className="relative">
-                <User size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => { setName(e.target.value); setErrors(er => ({ ...er, name: '' })) }}
-                  className={`${inputClass} pl-10`}
-                  placeholder="John Doe"
-                />
-              </div>
-            </FormField>
-
-            <FormField label="Email Address" required error={errors.email}>
-              <div className="relative">
-                <Mail size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setErrors(er => ({ ...er, email: '' })) }}
-                  autoComplete="email"
-                  className={`${inputClass} pl-10`}
-                  placeholder="you@example.com"
-                />
-              </div>
-            </FormField>
-
-            <FormField label="Password" required error={errors.password}>
-              <div className="relative">
-                <Lock size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => { setPassword(e.target.value); setErrors(er => ({ ...er, password: '' })) }}
-                  className={`${inputClass} pl-10`}
-                  placeholder="At least 6 characters"
-                />
-              </div>
-            </FormField>
-
             <div>
-              <label className={labelClass}>Role</label>
-              <select
-                value={role}
-                onChange={e => setRole(e.target.value)}
-                className={inputClass}
-              >
-                {ROLES.map(r => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
-              </select>
+              <h2 className="text-xl font-semibold text-ink">账号由管理员开通</h2>
+              <p className="text-sm text-ink-2 mt-0.5">注册为邀请制，不开放公开自助注册</p>
             </div>
+          </div>
 
+          <div className="space-y-4 text-sm text-ink-2">
+            <div className="flex gap-3 items-start">
+              <UserCog size={18} className="text-primary-600 mt-0.5 shrink-0" />
+              <p>
+                如需使用 CSMS，请让系统管理员在
+                <span className="font-medium text-ink">「系统管理 → 用户管理」</span>
+                中为您创建账号，并分配相应角色与可访问的公司数据范围。
+              </p>
+            </div>
+            <div className="flex gap-3 items-start">
+              <ArrowLeft size={18} className="text-primary-600 mt-0.5 shrink-0" />
+              <p>如您已拥有账号，请直接返回登录页使用邮箱与密码登录。</p>
+            </div>
+          </div>
+
+          <div className="mt-7 flex flex-col gap-3">
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary-600 text-white py-2.5 px-4 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+              type="button"
+              onClick={() => navigate('/login')}
+              className="w-full bg-primary-600 text-white py-2.5 px-4 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-100 transition-all font-medium text-sm"
             >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <LoadingSpinner size="xs" variant="inline" className="border-white/30 border-r-white" />
-                  Creating account...
-                </span>
-              ) : 'Create Account'}
+              返回登录
             </button>
-          </form>
-
-          <p className="text-center text-sm text-ink-2 mt-6">
-            Already have an account?{' '}
-            <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-              Sign in
+            <Link
+              to="/login"
+              className="text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+            >
+              已有账号？点此登录
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </div>
