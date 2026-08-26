@@ -50,19 +50,19 @@ const AdminPanel = () => {
     return (
       <div className="flex flex-col items-center justify-center h-96 text-center">
         <Shield size={48} className="text-ink-3 mb-4" />
-        <h2 className="text-xl font-semibold text-ink mb-2">Access Denied</h2>
-        <p className="text-ink-2">Only administrators or auditors can access this panel.</p>
+        <h2 className="text-xl font-semibold text-ink mb-2">访问被拒绝</h2>
+        <p className="text-ink-2">仅管理员或审计员可访问此面板。</p>
       </div>
     )
   }
 
   const TABS = [
     ...(isAdmin ? [
-      { id: 'users', label: 'User Management', icon: Users },
-      { id: 'permissions', label: 'Permission Matrix', icon: Shield },
+      { id: 'users', label: '用户管理', icon: Users },
+      { id: 'permissions', label: '权限矩阵', icon: Shield },
       { id: 'scope', label: '数据权限', icon: Building2 },
       { id: 'rules', label: '业绩排期规则库', icon: CalendarClock },
-      { id: 'system', label: 'System Info', icon: Settings },
+      { id: 'system', label: '系统信息', icon: Settings },
     ] : []),
     ...(canViewAudit ? [
       { id: 'audit', label: '审计日志', icon: ScrollText },
@@ -73,8 +73,8 @@ const AdminPanel = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
-        title="Admin Panel"
-        subtitle="System administration and access control"
+        title="管理后台"
+        subtitle="系统管理与访问控制"
         icon={Crown}
         iconColor="text-danger"
         actions={

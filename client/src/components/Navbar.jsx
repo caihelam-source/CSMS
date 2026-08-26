@@ -16,28 +16,28 @@ import { MOCK_DEMO_ACCOUNTS } from '../services/mock.js'
 // UX 架构重构（2026-08-03）：IA 四组分组，修复 Sign Tasks 导航孤儿 + Templates 归位
 // 分组顺序与标题由 NAV_GROUPS 驱动，新增组无需改渲染逻辑
 export const NAV_ITEMS = [
-  { path: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard',  group: 'Command' },
-  { path: '/calendar',     icon: CalendarDays,    label: 'Calendar',   group: 'Command' },
-  { path: '/companies',    icon: Building2,       label: 'Companies',  group: 'Command' },
-  { path: '/personnel',    icon: UserCircle,      label: 'Personnel',  group: 'Command' },
-  { path: '/documents',    icon: FileText,        label: 'Documents',  group: 'Operations' },
-  { path: '/meetings',     icon: Calendar,        label: 'Meetings',   group: 'Operations' },
-  { path: '/tasks',        icon: CheckSquare,     label: 'Tasks',      group: 'Operations' },
-  { path: '/sign-tasks',   icon: FileSignature,   label: 'Signatures', group: 'Operations' },
-  { path: '/compliance-reminders', icon: Bell,      label: 'Reminders', group: 'Compliance' },
-  { path: '/compliance-rules',     icon: ShieldCheck, label: 'Rules',   group: 'Compliance' },
+  { path: '/dashboard',    icon: LayoutDashboard, label: '仪表板',  group: 'Command' },
+  { path: '/calendar',     icon: CalendarDays,    label: '日历',   group: 'Command' },
+  { path: '/companies',    icon: Building2,       label: '公司',  group: 'Command' },
+  { path: '/personnel',    icon: UserCircle,      label: '人员',  group: 'Command' },
+  { path: '/documents',    icon: FileText,        label: '文档',  group: 'Operations' },
+  { path: '/meetings',     icon: Calendar,        label: '会议',   group: 'Operations' },
+  { path: '/tasks',        icon: CheckSquare,     label: '任务',  group: 'Operations' },
+  { path: '/sign-tasks',   icon: FileSignature,   label: '签署任务', group: 'Operations' },
+  { path: '/compliance-reminders', icon: Bell,      label: '提醒', group: 'Compliance' },
+  { path: '/compliance-rules',     icon: ShieldCheck, label: '合规规则',   group: 'Compliance' },
   { path: '/results-timetable', icon: CalendarClock, label: '业绩排期', group: 'Compliance' },
-  { path: '/templates',    icon: FileCode,        label: 'Templates',  group: 'Library' },
-  { path: '/settings',     icon: SettingsIcon,    label: 'Settings',   group: 'System' },
+  { path: '/templates',    icon: FileCode,        label: '模板',  group: 'Library' },
+  { path: '/settings',     icon: SettingsIcon,    label: '设置',   group: 'System' },
 ]
 
 // 侧边栏分组：label=null 表示该组无标题（Command 作为默认起始组）
 export const NAV_GROUPS = [
   { key: 'Command',    label: null },
-  { key: 'Operations', label: 'Operations' },
-  { key: 'Compliance', label: 'Compliance' },
-  { key: 'Library',    label: 'Library' },
-  { key: 'System',     label: 'System' },
+  { key: 'Operations', label: '业务' },
+  { key: 'Compliance', label: '合规' },
+  { key: 'Library',    label: '资料库' },
+  { key: 'System',     label: '系统' },
 ]
 
 // 手机端底部 Tab 栏主项（最多 5 个，其余走"更多"抽屉）
@@ -51,9 +51,9 @@ export const BOTTOM_TABS = [
 ]
 
 const ROLE_BADGE = {
-  admin:   { label: 'Admin',   color: 'bg-danger/10 text-danger'    },
-  manager: { label: 'Manager', color: 'bg-info/10 text-primary-700'  },
-  viewer:  { label: 'Viewer',  color: 'bg-canvas text-ink-2'  },
+  admin:   { label: '管理员',   color: 'bg-danger/10 text-danger'    },
+  manager: { label: '经理', color: 'bg-info/10 text-primary-700'  },
+  viewer:  { label: '查看者',  color: 'bg-canvas text-ink-2'  },
 }
 
 /**
@@ -127,7 +127,7 @@ const Navbar = () => {
       <button
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-surface rounded-lg shadow-md border border-hairline"
         onClick={() => setOpen(o => !o)}
-        aria-label="Toggle menu"
+        aria-label="切换菜单"
       >
         {open ? <X size={22} /> : <Menu size={22} />}
       </button>
@@ -145,7 +145,7 @@ const Navbar = () => {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-bold text-ink leading-none">CSMS</h1>
-            <p className="text-xs text-ink-3 mt-0.5 truncate">Secretary Management</p>
+            <p className="text-xs text-ink-3 mt-0.5 truncate">公司秘书管理</p>
           </div>
           <button
             onClick={toggle}
@@ -155,8 +155,8 @@ const Navbar = () => {
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
           {isDemoMode && (
-            <span className="flex items-center gap-1 text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-medium shrink-0">
-              <Zap size={11} />Demo
+              <span className="flex items-center gap-1 text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-medium shrink-0">
+              <Zap size={11} />演示
             </span>
           )}
         </div>
@@ -185,9 +185,9 @@ const Navbar = () => {
           {isAdmin && (
             <>
               <div className="pt-3 pb-1">
-                <p className="px-3 text-xs font-semibold text-ink-3 uppercase tracking-widest">Administration</p>
+                <p className="px-3 text-xs font-semibold text-ink-3 uppercase tracking-widest">管理</p>
               </div>
-              <NavItem path="/admin" icon={Crown} label="Admin Panel" admin active={isActive('/admin')} onClick={closeMobile} />
+              <NavItem path="/admin" icon={Crown} label="管理后台" admin active={isActive('/admin')} onClick={closeMobile} />
             </>
           )}
         </nav>
@@ -258,7 +258,7 @@ const Navbar = () => {
             className="tap-target flex items-center w-full gap-3 px-3 py-2.5 text-sm text-ink-2 hover:bg-canvas hover:text-ink rounded-lg transition-colors"
           >
             <LogOut size={17} className="text-ink-3" />
-            Sign Out
+            退出登录
           </button>
         </div>
       </aside>
