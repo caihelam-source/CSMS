@@ -1,7 +1,7 @@
 // CSMS 专属定制图标集 —— 与 logo 印章同系列（navy 锚点 / 圆形+对勾 视觉 DNA）
 // 统一规范：viewBox 24×24、stroke-width 1.75、圆角线帽/连接；
-// 使用 currentColor 描边，颜色由父容器 .m-ico（navy 方块 → 白字）继承。
-// 用途：Dashboard 8 项核心指标卡（公司/人员/文档/会议/待办/签署/合规/模板）。
+// 使用 currentColor 描边，颜色由父容器 .m-ico（navy 方块 → 白字）或语义色继承。
+// 用途：Dashboard 8 项核心指标卡 + 快捷操作区 + 迷你列表标题。
 
 const base = {
   viewBox: '0 0 24 24',
@@ -118,6 +118,76 @@ export function CsmsIconTemplate(props) {
   )
 }
 
+// 快捷操作区 —— 逾期合规（警告三角 + 印章圆点）
+export function CsmsIconOverdue(props) {
+  return (
+    <Svg {...props}>
+      <path d="M12 4l8.5 14.5H3.5L12 4z" />
+      <circle cx="12" cy="12.5" r="1.4" />
+      <path d="M12 9.5v2.5" />
+    </Svg>
+  )
+}
+
+// 快捷操作区 —— 紧急任务（印章闪电：折线 + 顶端圆点）
+export function CsmsIconUrgent(props) {
+  return (
+    <Svg {...props}>
+      <path d="M13.5 3.5L8 12.5h4l-1 8 6-10h-4l2-7" />
+      <circle cx="12" cy="2.2" r="1" />
+    </Svg>
+  )
+}
+
+// 快捷操作区 —— 即将到期（日历页 + 时钟指针 + 印章点）
+export function CsmsIconUpcoming(props) {
+  return (
+    <Svg {...props}>
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M4 9.5h16" />
+      <path d="M8 3v3M16 3v3" />
+      <path d="M12 12v3.5l2.5 1.3" />
+      <circle cx="17" cy="6.5" r="1" />
+    </Svg>
+  )
+}
+
+// 快捷操作区 —— 业绩排期（日历/图表 + 上升箭头 + 印章点）
+export function CsmsIconResults(props) {
+  return (
+    <Svg {...props}>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M7 14l3.5-3.5 2.5 2 4-5" />
+      <path d="M15 8.5h3.5V12" />
+      <circle cx="17.5" cy="5.5" r="1" />
+    </Svg>
+  )
+}
+
+// 快捷操作区 —— 新增一般任务（清单 + 加号）
+export function CsmsIconAddTask(props) {
+  return (
+    <Svg {...props}>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M8 9h3M8 13h3M8 17h1.5" />
+      <path d="M16 11v6M13 14h6" />
+    </Svg>
+  )
+}
+
+// 快捷操作区 —— 新增签署任务（文件 + 笔 + 加号）
+export function CsmsIconAddSign(props) {
+  return (
+    <Svg {...props}>
+      <path d="M7 3h7l4 4v5" />
+      <path d="M14 3v4h4" />
+      <path d="M9 13c.8-1.8 1.8.4 2.6-.8s1.4 1.2 2.6.2" />
+      <path d="M15.5 14l3.5-1 1 3.5-3.5 1z" />
+      <path d="M17 15.5l-4.5 4.5H10v-2.5l4.5-4.5" />
+    </Svg>
+  )
+}
+
 export default {
   CsmsIconCompanies,
   CsmsIconPersonnel,
@@ -127,4 +197,10 @@ export default {
   CsmsIconSign,
   CsmsIconCompliance,
   CsmsIconTemplate,
+  CsmsIconOverdue,
+  CsmsIconUrgent,
+  CsmsIconUpcoming,
+  CsmsIconResults,
+  CsmsIconAddTask,
+  CsmsIconAddSign,
 }

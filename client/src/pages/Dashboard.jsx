@@ -9,11 +9,12 @@ import BrandLogo from '../components/BrandLogo'
 import {
   CsmsIconCompanies, CsmsIconPersonnel, CsmsIconDocuments, CsmsIconMeetings,
   CsmsIconTasks, CsmsIconSign, CsmsIconCompliance, CsmsIconTemplate,
+  CsmsIconOverdue, CsmsIconUrgent, CsmsIconUpcoming, CsmsIconResults,
+  CsmsIconAddTask, CsmsIconAddSign,
 } from '../components/CsmsIcons'
 import {
-  FileText, Calendar, Clock, CalendarClock, PenLine,
   RefreshCw, LogOut,
-  Pencil, X, Check, ArrowRight, PlusCircle, AlertCircle, AlertTriangle,
+  Pencil, X, Check, ArrowRight,
 } from 'lucide-react'
 
 const SUBTITLE_KEY = 'csms.dashboardSubtitle'
@@ -244,14 +245,14 @@ export default function Dashboard() {
     { icon: CsmsIconTemplate, label: '模板', value: templatesCount, trend: '▲ 3 · 本月', trendCls: 'm-trend--up', to: '/templates' },
   ]
 
-  // 快捷操作：状态快捷入口 + 创建快捷入口
+  // 快捷操作：状态快捷入口 + 创建快捷入口（全部使用 CSMS 专属定制图标）
   const quickActions = [
-    { to: '/compliance-reminders', label: '逾期合规', count: expiredReminders.length, icon: AlertTriangle, tone: 'danger' },
-    { to: '/tasks', label: '紧急任务', count: urgentTasks.length, icon: AlertCircle, tone: 'warn' },
-    { to: '/compliance-reminders', label: '即将到期', count: upcomingReminders.length, icon: Clock, tone: 'info' },
-    { to: '/results-timetable', label: '业绩排期', icon: CalendarClock, tone: 'info' },
-    { to: '/tasks?open=new', label: '新增一般任务', icon: PlusCircle, tone: 'action' },
-    { to: '/tasks?mode=signing', label: '新增签署任务', icon: PenLine, tone: 'action' },
+    { to: '/compliance-reminders', label: '逾期合规', count: expiredReminders.length, icon: CsmsIconOverdue, tone: 'danger' },
+    { to: '/tasks', label: '紧急任务', count: urgentTasks.length, icon: CsmsIconUrgent, tone: 'warn' },
+    { to: '/compliance-reminders', label: '即将到期', count: upcomingReminders.length, icon: CsmsIconUpcoming, tone: 'info' },
+    { to: '/results-timetable', label: '业绩排期', icon: CsmsIconResults, tone: 'info' },
+    { to: '/tasks?open=new', label: '新增一般任务', icon: CsmsIconAddTask, tone: 'action' },
+    { to: '/tasks?mode=signing', label: '新增签署任务', icon: CsmsIconAddSign, tone: 'action' },
   ]
 
   // 逾期 + 紧急合并（各取前 3，右侧去色：中性小字 + 中性小圆点）
@@ -358,7 +359,7 @@ export default function Dashboard() {
           </div>
           <div className="hero-card__cta">
             <Link to="/compliance-reminders" className="hero-card__btn">
-              <FileText size={18} /> 生成合规月报 <ArrowRight size={16} />
+              <CsmsIconDocuments size={18} /> 生成合规月报 <ArrowRight size={16} />
             </Link>
             <div className="hero-card__badges">
               <span className="hero-card__badge hero-card__badge--danger"><i></i>{expiredReminders.length} 项逾期</span>
@@ -402,7 +403,7 @@ export default function Dashboard() {
         <div className="mini-grid">
           <div className="mini-col">
             <div className="mini-col__head">
-              <h3 className="mini-col__title"><Calendar size={18} />即将到来的会议</h3>
+              <h3 className="mini-col__title"><CsmsIconMeetings size={18} />即将到来的会议</h3>
               <Link to="/meetings" className="mini-col__more">查看全部</Link>
             </div>
             {upcomingMeetings.length === 0 ? (
@@ -422,7 +423,7 @@ export default function Dashboard() {
 
           <div className="mini-col">
             <div className="mini-col__head">
-              <h3 className="mini-col__title"><Clock size={18} />逾期与紧急</h3>
+              <h3 className="mini-col__title"><CsmsIconUrgent size={18} />逾期与紧急</h3>
               <Link to="/compliance-reminders" className="mini-col__more">查看全部</Link>
             </div>
             {attention.length === 0 ? (
@@ -447,7 +448,7 @@ export default function Dashboard() {
         {/* 本月待办 / 临近到期（日历跨模块聚合） */}
         <section className="mini-col mt-4">
           <div className="mini-col__head">
-            <h3 className="mini-col__title"><CalendarClock size={18} />本月待办 / 临近到期</h3>
+            <h3 className="mini-col__title"><CsmsIconUpcoming size={18} />本月待办 / 临近到期</h3>
             <Link to="/calendar" className="mini-col__more">打开日历</Link>
           </div>
           {calendarItems.length === 0 ? (
