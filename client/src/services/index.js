@@ -453,6 +453,10 @@ export const complianceRuleService = {
     (id, companyIds) => api.post(`/api/compliance-rules/${id}/apply`, { companyIds }),
     mockComplianceRules.applyRule,
   ),
+  diagnose: wrap(
+    () => api.get('/api/compliance-rules/diagnose'),
+    mockComplianceRules.diagnose,
+  ),
 }
 
 // ====== Compliance Reminder Service ======

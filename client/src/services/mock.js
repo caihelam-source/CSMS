@@ -1171,6 +1171,25 @@ export const complianceRules = {
     await delay();
     return { data: { data: { ruleId: id, companyIds } } };
   },
+  diagnose: async () => {
+    await delay();
+    const byField = {};
+    const list = MOCK_COMPANIES.map((c) => {
+      const missing = [];
+      if (!c.incorporationDate) missing.push('incorporationDate');
+      const fye = c.financialYearEnd;
+      if (!fye || fye.month == null || fye.day == null) missing.push('financialYearEnd');
+      if (!c.brExpiryDate) missing.push('brExpiryDate');
+      missing.forEach((f) => { byField[f] = (byField[f] || 0) + 1; });
+      return {
+        _id: c._id, name: c.name, nameChinese: c.nameChinese,
+        jurisdiction: c.jurisdiction, isListed: c.isListed, missingFields: missing,
+      };
+    });
+    const companiesWithGaps = list.filter((c) => c.missingFields.length > 0).length;
+    const totalMissing = Object.values(byField).reduce((a, b) => a + b, 0);
+    return { data: { data: { companies: list, companiesWithGaps, totalCompanies: list.length, summary: { byField, totalMissing } } } };
+  },
 };
 
 // ====== Compliance Reminders ======

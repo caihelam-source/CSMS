@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import {
-  ShieldCheck, Plus, RefreshCw, Zap,
+  ShieldCheck, Plus, RefreshCw, Zap, Download, AlertTriangle,
   Pencil, Trash2
 } from 'lucide-react'
 import { complianceRuleService, companyService } from '../services/index.js'
@@ -131,6 +131,99 @@ const GenerateModal = ({ rule, companies, onConfirm, onCancel, loading }) => {
   )
 }
 
+const FIELD_LABELS = {
+  incorporationDate: '注册成立日期',
+  financialYearEnd: '财政年度结算日',
+  brExpiryDate: '商业登记到期日',
+}
+
+const exportGapsCSV = (diagnosis) => {
+  if (!diagnosis) return
+  const rows = (diagnosis.companies || [])
+    .filter((c) => c.missingFields && c.missingFields.length)
+    .map((c) => [
+      c.name || '',
+      c.nameChinese || '',
+      c.jurisdiction || '',
+      c.isListed ? '是' : '否',
+      (c.missingFields || []).map((f) => FIELD_LABELS[f] || f).join(';'),
+    ])
+  const header = ['公司名称', '中文名', '注册地', '是否上市', '缺失字段']
+  const esc = (v) => '"' + String(v == null ? '' : v).replace(new RegExp('"', 'g'), '""') + '"'
+  const csv = [header, ...rows].map((r) => r.map(esc).join(',')).join('\n')
+  const blob = new Blob([String.fromCharCode(0xFEFF) + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = '合规数据缺口_' + new Date().toISOString().slice(0, 10) + '.csv'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+const GapsView = ({ diagnosis, loading, onExport }) => {
+  if (loading) return <LoadingSpinner />
+  if (!diagnosis) return <EmptyState icon={AlertTriangle} title="尚未加载诊断" />
+  const { companies, companiesWithGaps, totalCompanies, summary } = diagnosis
+  const gapCompanies = companies.filter((c) => c.missingFields && c.missingFields.length)
+  if (!companiesWithGaps) return <EmptyState icon={ShieldCheck} title="所有公司合规字段完整" action={<span className="text-sm text-ink-3">暂无数据缺口</span>} />
+  return (
+    <div className="space-y-4">
+      <div className="bg-surface rounded-xl border border-hairline p-5 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <p className="text-sm text-ink-2">合规数据缺口概览</p>
+            <p className="text-2xl font-semibold text-ink mt-1">{companiesWithGaps} <span className="text-base font-normal text-ink-3">/ {totalCompanies} 家公司</span></p>
+            <p className="text-sm text-ink-3 mt-1">共 <strong className="text-warning">{summary.totalMissing}</strong> 处字段缺失，导致对应合规提醒无法生成</p>
+          </div>
+          <button onClick={onExport} className="flex items-center gap-1.5 px-3 py-2 border border-hairline rounded-lg text-sm font-medium hover:bg-canvas">
+            <Download size={15} /> 导出 CSV
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {Object.entries(summary.byField).map(([f, n]) => (
+            <span key={f} className="px-2.5 py-1 rounded-full bg-warning/10 text-warning text-xs font-medium">缺{FIELD_LABELS[f] || f}：{n}</span>
+          ))}
+        </div>
+      </div>
+      <div className="bg-surface rounded-xl border border-hairline overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-canvas border-b border-hairline">
+            <tr>
+              <th className="text-left px-4 py-3 text-ink-2 font-medium">公司</th>
+              <th className="text-left px-4 py-3 text-ink-2 font-medium hidden md:table-cell">注册地</th>
+              <th className="text-left px-4 py-3 text-ink-2 font-medium hidden md:table-cell">上市</th>
+              <th className="text-left px-4 py-3 text-ink-2 font-medium">缺失字段</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {gapCompanies.map((c) => (
+              <tr key={c._id} className="hover:bg-canvas">
+                <td className="px-4 py-3">
+                  <div className="font-medium text-ink">{c.name}</div>
+                  {c.nameChinese && <div className="text-xs text-ink-3 mt-0.5">{c.nameChinese}</div>}
+                </td>
+                <td className="px-4 py-3 hidden md:table-cell">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${jurisdictionColor(c.jurisdiction)}`}>{jurisdictionLabel(c.jurisdiction) || '—'}</span>
+                </td>
+                <td className="px-4 py-3 hidden md:table-cell text-ink-2">{c.isListed ? '是' : '否'}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1.5">
+                    {c.missingFields.map((f) => (
+                      <span key={f} className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-xs font-medium">{FIELD_LABELS[f] || f}</span>
+                    ))}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 const jurisdictionColor = (j) => ({
   'HK': 'bg-info/10 text-primary-700',
   'BVI': 'bg-canvas text-ink-2',
@@ -148,6 +241,9 @@ const ComplianceRules = () => {
   const [modal, setModal] = useState(null)
   const [editTarget, setEditTarget] = useState(null)
   const [genResult, setGenResult] = useState(null)
+  const [view, setView] = useState('rules')
+  const [diagnosis, setDiagnosis] = useState(null)
+  const [diagLoading, setDiagLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('')  // '' = 全部
 
   const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
@@ -186,6 +282,18 @@ const ComplianceRules = () => {
   }, [])
 
   useEffect(() => { fetchAll() }, [fetchAll])
+
+  const fetchDiagnosis = useCallback(async () => {
+    setDiagLoading(true)
+    try {
+      const { data: res } = await complianceRuleService.diagnose()
+      setDiagnosis(res?.data || res || null)
+    } catch {
+      setDiagnosis({ companies: [], companiesWithGaps: 0, totalCompanies: 0, summary: { byField: {}, totalMissing: 0 } })
+    } finally {
+      setDiagLoading(false)
+    }
+  }, [])
 
   const handleInitialize = async () => {
     const ok = await confirm({ title: '初始化预设规则', message: '初始化将加载预设合规规则，确定继续？', confirmLabel: '确认初始化', variant: 'warning' })
@@ -285,7 +393,14 @@ const ComplianceRules = () => {
         }
       />
 
-      {/* Filters */}
+      {/* 视图切换 */}
+      <div className="flex gap-1 border-b border-hairline">
+        <button onClick={() => setView('rules')} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${view === 'rules' ? 'border-primary-600 text-primary-700' : 'border-transparent text-ink-2 hover:text-ink'}`}>合规规则</button>
+        <button onClick={() => { setView('gaps'); if (!diagnosis && !diagLoading) fetchDiagnosis() }} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${view === 'gaps' ? 'border-primary-600 text-primary-700' : 'border-transparent text-ink-2 hover:text-ink'}`}>数据缺口</button>
+      </div>
+
+      {view === 'rules' && (
+      <>
       <div className="bg-surface rounded-xl border border-hairline p-4 space-y-3">
         {/* jurisdiction 分组 tabs */}
         <div className="flex flex-wrap gap-2">
@@ -385,6 +500,11 @@ const ComplianceRules = () => {
           </table>
         </div>
         </div>
+      )}
+      </>)}
+
+      {view === 'gaps' && (
+        <GapsView diagnosis={diagnosis} loading={diagLoading} onExport={() => exportGapsCSV(diagnosis)} />
       )}
 
       {/* 新增/编辑 Modal */}

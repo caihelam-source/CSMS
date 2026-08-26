@@ -135,6 +135,45 @@ function diagnoseDueDate(rule, company) {
 }
 
 /**
+ * 只读诊断所有公司的合规计算日期字段缺口（incorporationDate / financialYearEnd / brExpiryDate）。
+ * 把生成阶段的 blocked 黑洞转化为可操作的工作清单，无任何写副作用。
+ * @returns {{companies:Array, companiesWithGaps:number, totalCompanies:number, summary:{byField:Object,totalMissing:number}}}
+ */
+function companyMissingFields(company) {
+  const missing = [];
+  if (!company.incorporationDate) missing.push('incorporationDate');
+  const fye = company.financialYearEnd;
+  if (!fye || fye.month == null || fye.day == null) missing.push('financialYearEnd');
+  if (!company.brExpiryDate) missing.push('brExpiryDate');
+  return missing;
+}
+
+async function diagnoseCompanies() {
+  const companies = await Company.find({}).lean();
+  const byField = {};
+  const list = companies.map((c) => {
+    const missing = companyMissingFields(c);
+    missing.forEach((f) => { byField[f] = (byField[f] || 0) + 1; });
+    return {
+      _id: c._id,
+      name: c.name,
+      nameChinese: c.nameChinese,
+      jurisdiction: c.jurisdiction,
+      isListed: c.isListed,
+      missingFields: missing,
+    };
+  });
+  const companiesWithGaps = list.filter((c) => c.missingFields.length > 0).length;
+  const totalMissing = Object.values(byField).reduce((a, b) => a + b, 0);
+  return {
+    companies: list,
+    companiesWithGaps,
+    totalCompanies: list.length,
+    summary: { byField, totalMissing },
+  };
+}
+
+/**
  * 为某条规则+公司生成提醒（支持多级提醒）
  */
 async function generateRemindersForRule(rule, company) {
@@ -267,4 +306,4 @@ async function generateForRule(rule, companyIds) {
   return { created: totalCreated, skipped: totalSkipped, blocked: totalBlocked, blockedByField, blockedByReason, blockedDetails };
 }
 
-module.exports = { initPresetRules, generateRemindersForRule, generateBatch, generateForRule, calcDueDate };
+module.exports = { initPresetRules, generateRemindersForRule, generateBatch, generateForRule, calcDueDate, diagnoseCompanies };

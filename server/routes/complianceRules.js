@@ -1,7 +1,7 @@
 const express = require('express');
 const ComplianceRule = require('../models/ComplianceRule');
 const { auth } = require('../middleware/auth');
-const { initPresetRules, generateForRule, generateBatch } = require('../services/complianceService');
+const { initPresetRules, generateForRule, generateBatch, diagnoseCompanies } = require('../services/complianceService');
 const { parsePaging, pagingEnvelope } = require('../utils/pagination');
 
 const router = express.Router();
@@ -30,6 +30,16 @@ router.get('/', auth, async (req, res) => {
     const rules = await q;
 
     res.json(pagingEnvelope('rules', rules, { usePaging, page, limit, total }));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/compliance-rules/diagnose — 只读诊断所有公司的合规日期字段缺口（无写副作用）
+router.get('/diagnose', auth, async (req, res) => {
+  try {
+    const result = await diagnoseCompanies();
+    res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
