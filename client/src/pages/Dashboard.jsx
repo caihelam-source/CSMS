@@ -316,11 +316,18 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Hero 横幅：主 CTA + 可编辑欢迎词 + 关键摘要徽章 */}
+        {/* Hero 横幅：主 CTA + 可编辑欢迎词 + 关键摘要徽章（navy 印章系列） */}
         <div className="hero-card">
-          <div className="hero-card__main">
-            <h2 className="hero-card__title">{getGreeting()}，{displayName}</h2>
-            <div className="hero-card__sub">
+          <div className="hero-card__body">
+            {/* 白色印章线框图标，与 CSMS logo 同源 */}
+            <svg className="hero-card__seal" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <circle cx="32" cy="32" r="20" stroke="#FFFFFF" strokeWidth="3"/>
+              <path d="M32 18 A14 14 0 1 0 32 46" stroke="#FFFFFF" strokeWidth="5.5" strokeLinecap="round"/>
+              <path d="M25 32 l5 5 l10 -11" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div className="hero-card__main">
+              <h2 className="hero-card__title">{getGreeting()}，{displayName}</h2>
+              <div className="hero-card__sub">
               {editingSubtitle ? (
                 <div className="hero-card__sub-edit" onClick={e => e.stopPropagation()}>
                   <input
@@ -343,6 +350,7 @@ export default function Dashboard() {
                 </>
               )}
             </div>
+          </div>
           </div>
           <div className="hero-card__cta">
             <Link to="/compliance-reminders" className="hero-card__btn">

@@ -139,11 +139,10 @@ const Navbar = () => {
         flex flex-col transform transition-transform duration-200 ease-in-out
         ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
       `}>
-        {/* Logo */}
+        {/* Logo：仅保留印章图标 + CSMS 字标，去掉过小副标题 */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-hairline">
-          <div className="flex-1 min-w-0">
-            <BrandLogo variant="full" size="sm" className="max-w-full" />
-          </div>
+          <BrandLogo variant="icon" size="md" />
+          <span className="font-bold text-ink text-lg tracking-tight">CSMS</span>
           <button
             onClick={toggle}
             aria-label="切换明暗主题"
