@@ -301,7 +301,7 @@ const Tasks = () => {
         <div className="relative">
           <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
           <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
-            className="pl-10 pr-8 py-2 border border-hairline rounded-lg text-sm focus:ring-2 focus:ring-primary-500 appearance-none bg-surface">
+            className="pl-10 pr-8 py-2 w-full sm:w-auto border border-hairline rounded-lg text-sm focus:ring-2 focus:ring-primary-500 appearance-none bg-surface">
             <option value="all">All Status</option>
             {TASK_STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
           </select>
@@ -309,7 +309,7 @@ const Tasks = () => {
         <div className="relative">
           <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
           <select value={filters.priority} onChange={e => setFilter('priority', e.target.value)}
-            className="pl-10 pr-8 py-2 border border-hairline rounded-lg text-sm focus:ring-2 focus:ring-primary-500 appearance-none bg-surface">
+            className="pl-10 pr-8 py-2 w-full sm:w-auto border border-hairline rounded-lg text-sm focus:ring-2 focus:ring-primary-500 appearance-none bg-surface">
             <option value="all">All Priorities</option>
             {TASK_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
           </select>

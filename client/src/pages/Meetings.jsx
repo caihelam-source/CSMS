@@ -280,9 +280,9 @@ export default function Meetings() {
       />
 
       {/* Filters */}
-      <div className="flex gap-3">
-        <SearchBar value={search} onChange={setSearch} placeholder="搜索会议..." />
-        <select value={filters.status} onChange={e => setFilter('status', e.target.value)} className="input-field w-40">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <SearchBar value={search} onChange={setSearch} placeholder="搜索会议..." className="sm:min-w-0" />
+        <select value={filters.status} onChange={e => setFilter('status', e.target.value)} className="input-field w-full sm:w-40">
           <option value="all">全部状态</option>
           {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
