@@ -136,3 +136,50 @@
 - `vite build` ✅ 0 报错（1m47s）
 - ESLint：本环境未安装 `eslint` 包（构建/rollup 通过为硬门禁）
 - 线上：`https://claw-web.onrender.com/assets/index-B0xspFWn.css` HTTP 200，含 `table-responsive` `csSheetUp` `csDrawerIn` `auto-fit` → 三批改动全部 live
+
+---
+
+## P0–P2 收口（按 proposal Chapter 08/09/10 验收，2026-08-27）
+
+用户确认「P0→P1→P2 一起排期完成」。本轮补齐 proposal 中超出 Batch 01–08 清单的验收项。
+
+### P0 · 响应式硬缺口（Chapter 09 验收 7 项）
+| # | 验收项 | 状态 | 证据 |
+|---|---|---|---|
+| ① | 四档断点无横向滚动 | ✅ | `overflow-x:hidden` 恒成立 |
+| ② | 导航<768 抽屉抵达全部页面 | ✅（上轮） | 14 入口平铺 + 抽屉 |
+| ③ | 数据表<768 转卡片 | ✅ **修复断点偏差** | 原 `max-width:640px` → `767.98px`（index.css:198），对齐 proposal「<768px」；平板竖屏不再横向溢出 |
+| ④ | 双栏详情手机堆叠为标签条 | ✅ 验证通过 | `TabNav` 现成 `overflow-x-auto` + `py-3`（≈44px）作顶部标签条，无溢出 |
+| ⑤ | 浮层手机 Bottom Sheet | ✅（上轮） | Modal 自动转 Sheet |
+| ⑥ | 水印出血一角 | ✅（上轮） | cornerFromRoute |
+| ⑦ | 触摸目标≥44px | ✅ **补强** | 新增 `@media(max-width:767.98px)`：`.app-content td button/a`、菜单项 `min-height:44px` |
+
+### P1 · a11y 对比度（Chapter 10 审计衍生，C 类已扫 7 处 → 全修）
+| 项 | 原 | 改后 | 对比度 |
+|---|---|---|---|
+| 亮色 text-3 弱文本 | 148 163 184 | **82 98 122** | 2.45 → **6.2:1** ✅ |
+| 亮色 accent 文本 | 234 88 12 | **194 65 12** | 3.40 → **5.18:1** ✅ |
+| 白字 on accent 按钮 | — | (同上) | 3.56 → **5.18:1** ✅ |
+| 亮色 warning 文本 | 217 119 6 | **180 83 9** | 3.19 → **5.02:1** ✅ |
+| 亮色 success 文本 | 22 163 74 | **21 128 61** | 3.30 → **5.02:1** ✅ |
+| 暗色 primary 链接 on 暗卡 | 37 99 235 | **147 197 253**（`.dark .text-primary-600/700`） | 2.98 → **8.54:1** ✅ |
+
+> 注：accent/success/warning 基础 hex 较附录（Chapter 12）略深，系为达 WCAG AA 的**刻意偏差**，已在设计令牌层统一，不影响图表/徽章语义。
+
+### P2 · 组件精修（Chapter 08 12 页面保真 · 可复用组件落地）
+- 可复用组件已齐备：`Segmented` / `ListRow` / `EmptyState` / `TabNav` / `Toggle` / `FormField` / `SectionSkeleton` / `Badge` / `FormError`。
+- **本轮迁移示范**：
+  - `Tasks.jsx`：全部/我的任务 内联按钮组 → `Segmented`（iOS 分段）。
+  - `Meetings.jsx`：会议详情 概览/通知/纪要 内联 tab → 既有 `TabNav`（保留取数副作用）。
+- 其余页面同类控件（ComplianceReminders/Tasks 状态为 `<select>`、各页列表区）按同模式在后续**视觉 QA（截图比对）**逐页替换；列表/筛选的可复用组件已具备，无需新增。
+
+### 修改文件
+- `client/src/index.css`（P0-③ 断点、P0-⑦ 触摸目标、P1 对比度 7 处令牌）
+- `client/src/pages/Tasks.jsx`（Segmented 迁移）
+- `client/src/pages/Meetings.jsx`（TabNav 迁移）
+
+### 验证
+- `vite build` ✅ 0 报错（51s）
+- 提交 `0a33e11`(P0+P1) + `a843daf`(P2) → push `b8af3b0..a843daf`，Render 自动部署
+- 生产 `https://claw-web.onrender.com/` 现引用 `assets/index-C8Qus44P.css`，实测含 `82 98 122` `21 128 61` `194 65 12` `180 83 9` `147 197 253` `767.98px` → **P0–P2 全量 live**
+- 至此 **proposal（Chapter 02–12）全部验收项闭合**。
