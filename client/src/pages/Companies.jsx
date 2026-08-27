@@ -11,8 +11,6 @@ import { NO_SCOPE_HINT } from '../utils/scope'
 import { validate, required } from '../utils/validators'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Modal from '../components/Modal'
-import VirtualList from '../components/VirtualList'
-
 // jurisdiction 归一化（与服务器端 companies.js 逻辑一致）
 const normalizeJurisdiction = (v) => {
   const m = {
@@ -37,21 +35,21 @@ const FORM_RULES = {
 // 列表行抽成 memo 组件：父组件任意 state 变更时，仅数据变化的卡片会重渲染
 const CompanyCard = memo(function CompanyCard({ company: c, onEdit, onDelete }) {
   return (
-    <Link to={`/companies/${c._id}`} className="card hover:shadow-md transition-shadow w-full h-full">
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="font-semibold text-primary-600 line-clamp-2">{c.name}</h3>
-        <span className={`badge ${getStatusColor(c.status)}`}>{c.status?.replace(/_/g, ' ')}</span>
+    <Link to={`/companies/${c._id}`} className="card hover:shadow-md transition-shadow w-full h-full block min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3 min-w-0">
+        <h3 className="font-semibold text-primary-600 line-clamp-2 break-words min-w-0">{c.name}</h3>
+        <span className={`badge ${getStatusColor(c.status)} flex-shrink-0 self-start`}>{c.status?.replace(/_/g, ' ')}</span>
       </div>
-      <p className="text-sm text-ink-2">{c.registrationNumber || '-'}</p>
-      <div className="flex gap-2 mt-2">
-        {c.jurisdiction && <span className="badge badge-info text-xs">{jurisdictionLabel(c.jurisdiction)}</span>}
-        {c.type && <span className="badge badge-gray text-xs capitalize">{c.type?.replace(/_/g, ' ')}</span>}
+      <p className="text-sm text-ink-2 break-words">{c.registrationNumber || '-'}</p>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {c.jurisdiction && <span className="badge badge-info text-xs break-words">{jurisdictionLabel(c.jurisdiction)}</span>}
+        {c.type && <span className="badge badge-gray text-xs capitalize break-words">{c.type?.replace(/_/g, ' ')}</span>}
       </div>
       {c.incorporationDate && (
         <p className="text-xs text-ink-3 mt-3">Incorporated: {formatDate(c.incorporationDate)}</p>
       )}
       {c.links?.length > 0 && (
-        <p className="text-xs text-ink-3 mt-1">{c.links.length} linked people/companies</p>
+        <p className="text-xs text-ink-3 mt-1 break-words">{c.links.length} linked people/companies</p>
       )}
       <div className="flex gap-1 mt-3 pt-2 border-t border-hairline" onClick={e => e.preventDefault()}>
         <button onClick={() => onEdit(c)} className="p-1.5 text-ink-3 hover:text-primary-600 rounded-lg hover:bg-canvas" aria-label={`编辑 ${c.name}`}><Pencil size={14} /></button>
@@ -243,19 +241,21 @@ export default function Companies() {
       />
 
       {/* Filters */}
-      <div className="card flex flex-wrap gap-3">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search companies..." />
-        <select className="input-field w-auto" value={filters.status} onChange={e => setFilter('status', e.target.value)}>
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="dormant">Dormant</option>
-          <option value="struck_off">Struck Off</option>
-        </select>
-        <select className="input-field w-auto" value={filters.type} onChange={e => setFilter('type', e.target.value)}>
-          <option value="">All Types</option>
-          <option value="private_limited">Private Limited</option>
-          <option value="public_limited">Public Limited</option>
-        </select>
+      <div className="card flex flex-col sm:flex-row flex-wrap gap-3">
+        <SearchBar value={search} onChange={setSearch} placeholder="Search companies..." className="w-full sm:flex-1" />
+        <div className="flex flex-wrap gap-3 flex-1 sm:flex-initial">
+          <select className="input-field flex-1 sm:flex-none sm:w-40" value={filters.status} onChange={e => setFilter('status', e.target.value)}>
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="dormant">Dormant</option>
+            <option value="struck_off">Struck Off</option>
+          </select>
+          <select className="input-field flex-1 sm:flex-none sm:w-44" value={filters.type} onChange={e => setFilter('type', e.target.value)}>
+            <option value="">All Types</option>
+            <option value="private_limited">Private Limited</option>
+            <option value="public_limited">Public Limited</option>
+          </select>
+        </div>
       </div>
 
       {/* Company List */}
@@ -269,15 +269,11 @@ export default function Companies() {
           action={noScope ? null : <button onClick={openNew} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加公司</button>}
         />
       ) : (
-        <VirtualList
-          mode="grid"
-          items={filtered}
-          rowComponent={CompanyCard}
-          rowHeight={240}
-          columns={3}
-          itemKey="company"
-          itemProps={companyItemProps}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map(c => (
+            <CompanyCard key={c._id} company={c} {...companyItemProps} />
+          ))}
+        </div>
       )}
 
       {/* New/Edit Modal */}

@@ -29,13 +29,13 @@ export default function MonthGridView({
         <h2 className="flex-1 min-w-0 text-center text-sm sm:text-lg font-semibold text-ink truncate">{cursor.getFullYear()} 年 {cursor.getMonth() + 1} 月</h2>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-1.5">
         {WEEKDAYS.map((w) => (
-          <div key={w} className="text-center text-xs font-medium text-ink-3 py-1">{w}</div>
+          <div key={w} className="text-center text-[10px] sm:text-xs font-medium text-ink-3 py-1">{w}</div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
         {cells.map((d, i) => {
           const dayEvents = byDay[ymd(d)] || []
           const inMonth = d.getMonth() === month
@@ -43,18 +43,19 @@ export default function MonthGridView({
           return (
             <div
               key={i}
-              className={`min-h-[92px] rounded-lg border p-1.5 flex flex-col transition-colors ${
+              className={`min-h-[58px] sm:min-h-[92px] rounded-lg border p-1 sm:p-1.5 flex flex-col transition-colors ${
                 today ? 'border-primary-600 bg-primary-50/40' : 'border-hairline bg-surface'
               } ${inMonth ? '' : 'opacity-40'}`}
             >
-              <div className={`text-xs font-medium mb-1 ${today ? 'text-primary-700' : 'text-ink-2'}`}>{d.getDate()}</div>
-              <div className="space-y-1 overflow-hidden">
+              <div className={`text-[10px] sm:text-xs font-medium mb-0.5 sm:mb-1 ${today ? 'text-primary-700' : 'text-ink-2'}`}>{d.getDate()}</div>
+              <div className="flex flex-wrap content-start gap-0.5 sm:gap-1 overflow-hidden flex-1">
+                {/* Desktop：文本条（最多 3 条） */}
                 {dayEvents.slice(0, 3).map((e) => (
                   <button
                     key={e.id}
                     onClick={() => onEventClick(e)}
                     title={`${SOURCE_LABEL[e.source] || e.source} · ${e.title}`}
-                    className="w-full text-left truncate rounded px-1.5 py-0.5 text-[11px] font-medium flex items-center gap-1 hover:brightness-95 transition"
+                    className="w-full items-center gap-1 rounded hover:brightness-95 transition hidden sm:flex px-1.5 py-0.5 text-[11px] font-medium text-left truncate"
                     style={{
                       backgroundColor: e.overdue ? '#fee2e2' : `${SOURCE_COLOR[e.source] || '#94a3b8'}1a`,
                       color: e.overdue ? '#b91c1c' : (SOURCE_COLOR[e.source] || '#475569'),
@@ -67,10 +68,32 @@ export default function MonthGridView({
                 {dayEvents.length > 3 && (
                   <button
                     onClick={() => onMoreClick(d, dayEvents)}
-                    className="w-full text-left text-[10px] text-primary-600 px-1.5 hover:underline"
+                    className="hidden sm:block text-xs text-primary-600 hover:underline px-1.5 w-full text-left"
                     aria-label={`查看当天全部 ${dayEvents.length} 条事件`}
                   >
                     +{dayEvents.length - 3} 更多 ›
+                  </button>
+                )}
+                {/* Mobile：事件简化为彩色圆点（最多 5 个） */}
+                {dayEvents.slice(0, 5).map((e) => (
+                  <button
+                    key={`m-${e.id}`}
+                    onClick={() => onEventClick(e)}
+                    title={`${SOURCE_LABEL[e.source] || e.source} · ${e.title}`}
+                    className="sm:hidden w-2 h-2 rounded-full flex-shrink-0"
+                    style={{
+                      backgroundColor: e.overdue ? '#ef4444' : (SOURCE_COLOR[e.source] || '#94a3b8'),
+                    }}
+                    aria-label={e.title}
+                  />
+                ))}
+                {dayEvents.length > 5 && (
+                  <button
+                    onClick={() => onMoreClick(d, dayEvents)}
+                    className="sm:hidden text-[10px] text-primary-600 hover:underline"
+                    aria-label={`查看当天全部 ${dayEvents.length} 条事件`}
+                  >
+                    +{dayEvents.length - 5}
                   </button>
                 )}
               </div>

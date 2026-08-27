@@ -409,17 +409,19 @@ const ComplianceRules = () => {
             <button key={o.value} onClick={() => setActiveTab(o.value)} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${activeTab === o.value ? 'bg-primary-600 text-white border-primary-600' : 'border-hairline text-ink-2 hover:bg-canvas'}`}>{o.label}</button>
           ))}
         </div>
-        <div className="flex flex-wrap gap-3">
-          <SearchBar value={search} onChange={setSearch} placeholder="搜索规则名称、编号..." />
-          <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
-            className="px-3 py-2 border border-hairline rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
-            <option value="">全部状态</option>
-            <option value="active">启用</option>
-            <option value="inactive">停用</option>
-          </select>
-          <button onClick={fetchAll} className="px-3 py-2 border border-hairline rounded-lg hover:bg-canvas">
-            <RefreshCw size={15} className="text-ink-2" />
-          </button>
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+          <SearchBar value={search} onChange={setSearch} placeholder="搜索规则名称、编号..." className="w-full sm:flex-1" />
+          <div className="flex flex-wrap gap-3 flex-1 sm:flex-initial">
+            <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
+              className="flex-1 sm:flex-none sm:w-40 px-3 py-2 border border-hairline rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
+              <option value="">全部状态</option>
+              <option value="active">启用</option>
+              <option value="inactive">停用</option>
+            </select>
+            <button onClick={fetchAll} className="px-3 py-2 border border-hairline rounded-lg hover:bg-canvas tap-target">
+              <RefreshCw size={15} className="text-ink-2" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -438,8 +440,8 @@ const ComplianceRules = () => {
               <span className="ml-2 text-xs text-ink-3 font-normal">含全局（ALL）规则</span>
             </div>
           )}
-          <div className="bg-surface rounded-xl border border-hairline overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="bg-surface rounded-xl border border-hairline overflow-hidden overflow-x-auto">
+          <table className="w-full text-sm min-w-[560px]">
             <thead className="bg-canvas border-b border-hairline">
               <tr>
                 <th className="text-left px-4 py-3 text-ink-2 font-medium">规则</th>

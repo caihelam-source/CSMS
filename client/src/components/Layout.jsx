@@ -45,7 +45,7 @@ export default function Layout() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 min-h-screen relative z-[1] pt-[88px] lg:pt-[116px]">
+      <div className="flex-1 min-h-screen relative z-[1] pt-[132px] lg:pt-[124px]">
         {/* Demo mode banner — 仅 demo 模式展示 */}
         {isDemoMode && (
           <div className="bg-warning/10 border-b border-warning/20 px-4 py-2 text-center text-sm text-warning">

@@ -535,6 +535,26 @@
     .mini-col { padding: var(--space-4); }
 
     .account__btn { min-height: 44px; padding: 6px 10px 6px 4px; }
+
+    /* 页面头：操作按钮在窄屏下占满整行并允许折行 */
+    .page-header { flex-direction: column; align-items: flex-start; }
+    .page-header__actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+    .page-header__actions > * { flex: 1 1 auto; min-width: 0; }
+    .page-header__actions .btn-primary,
+    .page-header__actions .btn-secondary { width: 100%; justify-content: center; }
+
+    /* 筛选卡片：垂直堆叠、输入框占满 */
+    .card > .flex-wrap > .min-w-\[180px\],
+    .card > .flex-col > .min-w-\[180px\],
+    .card .input-field { min-width: 0; }
+
+    /* 卡片在移动端收紧 padding */
+    .card { padding: var(--space-4); }
+
+    /* 表格容器：小屏横向滚动，不撑爆页面 */
+    .app-content .overflow-x-auto,
+    .app-content table { max-width: 100%; }
+    .app-content tbody td { word-break: break-word; }
   }
   @media (max-width: 480px) {
     .hero__sub { font-size: var(--text-sm); }
