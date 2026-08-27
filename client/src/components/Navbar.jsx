@@ -93,12 +93,12 @@ const Navbar = () => {
   return (
     <>
       {/* 顶部导航栏：毛玻璃 + 圆角容器，悬浮于内容之上 */}
-      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[1400px]">
-        <nav className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5 bg-surface/95 dark:bg-surface/95 backdrop-blur-xl border border-line-strong rounded-2xl shadow-2">
+      <header className="fixed top-3 lg:top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] lg:w-[calc(100%-2rem)] max-w-[1400px]">
+        <nav className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2.5 py-2 bg-surface/95 dark:bg-surface/95 backdrop-blur-xl border border-line-strong rounded-2xl shadow-2">
           {/* Logo — 明暗双模：亮色 Navy 字标 / 暗色反白字标（图标为自包含 navy 方底印章，两态通用） */}
-          <Link to="/dashboard" className="flex items-center gap-2.5 pl-1 pr-3 shrink-0">
-            <BrandLogo variant="icon" size="md" />
-            <span className="font-extrabold text-ink-brand dark:text-white text-lg tracking-tight">CSMS</span>
+          <Link to="/dashboard" className="flex items-center gap-2 pl-1 pr-2 shrink-0">
+            <BrandLogo variant="icon" size="sm" />
+            <span className="font-extrabold text-ink-brand dark:text-white text-base lg:text-lg tracking-tight">CSMS</span>
           </Link>
 
           {/* 桌面端水平导航：全部 14 个一级入口平铺，不再收入下拉（响应式：空间不足时换行） */}
@@ -109,7 +109,7 @@ const Navbar = () => {
           </div>
 
           {/* 右侧操作区 */}
-          <div className="flex items-center gap-1.5 ml-auto shrink-0">
+          <div className="flex items-center gap-1 ml-auto shrink-0">
             <button
               onClick={() => setCmdOpen(true)}
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm text-ink-3 bg-canvas hover:bg-canvas/80 transition-colors"
@@ -121,9 +121,9 @@ const Navbar = () => {
             <button
               onClick={toggle}
               aria-label="切换明暗主题"
-              className="theme-toggle-btn p-2 rounded-full text-ink-2 hover:bg-canvas transition-colors"
+              className="theme-toggle-btn p-1.5 rounded-full text-ink-2 hover:bg-canvas transition-colors"
             >
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             </button>
 
             {isDemoMode && (
@@ -136,9 +136,9 @@ const Navbar = () => {
             <div className="relative">
               <button
                 onClick={() => setUserOpen(o => !o)}
-                className={`flex items-center gap-2 pl-1 pr-2 py-1 rounded-full transition-colors ${userOpen ? 'bg-canvas' : 'hover:bg-canvas'}`}
+                className={`flex items-center gap-1.5 pl-0.5 pr-1.5 py-0.5 rounded-full transition-colors ${userOpen ? 'bg-canvas' : 'hover:bg-canvas'}`}
               >
-                <div className="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                <div className="w-7 h-7 lg:w-8 lg:h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-[10px] lg:text-xs font-bold shrink-0">
                   {initials}
                 </div>
                 <span className="hidden md:block text-sm font-medium text-ink truncate max-w-[96px]">{user?.name}</span>
@@ -204,10 +204,10 @@ const Navbar = () => {
             {/* 移动端汉堡 */}
             <button
               onClick={() => setMobileOpen(o => !o)}
-              className="lg:hidden p-2 rounded-full text-ink-2 hover:bg-canvas"
+              className="lg:hidden p-1.5 rounded-full text-ink-2 hover:bg-canvas"
               aria-label="菜单"
             >
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </nav>

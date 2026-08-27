@@ -44,8 +44,8 @@ export default function Layout() {
         </Link>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 min-h-screen relative z-[1] pt-[132px] lg:pt-[124px]">
+      {/* Main content：移动端 navbar 因头像/按钮可能撑高，留出 156px 安全顶距；桌面端 128px */}
+      <div className="flex-1 min-h-screen relative z-[1] pt-[156px] lg:pt-[128px]">
         {/* Demo mode banner — 仅 demo 模式展示 */}
         {isDemoMode && (
           <div className="bg-warning/10 border-b border-warning/20 px-4 py-2 text-center text-sm text-warning">
