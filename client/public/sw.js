@@ -1,5 +1,7 @@
-// CSMS PWA Service Worker —— 壳缓存 + 离线兜底（D-W3：仅壳与静态资源，签字原文不整量离线）
-const CACHE = 'csms-shell-v1'
+// CSMS PWA Service Worker —— 网络优先 + HTML 不缓存（破除微信/浏览器顽固缓存旧包）
+// 关键修复：导航请求（index.html）强制 cache:'no-cache'，确保每次都拿到最新入口，
+// 从而引用最新哈希 chunk；否则微信 WebView 会顽固缓存旧 index.html → 旧 chunk → 永远旧版。
+const CACHE = 'csms-shell-v2'
 const SHELL = ['/', '/index.html', '/vite.svg', '/icon.svg', '/manifest.webmanifest']
 
 self.addEventListener('install', (event) => {
@@ -25,15 +27,15 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
 
-  // 导航请求：网络优先，失败回壳（HashRouter 路由统一回落 '/index.html'）
+  // 导航请求：网络优先 + 不缓存 HTML（强制每次拿最新 index.html，破除微信/浏览器顽固缓存）
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html'))
+      fetch(request, { cache: 'no-cache' }).catch(() => caches.match('/index.html'))
     )
     return
   }
 
-  // 静态资源：缓存优先，回源并写回缓存
+  // 静态资源（哈希 chunk）：缓存优先（URL 随内容变化，安全且可离线）；缺失再回源并写回
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached

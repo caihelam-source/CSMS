@@ -441,7 +441,7 @@ const ComplianceRules = () => {
             </div>
           )}
           <div className="bg-surface rounded-xl border border-hairline overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm min-w-[560px]">
+          <table className="w-full text-sm min-w-0 sm:min-w-[560px]">
             <thead className="bg-canvas border-b border-hairline">
               <tr>
                 <th className="text-left px-4 py-3 text-ink-2 font-medium">规则</th>
