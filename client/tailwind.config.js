@@ -30,8 +30,20 @@ export default {
         ink: 'rgb(var(--text-1) / <alpha-value>)',
         'ink-2': 'rgb(var(--text-2) / <alpha-value>)',
         'ink-3': 'rgb(var(--text-3) / <alpha-value>)',
+        'ink-brand': 'rgb(var(--ink-brand) / <alpha-value>)',
         hairline: 'rgb(var(--border) / <alpha-value>)',
+        'line-strong': 'rgb(var(--border-strong) / <alpha-value>)',
         subtle: 'rgb(var(--subtle) / <alpha-value>)',
+        paper: 'rgb(var(--bg) / <alpha-value>)',
+        // 数据可视化 6 色板（图表 / 状态点 / 图例统一来源；含 brand blue）
+        data: {
+          1: 'rgb(var(--data-1) / <alpha-value>)',
+          2: 'rgb(var(--data-2) / <alpha-value>)',
+          3: 'rgb(var(--data-3) / <alpha-value>)',
+          4: 'rgb(var(--data-4) / <alpha-value>)',
+          5: 'rgb(var(--data-5) / <alpha-value>)',
+          6: 'rgb(var(--data-6) / <alpha-value>)',
+        },
       },
       borderRadius: {
         xs: '6px', sm: '10px', md: '14px', lg: '18px', xl: '24px', '2xl': '28px', '3xl': '32px', full: '999px',

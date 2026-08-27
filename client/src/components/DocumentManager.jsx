@@ -78,7 +78,7 @@ const SIGN_STATUS_MAP = {
   pending_ctc: { label: 'CTC待签', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
   fully_signed: { label: '已签', cls: 'bg-green-50 text-green-700 border-green-200' },
   ctc: { label: 'CTC已签', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-  archived: { label: '已归档', cls: 'bg-gray-100 text-gray-500 border-gray-200' },
+  archived: { label: '已归档', cls: 'bg-canvas text-ink-2 border-hairline' },
 }
 function SignStatusBadge({ status }) {
   const m = SIGN_STATUS_MAP[status]

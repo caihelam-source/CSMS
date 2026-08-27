@@ -195,7 +195,7 @@ export const CompleteWithAttachmentModal = ({
  * Usage: <span className={`rounded-full ${compliancePriorityColor(r.priority)}`}>{r.priority}</span>
  */
 export const compliancePriorityColor = (p) => ({
-  critical: 'bg-danger/10 text-danger border-danger/20',
+  critical: 'bg-accent/10 text-accent border-accent/20',
   high: 'bg-warning/10 text-warning border-warning/20',
   medium: 'bg-warning/10 text-warning border-warning/20',
   low: 'bg-canvas text-ink-2 border-hairline',
@@ -215,7 +215,7 @@ export const complianceStatusColor = (s) => ({
  * Task priority color helper
  */
 export const taskPriorityColor = (p) => ({
-  urgent: 'bg-danger/10 text-danger border-danger/20',
+  urgent: 'bg-accent/10 text-accent border-accent/20',
   high: 'bg-warning/10 text-warning border-warning/20',
   medium: 'bg-warning/10 text-warning border-warning/20',
   low: 'bg-canvas text-ink-2 border-hairline',

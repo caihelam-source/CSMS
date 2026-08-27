@@ -102,7 +102,7 @@ export default function UserManagementTab() {
                   <td className="px-5 py-4">
                     {u.status === 'active'
                       ? <span className="inline-flex items-center gap-1 text-success text-xs"><span className="w-1.5 h-1.5 rounded-full bg-success" />Active</span>
-                      : <span className="inline-flex items-center gap-1 text-ink-2 text-xs"><span className="w-1.5 h-1.5 rounded-full bg-gray-400" />Inactive</span>}
+                      : <span className="inline-flex items-center gap-1 text-ink-2 text-xs"><span className="w-1.5 h-1.5 rounded-full bg-ink-3" />Inactive</span>}
                   </td>
                   <td className="px-5 py-4 text-ink-3 text-xs">{u.joined}</td>
                   <td className="px-5 py-4">
