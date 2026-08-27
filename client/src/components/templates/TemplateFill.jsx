@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Printer, Download, ExternalLink, AlertTriangle, Building2, Sparkles, Copy } from 'lucide-react'
+import { Printer, Download, ExternalLink, AlertTriangle, Building2, Sparkles, Copy, MoveHorizontal } from 'lucide-react'
 import { templateService, companyService, personnelService, meetingService } from '../../services/index.js'
 import { LoadingSpinner, labelClass } from '../UIHelpers'
 import SchemaDocRenderer from '../../schemaDoc/SchemaDocRenderer'
@@ -520,8 +520,11 @@ const TemplateFill = ({ template }) => {
         </div>
 
         {/* 右栏 55% —— A4 预览 */}
-        <div className="w-full lg:w-[55%] lg:sticky lg:top-4">
-          <div className="bg-white border border-hairline rounded-xl overflow-auto max-h-[calc(100vh-160px)] p-4">
+        <div className="w-full lg:w-[55%] lg:sticky lg:top-4 space-y-2">
+          <p className="lg:hidden flex items-center gap-1.5 text-xs text-ink-3 px-1">
+            <MoveHorizontal size={13} /> 左右滑动查看完整 A4 预览
+          </p>
+          <div className="bg-white border border-hairline rounded-xl overflow-auto max-h-[calc(100vh-220px)] lg:max-h-[calc(100vh-160px)] p-2 sm:p-4">
             <div ref={previewRef} className="bg-white">
               <SchemaDocRenderer docSchema={docSchema} data={data} mode="preview" />
             </div>
