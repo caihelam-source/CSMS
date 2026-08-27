@@ -149,7 +149,7 @@ export default function CommandPalette({ isOpen, onClose }) {
         onClick={onClose}
       />
       {/* Panel */}
-      <div className="relative w-full max-w-xl bg-surface rounded-2xl shadow-2xl flex flex-col max-h-[70vh] overflow-hidden">
+      <div className="relative w-full max-w-xl bg-surface rounded-2xl shadow-4 flex flex-col max-h-[70vh] overflow-hidden">
         {/* Input row */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-hairline shrink-0">
           <Command size={18} className="text-ink-3 shrink-0" />

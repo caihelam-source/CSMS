@@ -24,7 +24,7 @@ export default function DayEventsPopover({ open, date, events, onClose, onEventC
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl bg-surface shadow-xl border border-hairline max-h-[80vh] flex flex-col"
+        className="w-full max-w-md rounded-xl bg-surface shadow-3 border border-hairline max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-hairline">

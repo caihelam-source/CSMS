@@ -49,13 +49,12 @@ export default {
         xs: '6px', sm: '10px', md: '14px', lg: '18px', xl: '24px', '2xl': '28px', '3xl': '32px', full: '999px',
       },
       boxShadow: {
-        'sm': '0 1px 2px rgba(15,23,42,.04)',
-        'md': '0 4px 14px rgba(15,23,42,.07)',
-        'lg': '0 16px 40px rgba(15,23,42,.12)',
+        // 柔化阴影 s-1~s-4（Batch 04 设计语言）：引用 index.css 变量，明暗自动切换
+        '1': 'var(--s-1)', '2': 'var(--s-2)', '3': 'var(--s-3)', '4': 'var(--s-4)',
+        'sm': 'var(--s-1)', 'md': 'var(--s-2)', 'lg': 'var(--s-4)',
         'focus': '0 0 0 3px rgba(37,99,235,.18)',
         // 其他页面保留
-        'card': '0 1px 3px rgba(15,23,42,.05), 0 1px 2px rgba(15,23,42,.04)',
-        'card-hover': '0 6px 20px rgba(15,23,42,.08)',
+        'card': 'var(--s-1)', 'card-hover': 'var(--s-2)',
       },
       fontFamily: {
         sans: ['system-ui', '-apple-system', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', '"PingFang SC"', '"Microsoft YaHei"', '"Hiragino Sans GB"', '"Noto Sans CJK SC"', 'sans-serif'],
@@ -69,7 +68,7 @@ export default {
         '14': 'var(--space-14)', '16': 'var(--space-16)',
       },
       transitionDuration: {
-        DEFAULT: '200ms',
+        DEFAULT: '150ms', fast: '150ms', base: '200ms', slow: '300ms',
       },
       // 字号阶梯：对齐设计稿规范 12/14/15/17/22/32/46（Batch 03 字体校准）
       // 默认工具类直接映射到规范字阶，全站 text-* 即按 token 校准；

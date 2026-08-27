@@ -138,7 +138,7 @@ export default function GlobalSearch({ onOpenCommand }) {
       </div>
 
       {open && query.trim() && (
-        <div className="absolute z-50 left-3 right-3 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-surface rounded-xl shadow-lg border border-hairline py-2">
+        <div className="absolute z-50 left-3 right-3 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-surface rounded-xl shadow-3 border border-hairline py-2">
           {loading && <div className="px-4 py-3 text-sm text-ink-3">搜索中…</div>}
 
           {!loading && total === 0 && (

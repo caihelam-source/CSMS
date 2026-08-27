@@ -336,7 +336,7 @@ export default function Meetings() {
       {/* ========== WIZARD MODAL ========== */}
       {wizardStep > 0 && createPortal(
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setWizardStep(0)}>
-          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-surface rounded-2xl shadow-4 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             {/* Wizard Header */}
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
               <h2 className="text-xl font-bold">{editMeeting ? '编辑会议' : '创建新会议'}</h2>
@@ -581,7 +581,7 @@ export default function Meetings() {
       {/* ========== DETAIL VIEW MODAL ========== */}
       {detailId && detailMeeting && createPortal(
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setDetailId(null); setDetailMeeting(null) }}>
-          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-surface rounded-2xl shadow-4 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
               <h2 className="text-xl font-bold truncate">{detailMeeting.title}</h2>
               <button onClick={() => { setDetailId(null); setDetailMeeting(null) }} className="p-1 hover:bg-canvas rounded"><X size={20} /></button>

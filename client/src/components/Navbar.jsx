@@ -82,7 +82,7 @@ const Dropdown = ({ label, active, children }) => {
         {label} <MoreHorizontal size={14} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-44 bg-surface border border-hairline rounded-2xl shadow-lg py-2 z-50">
+        <div className="absolute left-0 top-full mt-2 w-44 bg-surface border border-hairline rounded-2xl shadow-3 py-2 z-50">
           {children}
         </div>
       )}
@@ -155,7 +155,7 @@ const Navbar = () => {
     <>
       {/* 顶部导航栏：毛玻璃 + 圆角容器，悬浮于内容之上 */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[1400px]">
-        <nav className="flex items-center gap-3 px-3 py-2.5 bg-surface/85 dark:bg-surface/80 backdrop-blur-xl border border-hairline rounded-2xl shadow-sm">
+        <nav className="flex items-center gap-3 px-3 py-2.5 bg-surface/85 dark:bg-surface/80 backdrop-blur-xl border border-hairline rounded-2xl shadow-3">
           {/* Logo — 明暗双模：亮色 Navy 字标 / 暗色反白字标（图标为自包含 navy 方底印章，两态通用） */}
           <Link to="/dashboard" className="flex items-center gap-2.5 pl-1 pr-3 shrink-0">
             <BrandLogo variant="icon" size="md" />
@@ -225,7 +225,7 @@ const Navbar = () => {
                 <span className="hidden md:block text-sm font-medium text-ink truncate max-w-[96px]">{user?.name}</span>
               </button>
               {userOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-surface border border-hairline rounded-2xl shadow-lg py-3 z-50">
+                <div className="absolute right-0 top-full mt-2 w-64 bg-surface border border-hairline rounded-2xl shadow-3 py-3 z-50">
                   <div className="px-4 pb-3 border-b border-hairline">
                     <p className="text-sm font-semibold text-ink truncate">{user?.name}</p>
                     <p className="text-xs text-ink-3 truncate">{user?.email}</p>
@@ -298,7 +298,7 @@ const Navbar = () => {
       {mobileOpen && (
         <>
           <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
-          <aside className="fixed inset-y-0 right-0 z-50 w-72 bg-surface border-l border-hairline shadow-xl lg:hidden flex flex-col">
+          <aside className="fixed inset-y-0 right-0 z-50 w-72 bg-surface border-l border-hairline shadow-4 lg:hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-hairline">
               <span className="font-bold text-ink">菜单</span>
               <button onClick={() => setMobileOpen(false)} className="p-2 rounded-full hover:bg-canvas"><X size={20} /></button>

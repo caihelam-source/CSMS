@@ -76,7 +76,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
         aria-labelledby={titleId}
         onKeyDown={handleKeyDown}
         tabIndex={-1}
-        className={`relative w-full ${sizeClass} bg-surface rounded-2xl shadow-2xl max-h-[90vh] flex flex-col outline-none`}
+        className={`relative w-full ${sizeClass} bg-surface rounded-2xl shadow-4 max-h-[90vh] flex flex-col outline-none`}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-hairline shrink-0">

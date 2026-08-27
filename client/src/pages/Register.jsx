@@ -17,7 +17,7 @@ const Register = () => {
       </div>
 
       {/* 说明卡（与登录页同系列：居中白卡 + 顶部 Logo） */}
-      <div className="relative z-10 w-full max-w-[380px] bg-surface rounded-2xl shadow-lg border border-hairline p-7">
+      <div className="relative z-10 w-full max-w-[380px] bg-surface rounded-2xl shadow-3 border border-hairline p-7">
         <div className="flex items-center gap-3 justify-center mb-1">
           <BrandLogo variant="icon" size="lg" />
           <div className="text-left">

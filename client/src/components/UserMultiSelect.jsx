@@ -79,7 +79,7 @@ export default function UserMultiSelect({ users = [], value = [], onChange, labe
       )}
 
       {open && !disabled && (
-        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-hairline bg-surface shadow-lg">
+        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-hairline bg-surface shadow-3">
           {users.length === 0 ? (
             <div className="px-3 py-2 text-sm text-ink-3">暂无可选用户</div>
           ) : (

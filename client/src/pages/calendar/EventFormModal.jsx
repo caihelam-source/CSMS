@@ -70,7 +70,7 @@ export default function EventFormModal({ open, initial, companies, onClose, onSu
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl bg-surface shadow-xl border border-hairline"
+        className="w-full max-w-md rounded-xl bg-surface shadow-3 border border-hairline"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-hairline">

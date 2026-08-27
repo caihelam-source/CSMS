@@ -43,7 +43,10 @@ export default function Layout() {
         {/* Page content — pb-24 给手机端底部 Tab 栏留位（lg 以上无 Tab，恢复 pb-6）
             app-content：注册为容器查询上下文，让内部组件按「内容区真实宽度」而非视口宽度响应。 */}
         <main className="app-content flex-1 p-4 lg:p-6 pb-24 lg:pb-6">
-          <Outlet />
+          {/* Batch 04 · 设计语言：页面切换淡入（key=pathname 触发 remount + .page-fade 动画） */}
+          <div key={pathname} className="page-fade">
+            <Outlet />
+          </div>
         </main>
       </div>
 
