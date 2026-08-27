@@ -370,7 +370,7 @@ export default function RulesLibraryTab() {
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-responsive">
               <thead className="bg-canvas border-b border-hairline">
                 <tr>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-ink-2 uppercase w-28">规则编码</th>
@@ -384,12 +384,12 @@ export default function RulesLibraryTab() {
               <tbody className="divide-y divide-gray-100">
                 {Object.entries(lib.rules || {}).map(([code, r]) => (
                   <tr key={code} onClick={() => openRule(code)} className="hover:bg-canvas cursor-pointer">
-                    <td className="px-4 py-2 text-ink font-mono text-xs">{code}</td>
-                    <td className="px-4 py-2 text-ink-2 text-xs">{r.source || '—'}</td>
-                    <td className="px-4 py-2 text-ink-2 text-xs">{r.category || '—'}</td>
-                    <td className="px-4 py-2 text-ink-2 text-xs max-w-[260px] truncate" title={r.text}>{r.text || '—'}</td>
-                    <td className="px-4 py-2 text-ink-2 text-xs max-w-[200px] truncate" title={r.interpretation}>{r.interpretation || '—'}</td>
-                    <td className="px-4 py-2 text-xs">
+                    <td data-label="规则编码" className="px-4 py-2 text-ink font-mono text-xs">{code}</td>
+                    <td data-label="出处" className="px-4 py-2 text-ink-2 text-xs">{r.source || '—'}</td>
+                    <td data-label="类别" className="px-4 py-2 text-ink-2 text-xs">{r.category || '—'}</td>
+                    <td data-label="条文原文" className="px-4 py-2 text-ink-2 text-xs max-w-[260px] truncate" title={r.text}>{r.text || '—'}</td>
+                    <td data-label="解读" className="px-4 py-2 text-ink-2 text-xs max-w-[200px] truncate" title={r.interpretation}>{r.interpretation || '—'}</td>
+                    <td data-label="状态" className="px-4 py-2 text-xs">
                       <span className={`tag ${r.status === 'active' ? 'bg-success/10 text-success' : r.status === 'deprecated' ? 'bg-danger/10 text-danger' : 'bg-canvas text-ink-2'}`}>{r.status || 'active'}</span>
                     </td>
                   </tr>
@@ -445,7 +445,7 @@ export default function RulesLibraryTab() {
             </button>
           </div>
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-responsive">
               <thead className="bg-canvas border-b border-hairline sticky top-0">
                 <tr>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-ink-2 uppercase tracking-wide">偏移量</th>
@@ -461,21 +461,21 @@ export default function RulesLibraryTab() {
                   const refN = secOffsetRefCount[o.id] || 0
                   return (
                   <tr key={`${o.id || 'off'}-${i}`} className={`hover:bg-canvas ${refN === 0 ? 'opacity-70' : ''}`}>
-                    <td className="px-4 py-2 text-ink">{o.name || o.id}</td>
-                    <td className="px-4 py-2 text-ink-2 text-xs">{o.anchor}</td>
-                    <td className="px-4 py-2">
+                    <td data-label="偏移量" className="px-4 py-2 text-ink">{o.name || o.id}</td>
+                    <td data-label="锚点" className="px-4 py-2 text-ink-2 text-xs">{o.anchor}</td>
+                    <td data-label="天数" className="px-4 py-2">
                       <input type="number" value={o.days}
                         onChange={e => patchOffsetDays(o.id, e.target.value)}
                         className="w-20 px-2 py-1 border border-hairline rounded-md text-xs text-right focus:ring-2 focus:ring-primary-500" />
                       <span className="text-[11px] text-ink-3 ml-1">天</span>
                     </td>
-                    <td className="px-4 py-2 text-ink-2 text-xs">{(lib.rules || {})[o.rule_code]?.source || o.rule_code || '—'}</td>
-                    <td className="px-4 py-2 text-xs">
+                    <td data-label="规则出处" className="px-4 py-2 text-ink-2 text-xs">{(lib.rules || {})[o.rule_code]?.source || o.rule_code || '—'}</td>
+                    <td data-label="被引用" className="px-4 py-2 text-xs">
                       {refN > 0 ? <span className={refN > 1 ? 'text-warning font-medium' : 'text-ink-2'}>{refN} 条</span>
                         : <span className="text-ink-3">未引用</span>}
                     </td>
-                    <td className="px-4 py-2">
-                      <button onClick={() => openOffset(activeSection === 'offsets-midyear' ? 'midyear' : 'annual', i)} className="p-1 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded" title="编辑">
+                      <td data-label="操作" className="px-4 py-2">
+                        <button onClick={() => openOffset(activeSection === 'offsets-midyear' ? 'midyear' : 'annual', i)} className="p-1 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded" title="编辑">
                         <Pencil size={14} />
                       </button>
                     </td>
@@ -499,7 +499,7 @@ export default function RulesLibraryTab() {
               </button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-responsive">
                 <thead className="bg-canvas border-b border-hairline">
                   <tr>
                     <th className="px-4 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide w-16">启用</th>
@@ -522,17 +522,17 @@ export default function RulesLibraryTab() {
                     const ids = taskOffsetIds(t)
                     return (
                     <tr key={`${t.id || 'task'}-${i}`} className={`hover:bg-canvas transition-colors ${enabled ? '' : 'opacity-50'}`}>
-                      <td className="px-4 py-3 text-center">
+                      <td data-label="启用" className="px-4 py-3 text-center">
                         <input type="checkbox" checked={enabled} onChange={() => patchTask(i, { _disabled: enabled })}
                           title={enabled ? '点击禁用该任务' : '点击启用该任务'} />
                       </td>
-                      <td className="px-4 py-3 text-ink-2 text-xs whitespace-nowrap">{t.category || '—'}</td>
-                      <td className="px-4 py-3 text-ink">
+                      <td data-label="大类" className="px-4 py-3 text-ink-2 text-xs whitespace-nowrap">{t.category || '—'}</td>
+                      <td data-label="任务名称" className="px-4 py-3 text-ink">
                         <div className="font-medium">{t.name || '—'}</div>
                         <div className="text-[11px] text-ink-3 mt-0.5">{t.id} · {t.type === 'range' ? '区间' : '时点'}</div>
                       </td>
-                      <td className="px-4 py-3 text-ink-2 text-xs">{ruleSrc}</td>
-                      <td className="px-4 py-3 text-ink-2 text-xs min-w-[140px]">
+                      <td data-label="规则出处" className="px-4 py-3 text-ink-2 text-xs">{ruleSrc}</td>
+                      <td data-label="负责人" className="px-4 py-3 text-ink-2 text-xs min-w-[140px]">
                         {(() => {
                           const cur = (Array.isArray(t.parties) && t.parties.length) ? t.parties : (t.party ? [t.party] : [])
                           const labels = cur.map(pk => (lib.parties[pk] || {}).label || pk)
@@ -576,14 +576,14 @@ export default function RulesLibraryTab() {
                         })()}
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td data-label="优先级" className="px-4 py-3">
                         <select value={PRIORITY_OPTIONS.includes(t.priority) ? t.priority : '中优'}
                           onChange={e => patchTask(i, { priority: e.target.value })}
                           className={`px-2 py-1 rounded-full text-xs font-medium border-0 focus:ring-2 focus:ring-primary-500 ${PRIORITY_COLOR[t.priority] || PRIORITY_COLOR['中优']}`}>
                           {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-label="偏移量 / 天数" className="px-4 py-3">
                         {ids.length === 0 ? (<span className="text-xs text-ink-3">未绑定偏移量</span>) : (
                           <div className="space-y-1">
                             {ids.map((oid, k) => {
@@ -606,7 +606,7 @@ export default function RulesLibraryTab() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-label="操作" className="px-4 py-3">
                         <button onClick={() => openTask(activeSection === 'tasks-midyear' ? 'midyear' : 'annual', i)} className="p-1 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded" title="编辑">
                           <Pencil size={14} />
                         </button>
@@ -632,7 +632,7 @@ export default function RulesLibraryTab() {
             <div className="px-5 py-10 text-center text-ink-3 text-sm">暂无已禁用任务</div>
           ) : (
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-responsive">
                 <thead className="bg-canvas border-b border-hairline sticky top-0">
                   <tr>
                     <th className="px-4 py-2.5 text-xs font-semibold text-ink-2 uppercase w-16">启用</th>
@@ -647,7 +647,7 @@ export default function RulesLibraryTab() {
                     const _idxInPeriod = (isMid ? lib.tasks_midyear : lib.tasks_annual).indexOf(t)
                     return (
                     <tr key={`dis-${i}`} className="hover:bg-canvas opacity-60">
-                      <td className="px-4 py-2 text-center">
+                      <td data-label="启用" className="px-4 py-2 text-center">
                         <input type="checkbox" checked={false} onChange={() => {
                           // 找到正确的索引来 patch
                           const arr = isMid ? 'tasks_midyear' : 'tasks_annual'
@@ -661,9 +661,9 @@ export default function RulesLibraryTab() {
                           }
                         }} title="点击启用该任务" />
                       </td>
-                      <td className="px-4 py-2 text-xs text-ink-2">{isMid ? '中期' : '年度'}</td>
-                      <td className="px-4 py-2 text-xs text-ink-2">{t.category || '—'}</td>
-                      <td className="px-4 py-2 text-ink text-xs font-medium">{t.name || t.id || '—'}</td>
+                      <td data-label="期间" className="px-4 py-2 text-xs text-ink-2">{isMid ? '中期' : '年度'}</td>
+                      <td data-label="大类" className="px-4 py-2 text-xs text-ink-2">{t.category || '—'}</td>
+                      <td data-label="任务名称" className="px-4 py-2 text-ink text-xs font-medium">{t.name || t.id || '—'}</td>
                     </tr>
                     )
                   })}

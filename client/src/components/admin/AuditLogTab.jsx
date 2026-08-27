@@ -15,7 +15,7 @@ export default function AuditLogTab() {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-responsive">
           <thead className="bg-canvas border-b border-hairline">
             <tr>
               <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">时间</th>
@@ -32,9 +32,9 @@ export default function AuditLogTab() {
               <tr><td colSpan={5} className="px-5 py-10 text-center text-ink-3">暂无审计记录</td></tr>
             ) : auditLogs.map(a => (
               <tr key={a._id} className="hover:bg-canvas">
-                <td className="px-5 py-3 text-ink-3 text-xs whitespace-nowrap">{String(a.createdAt).slice(0, 19).replace('T', ' ')}</td>
-                <td className="px-5 py-3 text-ink">{a.actorName}</td>
-                <td className="px-5 py-3">
+                <td data-label="时间" className="px-5 py-3 text-ink-3 text-xs whitespace-nowrap">{String(a.createdAt).slice(0, 19).replace('T', ' ')}</td>
+                <td data-label="操作者" className="px-5 py-3 text-ink">{a.actorName}</td>
+                <td data-label="动作" className="px-5 py-3">
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${a.action === 'archive' ? 'bg-success/10 text-success' : a.action === 'lock' ? 'bg-warning/10 text-warning' : 'bg-info/10 text-primary-700'}`}>
                     {a.action === 'archive' && <CheckSquare size={11} />}
                     {a.action === 'lock' && <Lock size={11} />}
@@ -42,8 +42,8 @@ export default function AuditLogTab() {
                     {a.action}
                   </span>
                 </td>
-                <td className="px-5 py-3 text-ink-2 text-xs">{a.entityType}</td>
-                <td className="px-5 py-3 text-ink-2">{a.detail}</td>
+                <td data-label="对象" className="px-5 py-3 text-ink-2 text-xs">{a.entityType}</td>
+                <td data-label="说明" className="px-5 py-3 text-ink-2">{a.detail}</td>
               </tr>
             ))}
           </tbody>

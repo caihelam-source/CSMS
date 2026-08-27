@@ -619,9 +619,9 @@ export default function CompanyDetail() {
       return (
         <tr key={link._id} className={`border-b hover:bg-canvas ${link.ceasedDate ? 'bg-danger/10/40' : ''}`}>
           {columns.map(col => (
-            <td key={col.key} className={col.tdClass || 'p-2'}>{col.cell(link, p)}</td>
+            <td key={col.key} data-label={col.header} className={col.tdClass || 'p-2'}>{col.cell(link, p)}</td>
           ))}
-          <td className="p-2 text-right">
+          <td data-label="操作" className="p-2 text-right">
             {link.ceasedDate ? (
               <button onClick={() => handleRestoreLink(link._id)} className="text-xs text-success hover:underline font-medium">恢复</button>
             ) : (
@@ -641,7 +641,7 @@ export default function CompanyDetail() {
           <p className="text-xs text-ink-3 px-2 py-2">—</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-responsive">
               <tbody>{renderRows(list)}</tbody>
             </table>
           </div>
@@ -672,7 +672,7 @@ export default function CompanyDetail() {
           <p className="text-ink-3 text-sm py-4">{emptyText}</p>
         ) : (
           <div className="border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-responsive">
               <thead>
                 <tr className="bg-canvas border-b">
                   {columns.map(col => (
@@ -730,7 +730,7 @@ export default function CompanyDetail() {
           <p className="text-sm text-ink-3 italic">— 无记录 —</p>
         ) : (
           <div className="overflow-x-auto border rounded-lg">
-            <table className="w-full text-xs">
+            <table className="w-full text-xs table-responsive">
               <thead className="bg-canvas border-b">
                 <tr>
                   {cols.map((c) => <th key={c.key} className="text-left p-2 font-medium whitespace-nowrap">{c.header}</th>)}
@@ -741,7 +741,7 @@ export default function CompanyDetail() {
                   const p = resolveLinkDisplay(l)
                   return (
                     <tr key={l._id} className="border-b last:border-b-0">
-                      {cols.map((c) => <td key={c.key} className="p-2 align-top">{c.cell(l, p)}</td>)}
+                      {cols.map((c) => <td key={c.key} data-label={c.header} className="p-2 align-top">{c.cell(l, p)}</td>)}
                     </tr>
                   )
                 })}

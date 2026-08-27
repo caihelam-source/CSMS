@@ -579,7 +579,7 @@ export default function ResultsTimetable() {
           <EmptyState icon={CalendarClock} title="暂无历史排期" description="生成后将在此列出，可一键重新打开" />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="min-w-full text-sm table-responsive">
               <thead className="bg-canvas text-ink-2">
                 <tr>
                   <th className="px-3 py-2 text-left">公司</th>
@@ -592,13 +592,13 @@ export default function ResultsTimetable() {
               <tbody>
                 {history.map((h) => (
                   <tr key={h._id} className="border-t border-hairline hover:bg-canvas/50">
-                    <td className="px-3 py-2">{h.company?.name || h.name || '—'}</td>
-                    <td className="px-3 py-2">{periodLabel(h.period)}</td>
-                    <td className="px-3 py-2 text-ink-2 whitespace-nowrap">
+                    <td data-label="公司" className="px-3 py-2">{h.company?.name || h.name || '—'}</td>
+                    <td data-label="期间" className="px-3 py-2">{periodLabel(h.period)}</td>
+                    <td data-label="规则库" className="px-3 py-2 text-ink-2 whitespace-nowrap">
                       {h.ruleLibraryVersion != null ? `v${h.ruleLibraryVersion}` : '—'}
                     </td>
-                    <td className="px-3 py-2 text-ink-2 whitespace-nowrap">{fmtDateShort(h.createdAt)}</td>
-                    <td className="px-3 py-2">
+                    <td data-label="生成时间" className="px-3 py-2 text-ink-2 whitespace-nowrap">{fmtDateShort(h.createdAt)}</td>
+                    <td data-label="操作" className="px-3 py-2">
                       <button
                         onClick={() => handleOpenHistory(h._id)}
                         className="text-primary-600 hover:underline text-sm"

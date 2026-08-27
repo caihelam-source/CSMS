@@ -57,7 +57,7 @@ export default function UserManagementTab() {
       </div>
 
       <div className="bg-surface rounded-xl border border-hairline overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-responsive">
           <thead className="bg-canvas border-b border-hairline">
             <tr>
               <th className="text-left px-5 py-3 text-xs font-semibold text-ink-2 uppercase tracking-wide">User</th>
@@ -78,7 +78,7 @@ export default function UserManagementTab() {
               const isMe = u.email === currentUser?.email
               return (
                 <tr key={u.id} className="hover:bg-canvas transition-colors">
-                  <td className="px-5 py-4">
+                  <td data-label="User" className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-semibold text-sm shrink-0">
                         {u.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
@@ -94,18 +94,18 @@ export default function UserManagementTab() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4">
+                  <td data-label="Role" className="px-5 py-4">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${ri.color}`}>
                       <RoleIcon size={12} />{ri.label}
                     </span>
                   </td>
-                  <td className="px-5 py-4">
+                  <td data-label="Status" className="px-5 py-4">
                     {u.status === 'active'
                       ? <span className="inline-flex items-center gap-1 text-success text-xs"><span className="w-1.5 h-1.5 rounded-full bg-success" />Active</span>
                       : <span className="inline-flex items-center gap-1 text-ink-2 text-xs"><span className="w-1.5 h-1.5 rounded-full bg-ink-3" />Inactive</span>}
                   </td>
-                  <td className="px-5 py-4 text-ink-3 text-xs">{u.joined}</td>
-                  <td className="px-5 py-4">
+                  <td data-label="Joined" className="px-5 py-4 text-ink-3 text-xs">{u.joined}</td>
+                  <td data-label="操作" className="px-5 py-4">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => openEdit(u)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg">
                         <Pencil size={15} />

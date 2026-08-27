@@ -397,7 +397,7 @@ export const ObjectListEditor = ({ field = {}, value, onChange, highlight = fals
   return (
     <div className="space-y-2">
       <div className="overflow-x-auto border border-hairline rounded-lg">
-        <table className="min-w-full text-sm">
+        <table className="min-w-full text-sm table-responsive">
           <thead className="bg-canvas">
             <tr>
               {columns.map((col) => (
@@ -412,9 +412,9 @@ export const ObjectListEditor = ({ field = {}, value, onChange, highlight = fals
             {rows.map((row, index) => (
               <tr key={index} className="align-top">
                 {columns.map((col) => (
-                  <td key={col.key} className="px-2 py-1.5">{renderCell(col, row, index)}</td>
+                  <td key={col.key} data-label={col.label || col.key} className="px-2 py-1.5">{renderCell(col, row, index)}</td>
                 ))}
-                <td className="px-2 py-1.5">
+                <td data-label="操作" className="px-2 py-1.5">
                   <RemoveButton onClick={() => remove(index)} title="删除该行" />
                 </td>
               </tr>
