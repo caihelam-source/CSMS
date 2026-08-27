@@ -596,12 +596,12 @@ export default function CompanyDetail() {
     { value: 'audit', label: '审计' },
   ]
   const RegSelect = ({ label, value, onChange, options }) => (
-    <label className="flex items-center gap-1 text-xs text-ink-2">
-      {label}
+    <label className="reg-select">
+      <span className="reg-select__label">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border rounded px-1.5 py-1 text-xs bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-primary-400"
+        className="reg-select__field"
       >
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -648,20 +648,20 @@ export default function CompanyDetail() {
     )
     return (
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <div>
+        <div className="register-card__header">
+          <div className="register-card__title">
             <h3 className="font-semibold text-lg">{title}</h3>
             <p className="text-sm text-ink-2">{subtitle}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="register-card__actions">
             {extraControls}
-            <button onClick={openAddHistorical} className="btn-secondary flex items-center gap-1 text-xs py-1.5 px-3">
+            <button onClick={openAddHistorical} className="btn-secondary register-card__btn flex items-center gap-1 text-xs">
               <Plus size={14} /> 添加历史记录
             </button>
-            <button onClick={onPreview} className="btn-secondary flex items-center gap-2 text-sm">
+            <button onClick={onPreview} className="btn-secondary register-card__btn flex items-center gap-2 text-sm">
               <Eye size={16} /> 预览
             </button>
-            <button onClick={() => onDownload(regType)} disabled={generating} className="btn-primary flex items-center gap-2 text-sm">
+            <button onClick={() => onDownload(regType)} disabled={generating} className="btn-primary register-card__btn flex items-center gap-2 text-sm">
               {generating ? '生成中...' : <><Download size={16} /> 生成 Word</>}
             </button>
           </div>

@@ -542,13 +542,21 @@
     .mini-col__title > h3 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .mini-col__more { flex: none; margin-left: auto; }
 
-    .mini-row { min-height: 44px; padding: var(--space-2) 0; }
-    .mini-row .mr-main { flex: 1 1 0%; min-width: 0; }
+    .mini-row { min-height: 44px; padding: var(--space-2) 0; flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+    .mini-row .mr-main { width: 100%; min-width: 0; }
     .mini-row .mr-t,
-    .mini-row .mr-s { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .mini-row .mr-right { flex: none; margin-left: var(--space-2); }
+    .mini-row .mr-s { white-space: normal; overflow: visible; text-overflow: clip; }
+    .mini-row .mr-right { align-self: flex-end; margin-left: 0; margin-top: 2px; }
 
     .account__btn { min-height: 44px; padding: 6px 10px 6px 4px; }
+
+    /* 公司登记册卡片头部：移动端标题独占一行，操作区折行 */
+    .register-card__header { flex-direction: column; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-3); }
+    .register-card__actions { width: 100%; justify-content: flex-start; }
+    .register-card__actions > * { flex: 1 1 auto; min-width: 0; }
+    .register-card__btn { width: 100%; justify-content: center; min-height: 44px; }
+    .reg-select { width: 100%; justify-content: space-between; }
+    .reg-select__field { flex: 1; min-width: 0; }
 
     /* 页面头：操作按钮在窄屏下占满整行并允许折行 */
     .page-header { flex-direction: column; align-items: flex-start; }
@@ -624,6 +632,16 @@
   .dash-eyebrow__action svg { width: 15px; height: 15px; }
 
   .metric-card .m-sub { font-size: var(--text-xs); color: rgb(var(--text-3)); margin-top: 2px; font-weight: 500; }
+
+  /* 公司登记册卡片头部：桌面端标题在左、操作区在右；移动端自动堆叠 */
+  .register-card__header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); flex-wrap: wrap; }
+  .register-card__title { min-width: 0; }
+  .register-card__title h3 { line-height: 1.25; }
+  .register-card__actions { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+  .register-card__btn { padding: 6px 10px; border-radius: var(--radius-md); min-height: 34px; }
+  .reg-select { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: rgb(var(--text-2)); flex: none; }
+  .reg-select__label { white-space: nowrap; }
+  .reg-select__field { border: 1px solid rgb(var(--border)); border-radius: var(--radius-md); padding: 4px 8px; font-size: var(--text-xs); background: rgb(var(--surface)); color: rgb(var(--text-1)); min-height: 34px; }
 
   /* 日历整卡：跨两列，内部单列承载更多条目（与上方双栏等高对齐） */
   .mini-col--full { grid-column: 1 / -1; }
