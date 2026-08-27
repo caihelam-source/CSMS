@@ -111,22 +111,32 @@ export const DeleteConfirmModal = ({ isOpen, name, onConfirm, onCancel, loading 
  * Usage: <DetailHeader onBack={() => navigate('/companies')} title={company.name} subtitle={company.registrationNumber} initials={company.name?.charAt(0)} />
  */
 export const DetailHeader = ({ onBack, title, subtitle = '', initials = '?', avatarColor = 'bg-primary-100 text-primary-700', badges = null }) => (
-  <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-    <button onClick={onBack} className="p-2 rounded-lg hover:bg-canvas shrink-0 mt-1 sm:mt-0">
-      <svg className="h-5 w-5 text-ink-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-      </svg>
-    </button>
-    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${avatarColor} flex items-center justify-center text-lg sm:text-xl font-bold shrink-0`}>
-      {initials}
-    </div>
-    <div className="min-w-0 flex-1">
-      <h1 className="text-xl sm:text-2xl font-bold flex flex-col sm:flex-row sm:items-center sm:gap-2 gap-1">
-        <span className="break-words leading-tight" title={title}>{title}</span>
-        <span className="flex flex-wrap gap-1.5">{badges}</span>
+  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+    {/* 桌面端：返回 + 圆形头像水平排列；手机端：返回按钮与标题同一行，头像省略以腾出空间 */}
+    <div className="flex items-center gap-3 min-w-0">
+      <button
+        onClick={onBack}
+        className="p-2.5 -ml-2 rounded-lg hover:bg-canvas shrink-0"
+        aria-label="返回"
+      >
+        <svg className="h-5 w-5 text-ink-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <div className={`hidden sm:flex w-12 h-12 rounded-full ${avatarColor} items-center justify-center text-xl font-bold shrink-0`}>
+        {initials}
+      </div>
+      <h1 className="text-xl sm:text-2xl font-bold break-words leading-tight min-w-0" title={title}>
+        {title}
       </h1>
-      {subtitle && <div className="text-ink-2 mt-1 text-sm">{subtitle}</div>}
     </div>
+    {/* badges 手机端独占一行，桌面端与标题同排 */}
+    {badges && (
+      <div className="flex flex-wrap gap-1.5 sm:ml-auto shrink-0">
+        {badges}
+      </div>
+    )}
+    {subtitle && <div className="text-ink-2 text-sm w-full sm:mt-0">{subtitle}</div>}
   </div>
 )
 

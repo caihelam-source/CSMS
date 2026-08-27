@@ -224,15 +224,19 @@ export default function TaskDetail() {
         onBack={() => navigate('/tasks')}
         title={task.title}
         subtitle={
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`px-2 py-0.5 text-xs rounded-full border ${taskPriorityColor(task.priority)}`}>{task.priority}</span>
-            <span className={`px-2 py-0.5 text-xs rounded-full ${taskStatusColor(task.status)}`}>{task.status.replace('_', ' ')}</span>
-            <span className="flex items-center gap-1"><Calendar size={13} />{task.dueDate ? formatDate(task.dueDate) : '-'}{days !== null && task.status !== 'completed' && ` (${days < 0 ? `逾期${Math.abs(days)}天` : days === 0 ? '今天' : `剩${days}天`})`}</span>
-            {task.company && (
-              <Link to={`/companies/${task.company._id}`} className="flex items-center gap-1 text-primary-600 hover:underline">
-                <Building2 size={13} /> {task.company.name}
-              </Link>
-            )}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm text-ink-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`px-2 py-0.5 text-xs rounded-full border ${taskPriorityColor(task.priority)}`}>{task.priority}</span>
+              <span className={`px-2 py-0.5 text-xs rounded-full ${taskStatusColor(task.status)}`}>{task.status.replace('_', ' ')}</span>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="flex items-center gap-1"><Calendar size={13} />{task.dueDate ? formatDate(task.dueDate) : '-'}{days !== null && task.status !== 'completed' && ` (${days < 0 ? `逾期${Math.abs(days)}天` : days === 0 ? '今天' : `剩${days}天`})`}</span>
+              {task.company && (
+                <Link to={`/companies/${task.company._id}`} className="flex items-center gap-1 text-primary-600 hover:underline">
+                  <Building2 size={13} /> <span className="truncate max-w-[16rem]">{task.company.name}</span>
+                </Link>
+              )}
+            </div>
           </div>
         }
         initials={task.title?.charAt(0) || 'T'}

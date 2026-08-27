@@ -18,7 +18,7 @@ export default function Breadcrumbs({ items = [], className = '' }) {
   return (
     <nav
       aria-label="Breadcrumb"
-      className={`flex items-center flex-wrap gap-x-1.5 gap-y-1 text-sm text-ink-3 ${className}`}
+      className={`flex items-center flex-wrap gap-x-1 gap-y-0.5 text-xs sm:text-sm text-ink-3 ${className}`}
     >
       {items.map((it, i) => {
         const isLast = i === items.length - 1
@@ -26,18 +26,21 @@ export default function Breadcrumbs({ items = [], className = '' }) {
         return (
           <Fragment key={`${it.label}-${i}`}>
             {i > 0 && (
-              <ChevronRight size={14} className="text-ink-3/60 shrink-0" aria-hidden="true" />
+              <ChevronRight size={12} className="text-ink-3/60 shrink-0 sm:hidden" aria-hidden="true" />
+            )}
+            {i > 0 && (
+              <ChevronRight size={14} className="text-ink-3/60 shrink-0 hidden sm:block" aria-hidden="true" />
             )}
             {clickable ? (
               <Link
                 to={it.to}
-                className="hover:text-ink hover:underline truncate max-w-[14rem] transition-colors"
+                className="hover:text-ink hover:underline truncate max-w-[10rem] sm:max-w-[14rem] transition-colors"
               >
                 {it.label}
               </Link>
             ) : (
               <span
-                className={`truncate max-w-[16rem] ${isLast ? 'text-ink font-medium' : ''}`}
+                className={`truncate max-w-[12rem] sm:max-w-[16rem] ${isLast ? 'text-ink font-medium' : ''}`}
                 aria-current={isLast ? 'page' : undefined}
               >
                 {it.label}
