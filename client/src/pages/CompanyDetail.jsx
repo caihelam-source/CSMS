@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Building2, Users, FileText, Plus, Trash2, Shield, ExternalLink, BookOpen, Download, Edit3, Network, CheckSquare, AlertTriangle, Eye } from 'lucide-react'
-import { companyService, documentService, personnelService, complianceReminderService, complianceRuleService, taskService } from '../services/index.js'
+import { companyService, documentService, personnelService, complianceReminderService, complianceRuleService, taskService, meetingService } from '../services/index.js'
 import { formatDate, getStatusColor, generateDocFilename, saveBlob } from '../utils/helpers'
 import { inferRegion } from '../utils/regionHelpers'
 import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, TabNav, jurisdictionLabel } from '../components/UIHelpers'
@@ -14,7 +14,6 @@ import { validate, required } from '../utils/validators'
 import { toArray } from '../utils/responseNormalize.js'
 import { useCompanyTasks } from '../hooks/useCompanyTasks'
 import { useRuleLibrary } from '../hooks/useRuleLibrary'
-import { useMeetingSignatures } from '../hooks/useMeetingSignatures'
 import CompanyInfoTab from '../components/company/CompanyInfoTab'
 import CompanyPeopleTab from '../components/company/CompanyPeopleTab'
 import CompanyDocumentsTab from '../components/company/CompanyDocumentsTab'
@@ -97,10 +96,9 @@ export default function CompanyDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { confirm, ConfirmDialogComponent } = useConfirm()
-  // 自定义 hooks（D2）：公司任务 / 规则库 / 会议签署态取数，封装对应 service
+  // 自定义 hooks（D2）：公司任务 / 规则库取数，封装对应 service
   const companyTasksApi = useCompanyTasks(id)
   const ruleLibApi = useRuleLibrary()
-  const meetingSigsApi = useMeetingSignatures(id)
 
   const [company, setCompany] = useState(null)
   const [documents, setDocuments] = useState([])
@@ -164,7 +162,7 @@ export default function CompanyDetail() {
     try {
       const [compRes, meetRes, compRes2, persRes, compsRes, remRes, taskRes, rulesRes] = await Promise.all([
         companyService.getOne(id),
-        meetingSigsApi.getMeetings().then(arr => ({ data: { data: arr } })).catch(() => ({ data: { data: [] } })),
+        meetingService.getByCompany(id).catch(() => ({ data: { data: [] } })),
         companyService.getCompliance(id).catch(() => null),
         personnelService.getAll().catch(() => ({ data: { data: [] } })),
         companyService.getAll().catch(() => ({ data: { data: [] } })),
@@ -192,7 +190,7 @@ export default function CompanyDetail() {
     } finally {
       setLoading(false)
     }
-  }, [id, navigate, meetingSigsApi])
+  }, [id, navigate])
 
   useEffect(() => { loadAll() }, [loadAll])
 

@@ -380,14 +380,14 @@
     background-size: 130px; opacity: .10; }
   /* 风格切换开关：右上角，胶囊，当前项高亮 */
   .dash-banner__toggle { position: absolute; top: var(--space-4); right: var(--space-4); z-index: 2;
-    display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: var(--radius-full);
-    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
-    color: rgba(255,255,255,.75); font-size: var(--text-xs); font-weight: 700; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: var(--radius-full);
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25);
+    color: rgba(255,255,255,.8); font-size: var(--text-xs); font-weight: 700; cursor: pointer;
     transition: background var(--dur-fast), border-color var(--dur-fast); }
-  .dash-banner__toggle:hover { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.35); }
-  .dash-banner__toggle span { padding: 3px 7px; border-radius: var(--radius-full); transition: all var(--dur-fast); }
-  .dash-banner__toggle span.is-active { background: rgba(255,255,255,.92); color: rgb(var(--brand-navy)); }
-  .dash-banner__toggle-divider { opacity: .5; }
+  .dash-banner__toggle:hover { background: rgba(255,255,255,.24); border-color: rgba(255,255,255,.4); }
+  .dash-banner__toggle span { padding: 4px 8px; border-radius: var(--radius-full); transition: all var(--dur-fast); white-space: nowrap; }
+  .dash-banner__toggle span.is-active { background: rgba(255,255,255,.95); color: rgb(var(--brand-navy)); box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  .dash-banner__toggle-divider { opacity: .5; padding: 0 1px; }
   /* Banner 主体：三栏（brand / main / cta），窄屏自动折行 */
   .dash-banner__body { position: relative; z-index: 1; width: 100%; display: flex; flex-wrap: wrap;
     align-items: center; gap: var(--space-6); }
@@ -531,6 +531,9 @@
 
     .dash-banner { padding: var(--space-5) var(--space-4); min-height: auto; }
     .dash-banner__body { gap: var(--space-4); }
+    .dash-banner__toggle { top: var(--space-3); right: var(--space-3); gap: 2px; padding: 3px 5px; font-size: 11px; }
+    .dash-banner__toggle span { padding: 3px 6px; }
+    .dash-banner__title { padding-right: 90px; }
 
     .mini-col { padding: var(--space-4); }
     .mini-col__head { flex-wrap: wrap; gap: var(--space-2); min-height: 28px; }

@@ -114,8 +114,13 @@ export default function Personnel() {
         const dupRes = await personnelService.getDuplicates()
         if (dupRes.success) setDuplicateWarnings(dupRes.duplicates || [])
       } catch { /* 重复检测失败不影响主列表加载 */ }
-    } catch {
-      toast.error('Failed to load personnel')
+    } catch (err) {
+      const status = err?.response?.status
+      if (status === 401 || status === 403) {
+        toast.error('登录状态已失效，请重新登录')
+      } else {
+        toast.error('Failed to load personnel')
+      }
     } finally {
       setLoading(false)
     }
