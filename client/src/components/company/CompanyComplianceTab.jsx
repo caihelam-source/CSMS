@@ -56,7 +56,7 @@ export default function CompanyComplianceTab({ ctx }) {
                 title={`${r.description || ''} (${r.frequency})`}
               >
                 {r.ruleName || r.name}
-                {r.isPreset && <span className="ml-1 text-[10px] bg-info/10 text-primary-600 px-1 rounded">预设</span>}
+                {r.isPreset && <span className="ml-1 tag">预设</span>}
               </button>
             ))}
           </div>

@@ -37,9 +37,15 @@
   --brand-navy:15 42 94;
   /* 字体（原文） */
   --font-sans: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","PingFang SC","Microsoft YaHei","Hiragino Sans GB","Noto Sans CJK SC",sans-serif;
-  /* 字阶 */
+  /* 字阶（规范阶梯 12/12.5/13/14/15/17/22/32/46 —— 单一事实源，Batch 03 字体校准） */
   --text-xs:.75rem; --text-sm:.875rem; --text-base:1rem; --text-lg:1.125rem;
   --text-xl:1.25rem; --text-2xl:1.875rem; --text-3xl:2.25rem;
+  --ts-12:.75rem; --ts-12-5:.78125rem; --ts-13:.8125rem; --ts-14:.875rem;
+  --ts-15:.9375rem; --ts-17:1.0625rem; --ts-22:1.375rem; --ts-32:2rem; --ts-46:2.875rem;
+  /* 行高（Batch 03：正文 1.6 / 标题 1.3 / 副标题 1.4，统一可扫读） */
+  --leading-base:1.6; --leading-tight:1.3; --leading-snug:1.4;
+  /* 徽章统一字号（Batch 03：状态 pill 一律 12px，杜绝 hero/列表内 badge 偏小） */
+  --badge-size:.75rem;
   /* 间距 4px 基准（完整 1..16 刻度，单一事实源） */
   --space-1:.25rem; --space-2:.5rem; --space-3:.75rem; --space-4:1rem;
   --space-5:1.25rem; --space-6:1.5rem; --space-7:1.75rem; --space-8:2rem; --space-9:2.25rem;
@@ -91,6 +97,8 @@
   }
   body {
     @apply text-ink antialiased;
+    /* Batch 03：正文行高统一 1.6（leading-relaxed），保证数据密集型后台可扫读 */
+    line-height: var(--leading-base);
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     /* 禁止横向滚动：手机端小屏不再错位焦虑 */
     overflow-x: hidden;
@@ -172,9 +180,18 @@
     @apply block text-sm font-medium text-ink-2 mb-1;
   }
 
-  /* 徽章：仅语义色（红 / 黄 / 绿 / 蓝 / 灰），全部走令牌，暗色自动切换 */
+  /* 徽章：仅语义色（红 / 黄 / 绿 / 蓝 / 灰），全部走令牌，暗色自动切换；
+     Batch 03：字号统一为 12px 令牌（--badge-size），杜绝 hero/列表内 badge 偏小 */
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full font-medium;
+    font-size: var(--badge-size);
+  }
+  /* 状态 pill（12px，与 .badge 同字阶）：用于密集列表/详情中的语义标签，
+     统一替代散落的 text-[10px]/text-[11px] 状态块，保证字号一致 */
+  .tag {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded-full font-medium;
+    font-size: var(--badge-size);
+    line-height: 1.2;
   }
   .badge-success { @apply bg-success/10 text-success; }
   .badge-warning { @apply bg-warning/10 text-warning; }
@@ -213,7 +230,7 @@
   .page-header__logo { width: 32px; height: 32px; border-radius: var(--radius-md); background: rgb(var(--color-primary));
     display: grid; place-items: center; color: rgb(var(--on-primary)); flex: none; }
   .page-header__logo svg { width: 20px; height: 20px; }
-  .page-header__title { font-size: var(--text-xl); font-weight: 700; letter-spacing: -.01em; color: rgb(var(--ink-brand)); }
+  .page-header__title { font-size: var(--ts-32); line-height: var(--leading-tight); font-weight: 700; letter-spacing: -.01em; color: rgb(var(--ink-brand)); }
   .page-header__title span { font-weight: 400; color: rgb(var(--text-3)); margin-left: var(--space-2); }
   .page-header__subtitle { font-size: var(--text-sm); color: rgb(var(--text-3)); margin-top: 2px; }
   .page-header__actions { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
@@ -316,7 +333,8 @@
   .dash-banner__brand { display: flex; align-items: center; gap: var(--space-3); flex: none; }
   .dash-banner__seal { width: 56px; height: 56px; color: rgba(255,255,255,.9); }
   .dash-banner__main { min-width: 0; flex: 1 1 280px; }
-  .dash-banner__title { font-size: var(--fluid-hero); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+  /* Batch 03：hero 标题升级到规范 ch1 = 46px（宽屏上限），窄屏随流体缩放下限 28px */
+  .dash-banner__title { font-size: clamp(1.75rem, 4vw, var(--ts-46)); font-weight: 800; letter-spacing: -.02em; line-height: var(--leading-tight); }
   .dash-banner__summary { font-size: var(--fluid-hero-sub); opacity: .88; margin-top: var(--space-2);
     font-weight: 500; }
   .dash-banner__cta { display: inline-flex; align-items: center; gap: var(--space-2);
@@ -442,7 +460,7 @@
     .hero__sub { font-size: var(--text-sm); }
     .quick-actions { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
     .metric-card .m-trend { letter-spacing: 0; }
-    .page-header__title { font-size: var(--text-lg); }
+    .page-header__title { font-size: var(--ts-22); }
     .page-header__title span { display: none; }
   }
   @media (max-width: 767.98px) { .account__name { display: none; } }

@@ -218,7 +218,7 @@ export default function CompanyInfoTab({ ctx }) {
             {tasks.slice(0, 5).map(t => (
               <Link key={t._id} to={`/tasks/${t._id}`} className="flex items-center justify-between p-2 rounded-lg hover:bg-canvas text-sm group transition-colors">
                 <span className="text-primary-600 truncate group-hover:underline">{t.title}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
+                <span className={`tag shrink-0 ml-2 ${
                   t.status === 'completed' ? 'bg-success/10 text-success'
                   : t.status === 'in_progress' ? 'bg-info/10 text-primary-700'
                   : taskPriorityColor(t.priority)

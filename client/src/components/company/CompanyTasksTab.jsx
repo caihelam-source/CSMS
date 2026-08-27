@@ -27,7 +27,7 @@ export default function CompanyTasksTab({ ctx }) {
                 <p className="text-xs text-ink-3">{t.type} &middot; 到期 {formatDate(t.dueDate)}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${taskPriorityColor(t.priority)}`}>{t.priority}</span>
+                <span className={`tag ${taskPriorityColor(t.priority)}`}>{t.priority}</span>
                 <span className={`badge ${getStatusColor(t.status)}`}>{t.status}</span>
               </div>
             </div>

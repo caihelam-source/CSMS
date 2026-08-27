@@ -306,7 +306,7 @@ export default function PersonnelDetail() {
                       <div className="flex items-center gap-2 flex-wrap">
                         {doc.docNumber && <span className="text-xs font-mono text-ink-3">{doc.docNumber}</span>}
                         <p className="font-medium truncate">{doc.name}</p>
-                        {badge && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>}
+                        {badge && <span className={`tag ${badge.cls}`}>{badge.label}</span>}
                       </div>
                       <p className="text-xs text-ink-3">
                         {doc.type && <span className="capitalize">{doc.type.replace(/_/g, ' ')}</span>}
@@ -363,7 +363,7 @@ export default function PersonnelDetail() {
                   <p className="text-xs text-ink-3">{t.type} &middot; 到期 {formatDate(t.dueDate)}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${taskPriorityColor(t.priority)}`}>{t.priority}</span>
+                  <span className={`tag ${taskPriorityColor(t.priority)}`}>{t.priority}</span>
                   <span className={`badge ${getStatusColor(t.status)}`}>{t.status}</span>
                 </div>
               </Link>

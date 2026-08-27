@@ -46,7 +46,7 @@ const PersonRow = memo(function PersonRow({ person: p, onEdit, onDelete, onToggl
             {p.roles?.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-0.5">
                 {p.roles.map(r => (
-                  <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-700">{roleLabel(r)}</span>
+                  <span key={r} className="tag bg-primary-50 text-primary-700">{roleLabel(r)}</span>
                 ))}
               </div>
             )}

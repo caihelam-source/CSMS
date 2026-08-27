@@ -65,7 +65,7 @@ function SourceBadge({ doc }) {
     ? 'bg-purple-50 text-purple-700 border-purple-200'
     : 'bg-info/10 text-primary-700'
   return (
-    <Link to={href} className={`text-[10px] px-1.5 py-0.5 rounded-full ${colorClass} hover:underline flex items-center gap-0.5`}>
+    <Link to={href} className={`tag ${colorClass} hover:underline flex items-center gap-0.5`}>
       <ExternalLinkIcon /> {doc.source.label}
     </Link>
   )
@@ -83,7 +83,7 @@ const SIGN_STATUS_MAP = {
 function SignStatusBadge({ status }) {
   const m = SIGN_STATUS_MAP[status]
   if (!m) return null
-  return <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${m.cls}`}>{m.label}</span>
+  return <span className={`tag border ${m.cls}`}>{m.label}</span>
 }
 
 export default function DocumentManager({ companyId, personnelId, embedded = false, showExport = true, onDocumentsChange }) {
@@ -469,13 +469,13 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-mono text-ink-3">{doc.docNumber || '-'}</span>
                         <h3 className="font-medium text-sm truncate">{doc.name}</h3>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${SCOPE_CLS[doc.scope] || SCOPE_CLS.company}`}>{SCOPE_LABELS[doc.scope] || '公司文件'}</span>
+                        <span className={`tag ${SCOPE_CLS[doc.scope] || SCOPE_CLS.company}`}>{SCOPE_LABELS[doc.scope] || '公司文件'}</span>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-1 items-center text-xs text-ink-3">
                         <span className="px-2 py-0.5 rounded-full border bg-canvas">{cat}</span>
                         <span>{DOC_TYPE_LABELS[doc.type] || doc.type || '-'}</span>
                         {((doc.fileSize ?? doc.size) > 0) && <span>{((doc.fileSize ?? doc.size) / 1024).toFixed(0)} KB</span>}
-                        {exp && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${exp.cls}`}>{exp.label}</span>}
+                        {exp && <span className={`tag ${exp.cls}`}>{exp.label}</span>}
                         {doc.company && (
                           <Link to={`/companies/${doc.company._id || doc.company}`} className="text-primary-500 hover:underline flex items-center gap-0.5 no-nav">
                             <Building2 size={11} /> {doc.company.name || doc.company}

@@ -144,9 +144,9 @@ export default function TaskLinkedDocument({ documentId, task }) {
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm flex items-center gap-2 flex-wrap">
               关联文档
-              {task?.isCTC && <span className="text-[10px] px-1.5 py-0.5 rounded-full border bg-danger/10 text-danger">CTC</span>}
+              {task?.isCTC && <span className="tag border bg-danger/10 text-danger">CTC</span>}
               {doc.signStatus && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full border bg-amber-50 text-amber-700">
+                <span className="tag border bg-amber-50 text-amber-700">
                   {doc.signStatus}
                 </span>
               )}

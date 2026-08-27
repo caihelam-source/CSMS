@@ -318,7 +318,7 @@ export default function RulesLibraryTab() {
               }`}
             >
               {t.label}
-              <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+              <span className={`ml-1.5 tag ${
                 activeSection === t.id ? 'bg-white/20' : 'bg-black/5'
               }`}>
                 {t.value}
@@ -390,7 +390,7 @@ export default function RulesLibraryTab() {
                     <td className="px-4 py-2 text-ink-2 text-xs max-w-[260px] truncate" title={r.text}>{r.text || '—'}</td>
                     <td className="px-4 py-2 text-ink-2 text-xs max-w-[200px] truncate" title={r.interpretation}>{r.interpretation || '—'}</td>
                     <td className="px-4 py-2 text-xs">
-                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${r.status === 'active' ? 'bg-success/10 text-success' : r.status === 'deprecated' ? 'bg-danger/10 text-danger' : 'bg-canvas text-ink-2'}`}>{r.status || 'active'}</span>
+                      <span className={`tag ${r.status === 'active' ? 'bg-success/10 text-success' : r.status === 'deprecated' ? 'bg-danger/10 text-danger' : 'bg-canvas text-ink-2'}`}>{r.status || 'active'}</span>
                     </td>
                   </tr>
                 ))}

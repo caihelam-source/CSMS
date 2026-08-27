@@ -71,6 +71,19 @@ export default {
       transitionDuration: {
         DEFAULT: '200ms',
       },
+      // 字号阶梯：对齐设计稿规范 12/14/15/17/22/32/46（Batch 03 字体校准）
+      // 默认工具类直接映射到规范字阶，全站 text-* 即按 token 校准；
+      // 缺的中间阶以具名工具补充（text-13 等），杜绝散落 px。
+      fontSize: {
+        xs: 'var(--ts-12)',     // 12px  caption / 微标签
+        sm: 'var(--ts-14)',     // 14px  次要正文
+        base: 'var(--ts-15)',   // 15px  正文基准（替代旧 16px）
+        lg: 'var(--ts-17)',     // 17px  lead
+        xl: 'var(--ts-22)',     // 22px  区块标题
+        '2xl': 'var(--ts-32)',  // 32px  页面标题 ch2
+        '3xl': 'var(--ts-46)',  // 46px  hero 标题 ch1
+        '13': 'var(--ts-13)',   // 13px  小标签
+      },
     },
   },
   plugins: [],
