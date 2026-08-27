@@ -1,11 +1,26 @@
-import { useEffect, useRef, useId } from 'react'
+import { useEffect, useRef, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+
+// 窄屏（≤640px）自动将居中对话框转为底部 Sheet，贴合移动端操作习惯
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    const handler = (e) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return isMobile
+}
 
 const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
   const dialogRef = useRef(null)
   const previouslyFocused = useRef(null)
   const titleId = useId()
+  const isMobile = useIsMobile()
 
   // ESC 关闭 + 打开时锁定滚动 + 焦点进出管理
   useEffect(() => {
@@ -58,13 +73,11 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
   }[size]
 
   // Portal 到 body：避免祖先的 contain / overflow / transform 劫持 fixed 定位。
-  // 主内容区 <main> 已启用 container-type: inline-size（容器查询），若不 portal，
-  // contain: layout 会让本弹层以 main 为定位基准，被侧栏挤偏、遮罩无法铺满视口。
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+    <div className={`fixed inset-0 z-50 flex ${isMobile ? 'items-end justify-center' : 'items-center justify-center'} p-4`}>
+      {/* Backdrop：navy 45% 遮罩（设计语言：mask navy45%） */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-[rgb(15_23_42/0.45)] backdrop-blur-sm"
         aria-hidden="true"
         onClick={onClose}
       />
@@ -76,7 +89,12 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
         aria-labelledby={titleId}
         onKeyDown={handleKeyDown}
         tabIndex={-1}
-        className={`relative w-full ${sizeClass} bg-surface rounded-2xl shadow-4 max-h-[90vh] flex flex-col outline-none`}
+        className={
+          isMobile
+            ? `relative w-full ${sizeClass} bg-surface rounded-t-2xl shadow-4 max-h-[88vh] flex flex-col outline-none pb-safe`
+            : `relative w-full ${sizeClass} bg-surface rounded-2xl shadow-4 max-h-[90vh] flex flex-col outline-none`
+        }
+        style={isMobile ? { animation: 'csSheetUp .24s cubic-bezier(.16,1,.3,1) both' } : undefined}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-hairline shrink-0">

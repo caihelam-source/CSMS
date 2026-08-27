@@ -15,7 +15,25 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <ThemeProvider>
           <AuthProvider>
             <App />
-            <Toaster position="top-right" />
+            {/* Batch 07 · Toast（深色圆角 pill，对齐设计语言）：navy 底 + 圆角 + 柔阴影 */}
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 3200,
+                style: {
+                  background: 'rgb(15 23 42)',
+                  color: '#fff',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255,255,255,.08)',
+                  boxShadow: '0 10px 30px rgba(15,23,42,.35)',
+                  fontSize: '14px',
+                  padding: '10px 14px',
+                  maxWidth: '340px',
+                },
+                success: { iconTheme: { primary: '#22C55E', secondary: '#0F172A' } },
+                error: { iconTheme: { primary: '#EF4444', secondary: '#0F172A' } },
+              }}
+            />
           </AuthProvider>
         </ThemeProvider>
       </HashRouter>
