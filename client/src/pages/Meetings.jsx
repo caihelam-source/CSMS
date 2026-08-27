@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { meetingService, companyService, personnelService, signTaskService } from '../services/index.js'
 import { MEETING_TYPE_LABELS as TYPES, MEETING_STATUSES as STATUS, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
-import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClass, labelClass } from '../components/UIHelpers'
+import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClass, labelClass, TabNav } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { useScope, useScopedItems } from '../hooks/useScope'
 import { NO_SCOPE_HINT } from '../utils/scope'
@@ -588,16 +588,20 @@ export default function Meetings() {
             </div>
 
             {/* Tabs */}
-            <div className="border-b px-6 flex gap-0 shrink-0">
-              {['overview', 'notice', 'minutes'].map(t => (
-                <button key={t} onClick={() => {
+            <div className="px-6">
+              <TabNav
+                tabs={[
+                  { key: 'overview', label: '概览' },
+                  { key: 'notice', label: '会议通知' },
+                  { key: 'minutes', label: '会议纪要' },
+                ]}
+                active={detailTab}
+                onChange={(t) => {
                   setDetailTab(t)
                   if (t === 'notice' && !noticeData) meetingService.getNotice(detailMeeting._id).then(res => setNoticeData(res.data?.data))
                   if (t === 'minutes' && !minutesData) meetingService.getMinutes(detailMeeting._id).then(res => setMinutesData(res.data?.data))
-                }} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${detailTab === t ? 'border-primary-500 text-primary-600' : 'border-transparent text-ink-2 hover:text-ink'}`}>
-                  {t === 'overview' ? '概览' : t === 'notice' ? '会议通知' : '会议纪要'}
-                </button>
-              ))}
+                }}
+              />
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">

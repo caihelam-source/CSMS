@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CheckSquare, Plus, Filter, Calendar,
   AlertTriangle, Clock, CheckCircle2, Circle,
-  Pencil, Trash2, MessageSquare, Users, Link2
+  Pencil, Trash2, MessageSquare, Link2
 } from 'lucide-react'
 import { taskService, documentService, userService } from '../services/index.js'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, taskPriorityColor, taskStatusColor, CompleteWithAttachmentModal } from '../components/UIHelpers'
@@ -15,6 +15,7 @@ import Modal from '../components/Modal'
 import VirtualList from '../components/VirtualList'
 import SignTaskForm from '../components/SignTaskForm'
 import TaskForm, { TASK_STATUSES, TASK_PRIORITIES } from '../components/TaskForm'
+import Segmented from '../components/ui/Segmented'
 
 const statusIcon = (s) => {
   const m = { completed: <CheckCircle2 size={20} className="text-success" />, in_progress: <Clock size={20} className="text-primary-500" />, overdue: <AlertTriangle size={20} className="text-danger" /> }
@@ -290,23 +291,12 @@ const Tasks = () => {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {/* T02：全部 / 我的任务 分段切换（响应式：窄屏全宽堆叠，Q5） */}
-        <div className="inline-flex w-full sm:w-auto rounded-lg border border-hairline overflow-hidden text-sm">
-          <button
-            type="button"
-            onClick={() => setView('all')}
-            className={`flex-1 sm:flex-none px-4 py-2 font-medium transition-colors ${view === 'all' ? 'bg-primary-600 text-white' : 'bg-surface text-ink-2 hover:bg-canvas'}`}
-          >
-            全部
-          </button>
-          <button
-            type="button"
-            onClick={() => setView('mine')}
-            className={`flex flex-1 sm:flex-none items-center justify-center gap-1.5 px-4 py-2 border-l border-hairline font-medium transition-colors ${view === 'mine' ? 'bg-primary-600 text-white' : 'bg-surface text-ink-2 hover:bg-canvas'}`}
-          >
-            <Users size={14} /> 我的任务
-          </button>
-        </div>
+        {/* T02：全部 / 我的任务 分段切换（Segmented · P2 组件精修） */}
+        <Segmented
+          options={[{ value: 'all', label: '全部' }, { value: 'mine', label: '我的任务' }]}
+          value={view}
+          onChange={setView}
+        />
         <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search tasks..." />
         <div className="relative">
           <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
