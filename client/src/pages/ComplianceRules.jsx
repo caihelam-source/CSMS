@@ -440,67 +440,115 @@ const ComplianceRules = () => {
               <span className="ml-2 text-xs text-ink-3 font-normal">含全局（ALL）规则</span>
             </div>
           )}
-          <div className="bg-surface rounded-xl border border-hairline overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm min-w-0 sm:min-w-[560px]">
-            <thead className="bg-canvas border-b border-hairline">
-              <tr>
-                <th className="text-left px-4 py-3 text-ink-2 font-medium">规则</th>
-                <th className="text-left px-4 py-3 text-ink-2 font-medium hidden md:table-cell">注册地</th>
-                <th className="text-left px-4 py-3 text-ink-2 font-medium hidden lg:table-cell">频率</th>
-                <th className="text-left px-4 py-3 text-ink-2 font-medium hidden lg:table-cell">提前天数</th>
-                <th className="text-left px-4 py-3 text-ink-2 font-medium">状态</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {displayRules.map(rule => (
-                <tr key={rule._id} className="hover:bg-canvas">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-ink flex items-center gap-1.5">
-                      {rule.name || rule.ruleName}
+          {/* Desktop: table */}
+          <div className="hidden md:block bg-surface rounded-xl border border-hairline overflow-hidden overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-canvas border-b border-hairline">
+                <tr>
+                  <th className="text-left px-4 py-3 text-ink-2 font-medium">规则</th>
+                  <th className="text-left px-4 py-3 text-ink-2 font-medium">注册地</th>
+                  <th className="text-left px-4 py-3 text-ink-2 font-medium">频率</th>
+                  <th className="text-left px-4 py-3 text-ink-2 font-medium">提前天数</th>
+                  <th className="text-left px-4 py-3 text-ink-2 font-medium">状态</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {displayRules.map(rule => (
+                  <tr key={rule._id} className="hover:bg-canvas">
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-ink flex items-center gap-1.5">
+                        {rule.name || rule.ruleName}
+                        {(rule.isPreset || rule.isPredefined) && <span className="text-xs bg-info/10 text-primary-600 px-1.5 py-0.5 rounded font-normal">预设</span>}
+                        {rule.isListedOnly && <span className="text-xs bg-warning/10 text-warning px-1.5 py-0.5 rounded font-normal">上市</span>}
+                      </div>
+                      <div className="text-xs text-ink-3 mt-0.5 flex gap-2">
+                        {rule.ruleId && <span className="font-mono">{rule.ruleId}</span>}
+                        {rule.category && <span>{rule.category}</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${jurisdictionColor(rule.jurisdiction)}`}>
+                        {jurisdictionLabel(rule.jurisdiction) || '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-ink-2">{rule.frequency || '—'}</td>
+                    <td className="px-4 py-3 text-ink-2">{rule.dueDaysBefore ?? rule.daysBefore ? `${rule.dueDaysBefore ?? rule.daysBefore} 天` : '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${rule.status === 'active' ? 'bg-success/10 text-success' : 'bg-canvas text-ink-2'}`}>
+                        {rule.status === 'active' ? '启用' : '停用'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1 justify-end">
+                        <button onClick={() => { setEditTarget(rule); setGenResult(null); setModal('generate') }}
+                          className="p-1.5 text-ink-3 hover:text-info hover:bg-info/10 rounded-lg transition-colors" title="生成提醒">
+                          <Zap size={15} />
+                        </button>
+                        <button onClick={() => { setEditTarget(rule); setModal('edit') }}
+                          className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+                          <Pencil size={15} />
+                        </button>
+                        {!rule.isPreset && !rule.isPredefined && (
+                          <button onClick={() => { setEditTarget(rule); setModal('delete') }}
+                            className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile: cards */}
+          <div className="md:hidden space-y-3">
+            {displayRules.map(rule => (
+              <div key={rule._id} className="bg-surface rounded-xl border border-hairline p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-ink flex items-center flex-wrap gap-1.5">
+                      <span>{rule.name || rule.ruleName}</span>
                       {(rule.isPreset || rule.isPredefined) && <span className="text-xs bg-info/10 text-primary-600 px-1.5 py-0.5 rounded font-normal">预设</span>}
                       {rule.isListedOnly && <span className="text-xs bg-warning/10 text-warning px-1.5 py-0.5 rounded font-normal">上市</span>}
                     </div>
-                    <div className="text-xs text-ink-3 mt-0.5 flex gap-2">
+                    <div className="text-xs text-ink-3 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
                       {rule.ruleId && <span className="font-mono">{rule.ruleId}</span>}
                       {rule.category && <span>{rule.category}</span>}
                     </div>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${jurisdictionColor(rule.jurisdiction)}`}>
-                      {jurisdictionLabel(rule.jurisdiction) || '—'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-ink-2">{rule.frequency || '—'}</td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-ink-2">{rule.dueDaysBefore ?? rule.daysBefore ? `${rule.dueDaysBefore ?? rule.daysBefore} 天` : '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${rule.status === 'active' ? 'bg-success/10 text-success' : 'bg-canvas text-ink-2'}`}>
-                      {rule.status === 'active' ? '启用' : '停用'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1 justify-end">
-                      <button onClick={() => { setEditTarget(rule); setGenResult(null); setModal('generate') }}
-                        className="p-1.5 text-ink-3 hover:text-info hover:bg-info/10 rounded-lg transition-colors" title="生成提醒">
-                        <Zap size={15} />
-                      </button>
-                      <button onClick={() => { setEditTarget(rule); setModal('edit') }}
-                        className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
-                        <Pencil size={15} />
-                      </button>
-                      {!rule.isPreset && !rule.isPredefined && (
-                        <button onClick={() => { setEditTarget(rule); setModal('delete') }}
-                          className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
-                          <Trash2 size={15} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                  <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${rule.status === 'active' ? 'bg-success/10 text-success' : 'bg-canvas text-ink-2'}`}>
+                    {rule.status === 'active' ? '启用' : '停用'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-ink-2">
+                  <span className={`px-2 py-0.5 rounded-full font-medium ${jurisdictionColor(rule.jurisdiction)}`}>
+                    {jurisdictionLabel(rule.jurisdiction) || '—'}
+                  </span>
+                  {rule.frequency && <span>{rule.frequency}</span>}
+                  {(rule.dueDaysBefore ?? rule.daysBefore) ? <span>提前 {rule.dueDaysBefore ?? rule.daysBefore} 天</span> : null}
+                </div>
+                <div className="flex gap-1 pt-1 border-t border-hairline">
+                  <button onClick={() => { setEditTarget(rule); setGenResult(null); setModal('generate') }}
+                    className="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-ink-3 hover:text-info hover:bg-info/10 rounded-lg transition-colors" title="生成提醒">
+                    <Zap size={14} /> 生成
+                  </button>
+                  <button onClick={() => { setEditTarget(rule); setModal('edit') }}
+                    className="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+                    <Pencil size={14} /> 编辑
+                  </button>
+                  {!rule.isPreset && !rule.isPredefined && (
+                    <button onClick={() => { setEditTarget(rule); setModal('delete') }}
+                      className="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
+                      <Trash2 size={14} /> 删除
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       </>)}
