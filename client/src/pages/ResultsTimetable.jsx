@@ -482,7 +482,7 @@ export default function ResultsTimetable() {
           </div>
 
           <div className="overflow-x-auto border border-hairline rounded-lg">
-            <table className="min-w-full text-sm">
+            <table className="min-w-full text-sm table-responsive">
               <thead className="bg-canvas text-ink-2">
                 <tr>
                   <th className="px-3 py-2 text-left">日期</th>
@@ -497,7 +497,7 @@ export default function ResultsTimetable() {
               <tbody>
                 {viewItems.map((it, i) => (
                   <tr key={it.index} className="border-t border-hairline hover:bg-canvas/50 align-top">
-                    <td className="px-3 py-2 whitespace-nowrap text-ink-2">
+                    <td className="px-3 py-2 whitespace-nowrap text-ink-2" data-label="日期">
                       {editing ? (
                         <div className="flex flex-col gap-1">
                           <input type="date" className={inputClass} value={toISO(it.startDate)} onChange={(e) => updateItem(i, 'startDate', e.target.value)} />
@@ -507,14 +507,14 @@ export default function ResultsTimetable() {
                         dateCell(it.startDate, it.endDate)
                       )}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap" data-label="大类">
                       {editing ? (
                         <input className={inputClass} value={it.category || ''} onChange={(e) => updateItem(i, 'category', e.target.value)} />
                       ) : (
                         it.category
                       )}
                     </td>
-                    <td className="px-3 py-2 font-medium text-ink max-w-md">
+                    <td className="px-3 py-2 font-medium text-ink max-w-md" data-label="任务名称">
                       {editing ? (
                         <div className="flex flex-col gap-1">
                           <input className={inputClass} value={it.title || ''} onChange={(e) => updateItem(i, 'title', e.target.value)} />
@@ -529,15 +529,15 @@ export default function ResultsTimetable() {
                         </>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-ink-2 max-w-xs text-xs">{it.rule}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-3 py-2 text-ink-2 max-w-xs text-xs" data-label="规则">{it.rule}</td>
+                    <td className="px-3 py-2 whitespace-nowrap" data-label="负责人">
                       {editing ? (
                         <input className={inputClass} value={it.owner || ''} onChange={(e) => updateItem(i, 'owner', e.target.value)} />
                       ) : (
                         it.owner
                       )}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2" data-label="优先级">
                       {editing ? (
                         <select className={inputClass} value={it.priority || '中优'} onChange={(e) => updateItem(i, 'priority', e.target.value)}>
                           {['最高优', '高优', '中优', '低优'].map((p) => <option key={p} value={p}>{p}</option>)}
@@ -548,7 +548,7 @@ export default function ResultsTimetable() {
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2" data-label="状态">
                       {editing ? (
                         <select className={inputClass} value={it.status || '未启动'} onChange={(e) => updateItem(i, 'status', e.target.value)}>
                           {['未启动', '进行中', '已完成'].map((s) => <option key={s} value={s}>{s}</option>)}
