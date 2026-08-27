@@ -1,4 +1,5 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
+import { LayoutDashboard } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Navbar from './Navbar'
 import PageWatermark from './PageWatermark'
@@ -6,6 +7,7 @@ import PageWatermark from './PageWatermark'
 export default function Layout() {
   const { isDemoMode } = useAuth()
   const { pathname } = useLocation()
+  const isDashboard = pathname === '/dashboard' || pathname === '/'
   // 底层水印系列：按路由分配角落（6 角轮回，同图异位形成系列）
   //  br 右下 · bl 左下 · tl 左上 · tr 右上 · lm 左中 · rm 右中
   const WATERMARK_POS = {
@@ -31,8 +33,19 @@ export default function Layout() {
       {/* 顶部水平导航栏：固定悬浮，内容区需让出顶部空间 */}
       <Navbar />
 
+      {/* 全局「回到 Dashboard」快捷按钮（非 Dashboard 页面显示） */}
+      {!isDashboard && (
+        <Link
+          to="/dashboard"
+          className="fixed top-[92px] lg:top-[104px] left-4 lg:left-6 z-40 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-full shadow-md transition-colors"
+          title="回到 Dashboard"
+        >
+          <LayoutDashboard size={14} /> 回到 Dashboard
+        </Link>
+      )}
+
       {/* Main content */}
-      <div className="flex-1 min-h-screen relative z-[1] pt-[88px] lg:pt-[96px]">
+      <div className="flex-1 min-h-screen relative z-[1] pt-[88px] lg:pt-[116px]">
         {/* Demo mode banner — 仅 demo 模式展示 */}
         {isDemoMode && (
           <div className="bg-warning/10 border-b border-warning/20 px-4 py-2 text-center text-sm text-warning">

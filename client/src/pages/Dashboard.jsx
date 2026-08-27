@@ -204,7 +204,6 @@ export default function Dashboard() {
 
   return (
     <>
-      <a className="skip-link" href="#main">跳到主内容</a>
       <div id="main" className="max-w-[var(--fluid-content-max)] mx-auto w-full">
 
         {/* Hero Banner：深蓝/浅蓝切换 + 印章线框纹理 + CSMS 字标（与设计稿同系列） */}

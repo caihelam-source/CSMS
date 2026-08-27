@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Calendar, FileText, Building2,
   CheckSquare, LogOut, Menu, X, Crown, Zap,
   Bell, ShieldCheck, FileCode, UserCircle, Settings as SettingsIcon,
-  Sun, Moon, MoreHorizontal, FileSignature, CalendarClock, CalendarDays,
+  Sun, Moon, FileSignature, CalendarClock, CalendarDays,
   Search, Command,
 } from 'lucide-react'
 import { useState, memo, useEffect, useRef } from 'react'
@@ -52,53 +52,12 @@ const ROLE_BADGE = {
 const TopNavLink = memo(({ to, label, active }) => (
   <Link
     to={to}
-    className={`relative px-3.5 py-2 rounded-full text-sm font-medium transition-colors ${
+    className={`relative flex-shrink-0 whitespace-nowrap rounded-full text-xs lg:text-sm font-medium transition-colors duration-fast ${
       active
-        ? 'bg-primary-50 text-primary-700'
+        ? 'bg-ink-brand text-white shadow-sm'
         : 'text-ink-2 hover:text-ink hover:bg-canvas'
-    }`}
+    } px-2 py-1.5 lg:px-2.5 lg:py-2`}
   >
-    {label}
-    {active && <span className="absolute inset-x-2 -bottom-1 h-0.5 bg-primary-600 rounded-full" />}
-  </Link>
-))
-
-const Dropdown = ({ label, active, children }) => {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-  useEffect(() => {
-    const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [])
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-1 px-3.5 py-2 rounded-full text-sm font-medium transition-colors ${
-          active ? 'bg-primary-50 text-primary-700' : 'text-ink-2 hover:text-ink hover:bg-canvas'
-        }`}
-      >
-        {label} <MoreHorizontal size={14} />
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-2 w-44 bg-surface border border-hairline rounded-2xl shadow-3 py-2 z-50">
-          {children}
-        </div>
-      )}
-    </div>
-  )
-}
-
-const DropdownItem = memo(({ to, icon: Icon, label, active, onClick }) => (
-  <Link
-    to={to}
-    onClick={onClick}
-    className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
-      active ? 'bg-primary-50 text-primary-700 font-semibold' : 'text-ink-2 hover:bg-canvas hover:text-ink'
-    }`}
-  >
-    <Icon size={16} className={active ? 'text-primary-600' : 'text-ink-3'} />
     {label}
   </Link>
 ))
@@ -131,62 +90,22 @@ const Navbar = () => {
   const roleBadge = ROLE_BADGE[user?.role] || ROLE_BADGE.viewer
   const isActive = (p) => location.pathname === p || location.pathname.startsWith(p + '/')
 
-  const mainLinks = [
-    { path: '/dashboard', label: '仪表板' },
-    { path: '/companies', label: '公司' },
-    { path: '/personnel', label: '人员' },
-    { path: '/documents', label: '文档' },
-    { path: '/meetings', label: '会议' },
-    { path: '/tasks', label: '任务' },
-  ]
-
-  const complianceItems = NAV_ITEMS.filter(i => i.group === 'Compliance')
-  const moreItems = [
-    ...NAV_ITEMS.filter(i => i.group === 'Command' && !mainLinks.some(m => m.path === i.path)),
-    ...NAV_ITEMS.filter(i => i.group === 'Operations' && !mainLinks.some(m => m.path === i.path)),
-    ...NAV_ITEMS.filter(i => i.group === 'Library'),
-    ...NAV_ITEMS.filter(i => i.group === 'System'),
-  ]
-
-  const complianceActive = complianceItems.some(i => isActive(i.path))
-  const moreActive = moreItems.some(i => isActive(i.path))
-
   return (
     <>
       {/* 顶部导航栏：毛玻璃 + 圆角容器，悬浮于内容之上 */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[1400px]">
-        <nav className="flex items-center gap-3 px-3 py-2.5 bg-surface/85 dark:bg-surface/80 backdrop-blur-xl border border-hairline rounded-2xl shadow-3">
+        <nav className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5 bg-surface/95 dark:bg-surface/95 backdrop-blur-xl border border-line-strong rounded-2xl shadow-2">
           {/* Logo — 明暗双模：亮色 Navy 字标 / 暗色反白字标（图标为自包含 navy 方底印章，两态通用） */}
           <Link to="/dashboard" className="flex items-center gap-2.5 pl-1 pr-3 shrink-0">
             <BrandLogo variant="icon" size="md" />
-            <span className="font-extrabold text-[#0F2A5E] dark:text-white text-lg tracking-tight">CSMS</span>
+            <span className="font-extrabold text-ink-brand dark:text-white text-lg tracking-tight">CSMS</span>
           </Link>
 
-          {/* 桌面端水平导航 */}
-          <div className="hidden lg:flex items-center gap-0.5 flex-1 overflow-hidden">
-            {mainLinks.map(item => (
+          {/* 桌面端水平导航：全部 14 个一级入口平铺，不再收入下拉（响应式：空间不足时换行） */}
+          <div className="hidden lg:flex flex-wrap items-center justify-center gap-1 flex-1 min-w-0">
+            {NAV_ITEMS.map(item => (
               <TopNavLink key={item.path} to={item.path} label={item.label} active={isActive(item.path)} />
             ))}
-
-            {/* 合规下拉 */}
-            <Dropdown label="合规" active={complianceActive}>
-              {complianceItems.map(item => (
-                <DropdownItem key={item.path} {...item} active={isActive(item.path)} />
-              ))}
-            </Dropdown>
-
-            {/* 更多下拉 */}
-            <Dropdown label="更多" active={moreActive}>
-              {moreItems.map(item => (
-                <DropdownItem key={item.path} {...item} active={isActive(item.path)} />
-              ))}
-              {isAdmin && (
-                <>
-                  <div className="my-1 border-t border-hairline" />
-                  <DropdownItem path="/admin" icon={Crown} label="管理后台" active={isActive('/admin')} />
-                </>
-              )}
-            </Dropdown>
           </div>
 
           {/* 右侧操作区 */}
