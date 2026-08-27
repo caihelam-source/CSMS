@@ -43,7 +43,7 @@ services:
     runtime: static
     branch: main
     rootDir: client
-    buildCommand: cd .. && npm install && cd client && npm install && npm run build
+    buildCommand: cd .. && npm install && cd client && rm -rf dist node_modules/.vite && npm install && npm run build
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
     envVars:
