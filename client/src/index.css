@@ -21,18 +21,18 @@
   --orange-500:249 115 22; --orange-600:234 88 12;
   /* 中性表面 / 文字 / 发丝边框令牌（主题感知，支持透明度；Batch 02 色彩对齐） */
   --bg:248 250 253; --surface:255 255 255; --text-1:22 33 58; --text-2:71 85 105;
-  --text-3:148 163 184; --border:226 232 240; --border-strong:203 213 225; --subtle:243 246 251;
+  --text-3:82 98 122; --border:226 232 240; --border-strong:203 213 225; --subtle:243 246 251;
   /* 品牌深蓝锚点：标题 / 品牌文本统一 navy #0F2A5E（替代旧 slate-900） */
   --ink-brand:15 42 94;
   /* 数据可视化 6 色板（图表 / 状态点 / 图例统一来源；含 brand blue） */
   --data-1:22 163 74; --data-2:217 119 6; --data-3:220 38 38; --data-4:124 58 237; --data-5:100 116 139; --data-6:37 99 235;
   --on-primary:255 255 255; --on-accent:15 23 42;
   /* 语义色 RGB 通道（兼容 tailwind alpha） */
-  --c-success:22 163 74; --c-warning:217 119 6; --c-danger:220 38 38; --c-info:37 99 235;
-  --rgb-success:22 163 74; --rgb-warning:217 119 6; --rgb-danger:220 38 38; --rgb-info:37 99 235;
+  --c-success:21 128 61; --c-warning:180 83 9; --c-danger:220 38 38; --c-info:37 99 235;
+  --rgb-success:21 128 61; --rgb-warning:180 83 9; --rgb-danger:220 38 38; --rgb-info:37 99 235;
   /* 品牌主色 / 点缀 */
   --color-primary:37 99 235; --color-primary-hover:29 78 216;
-  --color-accent:234 88 12; --color-accent-hover:249 115 22; --rgb-accent:234 88 12;
+  --color-accent:194 65 12; --color-accent-hover:234 88 12; --rgb-accent:194 65 12;
   /* 品牌深蓝锚点（印章环 / 反白底 / 权威感来源，DESIGN.md §3） */
   --brand-navy:15 42 94;
   /* 字体（原文） */
@@ -94,7 +94,9 @@
   --s-3:0 10px 30px rgba(0,0,0,.48);
   --s-4:0 16px 40px rgba(0,0,0,.55);
   --shadow-sm:var(--s-1); --shadow-md:var(--s-2); --shadow-lg:var(--s-4);
+  /* P1 · a11y：暗色链接/主色字换亮蓝，满足 AA（原 primary-600/700 on 暗卡仅 2.98:1） */
 }
+.dark .text-primary-600, .dark .text-primary-700 { color: rgb(147 197 253); }
 
 @layer base {
   html {
@@ -195,7 +197,7 @@
 
   /* Batch 08 · 响应式：表格移动端转卡片（给 <table> 加 .table-responsive 启用；每行 td 需 data-label 属性保留列信息）
      窄屏隐藏表头，每行独立成卡，左标签右值，不丢失任何列信息 */
-  @media (max-width: 640px) {
+  @media (max-width: 767.98px) {
     .table-responsive { display: block; }
     .table-responsive thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
     .table-responsive tbody { display: block; }
@@ -208,6 +210,14 @@
     .table-responsive tbody td::before { content: attr(data-label); font-size: var(--text-xs); font-weight: 600;
       color: rgb(var(--text-3)); text-align: left; flex: none; }
     .app-content .table-responsive tbody tr:hover { background: rgb(var(--surface)); }
+  }
+
+  /* P0-⑦ · 移动端触摸目标 ≥44px（Chapter 09 验收⑦）：表格内小按钮/链接、菜单项达标 */
+  @media (max-width: 767.98px) {
+    .app-content td button,
+    .app-content td a,
+    .app-content [role="menuitem"],
+    .app-content .menu-item { min-height: 44px; display: inline-flex; align-items: center; }
   }
 
   /* Batch 08 · 响应式：媒体与代码块安全收敛，杜绝移动端横向溢出 */
