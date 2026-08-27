@@ -51,6 +51,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
       if (onAction) onAction()
     }
     const close = document.createElement('button')
+    close.id = 'pwa-toast-close'
     close.textContent = '×'
     close.setAttribute('aria-label', '关闭')
     close.style.cssText = 'background:transparent;border:0;color:#94a3b8;font-size:18px;cursor:pointer;line-height:1;'

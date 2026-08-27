@@ -13,11 +13,10 @@ import {
   CsmsIconAddTask, CsmsIconAddSign,
 } from '../components/CsmsIcons'
 import {
-  RefreshCw,
-  Pencil, X, Check, ArrowRight,
+  RefreshCw, ArrowRight,
 } from 'lucide-react'
 
-const SUBTITLE_KEY = 'csms.dashboardSubtitle'
+const BANNER_KEY = 'csms.dashboardBanner'
 
 // 日历来源着色（与 pages/Calendar.jsx 保持一致）
 const SOURCE_COLOR = {
@@ -46,9 +45,7 @@ export default function Dashboard() {
   const [calendarItems, setCalendarItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastRefreshed, setLastRefreshed] = useState(null)
-  const [customSubtitle, setCustomSubtitle] = useState(() => localStorage.getItem(SUBTITLE_KEY) || '')
-  const [editingSubtitle, setEditingSubtitle] = useState(false)
-  const [draftSubtitle, setDraftSubtitle] = useState('')
+  const [bannerVariant, setBannerVariant] = useState(() => localStorage.getItem(BANNER_KEY) || 'light')
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -148,36 +145,21 @@ export default function Dashboard() {
     return '晚上好'
   }
 
-  // 动态默认欢迎副标题：用真实数据，不再硬编码"3家公司"
-  const defaultSubtitle = useMemo(() => {
+  // Banner 摘要：干净、可读、用真实数据
+  const bannerSummary = useMemo(() => {
     const parts = []
-    if (stats) {
-      parts.push(`监管 ${stats.activeCompanies} 家公司`)
-      if (pendingTasksCount) parts.push(`${pendingTasksCount} 项待办`)
-      if (expiredReminders.length) parts.push(`${expiredReminders.length} 项逾期`)
-      if (upcomingReminders.length) parts.push(`${upcomingReminders.length} 项即将到期`)
-    }
+    if (pendingTasksCount) parts.push(`今日 ${pendingTasksCount} 项待办`)
+    if (signTasksCount) parts.push(`${signTasksCount} 份待签文件`)
+    if (expiredReminders.length) parts.push(`${expiredReminders.length} 项逾期`)
+    if (upcomingReminders.length && !parts.length) parts.push(`${upcomingReminders.length} 项即将到期`)
     return parts.length ? parts.join(' · ') : '全局合规概览已就绪'
-  }, [stats, pendingTasksCount, expiredReminders.length, upcomingReminders.length])
+  }, [pendingTasksCount, signTasksCount, expiredReminders.length, upcomingReminders.length])
 
-  const subtitleText = customSubtitle || defaultSubtitle
-
-  const startEditSubtitle = () => {
-    setDraftSubtitle(customSubtitle || defaultSubtitle)
-    setEditingSubtitle(true)
+  const toggleBanner = () => {
+    const next = bannerVariant === 'navy' ? 'light' : 'navy'
+    localStorage.setItem(BANNER_KEY, next)
+    setBannerVariant(next)
   }
-  const saveSubtitle = () => {
-    const value = draftSubtitle.trim()
-    if (value) {
-      localStorage.setItem(SUBTITLE_KEY, value)
-      setCustomSubtitle(value)
-    } else {
-      localStorage.removeItem(SUBTITLE_KEY)
-      setCustomSubtitle('')
-    }
-    setEditingSubtitle(false)
-  }
-  const cancelEditSubtitle = () => setEditingSubtitle(false)
 
   // 8 项核心指标（标签 / 数据不变；副文案用真实派生数据，去除占位 trend 串）
   const metrics = [
@@ -225,55 +207,38 @@ export default function Dashboard() {
       <a className="skip-link" href="#main">跳到主内容</a>
       <div id="main" className="max-w-[var(--fluid-content-max)] mx-auto w-full">
 
-        {/* Hero 横幅：品牌深蓝印章 + 问候 + 可编辑欢迎词 + 关键摘要徽章（navy 印章系列） */}
-        <div className="hero-card">
-          <div className="hero-card__body">
-            {/* 白色印章线框图标，与 CSMS logo 同源 */}
-            <svg className="hero-card__seal" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-              <circle cx="32" cy="32" r="20" stroke="#FFFFFF" strokeWidth="3"/>
-              <path d="M32 18 A14 14 0 1 0 32 46" stroke="#FFFFFF" strokeWidth="5.5" strokeLinecap="round"/>
-              <path d="M25 32 l5 5 l10 -11" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <div className="hero-card__main">
-              <h2 className="hero-card__title">{getGreeting()}，{displayName}</h2>
-              <div className="hero-card__sub">
-              {editingSubtitle ? (
-                <div className="hero-card__sub-edit" onClick={e => e.stopPropagation()}>
-                  <input
-                    className="hero-card__sub-input"
-                    value={draftSubtitle}
-                    onChange={e => setDraftSubtitle(e.target.value)}
-                    placeholder={defaultSubtitle}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') saveSubtitle()
-                      if (e.key === 'Escape') cancelEditSubtitle()
-                    }}
-                  />
-                  <button type="button" className="hero-card__sub-btn" onClick={saveSubtitle} title="保存"><Check size={16} /></button>
-                  <button type="button" className="hero-card__sub-btn" onClick={cancelEditSubtitle} title="取消"><X size={16} /></button>
-                </div>
-              ) : (
-                <>
-                  <span>{subtitleText}</span>
-                  <button type="button" className="hero-card__sub-edit-btn" onClick={startEditSubtitle} title="编辑欢迎词"><Pencil size={14} /></button>
-                </>
-              )}
+        {/* Hero Banner：深蓝/浅蓝切换 + 印章线框纹理 + CSMS 字标（与设计稿同系列） */}
+        <div className={`dash-banner dash-banner--${bannerVariant}`}>
+          <button
+            type="button"
+            className="dash-banner__toggle"
+            onClick={toggleBanner}
+            title={`当前：${bannerVariant === 'navy' ? '深蓝' : '浅蓝'}，点击切换`}
+            aria-label="切换 Banner 风格"
+          >
+            <span className={bannerVariant === 'navy' ? 'is-active' : ''}>深蓝</span>
+            <span className="dash-banner__toggle-divider" aria-hidden="true">/</span>
+            <span className={bannerVariant === 'light' ? 'is-active' : ''}>浅蓝</span>
+          </button>
+
+          <div className="dash-banner__watermark" aria-hidden="true" />
+
+          <div className="dash-banner__body">
+            <div className="dash-banner__main">
+              <h2 className="dash-banner__title">{getGreeting()}，{displayName}</h2>
+              <p className="dash-banner__summary">{bannerSummary}</p>
             </div>
-          </div>
-          </div>
-          <div className="hero-card__cta">
-            <Link to="/compliance-reminders" className="hero-card__btn">
-              <CsmsIconCompliance size={18} /> 查看全部提醒 <ArrowRight size={16} />
+
+            <Link to="/tasks" className="dash-banner__cta">
+              查看待办 <ArrowRight size={16} />
             </Link>
-            <div className="hero-card__badges">
-              <span className="hero-card__badge hero-card__badge--danger"><i></i>{expiredReminders.length} 项逾期</span>
-              <span className="hero-card__badge hero-card__badge--warn"><i></i>{urgentTasks.length} 项紧急</span>
-              <span className="hero-card__badge hero-card__badge--info"><i></i>{upcomingReminders.length} 项即将到期</span>
-            </div>
           </div>
         </div>
 
         {/* 快捷操作：状态入口 + 创建入口，全部可点 */}
+        <div className="dash-eyebrow dash-eyebrow--plain">
+          <div className="dash-eyebrow__title"><span className="cn">快捷操作</span><span className="en">Quick Actions</span></div>
+        </div>
         <div className="quick-actions" role="group" aria-label="快捷操作">
           {quickActions.map((a, i) => {
             const Icon = a.icon
@@ -293,7 +258,7 @@ export default function Dashboard() {
 
         {/* 核心指标：分区眉标 + 刷新（去掉占位 trend，副文案改用真实派生数据） */}
         <div className="dash-eyebrow">
-          <h2 className="dash-eyebrow__title">核心指标</h2>
+          <div className="dash-eyebrow__title"><span className="cn">核心指标</span><span className="en">Key Metrics</span></div>
           <button className="dash-eyebrow__action" onClick={loadAll} title="刷新数据">
             <RefreshCw size={15} /> 刷新数据
           </button>
@@ -310,6 +275,9 @@ export default function Dashboard() {
         </div>
 
         {/* 近期动态：会议 / 逾期与紧急 / 本月待办（日历整卡，三卡同栅格对齐） */}
+        <div className="dash-eyebrow dash-eyebrow--plain">
+          <div className="dash-eyebrow__title"><span className="cn">近期动态</span><span className="en">Activity</span></div>
+        </div>
         <div className="mini-grid">
           <div className="mini-col">
             <div className="mini-col__head">

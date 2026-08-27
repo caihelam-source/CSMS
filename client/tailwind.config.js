@@ -34,16 +34,16 @@ export default {
         subtle: 'rgb(var(--subtle) / <alpha-value>)',
       },
       borderRadius: {
-        sm: '6px', md: '8px', lg: '12px', xl: '16px', '2xl': '18px', full: '999px',
+        xs: '6px', sm: '10px', md: '14px', lg: '18px', xl: '24px', '2xl': '28px', '3xl': '32px', full: '999px',
       },
       boxShadow: {
-        'sm': '0 1px 2px rgba(15,23,42,.06)',
-        'md': '0 4px 12px rgba(15,23,42,.08)',
-        'lg': '0 12px 32px rgba(15,23,42,.12)',
-        'focus': '0 0 0 3px rgba(37,99,235,.35)',
+        'sm': '0 1px 2px rgba(15,23,42,.04)',
+        'md': '0 4px 14px rgba(15,23,42,.07)',
+        'lg': '0 16px 40px rgba(15,23,42,.12)',
+        'focus': '0 0 0 3px rgba(37,99,235,.18)',
         // 其他页面保留
-        'card': '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)',
-        'card-hover': '0 6px 20px rgba(0,0,0,0.06)',
+        'card': '0 1px 3px rgba(15,23,42,.05), 0 1px 2px rgba(15,23,42,.04)',
+        'card-hover': '0 6px 20px rgba(15,23,42,.08)',
       },
       fontFamily: {
         sans: ['system-ui', '-apple-system', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', '"PingFang SC"', '"Microsoft YaHei"', '"Hiragino Sans GB"', '"Noto Sans CJK SC"', 'sans-serif'],

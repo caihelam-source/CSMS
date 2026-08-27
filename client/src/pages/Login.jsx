@@ -5,6 +5,7 @@ import { Mail, Lock, AlertCircle, Zap } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { LoadingSpinner, FormField, inputClass } from '../components/UIHelpers'
 import BrandLogo from '../components/BrandLogo'
+import PageWatermark from '../components/PageWatermark'
 import { validate, required, email as emailValidator } from '../utils/validators'
 
 const LOGIN_RULES = {
@@ -54,21 +55,15 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#EFF4FF] to-[#F1F5F9] px-4">
-      {/* 极淡印章水印（对齐设计稿 A · 登录页） */}
-      <div className="pointer-events-none absolute -right-10 -top-8 text-[#0F2A5E] opacity-[0.06]">
-        <svg width="340" height="340" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-          <circle cx="32" cy="32" r="26" stroke="currentColor" strokeWidth="3" />
-          <path d="M32 16 A16 16 0 1 0 32 48" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-          <path d="M24 33 l6 6 l11 -13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
+      {/* 统一品牌出血水印（与内页同源：PageWatermark 组件 · 6 角轮转 + clamp(560,78vw,980) + 亮 .018 / 暗 .03 + fixed 出血 + pointer-events:none） */}
+      <PageWatermark position="br" />
 
       {/* 登录卡（对齐设计稿：居中白卡 + 顶部 Logo + slogan） */}
       <div className="relative z-10 w-full max-w-[380px] bg-surface rounded-2xl shadow-lg border border-hairline p-7">
         <div className="flex items-center gap-3 justify-center mb-1">
           <BrandLogo variant="icon" size="lg" />
           <div className="text-left">
-            <div className="text-2xl font-extrabold tracking-tight text-ink leading-none">CSMS</div>
+            <div className="text-2xl font-extrabold tracking-tight text-[#0F2A5E] leading-none">CSMS</div>
             <div className="text-[11px] text-ink-3 mt-1">香港公司秘书管理系统 · Company Secretary Management System</div>
           </div>
         </div>
