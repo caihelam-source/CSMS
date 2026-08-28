@@ -106,7 +106,7 @@ export default function Meetings() {
     } catch { /* ignore */ }
   }, [])
 
-  const openWizard = () => { setWizardStep(0); setEditMeeting(null); setStep1({ title: '', type: 'board', companyId: '', date: '', time: '', endTime: '', duration: 60, isVirtual: false, location: '', meetingId: '', meetingLink: '', meetingPassword: '' }); setStep2([]); setStep3([]); setStep4(null); setStep5(null); loadRefs() } // prettier-ignore
+  const openWizard = () => { setWizardStep(1); setEditMeeting(null); setStep1({ title: '', type: 'board', companyId: '', date: '', time: '', endTime: '', duration: 60, isVirtual: false, location: '', meetingId: '', meetingLink: '', meetingPassword: '' }); setStep2([]); setStep3([]); setStep4(null); setStep5(null); loadRefs() } // prettier-ignore
 
   const openEdit = async (m) => {
     await loadRefs()
