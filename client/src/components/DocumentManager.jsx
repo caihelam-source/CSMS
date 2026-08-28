@@ -377,55 +377,57 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
 
   return (
     <div className={embedded ? 'space-y-4' : 'space-y-6'}>
-      {/* 头部 */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <FileText size={embedded ? 16 : 20} className="text-primary-600" />
-          <Title className={embedded ? 'text-sm font-semibold text-ink-2' : 'text-lg font-semibold text-ink'}>
+      {/* 头部：移动端垂直堆叠，避免 fixed 返回按钮与 actions 挤压 */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText size={embedded ? 16 : 20} className="text-primary-600 shrink-0" />
+          <Title className={embedded ? 'text-sm font-semibold text-ink-2' : 'text-lg font-semibold text-ink truncate'}>
             文档管理{companyId ? '' : personnelId ? '（人员）' : '（全部）'}
           </Title>
-          <span className="text-xs text-ink-3">{documents.length} 个</span>
+          <span className="text-xs text-ink-3 shrink-0">{documents.length} 个</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {selected.size > 0 && (
             <>
-              <button onClick={handleBulkDelete} disabled={deleting} className="flex items-center gap-1 px-3 py-1.5 text-danger hover:bg-danger/10 rounded-lg text-sm">
+              <button onClick={handleBulkDelete} disabled={deleting} className="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-3 py-1.5 text-danger hover:bg-danger/10 rounded-lg text-sm whitespace-nowrap">
                 <Trash2 size={14} /> 删除({selected.size})
               </button>
-              <button onClick={handleExportZip} className="flex items-center gap-1 px-3 py-1.5 text-ink-2 hover:bg-canvas rounded-lg text-sm">
+              <button onClick={handleExportZip} className="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-3 py-1.5 text-ink-2 hover:bg-canvas rounded-lg text-sm whitespace-nowrap">
                 <FileArchive size={14} /> ZIP({selected.size})
               </button>
             </>
           )}
           {showExport && (
-            <button onClick={handleExportCsv} className="flex items-center gap-1 px-3 py-1.5 text-ink-2 hover:bg-canvas rounded-lg text-sm">
+            <button onClick={handleExportCsv} className="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-3 py-1.5 text-ink-2 hover:bg-canvas rounded-lg text-sm whitespace-nowrap">
               <FileSpreadsheet size={14} /> 导出清单
             </button>
           )}
-          <button onClick={() => setShowUpload(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
+          <button onClick={() => setShowUpload(true)} className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium whitespace-nowrap">
             <Upload size={14} /> 上传
           </button>
         </div>
       </div>
 
-      {/* 筛选 */}
-      <div className="flex flex-wrap gap-3">
-        <SearchBar value={search} onChange={setSearch} placeholder="搜索名称、编号..." />
-        <select className="px-3 py-2 border border-hairline rounded-lg text-sm" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-          <option value="">所有类型</option>
-          {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        <select className="px-3 py-2 border border-hairline rounded-lg text-sm" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-          <option value="all">全部分类</option>
-          {DOC_CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-        </select>
-        {!companyId && !personnelId && (
-          <select className="px-3 py-2 border border-hairline rounded-lg text-sm" value={filterScope} onChange={(e) => setFilterScope(e.target.value)}>
-            <option value="all">全部归属</option>
-            <option value="company">仅公司文件</option>
-            <option value="person">仅个人文件</option>
+      {/* 筛选：移动端垂直堆叠，选择器 2 列；桌面端横向排列 */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <SearchBar value={search} onChange={setSearch} placeholder="搜索名称、编号..." className="w-full sm:flex-1" />
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3">
+          <select className="px-3 py-2 border border-hairline rounded-lg text-sm w-full" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+            <option value="">所有类型</option>
+            {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-        )}
+          <select className="px-3 py-2 border border-hairline rounded-lg text-sm w-full" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+            <option value="all">全部分类</option>
+            {DOC_CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+          </select>
+          {!companyId && !personnelId && (
+            <select className="col-span-2 sm:col-span-1 px-3 py-2 border border-hairline rounded-lg text-sm w-full" value={filterScope} onChange={(e) => setFilterScope(e.target.value)}>
+              <option value="all">全部归属</option>
+              <option value="company">仅公司文件</option>
+              <option value="person">仅个人文件</option>
+            </select>
+          )}
+        </div>
       </div>
 
       {/* 列表 */}
@@ -457,66 +459,73 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
               const exp = docExpiryStatus(doc)
               return (
                 <div key={doc._id}
-                  className={`group bg-surface rounded-xl border shadow-sm p-4 hover:shadow-md transition-all ${isSelected ? 'border-primary-400 bg-primary-50' : 'border-hairline'}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="shrink-0 no-nav" onClick={(e) => e.stopPropagation()}>
-                      {isSelected
-                        ? <CheckSquare size={18} className="text-primary-600 cursor-pointer" onClick={() => toggleSelect(doc._id)} />
-                        : <Square size={18} className="text-ink-3 cursor-pointer" onClick={() => toggleSelect(doc._id)} />}
-                    </div>
-                    <div className="p-2 bg-canvas rounded-lg shrink-0"><FileText size={18} className="text-ink-3" /></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-mono text-ink-3">{doc.docNumber || '-'}</span>
-                        <h3 className="font-medium text-sm truncate">{doc.name}</h3>
-                        <span className={`tag ${SCOPE_CLS[doc.scope] || SCOPE_CLS.company}`}>{SCOPE_LABELS[doc.scope] || '公司文件'}</span>
+                  className={`group bg-surface rounded-xl border shadow-sm p-3 sm:p-4 hover:shadow-md transition-all ${isSelected ? 'border-primary-400 bg-primary-50' : 'border-hairline'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    {/* 主信息区 */}
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="shrink-0 pt-1 no-nav" onClick={(e) => e.stopPropagation()}>
+                        {isSelected
+                          ? <CheckSquare size={18} className="text-primary-600 cursor-pointer" onClick={() => toggleSelect(doc._id)} />
+                          : <Square size={18} className="text-ink-3 cursor-pointer" onClick={() => toggleSelect(doc._id)} />}
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-1 items-center text-xs text-ink-3">
-                        <span className="px-2 py-0.5 rounded-full border bg-canvas">{cat}</span>
-                        <span>{DOC_TYPE_LABELS[doc.type] || doc.type || '-'}</span>
-                        {((doc.fileSize ?? doc.size) > 0) && <span>{((doc.fileSize ?? doc.size) / 1024).toFixed(0)} KB</span>}
-                        {exp && <span className={`tag ${exp.cls}`}>{exp.label}</span>}
-                        {doc.company && (
-                          <Link to={`/companies/${doc.company._id || doc.company}`} className="text-primary-500 hover:underline flex items-center gap-0.5 no-nav">
-                            <Building2 size={11} /> {doc.company.name || doc.company}
-                          </Link>
-                        )}
-                        {doc.personnel && (
-                          <Link to={`/personnel/${doc.personnel._id || doc.personnel}`} className="text-primary-500 hover:underline flex items-center gap-0.5 no-nav">
-                            <User size={11} /> {doc.personnel.name || doc.personnel}
-                          </Link>
-                        )}
-                        <SourceBadge doc={doc} />
-                        <SignStatusBadge status={doc.signStatus} />
+                      <div className="p-2 bg-canvas rounded-lg shrink-0"><FileText size={18} className="text-ink-3" /></div>
+                      <div className="flex-1 min-w-0">
+                        {/* 标题行 */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-mono text-ink-3">{doc.docNumber || '-'}</span>
+                          <h3 className="font-medium text-sm truncate max-w-[180px] sm:max-w-xs">{doc.name}</h3>
+                          <span className={`tag ${SCOPE_CLS[doc.scope] || SCOPE_CLS.company} whitespace-nowrap`}>{SCOPE_LABELS[doc.scope] || '公司文件'}</span>
+                          {exp && <span className={`tag ${exp.cls} whitespace-nowrap`}>{exp.label}</span>}
+                          <SignStatusBadge status={doc.signStatus} />
+                        </div>
+                        {/* 元信息行 */}
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 items-center text-xs text-ink-3">
+                          <span className="px-2 py-0.5 rounded-full border bg-canvas whitespace-nowrap">{cat}</span>
+                          <span className="whitespace-nowrap">{DOC_TYPE_LABELS[doc.type] || doc.type || '-'}</span>
+                          {((doc.fileSize ?? doc.size) > 0) && <span className="whitespace-nowrap">{((doc.fileSize ?? doc.size) / 1024).toFixed(0)} KB</span>}
+                          {doc.company && (
+                            <Link to={`/companies/${doc.company._id || doc.company}`} className="text-primary-500 hover:underline flex items-center gap-0.5 no-nav truncate max-w-[140px] sm:max-w-[200px]">
+                              <Building2 size={11} /> <span className="truncate">{doc.company.name || doc.company}</span>
+                            </Link>
+                          )}
+                          {doc.personnel && (
+                            <Link to={`/personnel/${doc.personnel._id || doc.personnel}`} className="text-primary-500 hover:underline flex items-center gap-0.5 no-nav truncate max-w-[140px] sm:max-w-[200px]">
+                              <User size={11} /> <span className="truncate">{doc.personnel.name || doc.personnel}</span>
+                            </Link>
+                          )}
+                          <SourceBadge doc={doc} />
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right shrink-0 flex items-center gap-2">
-                      <span className="text-xs text-ink-3 hidden sm:block">{formatDate(doc.createdAt)}</span>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-nav">
+
+                    {/* 日期 + 操作：移动端独立一行；桌面端右对齐并悬停显示 */}
+                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:shrink-0 border-t border-hairline pt-2 sm:border-0 sm:pt-0">
+                      <span className="text-xs text-ink-3 sm:hidden">{formatDate(doc.createdAt)}</span>
+                      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity no-nav">
                         {doc.fileUrl && (
-                          <button onClick={() => openPreview(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="预览">
-                            <Eye size={18} />
+                          <button onClick={() => openPreview(doc)} className="p-2 sm:p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="预览">
+                            <Eye size={20} className="sm:w-[18px] sm:h-[18px]" />
                           </button>
                         )}
                         {doc.fileUrl && (
-                          <button onClick={() => downloadDoc(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="下载">
-                            <Download size={18} />
+                          <button onClick={() => downloadDoc(doc)} className="p-2 sm:p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="下载">
+                            <Download size={20} className="sm:w-[18px] sm:h-[18px]" />
                           </button>
                         )}
-                        <button onClick={() => setSignDoc(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="发起签署">
-                          <FileSignature size={18} />
+                        <button onClick={() => setSignDoc(doc)} className="p-2 sm:p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="发起签署">
+                          <FileSignature size={20} className="sm:w-[18px] sm:h-[18px]" />
                         </button>
-                        <button onClick={() => openEdit(doc)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-info/10 rounded-lg" title="编辑">
-                          <Pencil size={18} />
+                        <button onClick={() => openEdit(doc)} className="p-2 sm:p-1.5 text-ink-3 hover:text-primary-600 hover:bg-info/10 rounded-lg" title="编辑">
+                          <Pencil size={20} className="sm:w-[18px] sm:h-[18px]" />
                         </button>
-                        <button onClick={() => setDeleteTarget(doc)} className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg" title="删除">
-                          <Trash2 size={18} />
+                        <button onClick={() => setDeleteTarget(doc)} className="p-2 sm:p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg" title="删除">
+                          <Trash2 size={20} className="sm:w-[18px] sm:h-[18px]" />
                         </button>
                       </div>
                     </div>
                   </div>
                   {(!doc.fileUrl) && (
-                    <p className="text-[11px] text-ink-3 mt-1 ml-12">无实体文件（仅元数据）</p>
+                    <p className="text-[11px] text-ink-3 mt-2 sm:ml-12">无实体文件（仅元数据）</p>
                   )}
                 </div>
               )

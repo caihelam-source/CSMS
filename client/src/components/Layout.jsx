@@ -33,14 +33,15 @@ export default function Layout() {
       {/* 顶部水平导航栏：固定悬浮，内容区需让出顶部空间 */}
       <Navbar />
 
-      {/* 全局「回到 Dashboard」快捷按钮（非 Dashboard 页面显示） */}
+      {/* 全局「回到 Dashboard」快捷按钮：桌面端左侧文字胶囊；移动端右上角仅图标，避免压占标题行 */}
       {!isDashboard && (
         <Link
           to="/dashboard"
-          className="fixed top-[92px] lg:top-[104px] left-4 lg:left-6 z-40 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-full shadow-md transition-colors"
+          className="fixed top-[92px] lg:top-[104px] right-3 sm:right-auto sm:left-6 z-40 inline-flex items-center justify-center gap-1.5 w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-full shadow-md transition-colors"
           title="回到 Dashboard"
         >
-          <LayoutDashboard size={14} /> 回到 Dashboard
+          <LayoutDashboard size={16} className="sm:w-[14px] sm:h-[14px]" />
+          <span className="hidden sm:inline">回到 Dashboard</span>
         </Link>
       )}
 
