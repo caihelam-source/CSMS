@@ -42,7 +42,7 @@ export default function DayEventsPopover({ open, date, events, onClose, onEventC
         <div className="overflow-y-auto p-3 space-y-2">
           {events.length === 0 && <p className="text-center text-sm text-ink-3 py-6">当日暂无事件</p>}
           {events.map((e) => {
-            const color = SOURCE_COLOR[e.source] || '#94a3b8'
+            const color = SOURCE_COLOR[e.source] || 'rgb(var(--data-5))'
             return (
               <button
                 key={e.id}

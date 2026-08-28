@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { calendarService, companyService } from '../services/index.js'
 import { toArray } from '../utils/responseNormalize.js'
 import {
-  SOURCE_COLOR, SOURCE_LABEL, ALL_SOURCES,
+  SOURCE_COLOR, sourceColor, sourceColorAlpha, SOURCE_LABEL, ALL_SOURCES,
   ymd, startOfMonth, endOfMonth, startOfWeekSunday, endOfWeekSaturday,
   startOfDay, endOfDay, addDays, addMonths, formatMonthTitle, formatWeekRange, formatDateTitle,
 } from './calendar/calendarConstants'
@@ -219,7 +219,7 @@ export default function Calendar() {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         {ALL_SOURCES.map((s) => {
           const active = activeSources.length === 0 || activeSources.includes(s)
-          const color = SOURCE_COLOR[s]
+          const color = sourceColor(s)
           return (
             <button
               key={s}
@@ -227,8 +227,8 @@ export default function Calendar() {
               className="tap-target flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-colors"
               style={{
                 borderColor: active ? color : 'transparent',
-                backgroundColor: active ? `${color}1a` : 'transparent',
-                color: active ? color : '#94a3b8',
+                backgroundColor: active ? sourceColorAlpha(s, 0.10) : 'transparent',
+                color: active ? color : 'rgb(var(--text-3))',
                 opacity: active ? 1 : 0.6,
               }}
             >

@@ -1,6 +1,6 @@
 // 月视图：6×7 网格（周日起始）。复用 DayEventsPopover 处理「+N 更多」溢出展开。
 import {
-  WEEKDAYS, SOURCE_COLOR, SOURCE_LABEL, ymd, isToday, groupByDay, applyOnlyOpen,
+  WEEKDAYS, SOURCE_COLOR, sourceColor, sourceColorAlpha, SOURCE_LABEL, ymd, isToday, groupByDay, applyOnlyOpen,
 } from './calendarConstants'
 
 export default function MonthGridView({
@@ -57,8 +57,8 @@ export default function MonthGridView({
                     title={`${SOURCE_LABEL[e.source] || e.source} · ${e.title}`}
                     className="w-full items-center gap-1 rounded hover:brightness-95 transition hidden sm:flex px-1.5 py-0.5 text-[11px] font-medium text-left truncate"
                     style={{
-                      backgroundColor: e.overdue ? '#fee2e2' : `${SOURCE_COLOR[e.source] || '#94a3b8'}1a`,
-                      color: e.overdue ? '#b91c1c' : (SOURCE_COLOR[e.source] || '#475569'),
+                      backgroundColor: e.overdue ? 'rgb(var(--c-danger) / 0.12)' : sourceColorAlpha(e.source, 0.10),
+                      color: e.overdue ? 'rgb(var(--c-danger))' : sourceColor(e.source),
                     }}
                   >
                     {e.overdue && <span className="text-[9px]">●</span>}
@@ -82,7 +82,7 @@ export default function MonthGridView({
                     title={`${SOURCE_LABEL[e.source] || e.source} · ${e.title}`}
                     className="sm:hidden w-2 h-2 rounded-full flex-shrink-0"
                     style={{
-                      backgroundColor: e.overdue ? '#ef4444' : (SOURCE_COLOR[e.source] || '#94a3b8'),
+                      backgroundColor: e.overdue ? 'rgb(var(--c-danger))' : sourceColor(e.source),
                     }}
                     aria-label={e.title}
                   />

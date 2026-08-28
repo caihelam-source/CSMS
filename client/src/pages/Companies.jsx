@@ -5,6 +5,7 @@ import { Building2, Plus, Pencil, Trash2, Upload, Download } from 'lucide-react'
 import { companyService } from '../services/index.js'
 import { formatDate, getStatusColor } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
+import { IconBadge } from '../components/VisualKit'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { useScope, useScopedItems } from '../hooks/useScope'
 import { NO_SCOPE_HINT } from '../utils/scope'
@@ -36,9 +37,14 @@ const FORM_RULES = {
 const CompanyCard = memo(function CompanyCard({ company: c, onEdit, onDelete }) {
   return (
     <Link to={`/companies/${c._id}`} className="card hover:shadow-md transition-shadow w-full h-full block min-w-0">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3 min-w-0">
-        <h3 className="font-semibold text-primary-600 line-clamp-2 break-words min-w-0">{c.name}</h3>
-        <span className={`badge ${getStatusColor(c.status)} flex-shrink-0 self-start`}>{c.status?.replace(/_/g, ' ')}</span>
+      <div className="flex items-start gap-3 mb-3 min-w-0">
+        <IconBadge icon={Building2} tone="primary" size="lg" className="mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+            <h3 className="font-semibold text-primary-600 line-clamp-2 break-words min-w-0">{c.name}</h3>
+            <span className={`badge ${getStatusColor(c.status)} flex-shrink-0 self-start`}>{c.status?.replace(/_/g, ' ')}</span>
+          </div>
+        </div>
       </div>
       <p className="text-sm text-ink-2 break-words">{c.registrationNumber || '-'}</p>
       <div className="flex flex-wrap gap-2 mt-2">

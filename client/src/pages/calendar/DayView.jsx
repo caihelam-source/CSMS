@@ -1,6 +1,6 @@
 // 日视图：左侧时间轴（每小时一行），右侧事件块按 time 放置；allDay 事件置顶横条。
 import {
-  SOURCE_COLOR, SOURCE_LABEL, isToday, isSameDay, applyOnlyOpen, formatDateTitle,
+  SOURCE_COLOR, sourceColor, sourceColorAlpha, SOURCE_LABEL, isToday, isSameDay, applyOnlyOpen, formatDateTitle,
 } from './calendarConstants'
 
 export default function DayView({
@@ -32,10 +32,10 @@ export default function DayView({
               key={e.id}
               onClick={() => onEventClick(e)}
               className="w-full text-left rounded-lg border border-hairline px-3 py-2 text-sm hover:bg-canvas transition flex items-center gap-2"
-              style={{ backgroundColor: `${SOURCE_COLOR[e.source] || '#94a3b8'}14` }}
+              style={{ backgroundColor: sourceColorAlpha(e.source, 0.08) }}
             >
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: SOURCE_COLOR[e.source] || '#94a3b8' }} />
-              <span className="text-[11px] font-medium" style={{ color: SOURCE_COLOR[e.source] }}>{SOURCE_LABEL[e.source] || e.source}</span>
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: sourceColor(e.source) }} />
+              <span className="text-[11px] font-medium" style={{ color: sourceColor(e.source) }}>{SOURCE_LABEL[e.source] || e.source}</span>
               <span className="text-ink font-medium truncate min-w-0 flex-1">{e.title}</span>
               <span className="text-xs text-ink-3 ml-auto truncate max-w-[45%]">{e.companyName || '个人'}</span>
             </button>
@@ -58,11 +58,11 @@ export default function DayView({
                     onClick={() => onEventClick(e)}
                     className="w-full text-left rounded px-2 py-1 text-[12px] font-medium hover:brightness-95 transition flex items-center gap-1"
                     style={{
-                      backgroundColor: e.overdue ? '#fee2e2' : `${SOURCE_COLOR[e.source] || '#94a3b8'}1a`,
-                      color: e.overdue ? '#b91c1c' : (SOURCE_COLOR[e.source] || '#475569'),
+                      backgroundColor: e.overdue ? 'rgb(var(--c-danger) / 0.12)' : sourceColorAlpha(e.source, 0.10),
+                      color: e.overdue ? 'rgb(var(--c-danger))' : sourceColor(e.source),
                     }}
                   >
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: SOURCE_COLOR[e.source] || '#94a3b8' }} />
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: sourceColor(e.source) }} />
                     <span className="truncate">{e.title}</span>
                   </button>
                 ))}

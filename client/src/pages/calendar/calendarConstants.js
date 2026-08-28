@@ -2,16 +2,27 @@
 // 所有视图 / 弹层 / 表单复用的来源配色、来源标签、周起始、视图类型、状态样式，
 // 以及周起始对齐、加减天数、ISO 格式化等纯函数工具。
 
-// 来源 → 固定配色（主理人裁定：user_event 固定 #14b8a6，不自选色）
-export const SOURCE_COLOR = {
-  compliance_reminder: '#ef4444',
-  task: '#2563EB',
-  company_filing: '#f59e0b',
-  document: '#0ea5e9',
-  meeting: '#8b5cf6',
-  results_timetable: '#ec4899',
-  user_event: '#14b8a6',
+// 来源 → 数据 6 色板令牌（统一走 index.css 设计令牌，暗色自动切换，杜绝 hex 硬编码）
+// 主理人裁定：user_event 固定 data-1（青绿），其余按模块语义映射。
+export const SOURCE_VAR = {
+  compliance_reminder: '--data-3',
+  task: '--data-6',
+  company_filing: '--data-2',
+  document: '--c-info',
+  meeting: '--data-4',
+  results_timetable: '--color-accent',
+  user_event: '--data-1',
 }
+// 取令牌变量名（带兜底 data-5）
+export const sourceVar = (s) => SOURCE_VAR[s] || '--data-5'
+// 实心色：rgb(var(--token))
+export const sourceColor = (s) => `rgb(var(${sourceVar(s)}))`
+// 带透明度背景：rgb(var(--token) / alpha)
+export const sourceColorAlpha = (s, alpha) => `rgb(var(${sourceVar(s)}) / ${alpha})`
+// 向后兼容别名（旧代码仍可能引用 SOURCE_COLOR[key] 取色）
+export const SOURCE_COLOR = Object.fromEntries(
+  Object.entries(SOURCE_VAR).map(([k, v]) => [k, `rgb(var(${v}))`])
+)
 
 // 来源 → 中文模块名
 export const SOURCE_LABEL = {

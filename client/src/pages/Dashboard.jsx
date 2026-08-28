@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { companyService, personnelService, documentService, meetingService, complianceReminderService, templateService, taskService, calendarService } from '../services/index.js'
 import { formatDate } from '../utils/helpers'
 import { toArray } from '../utils/responseNormalize.js'
-import { LoadingSpinner } from '../components/UIHelpers'
+import { LoadingSpinner, EmptyState } from '../components/UIHelpers'
+import { IconBadge, ProgressRing } from '../components/VisualKit'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import BrandLogo from '../components/BrandLogo'
 import {
@@ -18,14 +19,14 @@ import {
 
 const BANNER_KEY = 'csms.dashboardBanner'
 
-// 日历来源着色（与 pages/Calendar.jsx 保持一致）
-const SOURCE_COLOR = {
-  compliance_reminder: '#ef4444',
-  task: '#2563EB',
-  company_filing: '#f59e0b',
-  document: '#0ea5e9',
-  meeting: '#8b5cf6',
-  results_timetable: '#ec4899',
+// 日历来源着色（与 pages/Calendar.jsx 保持一致）—— 统一走数据 6 色板令牌，杜绝 hex 硬编码
+const SOURCE_TOKEN = {
+  compliance_reminder: 'var(--data-3)',
+  task: 'var(--data-6)',
+  company_filing: 'var(--data-2)',
+  document: 'var(--c-info)',
+  meeting: 'var(--data-4)',
+  results_timetable: 'var(--color-accent)',
 }
 
 const fmtTime = (d) => d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '—'
@@ -42,6 +43,7 @@ export default function Dashboard() {
   const [pendingTasksCount, setPendingTasksCount] = useState(0)
   const [signTasksCount, setSignTasksCount] = useState(0)
   const [templatesCount, setTemplatesCount] = useState(0)
+  const [taskCompletion, setTaskCompletion] = useState({ done: 0, total: 0 })
   const [calendarItems, setCalendarItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastRefreshed, setLastRefreshed] = useState(null)
@@ -103,6 +105,9 @@ export default function Dashboard() {
       // 签署任务总数 = 全部 type === 'signing' 的任务
       const signingTasks = allTasks.filter(t => t.type === 'signing')
       setSignTasksCount(signingTasks.length)
+      // 任务完成度（真实派生：已完成 / 全部）
+      const doneTasks = allTasks.filter(t => t.status === 'completed').length
+      setTaskCompletion({ done: doneTasks, total: allTasks.length })
     } catch {
       // silently fail - stats will show zeros
     } finally {
@@ -204,7 +209,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <div id="main" className="max-w-[var(--fluid-content-max)] mx-auto w-full">
+      <div id="main" className="max-w-[var(--fluid-content-max)] mx-auto w-full page-fade">
 
         {/* Hero Banner：深蓝/浅蓝切换 + 印章线框纹理 + CSMS 字标（与设计稿同系列） */}
         <div className={`dash-banner dash-banner--${bannerVariant}`}>
@@ -273,6 +278,29 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {/* 完成度概览：真实派生的任务完成环形进度（proposal 元素层 · 进度可视化） */}
+        {taskCompletion.total > 0 && (
+          <div className="card flex items-center gap-5 mb-6 max-w-[var(--fluid-content-max)] mx-auto">
+            <ProgressRing
+              value={taskCompletion.done}
+              max={taskCompletion.total}
+              tone="success"
+              size={84}
+              stroke={9}
+              sublabel={`${taskCompletion.done}/${taskCompletion.total}`}
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-ink-2">本期待办任务完成度</p>
+              <p className="text-2xl font-bold text-ink-brand mt-1 tabular-nums">
+                {taskCompletion.done}<span className="text-ink-3 text-base font-normal"> / {taskCompletion.total}</span> 已完成
+              </p>
+              <p className="text-xs text-ink-3 mt-1">
+                {pendingTasksCount} 项进行中 · {urgentTasks.length} 项紧急
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* 近期动态：会议 / 逾期与紧急 / 本月待办（日历整卡，三卡同栅格对齐） */}
         <div className="dash-eyebrow dash-eyebrow--plain">
           <div className="dash-eyebrow__title"><span className="cn">近期动态</span><span className="en">Activity</span></div>
@@ -284,7 +312,7 @@ export default function Dashboard() {
               <Link to="/meetings" className="mini-col__more">查看全部</Link>
             </div>
             {upcomingMeetings.length === 0 ? (
-              <p className="text-ink-3 text-sm py-4 text-center">暂无即将到来的会议</p>
+              <EmptyState compact icon={CsmsIconMeetings} title="暂无即将到来的会议" description="排期会议后将在此显示" />
             ) : (
               upcomingMeetings.slice(0, 3).map(m => (
                 <Link to={`/meetings/${m._id}`} className="mini-row" key={m._id}>
@@ -304,7 +332,7 @@ export default function Dashboard() {
               <Link to="/compliance-reminders" className="mini-col__more">查看全部</Link>
             </div>
             {attention.length === 0 ? (
-              <p className="text-ink-3 text-sm py-4 text-center">暂无逾期与紧急事项</p>
+              <EmptyState compact icon={CsmsIconUrgent} title="暂无逾期与紧急事项" description="当前没有需要立即处理的任务" />
             ) : (
               attention.map(({ kind, item }, idx) => {
                 const to = kind === 'expired' ? `/compliance-reminders/${item._id}` : `/tasks/${item._id}`
@@ -327,7 +355,7 @@ export default function Dashboard() {
               <Link to="/calendar" className="mini-col__more">打开日历</Link>
             </div>
             {calendarItems.length === 0 ? (
-              <p className="text-ink-3 text-sm py-4 text-center">本月暂无待办 🎉</p>
+              <EmptyState compact icon={CsmsIconUpcoming} title="本月暂无待办" description="日历事件聚合后将在此显示" />
             ) : (
               <div className="mini-col__grid">
                 {calendarItems.map((e) => (
@@ -336,8 +364,8 @@ export default function Dashboard() {
                       <p className="mr-t">{e.title}</p>
                       <p className="mr-s">{e.module} · {e.companyName || '未关联'}</p>
                     </div>
-                    <span className="mr-right" style={{ color: e.overdue ? '#b91c1c' : '#64748b' }}>
-                      <i className="mi-dot" style={{ background: e.overdue ? '#ef4444' : (SOURCE_COLOR[e.source] || '#64748b') }}></i>
+                    <span className="mr-right" style={{ color: e.overdue ? 'rgb(var(--c-danger))' : 'rgb(var(--text-3))' }}>
+                      <i className="mi-dot" style={{ background: e.overdue ? 'rgb(var(--c-danger))' : `rgb(${SOURCE_TOKEN[e.source] || 'var(--text-3)'})` }}></i>
                       {e.overdue ? '逾期' : formatDate(e.date)}
                     </span>
                   </Link>

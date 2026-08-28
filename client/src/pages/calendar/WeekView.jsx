@@ -1,6 +1,6 @@
 // 周视图：7 列（周日起始）。全天事件置顶、时间排序；单格溢出「+N 更多」触发弹层。
 import {
-  WEEKDAYS, SOURCE_COLOR, ymd, isToday, startOfWeekSunday, addDays, groupByDay, applyOnlyOpen, sortDayEvents,
+  WEEKDAYS, SOURCE_COLOR, sourceColor, sourceColorAlpha, ymd, isToday, startOfWeekSunday, addDays, groupByDay, applyOnlyOpen, sortDayEvents,
 } from './calendarConstants'
 
 export default function WeekView({
@@ -45,8 +45,8 @@ export default function WeekView({
                     title={`${e.title}${e.time ? ' ' + e.time : ''}`}
                     className="w-full text-left truncate rounded px-1.5 py-1 text-[11px] font-medium hover:brightness-95 transition"
                     style={{
-                      backgroundColor: e.overdue ? '#fee2e2' : `${SOURCE_COLOR[e.source] || '#94a3b8'}1a`,
-                      color: e.overdue ? '#b91c1c' : (SOURCE_COLOR[e.source] || '#475569'),
+                      backgroundColor: e.overdue ? 'rgb(var(--c-danger) / 0.12)' : sourceColorAlpha(e.source, 0.10),
+                      color: e.overdue ? 'rgb(var(--c-danger))' : sourceColor(e.source),
                     }}
                   >
                     {e.time && !e.allDay ? `${e.time} ` : e.allDay ? '全天 ' : ''}{e.title}
