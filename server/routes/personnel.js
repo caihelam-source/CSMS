@@ -88,7 +88,8 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
     ]);
     const roleMap = new Map(roleAgg.map(r => [r._id.toString(), r.roles]));
     const result = personnel.map(p => {
-      const obj = p.toObject();
+      // .lean() 返回纯对象，不能调用 toObject()
+      const obj = p.toObject ? p.toObject() : { ...p };
       obj.roles = roleMap.get(p._id.toString()) || [];
       return obj;
     });

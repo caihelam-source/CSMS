@@ -310,17 +310,17 @@ export default function Personnel() {
         subtitle={`${personnel.length} people`}
         icon={Users}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             {selectedIds.length === 2 && (
-              <button onClick={() => setShowMergeModal(true)} className="btn-primary flex items-center gap-2">
+              <button onClick={() => setShowMergeModal(true)} className="btn-primary flex items-center justify-center gap-2 w-full sm:w-auto whitespace-nowrap">
                 <Merge size={16} /> Merge Selected
               </button>
             )}
             <button onClick={() => { setImportResult(null); setImportModal(true) }}
-              className="flex items-center gap-1.5 px-3 py-2 border border-hairline text-ink rounded-lg hover:bg-canvas text-sm font-medium">
+              className="flex items-center justify-center gap-1.5 px-3 py-2 border border-hairline text-ink rounded-lg hover:bg-canvas text-sm font-medium w-full sm:w-auto whitespace-nowrap">
               <Upload size={15} /> Excel 导入
             </button>
-            <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+            <button onClick={openCreate} className="btn-primary flex items-center justify-center gap-2 w-full sm:w-auto whitespace-nowrap">
               <Plus size={16} /> New Person
             </button>
           </div>
@@ -328,10 +328,10 @@ export default function Personnel() {
       />
 
       {/* 角色筛选 Tab */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
         {[{ key: 'all', label: '全部' }, { key: 'director', label: '董事' }, { key: 'shareholder', label: '股东' }, { key: 'secretary', label: '公司秘书' }].map(t => (
           <button key={t.key} onClick={() => setRoleFilter(t.key)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${roleFilter === t.key ? 'bg-primary-600 text-white border-primary-600' : 'bg-surface text-ink-2 border-hairline hover:bg-canvas'}`}>
+            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors whitespace-nowrap flex-shrink-0 ${roleFilter === t.key ? 'bg-primary-600 text-white border-primary-600' : 'bg-surface text-ink-2 border-hairline hover:bg-canvas'}`}>
             {t.label}
           </button>
         ))}
