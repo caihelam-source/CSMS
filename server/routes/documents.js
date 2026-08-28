@@ -84,10 +84,26 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
     const { title, name, type, company, personnel, meeting, description, category, note, tags, keywords, isConfidential, source, locked, staged } = req.body;
 
-    // 兼容前端自动归档：company / personnel / meeting 可能是 { _id, name } 对象，也可能直接是 ObjectId
-    const companyVal = (company && typeof company === 'object' && company._id) ? company._id : company;
-    const personnelVal = (personnel && typeof personnel === 'object' && personnel._id) ? personnel._id : personnel;
-    const meetingVal = (meeting && typeof meeting === 'object' && meeting._id) ? meeting._id : meeting;
+    // 兼容前端自动归档：company / personnel / meeting / source 可能是 JSON 字符串或 { _id, name } 对象，也可能直接是 ObjectId
+    const parseJsonField = (v) => {
+      if (v && typeof v === 'string' && (v.trim().startsWith('{') || v.trim().startsWith('['))) {
+        try { return JSON.parse(v) } catch { return v }
+      }
+      return v
+    }
+    const companyObjRaw = parseJsonField(company)
+    const personnelObjRaw = parseJsonField(personnel)
+    const meetingObjRaw = parseJsonField(meeting)
+    const sourceObjRaw = parseJsonField(source)
+
+    const companyVal = (companyObjRaw && typeof companyObjRaw === 'object' && companyObjRaw._id) ? companyObjRaw._id : companyObjRaw;
+    const personnelVal = (personnelObjRaw && typeof personnelObjRaw === 'object' && personnelObjRaw._id) ? personnelObjRaw._id : personnelObjRaw;
+    const meetingVal = (meetingObjRaw && typeof meetingObjRaw === 'object' && meetingObjRaw._id) ? meetingObjRaw._id : meetingObjRaw;
+    const sourceVal = (sourceObjRaw && typeof sourceObjRaw === 'object') ? {
+      kind: sourceObjRaw.kind || 'other',
+      refId: sourceObjRaw.refId || undefined,
+      label: sourceObjRaw.label || undefined,
+    } : undefined;
 
     // 文档标题：优先 title，其次 name（前端自动归档使用 name 字段）
     const docTitle = title || name || req.file?.originalname || 'Untitled';
@@ -115,11 +131,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       keywords: keywords ? (Array.isArray(keywords) ? keywords : keywords.split(',').map(k => k.trim())) : [],
       isConfidential: isConfidential === 'true' || isConfidential === true,
       // v5.1 来源追溯 + 归档锁定：前端自动归集（纪要/签署扫描）或手动补充上传时携带
-      source: (source && typeof source === 'object') ? {
-        kind: source.kind || 'other',
-        refId: source.refId || undefined,
-        label: source.label || undefined,
-      } : undefined,
+      source: sourceVal,
       locked: locked === true || locked === 'true' || false,
       // v5.2 会议暂存（模块1）：会议视图上传时携带 staged=true，归档时由前端置 false
       staged: staged === true || staged === 'true' || false,

@@ -146,20 +146,34 @@ export default function SignTaskForm({
 
       // 3) CTC：生成带 CTC 章的 PDF → 作为「待签」草稿文档入库（可在文档库找到、打印签字）；同时弹窗内提供下载
       if (form.isCTC && selectedDoc) {
-        // 取源 PDF 字节：优先走鉴权 view 路由，失败则回退 fileUrl，再不行用 pdf-lib 空白页兜底。
-        // demo/mock 模式下种子数据没有真实文件，fetchDocBytes 会返回 null，随后用空白页兜底，
-        // 保证 CTC 盖章草稿仍可生成。
+        // 取源 PDF 字节：优先走鉴权 view 路由，失败则回退 fileUrl。
+        // demo/mock 模式下种子数据没有真实文件，fetchDocBytes 会返回 null。
+        // 若源文件不是 PDF（如图片），generateCtcPdf 会失败，同样用空白页兜底，确保任务可创建。
         let pdfBytes = await fetchDocBytes(selectedDoc._id, selectedDoc.fileUrl)
+        let usedBlank = false
         if (!pdfBytes || !pdfBytes.byteLength) {
           const empty = await PDFDocument.create()
           pdfBytes = await empty.save()
+          usedBlank = true
           toast('未能读取源文件字节（可能为演示数据或登录态失效），已用空白页生成 CTC 盖章草稿', { icon: '⚠️' })
         }
-        const ctcBytes = await generateCtcPdf(pdfBytes, {
-          fullName: form.ctcFullName.trim(),
-          professionalTitle: form.ctcTitle.trim(),
-          membershipNo: form.ctcMembershipNo.trim(),
-        })
+        let ctcBytes
+        try {
+          ctcBytes = await generateCtcPdf(pdfBytes, {
+            fullName: form.ctcFullName.trim(),
+            professionalTitle: form.ctcTitle.trim(),
+            membershipNo: form.ctcMembershipNo.trim(),
+          })
+        } catch (pdfErr) {
+          console.warn('[CTC] 源文件无法解析为 PDF，回退空白页:', pdfErr?.message || pdfErr)
+          const empty = await PDFDocument.create()
+          ctcBytes = await generateCtcPdf(await empty.save(), {
+            fullName: form.ctcFullName.trim(),
+            professionalTitle: form.ctcTitle.trim(),
+            membershipNo: form.ctcMembershipNo.trim(),
+          })
+          if (!usedBlank) toast('源文件不是 PDF，已用空白页生成 CTC 盖章草稿', { icon: '⚠️' })
+        }
         const ctcName = buildCtcDocName(selectedDoc.name || 'document.pdf', true)
         // 入库为待签草稿文档（type=ctc, signStatus=pending_ctc），关联本 Task
         const fd = new FormData()

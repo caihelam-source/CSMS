@@ -125,8 +125,15 @@ router.get('/:id', auth, scopeMiddleware, async (req, res) => {
 // @access  Private
 router.post('/', auth, async (req, res) => {
   try {
+    const body = { ...req.body };
+    // 兼容前端自动归档：company / personnel / meeting 可能是 { _id, name } 对象
+    if (body.company && typeof body.company === 'object' && body.company._id) body.company = body.company._id;
+    if (body.personnel && typeof body.personnel === 'object' && body.personnel._id) body.personnel = body.personnel._id;
+    if (body.meeting && typeof body.meeting === 'object' && body.meeting._id) body.meeting = body.meeting._id;
+    if (body.sourceDocumentId) body.sourceDocumentId = String(body.sourceDocumentId);
+
     const task = await Task.create({
-      ...req.body,
+      ...body,
       createdBy: req.user._id
     });
 
