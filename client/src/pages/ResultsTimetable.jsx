@@ -344,7 +344,7 @@ export default function ResultsTimetable() {
 
         <div className="mt-4">
           <label className={labelClass}>关键锚点日期（驱动全表推算）</label>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 mt-1">
             {anchorKeys.map((k) => (
               <div key={k}>
                 <div className="text-xs text-ink-3 mb-1">{k}</div>
