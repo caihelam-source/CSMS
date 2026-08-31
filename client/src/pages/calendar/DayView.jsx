@@ -1,10 +1,10 @@
 // 日视图：左侧时间轴（每小时一行），右侧事件块按 time 放置；allDay 事件置顶横条。
 import {
-  SOURCE_COLOR, sourceColor, sourceColorAlpha, SOURCE_LABEL, isToday, isSameDay, applyOnlyOpen, formatDateTitle,
+  sourceColor, sourceColorAlpha, SOURCE_LABEL, isSameDay, applyOnlyOpen,
 } from './calendarConstants'
 
 export default function DayView({
-  cursor, events, onlyOpen, onEventClick, onPrev, onNext, onToday,
+  cursor, events, onlyOpen, onEventClick,
 }) {
   const list = applyOnlyOpen(events, onlyOpen).filter((e) => isSameDay(e.date, cursor))
   const allDay = list.filter((e) => e.allDay || !e.time)
@@ -16,15 +16,6 @@ export default function DayView({
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <button onClick={onPrev} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="前一天">‹</button>
-          <button onClick={onToday} className="tap-target px-3 h-9 rounded-lg bg-surface border border-hairline text-sm text-ink-2 hover:bg-canvas transition-colors">今天</button>
-          <button onClick={onNext} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="后一天">›</button>
-        </div>
-        <h2 className="flex-1 min-w-0 text-center text-sm sm:text-lg font-semibold text-ink truncate">{formatDateTitle(cursor)}{isToday(cursor) ? ' · 今天' : ''}</h2>
-      </div>
-
       {allDay.length > 0 && (
         <div className="mb-3 space-y-1">
           {allDay.map((e) => (

@@ -1,10 +1,10 @@
 // 周视图：7 列（周日起始）。全天事件置顶、时间排序；单格溢出「+N 更多」触发弹层。
 import {
-  WEEKDAYS, SOURCE_COLOR, sourceColor, sourceColorAlpha, ymd, isToday, startOfWeekSunday, addDays, groupByDay, applyOnlyOpen, sortDayEvents,
+  WEEKDAYS, sourceColor, sourceColorAlpha, ymd, isToday, startOfWeekSunday, addDays, groupByDay, applyOnlyOpen, sortDayEvents,
 } from './calendarConstants'
 
 export default function WeekView({
-  cursor, events, onlyOpen, onEventClick, onMoreClick, onPrev, onNext, onToday,
+  cursor, events, onlyOpen, onEventClick, onMoreClick,
 }) {
   const weekStart = startOfWeekSunday(cursor)
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -12,15 +12,6 @@ export default function WeekView({
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <button onClick={onPrev} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="上周">‹</button>
-          <button onClick={onToday} className="tap-target px-3 h-9 rounded-lg bg-surface border border-hairline text-sm text-ink-2 hover:bg-canvas transition-colors">今天</button>
-          <button onClick={onNext} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="下周">›</button>
-        </div>
-        <h2 className="flex-1 min-w-0 text-center text-sm sm:text-lg font-semibold text-ink truncate">{ymd(weekStart)} ~ {ymd(addDays(weekStart, 6))}</h2>
-      </div>
-
       <div className="overflow-x-auto sm:overflow-visible -mx-1 px-1">
         <div className="grid grid-cols-7 gap-1.5 min-w-[600px] sm:min-w-0">
         {days.map((d, i) => {

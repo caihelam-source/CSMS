@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { calendarService, companyService } from '../services/index.js'
 import { toArray } from '../utils/responseNormalize.js'
 import {
-  SOURCE_COLOR, sourceColor, sourceColorAlpha, SOURCE_LABEL, ALL_SOURCES,
+  sourceColor, sourceColorAlpha, SOURCE_LABEL, ALL_SOURCES,
   ymd, startOfMonth, endOfMonth, startOfWeekSunday, endOfWeekSaturday,
   startOfDay, endOfDay, addDays, addMonths, formatMonthTitle, formatWeekRange, formatDateTitle,
 } from './calendar/calendarConstants'
@@ -256,9 +256,6 @@ export default function Calendar() {
               onlyOpen={onlyOpen}
               onEventClick={handleEventClick}
               onMoreClick={openMore}
-              onPrev={goPrev}
-              onNext={goNext}
-              onToday={goToday}
             />
           )}
           {view === 'week' && (
@@ -268,9 +265,6 @@ export default function Calendar() {
               onlyOpen={onlyOpen}
               onEventClick={handleEventClick}
               onMoreClick={openMore}
-              onPrev={goPrev}
-              onNext={goNext}
-              onToday={goToday}
             />
           )}
           {view === 'day' && (
@@ -280,9 +274,6 @@ export default function Calendar() {
               onlyOpen={onlyOpen}
               onEventClick={handleEventClick}
               onMoreClick={openMore}
-              onPrev={goPrev}
-              onNext={goNext}
-              onToday={goToday}
             />
           )}
           {view === 'agenda' && (

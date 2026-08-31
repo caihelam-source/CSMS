@@ -585,20 +585,23 @@ export default function RulesLibraryTab() {
                       </td>
                       <td data-label="偏移量 / 天数" className="px-4 py-3">
                         {ids.length === 0 ? (<span className="text-xs text-ink-3">未绑定偏移量</span>) : (
-                          <div className="space-y-1">
+                          <div className="space-y-1 min-w-0">
                             {ids.map((oid, k) => {
                               const off = secOffsetMap[oid]
-                              return (<div key={`${oid}-${k}`} className="flex items-center gap-2">
-                                <span className="text-xs text-ink-2 min-w-[150px] truncate" title={oid}>{off ? off.name : oid}</span>
-                                <span className="text-[11px] text-ink-3">{off ? off.anchor : '?'}</span>
-                                <input type="number" value={off ? off.days : 0} disabled={!off}
-                                  onChange={e => patchOffsetDays(oid, e.target.value)}
-                                  className="w-20 px-2 py-1 border border-hairline rounded-md text-xs text-right focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-canvas" />
-                                <span className="text-[11px] text-ink-3">天</span>
-                                {secOffsetRefCount[oid] > 1 && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning border border-warning/30 whitespace-nowrap"
-                                    title={`该偏移量被 ${secOffsetRefCount[oid]} 条任务共用，修改将同步影响所有这些任务的排期日期`}>
-                                    共用·影响{secOffsetRefCount[oid]}条
+                              const cnt = secOffsetRefCount[oid]
+                              return (<div key={`${oid}-${k}`} className="space-y-1 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-xs text-ink-2 flex-1 min-w-0 truncate" title={oid}>{off ? off.name : oid}</span>
+                                  <span className="text-[11px] text-ink-3 shrink-0">{off ? off.anchor : '?'}</span>
+                                  <input type="number" value={off ? off.days : 0} disabled={!off}
+                                    onChange={e => patchOffsetDays(oid, e.target.value)}
+                                    className="w-14 px-2 py-1 border border-hairline rounded-md text-xs text-right focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-canvas shrink-0" />
+                                  <span className="text-[11px] text-ink-3 shrink-0">天</span>
+                                </div>
+                                {cnt > 1 && (
+                                  <span className="inline-flex text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning border border-warning/30 shrink-0"
+                                    title={`该偏移量被 ${cnt} 条任务共用，修改将同步影响所有这些任务的排期日期`}>
+                                    共用×{cnt}
                                   </span>
                                 )}
                               </div>)

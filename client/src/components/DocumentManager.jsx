@@ -9,7 +9,7 @@ import {
 import SignTaskModal from './SignTaskModal'
 import { documentService, companyService, personnelService } from '../services/index.js'
 import { formatDate } from '../utils/helpers'
-import { fetchDocBlobUrl, downloadDoc, isPdfDoc, isImageDoc } from '../utils/fileAccess'
+import { fetchDocPreview, downloadDoc } from '../utils/fileAccess'
 import { LoadingSpinner, EmptyState, SearchBar, FormField, inputClass, labelClass } from '../components/UIHelpers'
 import Modal from '../components/Modal'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -106,6 +106,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
 
   const [previewDoc, setPreviewDoc] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [previewMime, setPreviewMime] = useState('')
   const [previewLoading, setPreviewLoading] = useState(false)
   const [editDoc, setEditDoc] = useState(null)
   const [editMeta, setEditMeta] = useState({ name: '', type: 'other', category: 'other', companyId: '', personnelId: '', documentYear: new Date().getFullYear() })
@@ -117,17 +118,20 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
   const [personnel, setPersonnel] = useState([])
   const { isDemo } = useAuth()
 
-  // 预览：通过鉴权路由取 blob → objectURL，规避跨域/公开 URL 问题
+  // 预览：通过鉴权路由取 blob → objectURL，规避跨域/公开 URL 问题；mime 取 blob 真实类型
   const openPreview = useCallback(async (doc) => {
     setPreviewDoc(doc)
     setPreviewUrl(null)
+    setPreviewMime('')
     setPreviewLoading(true)
     try {
-      const url = await fetchDocBlobUrl(doc._id)
+      const { url, mime } = await fetchDocPreview(doc._id)
       setPreviewUrl(url)
+      setPreviewMime(mime)
     } catch (e) {
       console.error('预览加载失败:', e)
       setPreviewUrl(null)
+      setPreviewMime('')
     } finally {
       setPreviewLoading(false)
     }
@@ -136,6 +140,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
   const closePreview = useCallback(() => {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setPreviewUrl(null)
+    setPreviewMime('')
     setPreviewDoc(null)
     setPreviewLoading(false)
   }, [previewUrl])
@@ -634,7 +639,7 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
       </Modal>
 
       {/* 预览 Modal */}
-      <Modal isOpen={!!previewDoc} onClose={closePreview} title={previewDoc?.name || '预览'} size="lg">
+      <Modal isOpen={!!previewDoc} onClose={closePreview} title={previewDoc?.name ? `${previewDoc.name}（${previewDoc.docNumber}）` : '预览'} size="lg">
         {previewDoc && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs text-ink-3 flex-wrap">
@@ -646,9 +651,9 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
               <div className="flex items-center justify-center h-[60vh] text-ink-3">
                 <LoadingSpinner /> <span className="ml-2">加载中…</span>
               </div>
-            ) : previewUrl && isPdfDoc(previewDoc) ? (
+            ) : previewUrl && previewMime?.startsWith('application/pdf') ? (
               <iframe src={previewUrl} title="preview" className="w-full h-[60vh] rounded-lg border border-hairline" />
-            ) : previewUrl && isImageDoc(previewDoc) ? (
+            ) : previewUrl && previewMime?.startsWith('image/') ? (
               <img src={previewUrl} alt={previewDoc.name} className="max-h-[60vh] mx-auto rounded-lg" />
             ) : (
               <div className="text-center py-8">

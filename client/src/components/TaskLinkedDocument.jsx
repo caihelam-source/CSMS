@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { FileText, Eye, Download, Pencil, Building2, User, Paperclip } from 'lucide-react'
 import { documentService, companyService, personnelService } from '../services/index.js'
-import { fetchDocBlobUrl, downloadDoc, isPdfDoc, isImageDoc } from '../utils/fileAccess'
+import { fetchDocPreview, downloadDoc } from '../utils/fileAccess'
 import { formatDate } from '../utils/helpers'
 import { LoadingSpinner, FormField, inputClass } from './UIHelpers'
 import Modal from './Modal'
@@ -33,6 +33,7 @@ export default function TaskLinkedDocument({ documentId, task }) {
 
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [previewMime, setPreviewMime] = useState('')
   const [previewLoading, setPreviewLoading] = useState(false)
 
   const [editOpen, setEditOpen] = useState(false)
@@ -77,13 +78,16 @@ export default function TaskLinkedDocument({ documentId, task }) {
     if (!doc) return
     setPreviewOpen(true)
     setPreviewUrl(null)
+    setPreviewMime('')
     setPreviewLoading(true)
     try {
-      const url = await fetchDocBlobUrl(doc._id)
+      const { url, mime } = await fetchDocPreview(doc._id)
       setPreviewUrl(url)
+      setPreviewMime(mime)
     } catch (e) {
       console.error('预览加载失败:', e)
       setPreviewUrl(null)
+      setPreviewMime('')
     } finally {
       setPreviewLoading(false)
     }
@@ -92,6 +96,7 @@ export default function TaskLinkedDocument({ documentId, task }) {
   const closePreview = useCallback(() => {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setPreviewUrl(null)
+    setPreviewMime('')
     setPreviewOpen(false)
     setPreviewLoading(false)
   }, [previewUrl])
@@ -192,7 +197,7 @@ export default function TaskLinkedDocument({ documentId, task }) {
       </div>
 
       {/* 预览 Modal */}
-      <Modal isOpen={previewOpen} onClose={closePreview} title={doc.name} size="lg">
+      <Modal isOpen={previewOpen} onClose={closePreview} title={doc?.name ? `${doc.name}（${doc.docNumber}）` : '预览'} size="lg">
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-xs text-ink-3 flex-wrap">
             <span className="font-mono">{doc.docNumber}</span>
@@ -203,9 +208,9 @@ export default function TaskLinkedDocument({ documentId, task }) {
             <div className="flex items-center justify-center h-[60vh] text-ink-3">
               <LoadingSpinner /> <span className="ml-2">加载中…</span>
             </div>
-          ) : previewUrl && isPdfDoc(doc) ? (
+          ) : previewUrl && previewMime?.startsWith('application/pdf') ? (
             <iframe src={previewUrl} title="preview" className="w-full h-[60vh] rounded-lg border border-hairline" />
-          ) : previewUrl && isImageDoc(doc) ? (
+          ) : previewUrl && previewMime?.startsWith('image/') ? (
             <img src={previewUrl} alt={doc.name} className="max-h-[60vh] mx-auto rounded-lg" />
           ) : (
             <div className="text-center py-8">

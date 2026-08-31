@@ -67,6 +67,40 @@ export async function fetchDocBlobUrl(docId) {
   }
 }
 
+// 取文档预览：返回 { url, mime }，mime 取 blob 真实类型（mock 占位 PDF 显式 application/pdf），
+// 根因修复：旧逻辑按文件名后缀判断 → mock 种子文件（无 .pdf 后缀）被误判为「不支持内联预览」而空白。
+export async function fetchDocPreview(docId) {
+  if (isMockMode()) {
+    try {
+      const res = await documentService.getOne(docId);
+      const doc = res.data?.data;
+      if (doc?.fileUrl?.startsWith('blob:')) {
+        try {
+          const r = await fetch(doc.fileUrl);
+          const blob = await r.blob();
+          return { url: URL.createObjectURL(blob), mime: blob.type || 'application/octet-stream' };
+        } catch {
+          return { url: doc.fileUrl, mime: 'application/octet-stream' };
+        }
+      }
+      // 种子数据没有真实文件，返回 demo 占位 PDF
+      return { url: await createDummyPdfBlobUrl(doc?.name || 'Demo preview'), mime: 'application/pdf' };
+    } catch (e) {
+      console.warn('[fetchDocPreview] mock mode fallback failed:', e);
+      return { url: createDummyPdfBlobUrl('Demo preview'), mime: 'application/pdf' };
+    }
+  }
+  try {
+    const res = await api.get(`/api/documents/${docId}/view`, { responseType: 'blob' });
+    return { url: URL.createObjectURL(res.data), mime: res.data.type || 'application/octet-stream' };
+  } catch (err) {
+    if (err.response?.status === 401) {
+      toast.error('登录已失效，请重新登录');
+    }
+    throw err;
+  }
+}
+
 // 静默取文档字节（ArrayBuffer），优先走鉴权 view 路由，失败则回退 fallbackUrl，
 // 最终仍失败返回 null —— 用于 CTC 生成等不希望因 401 中断的闭环。
 export async function fetchDocBytes(docId, fallbackUrl = null) {

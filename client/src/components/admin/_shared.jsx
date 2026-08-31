@@ -138,8 +138,8 @@ export const PERM_MATRIX = [
 ]
 
 export const Tick = ({ ok }) => ok
-  ? <CheckCircle size={18} className="text-success mx-auto" />
-  : <XCircle size={18} className="text-ink-3 mx-auto" />
+  ? <CheckCircle size={18} className="text-success" />
+  : <XCircle size={18} className="text-ink-3" />
 
 // ── Stats banner ─────────────────────────────────────────────────
 export const StatBadge = ({ icon: Icon, label, value, color }) => (

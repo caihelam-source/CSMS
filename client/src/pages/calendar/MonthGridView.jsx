@@ -1,10 +1,10 @@
 // 月视图：6×7 网格（周日起始）。复用 DayEventsPopover 处理「+N 更多」溢出展开。
 import {
-  WEEKDAYS, SOURCE_COLOR, sourceColor, sourceColorAlpha, SOURCE_LABEL, ymd, isToday, groupByDay, applyOnlyOpen,
+  WEEKDAYS, sourceColor, sourceColorAlpha, SOURCE_LABEL, ymd, isToday, groupByDay, applyOnlyOpen,
 } from './calendarConstants'
 
 export default function MonthGridView({
-  cursor, events, onlyOpen, onEventClick, onMoreClick, onPrev, onNext, onToday,
+  cursor, events, onlyOpen, onEventClick, onMoreClick,
 }) {
   const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1)
   const startWeekday = first.getDay()
@@ -20,15 +20,6 @@ export default function MonthGridView({
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <button onClick={onPrev} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="上个月">‹</button>
-          <button onClick={onToday} className="tap-target px-3 h-9 rounded-lg bg-surface border border-hairline text-sm text-ink-2 hover:bg-canvas transition-colors">今天</button>
-          <button onClick={onNext} className="tap-target w-9 h-9 rounded-lg bg-surface border border-hairline text-ink-2 hover:bg-canvas transition-colors" aria-label="下个月">›</button>
-        </div>
-        <h2 className="flex-1 min-w-0 text-center text-sm sm:text-lg font-semibold text-ink truncate">{cursor.getFullYear()} 年 {cursor.getMonth() + 1} 月</h2>
-      </div>
-
       <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-1.5">
         {WEEKDAYS.map((w) => (
           <div key={w} className="text-center text-[10px] sm:text-xs font-medium text-ink-3 py-1">{w}</div>
