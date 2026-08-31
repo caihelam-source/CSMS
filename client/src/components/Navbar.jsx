@@ -233,9 +233,7 @@ const Navbar = () => {
               <span className="font-bold text-ink">菜单</span>
               <button onClick={() => setMobileOpen(false)} className="p-2 rounded-full hover:bg-canvas"><X size={20} /></button>
             </div>
-            <div className="px-3 py-3">
-              <GlobalSearch onOpenCommand={() => { setMobileOpen(false); setCmdOpen(true) }} />
-            </div>
+            {/* 抽屉内不再放搜索：顶栏 <lg 已有 Search 图标开全屏浮层，重复入口以引导用户用主入口 */}
             <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-4">
               {['Command','Operations','Compliance','Library','System'].map(group => {
                 const items = NAV_ITEMS.filter(i => i.group === group)
