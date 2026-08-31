@@ -408,9 +408,38 @@
   /* 深蓝版：navy 锚点 #0F2A5E（与设计稿截图一致） */
   .dash-banner--navy { background: #0F2A5E; color: #fff; }
 
-  /* 浅蓝版（默认）：brand blue #2563EB → navy #0F2A5E 渐变，与 logo 同系列、更搭整体配色 */
-  .dash-banner--light { background: linear-gradient(135deg, #2563EB 0%, #0F2A5E 100%); color: #fff; }
-  .dash-banner--light .dash-banner__watermark { opacity: .12; }
+  /* 浅蓝版（亮色模式）：浅蓝→白渐变 + navy 文字，toggle 与 CTA 反色，确保对比
+     —— 关键：与 --navy 版视觉差异必须一眼可辨，否则用户感觉「切换没反应」。 */
+  .dash-banner--light {
+    background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%);
+    color: rgb(var(--brand-navy));
+  }
+  .dash-banner--light .dash-banner__summary { opacity: .7; }
+  /* 浅色版水印：换 navy 描边，白色描边在白底上不可见 */
+  .dash-banner--light .dash-banner__watermark {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%230F2A5E' stroke-width='2' opacity='.18'/%3E%3Cpath d='M32 18 A14 14 0 1 0 32 46' fill='none' stroke='%230F2A5E' stroke-width='3' stroke-linecap='round' opacity='.14'/%3E%3C/svg%3E");
+    opacity: .25;
+  }
+  /* Toggle 胶囊：浅色模式下用 navy 描边 + 浅色填充；激活态反色 */
+  .dash-banner--light .dash-banner__toggle {
+    background: rgba(15, 42, 94, .08);
+    border-color: rgba(15, 42, 94, .25);
+    color: rgb(var(--brand-navy));
+  }
+  .dash-banner--light .dash-banner__toggle:hover {
+    background: rgba(15, 42, 94, .14);
+    border-color: rgba(15, 42, 94, .4);
+  }
+  .dash-banner--light .dash-banner__toggle span.is-active {
+    background: rgb(var(--brand-navy));
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(15, 42, 94, .25);
+  }
+  /* CTA 按钮：浅色版用 navy 实色 + 白字 */
+  .dash-banner--light .dash-banner__cta {
+    background: rgb(var(--brand-navy));
+    color: #fff;
+  }
 
   /* 主内容区：提升到水印之上（水印为 z-0 fixed，content 须 z-1 才能正常覆盖） */
   .app-content { position: relative; z-index: 1; }

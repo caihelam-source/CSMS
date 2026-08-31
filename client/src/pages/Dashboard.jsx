@@ -4,7 +4,7 @@ import { companyService, personnelService, documentService, meetingService, comp
 import { formatDate } from '../utils/helpers'
 import { toArray } from '../utils/responseNormalize.js'
 import { LoadingSpinner, EmptyState } from '../components/UIHelpers'
-import { IconBadge, ProgressRing } from '../components/VisualKit'
+import { ProgressRing } from '../components/VisualKit'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import BrandLogo from '../components/BrandLogo'
 import {
