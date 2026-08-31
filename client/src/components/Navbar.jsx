@@ -6,9 +6,9 @@ import {
   CheckSquare, LogOut, Menu, X, Crown, Zap,
   Bell, ShieldCheck, FileCode, UserCircle, Settings as SettingsIcon,
   Sun, Moon, FileSignature, CalendarClock, CalendarDays,
-  Search, Command,
+  Search,
 } from 'lucide-react'
-import { useState, memo, useEffect, useRef } from 'react'
+import { useState, memo, useEffect } from 'react'
 import GlobalSearch from './GlobalSearch'
 import CommandPalette from './CommandPalette'
 import BrandLogo from './BrandLogo'
@@ -67,6 +67,7 @@ const Navbar = () => {
   const { unrestricted, count, noScope } = useScope()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
   const [userOpen, setUserOpen] = useState(false)
   const [scopeMenuOpen, setScopeMenuOpen] = useState(false)
@@ -108,14 +109,24 @@ const Navbar = () => {
             ))}
           </div>
 
+          {/* 桌面端内嵌实体搜索框（替代原误导标签「搜索 ⌘K」—— 该按钮实际开 CommandPalette 是导航面板，不是实体搜索） */}
+          <div className="hidden lg:block w-64 xl:w-80 shrink-0">
+            <GlobalSearch
+              variant="navbar"
+              onOpenCommand={() => setCmdOpen(true)}
+            />
+          </div>
+
           {/* 右侧操作区 */}
           <div className="flex items-center gap-1 ml-auto shrink-0">
+            {/* 移动端搜索图标：点击打开全屏搜索浮层（顶栏在 <lg 没有水平空间放输入框） */}
             <button
-              onClick={() => setCmdOpen(true)}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm text-ink-3 bg-canvas hover:bg-canvas/80 transition-colors"
-              title="命令面板 (⌘K)"
+              onClick={() => setMobileSearchOpen(true)}
+              className="lg:hidden p-1.5 rounded-full text-ink-2 hover:bg-canvas"
+              aria-label="搜索"
+              title="搜索"
             >
-              <Search size={15} /> <span className="hidden xl:inline">搜索</span> <Command size={12} />
+              <Search size={18} />
             </button>
 
             <button
@@ -262,6 +273,27 @@ const Navbar = () => {
             </div>
           </aside>
         </>
+      )}
+
+      {/* 移动端全屏搜索浮层（顶栏空间紧，图标点击后整屏接管） */}
+      {mobileSearchOpen && (
+        <div className="fixed inset-0 z-[60] bg-surface lg:hidden flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-hairline shrink-0">
+            <span className="font-bold text-ink">搜索</span>
+            <button
+              onClick={() => setMobileSearchOpen(false)}
+              className="p-2 rounded-full hover:bg-canvas"
+              aria-label="关闭搜索"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <GlobalSearch
+            variant="overlay"
+            onOpenCommand={() => { setMobileSearchOpen(false); setCmdOpen(true) }}
+          />
+          {/* 全屏浮层下拉可能超出容器高度，留滚动缓冲 */}
+        </div>
       )}
 
       <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} />

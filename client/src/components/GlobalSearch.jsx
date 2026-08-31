@@ -26,7 +26,25 @@ function highlight(text, q) {
   )
 }
 
-export default function GlobalSearch({ onOpenCommand }) {
+// 变体：决定外层 padding + 下拉定位
+//   inline  — 抽屉/普通容器（默认，左右 padding 12px，下拉 320px 宽）
+//   navbar  — 顶栏紧凑内嵌（无 padding，下拉与输入框等宽，更宽展示）
+//   overlay — 全屏浮层（容器 padding 16px，下拉沿容器宽度自适应）
+const VARIANT_OUTER = {
+  inline:  'relative px-3 pb-3',
+  navbar:  'relative w-full',
+  overlay: 'relative px-4 pb-4',
+}
+const VARIANT_DROPDOWN = {
+  // inline: 沿用原 drawer 行为（与 12px padding 对齐，固定 320px）
+  inline:  'absolute z-50 left-3 right-3 top-full mt-1 w-80',
+  // navbar: 下拉左对齐输入框，超 sm 时撑到 460px 方便展示 title+subtitle
+  navbar:  'absolute z-50 left-0 right-0 top-full mt-2 w-full sm:w-[460px]',
+  // overlay: 沿浮层 padding 缩进
+  overlay: 'absolute z-50 left-4 right-4 top-full mt-2 w-auto',
+}
+
+export default function GlobalSearch({ onOpenCommand, variant = 'inline' }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -36,6 +54,9 @@ export default function GlobalSearch({ onOpenCommand }) {
   const containerRef = useRef(null)
   const activeRef = useRef(null)
   const debounceRef = useRef(null)
+
+  const outerCls = VARIANT_OUTER[variant] || VARIANT_OUTER.inline
+  const dropdownCls = VARIANT_DROPDOWN[variant] || VARIANT_DROPDOWN.inline
 
   // 防抖调用跨实体全局搜索
   useEffect(() => {
@@ -110,7 +131,7 @@ export default function GlobalSearch({ onOpenCommand }) {
   let vi = -1
 
   return (
-    <div ref={containerRef} className="relative px-3 pb-3">
+    <div ref={containerRef} className={outerCls}>
       <div className="relative flex items-center gap-2">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
@@ -138,7 +159,7 @@ export default function GlobalSearch({ onOpenCommand }) {
       </div>
 
       {open && query.trim() && (
-        <div className="absolute z-50 left-3 right-3 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-surface rounded-xl shadow-3 border border-hairline py-2">
+        <div className={`${dropdownCls} max-h-96 overflow-y-auto bg-surface rounded-xl shadow-3 border border-hairline py-2`}>
           {loading && <div className="px-4 py-3 text-sm text-ink-3">搜索中…</div>}
 
           {!loading && total === 0 && (
