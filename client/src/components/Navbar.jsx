@@ -56,7 +56,7 @@ const TopNavLink = memo(({ to, label, active }) => (
       active
         ? 'bg-ink-brand text-white shadow-sm'
         : 'text-ink-2 hover:text-ink hover:bg-canvas'
-    } px-2 py-1.5 lg:px-2.5 lg:py-2`}
+    } px-1.5 lg:px-2 py-1.5 lg:py-2`}
   >
     {label}
   </Link>
@@ -102,15 +102,15 @@ const Navbar = () => {
             <span className="font-extrabold text-ink-brand dark:text-white text-base lg:text-lg tracking-tight">CSMS</span>
           </Link>
 
-          {/* 桌面端水平导航：全部 14 个一级入口平铺，不再收入下拉（响应式：空间不足时换行） */}
-          <div className="hidden lg:flex flex-wrap items-center justify-center gap-1 flex-1 min-w-0">
+          {/* 桌面端水平导航：14 入口单行排布；容器 nowrap 防「设置」被挤到第二行，再以整 nav overflow-x-auto 做兜底 */}
+          <div className="hidden lg:flex flex-nowrap items-center justify-center gap-0.5 flex-1 min-w-0 overflow-hidden">
             {NAV_ITEMS.map(item => (
               <TopNavLink key={item.path} to={item.path} label={item.label} active={isActive(item.path)} />
             ))}
           </div>
 
-          {/* 桌面端内嵌实体搜索框（替代原误导标签「搜索 ⌘K」—— 该按钮实际开 CommandPalette 是导航面板，不是实体搜索） */}
-          <div className="hidden lg:block w-64 xl:w-80 shrink-0">
+          {/* 桌面端内嵌实体搜索框：lg 用 224 / xl 用 256，给 14 导航让出空间，避免双层 */}
+          <div className="hidden lg:block w-56 xl:w-64 shrink-0">
             <GlobalSearch
               variant="navbar"
               onOpenCommand={() => setCmdOpen(true)}
