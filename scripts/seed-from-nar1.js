@@ -35,7 +35,21 @@ function loadEnv() {
   return out
 }
 const ENV = loadEnv()
-const MONGODB_URI = process.env.MONGODB_URI || ENV.MONGODB_URI || 'mongodb://localhost:27017/claw'
+
+// ---------- Atlas URI 兜底 (优先于 .env 的 localhost 残留, 让本机一键落库到生产库) ----------
+function readSecretsAtlasUri() {
+  const secPath = path.join(__dirname, '..', '.workbuddy', 'memory', 'SECRETS.md')
+  if (!fs.existsSync(secPath)) return null
+  for (const line of fs.readFileSync(secPath, 'utf8').split('\n')) {
+    const m = line.match(/mongodb(\+srv)?:\/\/\S+/i)
+    if (m) return m[0].replace(/["'`)\]]/g, '').trim()
+  }
+  return null
+}
+const SECRETS_ATLAS = readSecretsAtlasUri()
+
+// 优先级: 环境变量 > SECRETS.md(Atlas 生产库) > .env(localhost 残留) > 兜底 localhost
+const MONGODB_URI = process.env.MONGODB_URI || SECRETS_ATLAS || ENV.MONGODB_URI || 'mongodb://localhost:27017/claw'
 const DRY_RUN = process.argv.includes('--dry-run')
 
 // ---------- 常量 ----------
@@ -147,7 +161,7 @@ function dryRun(data, brData) {
 // ---------- 真实写入 ----------
 async function main() {
   await mongoose.connect(MONGODB_URI)
-  console.log('✅ Connected:', MONGODB_URI)
+  console.log('✅ Connected to', MONGODB_URI.replace(/\/\/[^@]*@/, '//***@'))
 
   const Company = require(path.join(__dirname, '..', 'server/models/Company'))
   const Personnel = require(path.join(__dirname, '..', 'server/models/Personnel'))
