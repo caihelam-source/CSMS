@@ -12,6 +12,8 @@
 
 // envelope 元数据键（不参与 payload）
 const ENVELOPE_META = new Set(['success', 'message', 'code', 'status', 'count', 'error', 'errors'])
+// 列表型分页元数据（参与 E 规则：列表响应抽数组作 payload，分页 meta 移到 result.paging）
+const PAGING_META = new Set(['total', 'page', 'pageSize', 'limit'])
 // 复数 → 单数（单/复数对优先取单数主负载，如 template + templates 并存）
 const SINGULAR_OF = {
   companies: 'company', documents: 'document', meetings: 'meeting', tasks: 'task',
@@ -24,6 +26,8 @@ const ENTITY_KEYS = [
   'companies', 'documents', 'meetings', 'tasks', 'reminders', 'rules', 'templates', 'personnelList', 'links', 'link',
   // 日历聚合事件列表（GET /api/calendar/events 返回 { success, count, events }）
   'events',
+  // 重复检测（GET /api/personnel/duplicates 返回 { success, duplicates, total }）
+  'duplicates',
 ]
 
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
@@ -60,6 +64,19 @@ export const normalize = (body) => {
       const [a, b] = entityKeys
       const singular = SINGULAR_OF[a] === b ? b : (SINGULAR_OF[b] === a ? a : null)
       if (singular) return { data: { data: body[singular] } }
+    }
+
+    // E) 列表型 + 分页 meta：单实体键（值为数组）+ 其余键全是分页元数据
+    //    —— 抽实体数组作 payload；分页 meta 放 result.paging（顶层 sibling，不污染 {data:{data}} 契约）
+    //    —— 覆盖 pagingEnvelope('tasks' / 'documents' / 'meetings' / 'rules' / 'reminders' / 'tasks'(signTasks) / 'personnel' / 'companies') 等所有列表接口
+    //    —— 历史教训：08-31 personnel 列表崩「O.map is not a function」, 后端 {success, count, total, page, pageSize, personnel} 走 D 复合型 → payload 是对象 → 前端 .map 白屏
+    if (entityKeys.length === 1) {
+      const ek = entityKeys[0]
+      if (Array.isArray(body[ek]) && dataKeys.every((k) => k === ek || PAGING_META.has(k))) {
+        const paging = {}
+        for (const k of dataKeys) if (k !== ek) paging[k] = body[k]
+        return { data: { data: body[ek] }, paging }
+      }
     }
 
     // D) 复合型（实体键带 sibling / 多实体 / 无实体多字段）

@@ -107,12 +107,14 @@ export default function Personnel() {
         personnelService.getAll({ role: roleFilter === 'all' ? undefined : roleFilter }),
         companyService.getAll().catch(() => ({ data: { data: [] } })),
       ])
-      setPersonnel(listRes.data.data || [])
-      setCompanies(compRes.data.data || [])
+      // normalize 规则 E 保证 listRes.data.data 是数组；防御性兜底防同类隐患
+      setPersonnel(Array.isArray(listRes?.data?.data) ? listRes.data.data : [])
+      setCompanies(Array.isArray(compRes?.data?.data) ? compRes.data.data : [])
       // Load duplicate info
       try {
         const dupRes = await personnelService.getDuplicates()
-        if (dupRes.success) setDuplicateWarnings(dupRes.duplicates || [])
+        // normalize 后 success 已被吞；payload 在 dupRes.data.data；paging.total 在 dupRes.paging
+        setDuplicateWarnings(Array.isArray(dupRes?.data?.data) ? dupRes.data.data : [])
       } catch { /* 重复检测失败不影响主列表加载 */ }
     } catch (err) {
       const status = err?.response?.status
