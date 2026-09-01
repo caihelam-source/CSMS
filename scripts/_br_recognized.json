@@ -1,0 +1,21 @@
+{
+  "count": 1,
+  "results": [
+    {
+      "sourceFile": "HKOP – I1 – 2024 – Easy Rich Corporation Ltd BR (31 Mar 202 – 20230418.pdf",
+      "path": "D:/BaiduSyncdisk/CNC接收文件/04_香港子公司/Easy Rich（HK）/A_公司治理/HKOP – I1 – 2024 – Easy Rich Corporation Ltd BR (31 Mar 202 – 20230418.pdf",
+      "fields": {
+        "brNumber": "65940948",
+        "brCommencementDate": "2023-04-01",
+        "brExpiryDate": "2024-03-31",
+        "nameEnglish": "EASY RICH CORPORATION LIMITED",
+        "nameChinese": "順昌興業有限公司",
+        "addressRaw": "FLAT/RM 4010, 40/F, CHINA RESOURCES BUILDING, 26 HARBOUR ROAD, WANCHAI, HK",
+        "businessNature": "INVESTMENT",
+        "status": "BODY CORPORATE"
+      },
+      "ocrStatus": "manual_injected",
+      "note": "扫描件，沙箱无 OCR；值由人工/多模态识别注入"
+    }
+  ]
+}

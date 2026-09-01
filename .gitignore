@@ -95,6 +95,10 @@ output/
 
 # Claude/WorkBuddy specific
 .workbuddy/
+.workbuddy/*
+# 项目级 skill 文档（与 scripts 同仓库共享；memory 仍 ignore 保护个人日志）
+!.workbuddy/skills/
+!.workbuddy/skills/**
 .claude/
 
 # Test results

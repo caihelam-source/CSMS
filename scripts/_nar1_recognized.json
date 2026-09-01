@@ -1,0 +1,1224 @@
+{
+  "count": 14,
+  "results": [
+    {
+      "sourceFile": "LISTCO – I1 – 2025 – NAR1- Bright (Hong Kong) Hotels Manageme – 20250917.pdf",
+      "pages": 9,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "Bright (Hong Kong) Hotels Management Limited",
+        "nameChinese": "伯瑞特(香港)酒店管理有限公司",
+        "brNumber": "63822110",
+        "arMadeUpDate": "2025-09-15",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "ROOM 4010, 40/F., CHINA RESOURCES BUILDING, 26 HARBOUR ROAD, WANCHAI, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 10000,
+          "totalAmount": 10000,
+          "paidUpAmount": 10000
+        },
+        "registrationNumber": "63822110",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施南路",
+          "name": "NANLU",
+          "addressRaw": "26 HARBOUR ROAD, WANCHAI Building ／ ／ Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "BRIGHT HOTELS & RESORTS MANAGEMENT LIMITED",
+          "nameChinese": null,
+          "shares": 10000,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2025-09-15",
+        "filedDate": "2025-09-17",
+        "year": "2025",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2025 – NAR1 - Chaoyang International Trading Lt – 20250917.pdf",
+      "pages": 9,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "Chaoyang International Trading Limited",
+        "nameChinese": "朝陽國際貿易(香港)有限公司",
+        "brNumber": "63821994",
+        "arMadeUpDate": "2025-09-15",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "ROOM 4010, 40/F., CHINA RESOURCES BUILDING, 26 HARBOUR ROAD, WANCHAI, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 100000,
+          "totalAmount": 100000,
+          "paidUpAmount": 100000
+        },
+        "registrationNumber": "63821994",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施南路",
+          "name": "NANLU",
+          "addressRaw": "SHUSHAN STREET, XIAOSHAN DISTRICT Building HANGZHOU, ZHEJIANG PROVINCE ／ ／ China",
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "SHENG DA DEVELOPMENT LIMITED",
+          "nameChinese": null,
+          "shares": 100000,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2025-09-15",
+        "filedDate": "2025-09-17",
+        "year": "2025",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2026 – NAR1 - Easy Rich Corporation Ltd 2026 – 20260408.pdf",
+      "pages": 10,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "EASY RICH CORPORATION LIMITED",
+        "nameChinese": "順富興業有限公司",
+        "brNumber": "65940948",
+        "arMadeUpDate": "2026-04-01",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "ROOM 4010, 40/F., CHINA RESOURCES BUILDING, 26 HARBOUR ROAD, WANCHAI, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 1,
+          "totalAmount": 1,
+          "paidUpAmount": 1
+        },
+        "registrationNumber": "65940948",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施金帆",
+          "name": "JINFAN",
+          "addressRaw": "26 HARBOUR ROAD, WANCHAI Building ／ ／ Hong Kong",
+          "confidence": "high"
+        },
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施南路",
+          "name": "NANLU",
+          "addressRaw": null,
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "EASY SUCCESS INVESTMENTS LIMITED",
+          "nameChinese": null,
+          "shares": 1,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2026-04-01",
+        "filedDate": "2026-04-08",
+        "year": "2026",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2025 – NAR1-2025 – 20250723.pdf",
+      "pages": 10,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "Hong Kong Heyuan Group Company Limited",
+        "nameChinese": "香港禾園集團有限公司",
+        "brNumber": "75409095",
+        "arMadeUpDate": "2025-06-12",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "ROOM 4010, 40/F., CHINA RESOURCES BUILDING, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 100,
+          "totalAmount": 100,
+          "paidUpAmount": 100
+        },
+        "registrationNumber": "75409095",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "CHINA RESOURCES BUILDING Building 26 HARBOUR ROAD Wan Chai Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施南路",
+          "name": "NANLU",
+          "addressRaw": "ZHONG'AN SHANSHUIYUAN SHUSHAN Building STREET XIAOSHAN DISTRICT HANGZHOU ／ ／ China",
+          "confidence": "high"
+        },
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "徐關興",
+          "name": "GUANXING",
+          "addressRaw": null,
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "GOAL ACHIEVE LIMITED",
+          "nameChinese": null,
+          "shares": 100,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2025-06-12",
+        "filedDate": "2025-07-23",
+        "year": "2025",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2025 – NAR1 - Hong Kong Time Honour Property Lt – 20251125.pdf",
+      "pages": 9,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "Hong Kong Time Honour Property Limited",
+        "nameChinese": "香港時譽地産有限公司",
+        "brNumber": "63822186",
+        "arMadeUpDate": "2025-09-15",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "ROOM 4010, 40/F., CHINA RESOURCES BUILDING, 2 6 HARBOUR ROAD, WANCHAI, H ong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 10000,
+          "totalAmount": 10000,
+          "paidUpAmount": 10000
+        },
+        "registrationNumber": "63822186",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施南路",
+          "name": "NANLU",
+          "addressRaw": "SHUSHAN STREET, XIAOSHAN DISTRICT Building HANGZHOU, ZHEJIANG PROVINCE ／ ／ China",
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "TIME HONOUR GLOBAL LIMITED",
+          "nameChinese": null,
+          "shares": 10000,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2025-09-15",
+        "filedDate": "2025-10-14",
+        "year": "2025",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2026 – NAR1 - HuiJun (International) Holdings L – 20260316.pdf",
+      "pages": 9,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "HUIJUN (INTERNATIONAL) HOLDINGS LIMITED",
+        "nameChinese": "匯駿(國際)控股有限公司",
+        "brNumber": "35387857",
+        "arMadeUpDate": "2026-03-04",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "ROOM 4010, 40/F., CHINA RESOURCES BUILDING, 26 HARBOUR ROAD, WANCHAI, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 100000,
+          "totalAmount": 100000,
+          "paidUpAmount": 100000
+        },
+        "registrationNumber": "35387857",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施中安",
+          "name": "ZHONGAN",
+          "addressRaw": "26 HARBOUR ROAD, WANCHAI Building ／ ／ Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "CHINA NEW CITY GROUP LIMITED",
+          "nameChinese": null,
+          "shares": 100000,
+          "shareType": "ordinary",
+          "country": "Cayman Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2026-03-04",
+        "filedDate": "2026-03-16",
+        "year": "2026",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2025 – NAR1 - Pannix Industrial (Hong Kong) Lim – 20250917.pdf",
+      "pages": 9,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "Pannix Industrial (Hong Kong) Limited",
+        "nameChinese": "佳潤實業(香港)有限公司",
+        "brNumber": "63822047",
+        "arMadeUpDate": "2025-09-15",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "ROOM 4010, 40/F., CHINA RESOURCES BUILDING, 26 HARBOUR ROAD, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 10000,
+          "totalAmount": 10000,
+          "paidUpAmount": 10000
+        },
+        "registrationNumber": "63822047",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施南路",
+          "name": "NANLU",
+          "addressRaw": "SHUSHAN STREET, XIAOSHAN DISTRICT Building HANGZHOU, ZHEJIANG PROVINCE ／ ／ China",
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "FIRST ACHIEVER HOLDINGS LIMITED",
+          "nameChinese": null,
+          "shares": 10000,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2025-09-15",
+        "filedDate": "2025-09-17",
+        "year": "2025",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2025 – NAR1 - Ultra Nice International Ltd 2025 – 20251014.pdf",
+      "pages": 10,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "ULTRA NICE INTERNATIONAL LIMITED",
+        "nameChinese": "宏優國際有限公司",
+        "brNumber": "66757916",
+        "arMadeUpDate": "2025-10-07",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "ROOM 4010, 40/F., CHINA RESOURCES BUILDING, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 1,
+          "totalAmount": 1,
+          "paidUpAmount": 1
+        },
+        "registrationNumber": "66757916",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施金帆",
+          "name": "JINFAN",
+          "addressRaw": "CHINA RESOURCES BUILDING, Building 26 HARBOUR ROAD, WANCHAI ／ ／ Hong Kong",
+          "confidence": "high"
+        },
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施南路",
+          "name": "NANLU",
+          "addressRaw": null,
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "CAPITAL YIELD GLOBAL LIMITED",
+          "nameChinese": null,
+          "shares": 1,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2025-10-07",
+        "filedDate": "2025-10-14",
+        "year": "2025",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – C1 – 2026 – NAR1 - Zhong An Financial Investment Lim – 20260803.pdf",
+      "pages": 9,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "Zhong An Financial Investment Limited",
+        "nameChinese": "眾安金融投資有限公司",
+        "brNumber": "72071699",
+        "arMadeUpDate": "2026-07-21",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "RM 4010, 40/F CHINA, RESOURCES BLDG, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 1,
+          "totalAmount": 1,
+          "paidUpAmount": 1
+        },
+        "registrationNumber": "72071699",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "金建榮",
+          "name": "JIANRONG",
+          "addressRaw": "EASTERN DISTRICT, XIAOSHAN DISTRICT, HANGZHOU Building ZHEJINAG PROVINCE ／ ／ China",
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "BOSS TEAM LIMITED",
+          "nameChinese": null,
+          "shares": 1,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2026-07-21",
+        "filedDate": "2026-08-03",
+        "year": "2026",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2026 – NAR1 - Zhong An Great Life Services Limi – 20260715.pdf",
+      "pages": 10,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "Zhong An Great Life Services Limited",
+        "nameChinese": "眾安生活服務有限公司",
+        "brNumber": "72052495",
+        "arMadeUpDate": "2026-07-14",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "RM 4010, 40/F CHINA RESOURCES, BLDG 26 HARBOUR RD WANCHAI, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 1,
+          "totalAmount": 1,
+          "paidUpAmount": 1
+        },
+        "registrationNumber": "72052495",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "CHINA RESOURCE BUILDING Building 26 HARBOUR ROAD ／ ／ Hong Kong",
+          "confidence": "high"
+        },
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "金建榮",
+          "name": "JIANRONG",
+          "addressRaw": null,
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "BRAVO KING HOLDINGS LIMITED",
+          "nameChinese": null,
+          "shares": 1,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2026-07-14",
+        "filedDate": "2026-08-06",
+        "year": "2026",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2025 – NAR1- Zhong An Healthcare Ltd 2025 – 20250917.pdf",
+      "pages": 9,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "Zhong An Healthcare Limited",
+        "nameChinese": "眾安健康有限公司",
+        "brNumber": "69732476",
+        "arMadeUpDate": "2025-08-08",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "ROOM 4010, 40/F., CHINA RESOURCES BUILDING, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 1,
+          "totalAmount": 1,
+          "paidUpAmount": 1
+        },
+        "registrationNumber": "69732476",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施南路",
+          "name": "NANLU",
+          "addressRaw": "CHINA RESOURCES BUILDING, Building 26 HARBOUR ROAD, WANCHAI ／ ／ Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "BEYOND HORIZON INVESTMENTS LIMITED",
+          "nameChinese": null,
+          "shares": 1,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2025-08-08",
+        "filedDate": "2025-09-17",
+        "year": "2025",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "HKOP – I1 – 2022 – NAR1 - Zhong An International Shipping ( – 20221028.pdf",
+      "pages": 8,
+      "scanned": true,
+      "needsMultimodal": false,
+      "scanImages": [
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p1.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p2.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p3.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p4.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p5.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p6.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p7.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p8.png"
+      ],
+      "narVersion": "Spec 1/2014 (scanned, 2022-10-11)",
+      "company": {
+        "name": "ZHONG AN INTERNATIONAL SHIPPING (HONG KONG) LIMITED",
+        "nameChinese": "眾安國際航運(香港)有限公司",
+        "registrationNumber": "1670638",
+        "registrationNumberSource": "CR号(旧版NAR1页眉, Spec 1/2014)",
+        "type": "private_limited",
+        "typeRaw": "私人公司 Private Company (勾选)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "arMadeUpDate": "2022-10-11",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "shareClass": "普通",
+          "currency": "HKD",
+          "issuedShares": 780000,
+          "totalAmount": 780000.0,
+          "paidUpAmount": 780000.0,
+          "note": "Spec 1/2014 股本含两位小数总额/已缴额"
+        },
+        "registeredAddressRaw": "ROOM 4009, 40/F, CHINA RESOURCES BUILDING, 26 HARBOUR ROAD, WANCHAI, HONG KONG",
+        "brNumber": null,
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null,
+        "presenter": {
+          "name": "晉標(秘書)有限公司 / Ahead Target (Secretaries) Limited",
+          "addressRaw": "ROOM 1701, 17TH FLOOR, SHUI ON CENTRE, 6-8 HARBOUR ROAD, WANCHAI, HONG KONG",
+          "tel": "2868 2181",
+          "fax": "2804 6386"
+        },
+        "filingMeta": {
+          "filingNo": "232661666/1",
+          "submissionDate": "2022-10-18",
+          "submissionTime": "16:30:09",
+          "revenueCode": "07",
+          "amountHKD": 105.0,
+          "specification": "1/2014 (March 2014)"
+        }
+      },
+      "companySecretary": [
+        {
+          "entityType": "company",
+          "role": "secretary",
+          "name": "Ahead Target (Secretaries) Limited",
+          "nameChinese": "晉標(秘書)有限公司",
+          "crNumber": "406621",
+          "addressRaw": "ROOM 1701, 17TH FLOOR, SHUI ON CENTRE, 6-8 HARBOUR ROAD, WANCHAI, HONG KONG",
+          "country": "Hong Kong",
+          "email": null,
+          "confidence": "high",
+          "source": "NAR1 Spec 1/2014 Section 11B 法人团体公司秘书",
+          "note": "法人团体公司秘书(CR 406621) -> CSMS Company.links(linkModel=Company, roles=[secretary])"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "capacity": "director",
+          "name": "SHI Nanlu",
+          "nameChinese": "施南路",
+          "previousNames": null,
+          "alias": null,
+          "idType": "Passport",
+          "passport": {
+            "issuingCountry": "中國",
+            "number": "G50847472"
+          },
+          "nricPartial": "G50847472",
+          "hkid": null,
+          "addressRaw": "NO. 996, XIAOSHAO ROAD, XIAOSHAN DISTRICT, HANGZHOU CITY, ZHEJIANG PROVINCE, CHINA",
+          "addressChinese": "浙江省杭州市蕭山區蕭紹路 996 號",
+          "country": "China",
+          "email": null,
+          "confidence": "high",
+          "source": "NAR1 Spec 1/2014 Section 12A 自然人董事",
+          "note": "自然人董事(中国护照) -> CSMS Company.links(linkModel=Personnel, roles=[director])"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "浙江漢盛實業有限公司",
+          "nameChinese": "浙江漢盛實業有限公司",
+          "shares": 780000,
+          "shareType": "ordinary",
+          "shareClass": "普通",
+          "addressRaw": "WENXING BRIDGE, SANDUN TOWN, XIHU DISTRICT, HANGZHOU CITY, ZHEJIANG PROVINCE, CHINA",
+          "addressChinese": "中國浙江省杭州市西湖區三墩鎮文星橋",
+          "country": "China",
+          "confidence": "high",
+          "source": "NAR1 Spec 1/2014 Schedule 1 非上市公司成员",
+          "note": "法人股东(中国境内,持股 100%) -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares=780000, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return (Spec 1/2014, 2022 版)",
+        "madeUpDate": "2022-10-11",
+        "filedDate": "2022-10-18",
+        "year": "2022",
+        "filingNo": "232661666/1",
+        "specification": "1/2014 (March 2014)",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      },
+      "injectedFrom": "multimodal(Zhong An International Shipping)"
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2025 – NAR1 - Zhong An Speedway Ltd 2025 – 20250730.pdf",
+      "pages": 9,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "Zhong An Speedway Limited",
+        "nameChinese": "眾安賽道有限公司",
+        "brNumber": "72071665",
+        "arMadeUpDate": "2025-07-21",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "RM 4010, 40/F CHINA, RESOURCES BLDG, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 1,
+          "totalAmount": 1,
+          "paidUpAmount": 1
+        },
+        "registrationNumber": "72071665",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "金建榮",
+          "name": "JIANRONG",
+          "addressRaw": "EASTERN DISTRICT, XIAOSHAN DISTRICT, HANGZHOU Building ZHEJIANG PROVINCE ／ ／ China",
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "ABUNDANT ZONE LIMITED",
+          "nameChinese": null,
+          "shares": 1,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2025-07-21",
+        "filedDate": "2025-07-30",
+        "year": "2025",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    },
+    {
+      "sourceFile": "LISTCO – I1 – 2026 – NAR1- Zhong An Travel Ltd 2026 – 20260617.pdf",
+      "pages": 9,
+      "scanned": false,
+      "needsMultimodal": false,
+      "scanImages": [],
+      "narVersion": "Spec 2/2025 (text)",
+      "company": {
+        "name": "Zhong An Travel Limited",
+        "nameChinese": "眾安旅遊有限公司",
+        "brNumber": "69459923",
+        "arMadeUpDate": "2026-06-05",
+        "type": "review:private_limited|public_limited|guarantee (NAR1 单选框未从文本可靠识别)",
+        "jurisdiction": "HK",
+        "status": "active",
+        "registeredAddressRaw": "ROOM 4010, 40/F., CHINA RESOURCES BUILDING, Hong Kong",
+        "shareCapital": {
+          "shareType": "ordinary",
+          "currency": "HKD",
+          "issuedShares": 1,
+          "totalAmount": 1,
+          "paidUpAmount": 1
+        },
+        "registrationNumber": "69459923",
+        "registrationNumberSource": "BR号(NAR1)",
+        "incorporationDate": null,
+        "brExpiryDate": null,
+        "financialYearEnd": null
+      },
+      "companySecretary": [
+        {
+          "entityType": "person",
+          "role": "secretary",
+          "nameChinese": "林才賀",
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "directors": [
+        {
+          "entityType": "person",
+          "role": "director",
+          "nameChinese": "施南路",
+          "name": "NANLU",
+          "addressRaw": "CHINA RESOURCES BUILDING, Building 26 HARBOUR ROAD, WANCHAI ／ ／ Hong Kong",
+          "confidence": "high"
+        }
+      ],
+      "shareholders": [
+        {
+          "entityType": "company",
+          "role": "shareholder",
+          "name": "BEYOND HORIZON INVESTMENTS LIMITED",
+          "nameChinese": null,
+          "shares": 1,
+          "shareType": "ordinary",
+          "country": "British Virgin Islands",
+          "confidence": "high",
+          "note": "法人股东 -> CSMS Company.links(linkModel=Company, roles=[shareholder], shares, shareType=ordinary)"
+        }
+      ],
+      "documentAssociation": {
+        "scope": "company",
+        "docType": "NAR1",
+        "docTypeName": "周年申報表 Annual Return",
+        "madeUpDate": "2026-06-05",
+        "filedDate": "2026-06-17",
+        "year": "2026",
+        "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）"
+      },
+      "gaps": {
+        "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
+        "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
+        "incorporationDate": "需 CI 注册证明书",
+        "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+        "financialYearEnd": "NAR1 通常空白",
+        "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
+        "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认"
+      }
+    }
+  ]
+}
