@@ -69,3 +69,59 @@ test('null / undefined 兜底不抛错', () => {
   expect(normalize(null)).toEqual({ data: { data: null } })
   expect(normalize(undefined)).toEqual({ data: { data: undefined } })
 })
+
+// ===== 复合响应（多数据字段）根因修复 =====
+// 旧实现第 3 条只抽第一个 ENTITY_KEYS 实体键，会丢弃 totalCompanies / summary 等同级字段，
+// 导致合规「数据缺口」diagnose 接口解构崩溃。现统一保留全部 sibling。
+
+test('复合型扁平响应保留全部 sibling（diagnose: companies + totalCompanies + summary）', () => {
+  const body = {
+    success: true,
+    companies: [{ _id: 'c1', missingFields: ['incorporationDate'] }],
+    companiesWithGaps: 1,
+    totalCompanies: 3,
+    summary: { byField: { incorporationDate: 1 }, totalMissing: 1 },
+  }
+  const out = normalize(body)
+  expect(Array.isArray(out.data.data)).toBe(false)
+  expect(out.data.data).toEqual({
+    companies: [{ _id: 'c1', missingFields: ['incorporationDate'] }],
+    companiesWithGaps: 1,
+    totalCompanies: 3,
+    summary: { byField: { incorporationDate: 1 }, totalMissing: 1 },
+  })
+})
+
+test('规范形状 { success, data } 合并 sibling（saveRules: data + counts）', () => {
+  const body = {
+    success: true,
+    data: { version: '2026-01', revision: 2 },
+    counts: { rules: 3, parties: 1 },
+  }
+  const out = normalize(body)
+  expect(out.data.data).toEqual({
+    version: '2026-01',
+    revision: 2,
+    counts: { rules: 3, parties: 1 },
+  })
+})
+
+test('实体键带 sibling 也保留（signTasks sign: task + allSigned）', () => {
+  const body = {
+    success: true,
+    task: { _id: 't1', status: 'completed' },
+    allSigned: true,
+  }
+  const out = normalize(body)
+  expect(out.data.data).toEqual({
+    task: { _id: 't1', status: 'completed' },
+    allSigned: true,
+  })
+})
+
+test('无实体键多字段仍整包作为 payload（resultsTimetable list: results）', () => {
+  const body = { success: true, results: [{ _id: 'r1' }] }
+  const out = normalize(body)
+  expect(out.data.data).toEqual({ results: [{ _id: 'r1' }] })
+})
+

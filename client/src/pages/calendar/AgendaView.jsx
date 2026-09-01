@@ -1,6 +1,6 @@
 // 议程视图：按日期分组的 upcoming 列表（默认未来 90 天，由容器计算 from/to）。
 import {
-  SOURCE_COLOR, sourceColor, sourceColorAlpha, SOURCE_LABEL, isToday, applyOnlyOpen, groupByDay, WEEKDAYS,
+  sourceColor, sourceColorAlpha, SOURCE_LABEL, isToday, applyOnlyOpen, groupByDay, WEEKDAYS,
 } from './calendarConstants'
 
 export default function AgendaView({ events, onlyOpen, onEventClick, rangeText }) {

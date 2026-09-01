@@ -41,7 +41,6 @@ const Popover = ({ trigger, children, align = 'right', className = '' }) => {
       document.removeEventListener('mousedown', onClick)
       document.removeEventListener('keydown', onKey)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   return (

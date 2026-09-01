@@ -36,10 +36,12 @@ router.get('/', auth, async (req, res) => {
 });
 
 // GET /api/compliance-rules/diagnose — 只读诊断所有公司的合规日期字段缺口（无写副作用）
+// 规范形状 { success, data }：result = { companies, companiesWithGaps, totalCompanies, summary }
+// 统一走 normalize 规则 2，避免扁平响应丢字段（见 utils/responseNormalize.js）
 router.get('/diagnose', auth, async (req, res) => {
   try {
     const result = await diagnoseCompanies();
-    res.json({ success: true, ...result });
+    res.json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

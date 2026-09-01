@@ -15,7 +15,7 @@ const OWNER = 'caihelam-source';
 const REPO = 'CSMS';
 const BRANCH = 'main';
 const ROOT = 'C:\\Users\\Vincent\\WorkBuddy\\Claw';
-const COMMIT_MSG = 'fix: CompanyDetail/ComplianceRules 白屏 — 修复 normalize 不识 rule(s) 键 + 契约对齐\n\n- client/src/utils/responseNormalize.js：ENTITY_KEYS 新增 rule/rules；导出 toArray() 防御性数组提取\n- client/src/pages/CompanyDetail.jsx：loadAll 全部列表态经 toArray，杜绝 .filter 报非函数白屏\n- client/src/pages/ComplianceRules.jsx：fetchAll/handleSave/handleGenerate 契约对齐（解包 res.data、兼容真实后端 created 字段）\n- client/src/utils/responseNormalize.test.js：新增 3 条回归测试（rules 列表/rule 单条/空列表）\n- eslint.config.js：ignores 改 dist* 覆盖构建产物历史备份目录，恢复 ESLint 遍历';
+const COMMIT_MSG = 'fix: 根治 normalize 扁平响应丢字段陷阱（合规数据缺口白屏根因）+ 清理预存 lint error\n\n- client/src/utils/responseNormalize.js：重写归一化——单实体键(无 sibling)才抽实体，复合型(实体带 sibling/多实体/无实体多字段)整包去 envelope-meta 作 payload，保留全部字段；规则 2 {success,data} 合并 sibling。根治 diagnose 丢 totalCompanies/summary、signTasks 丢 allSigned、saveRules 丢 counts\n- client/src/utils/responseNormalize.test.js：新增 4 条复合响应回归测试（diagnose / saveRules / signTasks / resultsTimetable list）\n- server/routes/complianceRules.js：GET /diagnose 改规范 { success, data: result } 形状\n- client/src/pages/ComplianceRules.jsx：清理 fetchDiagnosis 的 smart-unwrap 防御补丁，改为直接取 payload.data.data 并做最小防御归一\n- client/src/components/overlays/Popover.jsx：删未注册插件的 stale eslint-disable 指令\n- client/src/pages/calendar/AgendaView.jsx：移除未使用的 SOURCE_COLOR 导入';
 
 if (!TOKEN) { console.error('NO TOKEN'); process.exit(1); }
 

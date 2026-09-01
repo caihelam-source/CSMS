@@ -294,39 +294,18 @@ const ComplianceRules = () => {
     setDiagLoading(true)
     try {
       const payload = await complianceRuleService.diagnose()
-      // normalize() 有 4 种输出形态。当前接口真实后端响应为
-      // { success: true, companies: [...], summary: {...} }（扁平）。
-      // 其 'companies' 在 ENTITY_KEYS → normalize 命中第 3 条，把 body.companies
-      // 当成 payload → 返回 { data: { data: [companies array] } }。
-      // 如直接 setDiagnosis，GapsView 解构拿不到 summary/companiesWithGaps，
-      // 数组 .filter 等方法会让页面崩溃。这里三种形态都兼容。
-      let obj = payload?.data?.data ?? payload?.data ?? payload
-      if (Array.isArray(obj)) {
-        // 数组路径（normalize 第 3 条）：前端重建统计字段，确保 GapsView 显示完整
-        const list = obj
-        const byField = {}
-        list.forEach((c) => (Array.isArray(c?.missingFields) ? c.missingFields : []).forEach((f) => {
-          byField[f] = (byField[f] || 0) + 1
-        }))
-        const totalMissing = Object.values(byField).reduce((a, b) => a + b, 0)
-        obj = {
-          companies: list,
-          companiesWithGaps: list.filter((c) => Array.isArray(c?.missingFields) && c.missingFields.length > 0).length,
-          totalCompanies: list.length,
-          summary: { byField, totalMissing },
-        }
-      } else if (obj && typeof obj === 'object') {
-        // 对象路径：补齐缺字段，防御性归一
-        obj = {
-          companies: Array.isArray(obj.companies) ? obj.companies : [],
-          companiesWithGaps: Number(obj.companiesWithGaps) || 0,
-          totalCompanies: Number(obj.totalCompanies) || 0,
-          summary: obj.summary && typeof obj.summary === 'object'
-            ? { byField: obj.summary.byField || {}, totalMissing: Number(obj.summary.totalMissing) || 0 }
-            : { byField: {}, totalMissing: 0 },
-        }
-      }
-      setDiagnosis(obj)
+      // 后端已统一返回 { success, data: { companies, companiesWithGaps, totalCompanies, summary } }，
+      // normalize 规则 2 透传为 { data: { data: result } }。直接取 result；
+      // 此处做最小防御归一，避免个别旧响应形状导致 GapsView 解构异常。
+      const result = payload?.data?.data ?? payload?.data ?? payload
+      setDiagnosis({
+        companies: Array.isArray(result?.companies) ? result.companies : [],
+        companiesWithGaps: Number(result?.companiesWithGaps) || 0,
+        totalCompanies: Number(result?.totalCompanies) || 0,
+        summary: result?.summary && typeof result.summary === 'object'
+          ? { byField: result.summary.byField || {}, totalMissing: Number(result.summary.totalMissing) || 0 }
+          : { byField: {}, totalMissing: 0 },
+      })
     } catch {
       setDiagnosis({ companies: [], companiesWithGaps: 0, totalCompanies: 0, summary: { byField: {}, totalMissing: 0 } })
     } finally {
