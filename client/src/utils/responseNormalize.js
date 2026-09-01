@@ -28,6 +28,8 @@ const ENTITY_KEYS = [
   'events',
   // 重复检测（GET /api/personnel/duplicates 返回 { success, duplicates, total }）
   'duplicates',
+  // 审计日志（GET /api/audit 返回 { success, count, total, logs }）—— 不加则 normalize 走 D 复合型 → payload 是 {total,logs} 对象 → 前端 .map 静默失败
+  'logs',
 ]
 
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)

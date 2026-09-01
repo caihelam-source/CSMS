@@ -196,3 +196,21 @@ test('规则 E: 数据键含非分页 meta 时降级走 D 复合型（不强行�
   })
 })
 
+test('规则 E: 审计日志接口 { success, count, total, logs } → 数组 + paging（修审计 tab 静默空 bug）', () => {
+  const body = {
+    success: true,
+    count: 3,
+    total: 42,
+    logs: [
+      { _id: 'l1', action: 'login', user: 'admin', ts: '2026-09-01' },
+      { _id: 'l2', action: 'update_company', user: 'secretary', ts: '2026-09-01' },
+      { _id: 'l3', action: 'sign_doc', user: 'director', ts: '2026-09-01' },
+    ],
+  }
+  const out = normalize(body)
+  expect(Array.isArray(out.data.data)).toBe(true)
+  expect(out.data.data).toHaveLength(3)
+  expect(out.data.data[0]).toEqual({ _id: 'l1', action: 'login', user: 'admin', ts: '2026-09-01' })
+  expect(out.paging).toEqual({ total: 42 })
+})
+
