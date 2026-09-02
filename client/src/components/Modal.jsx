@@ -37,7 +37,10 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
 
     const handleEsc = (e) => { if (e.key === 'Escape') onCloseRef.current() }
     document.addEventListener('keydown', handleEsc)
-    document.body.style.overflow = 'hidden'
+    // iOS Safari 虚拟键盘弹出时需要页面可滚动以把输入框带入视口；
+    // 若锁定 body overflow，iOS 会直接令输入框失焦、键盘抖动（"一点就跳出"）。
+    // 故移动端 bottom-sheet 场景不锁 body 滚动，仅桌面端锁。
+    if (!isMobile) document.body.style.overflow = 'hidden'
 
     // 初始焦点放入对话框（优先第一个可聚焦控件，否则对话框本身）
     const dialog = dialogRef.current
@@ -48,7 +51,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
 
     return () => {
       document.removeEventListener('keydown', handleEsc)
-      document.body.style.overflow = ''
+      if (!isMobile) document.body.style.overflow = ''
       if (previouslyFocused.current && typeof previouslyFocused.current.focus === 'function') {
         previouslyFocused.current.focus()
       }
