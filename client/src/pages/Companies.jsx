@@ -117,9 +117,10 @@ export default function Companies() {
       const matchSearch = !q || c.name?.toLowerCase().includes(q) || c.registrationNumber?.toLowerCase().includes(q)
       const matchStatus = !f.status || c.status === f.status
       const matchType = !f.type || c.type === f.type
-      return matchSearch && matchStatus && matchType
+      const matchJurisdiction = !f.jurisdiction || c.jurisdiction === f.jurisdiction
+      return matchSearch && matchStatus && matchType && matchJurisdiction
     },
-    { status: '', type: '' }
+    { status: '', type: '', jurisdiction: '' }
   )
 
   const fetchCompanies = useCallback(async () => {
@@ -364,6 +365,12 @@ export default function Companies() {
             <option value="">All Types</option>
             <option value="private_limited">Private Limited</option>
             <option value="public_limited">Public Limited</option>
+          </select>
+          <select className="input-field flex-1 sm:flex-none sm:w-40" value={filters.jurisdiction} onChange={e => setFilter('jurisdiction', e.target.value)}>
+            <option value="">All Jurisdictions</option>
+            {JURISDICTION_OPTIONS.map(j => (
+              <option key={j.value} value={j.value}>{j.label}</option>
+            ))}
           </select>
         </div>
       </div>
