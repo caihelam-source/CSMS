@@ -2,11 +2,12 @@ import { useEffect, useState, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import {
   ShieldCheck, Plus, RefreshCw, Zap, Download, AlertTriangle,
-  Pencil, Trash2
+  Pencil, Trash2, Sparkles
 } from 'lucide-react'
-import { complianceRuleService, companyService } from '../services/index.js'
+import { complianceRuleService, companyService, complianceReminderService } from '../services/index.js'
 import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import { validate, required } from '../utils/validators'
 import { toArray } from '../utils/responseNormalize.js'
 import Modal from '../components/Modal'
@@ -241,6 +242,7 @@ const jurisdictionColor = (j) => ({
 
 const ComplianceRules = () => {
   const { confirm, ConfirmDialogComponent } = useConfirm()
+  const { isAdmin } = useAuth()
   const [rules, setRules] = useState([])
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
@@ -328,6 +330,31 @@ const ComplianceRules = () => {
     }
   }
 
+  // admin 一键兜底：对所有 jurisdiction='HK' 公司 ensure HK_AR_42 + HK_BR_RENEW
+  // （nonHongKongCompany=true 的额外加 HK_NN3_AR）。幂等。
+  const handleEnsureAllHk = async () => {
+    const ok = await confirm({
+      title: '一键为全部香港公司生成提醒',
+      message: '将遍历所有 jurisdiction=HK 的公司，逐家 ensure HK_AR_42 + HK_BR_RENEW（NN3 公司加 HK_NN3_AR）。幂等，已有提醒会被跳过。',
+      confirmLabel: '确认一键 ensure',
+      variant: 'warning',
+    })
+    if (!ok) return
+    setSaving(true)
+    try {
+      const { data } = await complianceReminderService.ensureAllHk()
+      const r = data?.data || data || {}
+      toast.success(
+        `已处理 ${r.processed || 0}/${r.totalCompanies || 0} 家公司 — 新建 ${r.created || 0}、已存在 ${r.skipped || 0}、因缺字段跳过 ${r.blocked || 0}`,
+      )
+      if (r.errors?.length) console.warn('[ensureAllHk] 部分失败:', r.errors)
+    } catch (e) {
+      toast.error(e.response?.data?.message || '一键 ensure 失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleSave = async (data) => {
     setSaving(true)
     try {
@@ -403,6 +430,13 @@ const ComplianceRules = () => {
               className="flex items-center gap-1.5 px-3 py-2 border border-hairline text-ink rounded-lg hover:bg-canvas text-sm font-medium">
               <Zap size={15} /> 初始化预设规则
             </button>
+            {isAdmin && (
+              <button onClick={handleEnsureAllHk} disabled={saving}
+                className="flex items-center gap-1.5 px-3 py-2 border border-info/30 bg-info/5 text-primary-700 rounded-lg hover:bg-info/10 text-sm font-medium"
+                title="admin 一键兜底：对所有 HK 公司 ensure HK_AR_42 + HK_BR_RENEW（NN3 公司加 HK_NN3_AR）">
+                <Sparkles size={15} /> 为全部 HK 公司 ensure 提醒
+              </button>
+            )}
             <button onClick={() => { setEditTarget(null); setModal('new') }}
               className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium">
               <Plus size={15} /> 新建规则

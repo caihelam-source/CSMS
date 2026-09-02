@@ -86,6 +86,42 @@ router.post('/ensure', auth, async (req, res) => {
   }
 });
 
+// POST /api/compliance-reminders/ensure-all-hk — admin 一键兜底：对所有 jurisdiction='HK' 公司
+// ensure HK_AR_42 + HK_BR_RENEW（nonHongKongCompany=true 的额外加 HK_NN3_AR）。
+// 用于：Render 部署后 initPresetRules 跑过但 ensure 未自动触发的兜底；以及秘书一次性"全员刷一遍"。
+// 幂等；非 admin 返回 403。
+router.post('/ensure-all-hk', auth, async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ message: '需要管理员权限' });
+    }
+    const Company = require('../models/Company');
+    const companies = await Company.find({ jurisdiction: 'HK' }).select('_id name nonHongKongCompany').lean();
+    let processed = 0, created = 0, skipped = 0, blocked = 0;
+    const errors = [];
+    for (const c of companies) {
+      try {
+        const ruleIds = c.nonHongKongCompany
+          ? ['HK_NN3_AR', 'HK_BR_RENEW']
+          : ['HK_AR_42', 'HK_BR_RENEW'];
+        const r = await ensureCompanyReminders(c._id, ruleIds);
+        created += r.created || 0;
+        skipped += r.skipped || 0;
+        blocked += r.blocked || 0;
+        processed++;
+      } catch (e) {
+        errors.push({ companyId: String(c._id), name: c.name, error: e.message });
+      }
+    }
+    res.json({
+      success: true,
+      data: { processed, totalCompanies: companies.length, created, skipped, blocked, errors },
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // GET /api/compliance-reminders/:id
 router.get('/:id', auth, async (req, res) => {
   try {

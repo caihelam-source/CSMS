@@ -506,6 +506,11 @@ export const complianceReminderService = {
     (data) => api.post('/api/compliance-reminders/recompute', data),
     () => Promise.resolve({ data: { success: true, data: { created: 0, skipped: 0, cleared: 0 } } }),
   ),
+  // admin 一键兜底：对所有 HK 公司 ensure HK_AR_42 + HK_BR_RENEW（nonHongKongCompany=true 加 HK_NN3_AR）
+  ensureAllHk: wrap(
+    () => api.post('/api/compliance-reminders/ensure-all-hk'),
+    () => Promise.resolve({ data: { success: true, data: { processed: 0, totalCompanies: 0, created: 0, skipped: 0, blocked: 0, errors: [] } } }),
+  ),
   // 单公司 ensure 启用规则对应的提醒（幂等，只生成不删；NAR1 导入闭环 / 状态条「生成提醒」按钮）
   ensure: wrap(
     (data) => api.post('/api/compliance-reminders/ensure', data),
