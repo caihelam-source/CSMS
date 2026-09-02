@@ -9,7 +9,7 @@ const Document = require('../models/Document');
 const Task = require('../models/Task');
 const ComplianceReminder = require('../models/ComplianceReminder');
 const SignTask = require('../models/SignTask');
-const { findPersonnelDuplicates, extractBracketAliases } = require('../utils/personnelDedup');
+const { findPersonnelDuplicates, extractBracketAliases, extractPersonnelTokens } = require('../utils/personnelDedup');
 const { auth } = require('../middleware/auth');
 const {
   scopeMiddleware,
@@ -491,26 +491,53 @@ router.post('/merge', auth, async (req, res) => {
         .flatMap((l) => l.roles || [])),
     )]
 
-    // 3) 保最佳数据
+    // 3) 保最佳数据 — 增强：智能合并中文姓名到 nameChinese
+    // 优先用 source.nameChinese，其次从 source.name 提取中文 token（覆盖「源只有中文 name、无 nameChinese」场景）
+    if (!target.nameChinese) {
+      if (source.nameChinese) {
+        target.nameChinese = source.nameChinese
+      } else {
+        const sourceChineseTokens = extractPersonnelTokens(source.name).chinese
+        if (sourceChineseTokens.length > 0) {
+          target.nameChinese = sourceChineseTokens[0]
+        }
+      }
+    }
     if (!target.nric && source.nric) target.nric = source.nric;
     if (!target.email && source.email) target.email = source.email;
     if (!target.phone && source.phone) target.phone = source.phone;
-    if (!target.nameChinese && source.nameChinese) target.nameChinese = source.nameChinese;
     if (!target.nationality && source.nationality) target.nationality = source.nationality;
     if (source.notes && !target.notes) target.notes = source.notes;
     else if (source.notes) target.notes += '\n[来自合并] ' + source.notes;
 
-    // 4) formerNames 入 target（源 name/nameChinese + 括注中文别名，如「施侃成」）
-    const newFormer = [{
-      name: source.name,
-      nameChinese: source.nameChinese || undefined,
-      changedAt: new Date(),
-      source: 'merger',
-      mergedFromPersonnelId: source._id,
-    }]
+    // 4) formerNames 入 target — 增强：只添加「未被 name/nameChinese 代表」的姓名
+    // 目的：避免「同一人不同写法（中文 vs 拼音/英文）」被误标为「曾用名」。
+    // 检测：源姓名里的中文 token 若已被目标的 nameChinese/name 覆盖，则视为同一人的不同写法，**不入 formerNames**。
+    const sourceChineseTokens = extractPersonnelTokens(source.name).chinese
+    const targetChineseTokens = [
+      ...extractPersonnelTokens(target.nameChinese).chinese,
+      ...extractPersonnelTokens(target.name).chinese,
+    ]
+    const sourceNameRepresented = sourceChineseTokens.length > 0 &&
+      sourceChineseTokens.every((sc) => targetChineseTokens.includes(sc))
+
+    const newFormer = []
+    if (source.name && !sourceNameRepresented &&
+        source.name !== target.name && source.name !== target.nameChinese) {
+      newFormer.push({
+        name: source.name,
+        nameChinese: source.nameChinese || undefined,
+        changedAt: new Date(),
+        source: 'merger',
+        mergedFromPersonnelId: source._id,
+      })
+    }
+    // 括注中文别名（如「施中安 (施侃成)」中的施侃成）仍然追加
     const aliases = extractBracketAliases(source.name)
     for (const al of aliases) {
-      if (!target.formerNames?.some((f) => (f.nameChinese || f.name) === al)) {
+      const alreadyInTarget = target.formerNames?.some((f) => (f.nameChinese || f.name) === al)
+      const alreadyInNew = newFormer.some((f) => (f.nameChinese || f.name) === al)
+      if (!alreadyInTarget && !alreadyInNew) {
         newFormer.push({ name: al, nameChinese: al, changedAt: new Date(), source: 'merger', mergedFromPersonnelId: source._id })
       }
     }

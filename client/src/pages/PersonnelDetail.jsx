@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { User, Building2, FileText, Mail, Phone, MapPin, Calendar, Bell, CheckSquare, Edit3 } from 'lucide-react'
+import { User, Building2, FileText, Mail, Phone, MapPin, Calendar, Bell, CheckSquare, Edit3, Plus, Trash2 } from 'lucide-react'
 import { personnelService } from '../services/index.js'
 import { formatDate, getStatusColor, docExpiryStatus, DOC_EXPIRY_BADGE } from '../utils/helpers'
 import { downloadDoc } from '../utils/fileAccess'
@@ -110,6 +110,7 @@ export default function PersonnelDetail() {
   const openEditPersonal = () => {
     setPersonalForm({
       name: person?.name || '',
+      nameChinese: person?.nameChinese || '',
       email: person?.email || '',
       phone: person?.phone || '',
       nric: person?.nric || '',
@@ -117,6 +118,7 @@ export default function PersonnelDetail() {
       addressCountry: person?.address?.country || '',
       addressStreet: person?.address?.street || '',
       notes: person?.notes || '',
+      formerNames: person?.formerNames || [],
     })
     setEditingPersonal(true)
   }
@@ -126,6 +128,7 @@ export default function PersonnelDetail() {
     try {
       const payload = {
         name: personalForm.name,
+        nameChinese: personalForm.nameChinese,
         email: personalForm.email,
         phone: personalForm.phone,
         nric: personalForm.nric,
@@ -137,6 +140,17 @@ export default function PersonnelDetail() {
         notes: personalForm.notes,
       }
       await personnelService.update(id, payload)
+      // 曾用名/别名走专用接口（PUT /former-names），避免被通用 update 覆盖
+      const cleanedFormer = (personalForm.formerNames || [])
+        .filter((f) => (f.name || '').trim() || (f.nameChinese || '').trim())
+        .map((f) => ({
+          name: f.name?.trim() || undefined,
+          nameChinese: f.nameChinese?.trim() || undefined,
+          source: f.source || 'manual',
+          notes: f.notes || undefined,
+          changedAt: f.changedAt || new Date().toISOString(),
+        }))
+      await personnelService.updateFormerNames(id, cleanedFormer)
       toast.success('个人信息已更新')
       setEditingPersonal(false)
       // reload personnel data
@@ -192,7 +206,10 @@ export default function PersonnelDetail() {
           {editingPersonal ? (
             /* 编辑模式 */
             <div className="space-y-3 text-sm">
-              <FormField label="姓名" required><input className={inputClass} value={personalForm.name} onChange={e => setPersonalForm(f => ({ ...f, name: e.target.value }))} /></FormField>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="姓名（拼音/英文）" required><input className={inputClass} value={personalForm.name} onChange={e => setPersonalForm(f => ({ ...f, name: e.target.value }))} placeholder="如 LIN CAIHE" /></FormField>
+                <FormField label="中文姓名"><input className={inputClass} value={personalForm.nameChinese} onChange={e => setPersonalForm(f => ({ ...f, nameChinese: e.target.value }))} placeholder="如 林才贺" /></FormField>
+              </div>
               <FormField label="邮箱"><input className={inputClass} type="email" value={personalForm.email} onChange={e => setPersonalForm(f => ({ ...f, email: e.target.value }))} /></FormField>
               <FormField label="电话"><input className={inputClass} value={personalForm.phone} onChange={e => setPersonalForm(f => ({ ...f, phone: e.target.value }))} /></FormField>
               <FormField label="NRIC / 护照"><input className={inputClass} value={personalForm.nric} onChange={e => setPersonalForm(f => ({ ...f, nric: e.target.value }))} /></FormField>
@@ -202,6 +219,37 @@ export default function PersonnelDetail() {
               </div>
               <FormField label="地址"><input className={inputClass} value={personalForm.addressStreet} onChange={e => setPersonalForm(f => ({ ...f, addressStreet: e.target.value }))} placeholder="街道地址" /></FormField>
               <FormField label="备注"><textarea className={inputClass} rows={2} value={personalForm.notes} onChange={e => setPersonalForm(f => ({ ...f, notes: e.target.value }))} /></FormField>
+
+              {/* 曾用名 / 别名编辑（v6.x：合并后产生的曾用名在此处清理/补充） */}
+              <div className="pt-3 border-t border-hairline">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-ink-3">曾用名 / 别名（合并来源可在此清理）</p>
+                  <button type="button" onClick={() => setPersonalForm(f => ({ ...f, formerNames: [...(f.formerNames || []), { name: '', nameChinese: '', source: 'manual' }] }))} className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium"><Plus size={12} /> 添加</button>
+                </div>
+                {(personalForm.formerNames || []).length === 0 && (
+                  <p className="text-xs text-ink-3 italic">暂无</p>
+                )}
+                <div className="space-y-2">
+                  {(personalForm.formerNames || []).map((fn, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input className={inputClass + ' flex-1'} value={fn.name || ''} onChange={e => {
+                        const list = [...(personalForm.formerNames || [])]
+                        list[i] = { ...list[i], name: e.target.value }
+                        setPersonalForm(f => ({ ...f, formerNames: list }))
+                      }} placeholder="姓名 / 拼音 / 英文" />
+                      <input className={inputClass + ' flex-1'} value={fn.nameChinese || ''} onChange={e => {
+                        const list = [...(personalForm.formerNames || [])]
+                        list[i] = { ...list[i], nameChinese: e.target.value }
+                        setPersonalForm(f => ({ ...f, formerNames: list }))
+                      }} placeholder="中文别名（可选）" />
+                      <button type="button" onClick={() => {
+                        const list = (personalForm.formerNames || []).filter((_, idx) => idx !== i)
+                        setPersonalForm(f => ({ ...f, formerNames: list }))
+                      }} className="p-2 text-ink-3 hover:text-danger rounded shrink-0" aria-label={`删除第${i + 1}条`}><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             /* 只读模式 */

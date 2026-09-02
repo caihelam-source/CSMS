@@ -763,6 +763,20 @@ export const personnel = {
     source.mergedAt = new Date().toISOString();
     return { data: { data: target } };
   },
+  // v6.x 人员曾用名/别名手填编辑（mock：替换整组 formerNames，与后端 PUT /former-names 语义一致）
+  updateFormerNames: async (id, formerNames) => {
+    await delay(80);
+    const p = MOCK_PERSONNEL.find(pe => pe._id === id);
+    if (!p) return { data: { success: false, message: 'not found' } };
+    p.formerNames = Array.isArray(formerNames) ? formerNames.map(f => ({
+      name: f.name || undefined,
+      nameChinese: f.nameChinese || undefined,
+      changedAt: f.changedAt ? new Date(f.changedAt) : new Date(),
+      source: f.source || 'manual',
+      notes: f.notes || undefined,
+    })) : [];
+    return { data: { success: true, formerNames: p.formerNames } };
+  },
   // v6.x 人员去重检测（mock：默认无重复对；真实环境由后端 findPersonnelDuplicates 返回）
   duplicates: async () => {
     await delay();
