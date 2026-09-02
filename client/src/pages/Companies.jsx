@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Building2, Plus, Pencil, Trash2, Upload, Download } from 'lucide-react'
+import { Building2, Plus, Pencil, Trash2, Upload, Download, FileUp, ShieldCheck } from 'lucide-react'
 import { companyService } from '../services/index.js'
 import { formatDate, getStatusColor } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
@@ -12,6 +12,7 @@ import { NO_SCOPE_HINT } from '../utils/scope'
 import { validate, required } from '../utils/validators'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Modal from '../components/Modal'
+import Nar1ImportPage from './Nar1Import'
 // jurisdiction 归一化（与服务器端 companies.js 逻辑一致）
 const normalizeJurisdiction = (v) => {
   const m = {
@@ -81,6 +82,8 @@ export default function Companies() {
   const [importModal, setImportModal] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const importFileRef = useRef()
+  // NAR1 批量导入（仅适用于香港公司）
+  const [nar1Open, setNar1Open] = useState(false)
 
   // 行级数据权限：渲染期无声过滤（真实模式服务端已过滤，此处幂等 no-op）
   const { noScope } = useScope()
@@ -111,6 +114,9 @@ export default function Companies() {
   }, [])
 
   useEffect(() => { fetchCompanies() }, [fetchCompanies])
+
+  // 打开 NAR1 导入 Modal：Nar1ImportPage 内部会自行探测引擎可用性
+  const openNar1 = useCallback(() => setNar1Open(true), [])
 
   const openNew = () => { setForm(EMPTY_FORM); setFormErrors({}); setEditTarget(null); setModal('new') }
   const openEdit = useCallback((c) => {
@@ -237,6 +243,16 @@ export default function Companies() {
               <button onClick={() => { setImportResult(null); setImportModal(true) }}
                 className="btn-secondary flex items-center gap-1.5">
                 <Upload size={15} /> Excel 导入
+              </button>
+            )}
+            {canEdit && (
+              <button onClick={openNar1}
+                className="btn-secondary flex items-center gap-1.5"
+                title="仅适用于香港公司（BVI/Cayman 公司无 NAR1）">
+                <FileUp size={15} /> 从 NAR1 导入
+                <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-medium bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full">
+                  <ShieldCheck size={10} /> HK
+                </span>
               </button>
             )}
             <button onClick={openNew} className="btn-primary flex items-center gap-2">
@@ -374,6 +390,11 @@ export default function Companies() {
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* NAR1 批量导入（嵌入 Nar1Import，embedded=true 隐藏 PageHeader、压缩 padding） */}
+      <Modal isOpen={nar1Open} onClose={() => setNar1Open(false)} title="从 NAR1 导入香港公司" size="xl">
+        {nar1Open && <Nar1ImportPage embedded />}
       </Modal>
     </div>
   )

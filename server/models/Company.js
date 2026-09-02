@@ -62,6 +62,8 @@ const companySchema = new mongoose.Schema({
   // 属地特有合规字段（v5.0 按 jurisdiction 扩展）
   brExpiryDate: { type: Date },          // 香港：商业登记证到期日
   bviRelevantActivity: { type: String }, // BVI：经济实质相关活动分类（如 fund_management / finance_leasing / holding / ip / shipping / distribution / service_center / holding_only 等）
+  // v6.x：是否在港注册的非香港公司（NN3 适用主体，jurisdiction 通常为 BVI/Cayman/SG/OTHER，但有 HK 公司注册处签发的「注册非香港公司注册证书」）
+  nonHongKongCompany: { type: Boolean, default: false },
 
   // Legacy fields
   isListed: { type: Boolean, default: false },

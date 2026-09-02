@@ -399,9 +399,11 @@ async function commitOne({ result, mode, userId, storage }) {
     }
   }
 
-  // NAR1 导入闭环：HK 公司自动 ensure HK_AR_42 + HK_BR_RENEW 提醒
+  // NAR1 导入闭环：HK 本地公司自动 ensure HK_AR_42 + HK_BR_RENEW 提醒
   // ensure 只 generate 不删内部提醒，幂等；失败不阻断主流程（提醒可后补）。
-  if (company.jurisdiction === 'HK') {
+  // 排除 nonHongKongCompany=true（这类公司不报 NAR1 而报 NN3；NN3 提醒待用户在 CompanyDetail
+  // 手动标记 nonHongKongCompany=true 后通过 ensureCompanyReminders(['HK_NN3_AR','HK_BR_RENEW']) 启用）。
+  if (company.jurisdiction === 'HK' && !company.nonHongKongCompany) {
     try {
       await ensureCompanyReminders(company._id, ['HK_AR_42', 'HK_BR_RENEW'])
     } catch (e) {

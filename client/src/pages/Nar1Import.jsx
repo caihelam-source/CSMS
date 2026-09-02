@@ -20,7 +20,8 @@ const defaultMode = (it) => {
   return it.hasConflict ? 'skip' : 'create'
 }
 
-export default function Nar1ImportPage() {
+// embedded=true 时去掉 PageHeader 与外层 space-y，压缩 padding — 供 Modal 内嵌复用
+export default function Nar1ImportPage({ embedded = false }) {
   const { canEdit } = useAuth()
   const [engine, setEngine] = useState(null)     // null = 探测中
   const [engineLoading, setEngineLoading] = useState(true)
@@ -135,19 +136,28 @@ export default function Nar1ImportPage() {
   const conflictCount = items.filter((it) => it.ok && it.hasConflict).length
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="NAR1 导入"
-        subtitle="上传香港公司周年申报表，自动建档公司、董事、秘书与股东"
-        icon={FileUp}
-        actions={
-          phase !== 'idle' && (
-            <button onClick={reset} className="btn-secondary flex items-center gap-1.5">
-              <RefreshCw size={15} /> 重新开始
-            </button>
-          )
-        }
-      />
+    <div className={embedded ? 'space-y-4' : 'space-y-6'}>
+      {!embedded && (
+        <PageHeader
+          title="NAR1 导入"
+          subtitle="上传香港公司周年申报表，自动建档公司、董事、秘书与股东"
+          icon={FileUp}
+          actions={
+            phase !== 'idle' && (
+              <button onClick={reset} className="btn-secondary flex items-center gap-1.5">
+                <RefreshCw size={15} /> 重新开始
+              </button>
+            )
+          }
+        />
+      )}
+      {embedded && phase !== 'idle' && (
+        <div className="flex justify-end">
+          <button onClick={reset} className="btn-secondary flex items-center gap-1.5 text-xs">
+            <RefreshCw size={13} /> 重新开始
+          </button>
+        </div>
+      )}
 
       {/* 引擎状态 */}
       <div className={`card flex items-start gap-3 ${
