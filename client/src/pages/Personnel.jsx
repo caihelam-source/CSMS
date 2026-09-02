@@ -7,6 +7,7 @@ import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClas
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { useScope, useScopedItems, useScopedPersonnel } from '../hooks/useScope'
 import { NO_SCOPE_HINT } from '../utils/scope'
+import { formatPersonName, personInitial } from '../utils/personName'
 import { validate, required, email as emailValidator } from '../utils/validators'
 import { useConfirm } from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
@@ -24,13 +25,9 @@ const ROLE_LABELS = { director: '董事', alternate_director: '替任董事', sh
 const roleLabel = (r) => ROLE_LABELS[r] || r
 
 // 列表行抽成 memo 组件：父组件状态变更时仅数据/选中态变化的行会重渲染
-// v6.x 人名统一展示规则：name(拼音/拉丁化) 在前，nameChinese(中文) 在后用 "·" 隔开；
-// 仅一项时只显示一项。avatar 取 name 第一个可见字符。
 const PersonRow = memo(function PersonRow({ person: p, onEdit, onDelete, onToggleSelect, style }) {
-  const hasName = !!(p.name && p.name.trim())
-  const hasCn = !!(p.nameChinese && p.nameChinese.trim())
-  const display = (hasName && hasCn) ? `${p.name} · ${p.nameChinese}` : (p.name || p.nameChinese || '')
-  const avatarChar = (p.nameChinese || p.name || '?').trim().charAt(0)
+  const display = formatPersonName(p)
+  const avatarChar = personInitial(p)
   return (
     <div style={style} className={`card flex items-center justify-between hover:shadow-md transition-shadow ${p.selected ? 'ring-2 ring-primary-500' : ''} ${p.dupCount ? 'border-l-4 border-l-yellow-400' : ''}`}>
       <div className="flex items-center gap-3 flex-1">
@@ -489,7 +486,7 @@ export default function Personnel() {
                     <div className="flex items-center gap-3">
                       <input type="radio" checked={mergeTargetId === id} onChange={() => setMergeTargetId(id)} />
                       <div>
-                        <p className="font-medium">{p.name}</p>
+                        <p className="font-medium">{formatPersonName(p)}</p>
                         <p className="text-xs text-ink-3">{p.nric || 'No ID'} · {p.nationality || 'N/A'}</p>
                       </div>
                     </div>

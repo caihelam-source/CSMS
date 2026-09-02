@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { meetingService, companyService, personnelService, signTaskService } from '../services/index.js'
 import { MEETING_TYPE_LABELS as TYPES, MEETING_STATUSES as STATUS, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
+import { formatPersonName } from '../utils/personName'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClass, labelClass, TabNav } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { useScope, useScopedItems } from '../hooks/useScope'
@@ -437,7 +438,7 @@ export default function Meetings() {
                         ) : (
                           <select className={`${inputClass} flex-1 min-w-[150px]`} value={a.refId} onChange={e => updateAttendee(i, 'refId', e.target.value)}>
                             <option value="">选择人员...</option>
-                            {personnelList.map(p => <option key={p._id} value={p._id}>{p.name} {p.nric ? `(${p.nric})` : ''}</option>)}
+                            {personnelList.map(p => <option key={p._id} value={p._id}>{formatPersonName(p)} {p.nric ? `(${p.nric})` : ''}</option>)}
                           </select>
                         )}
                         <input className={`${inputClass} flex-1 min-w-[120px]`} placeholder="职务/角色" value={a.role} onChange={e => updateAttendee(i, 'role', e.target.value)} />

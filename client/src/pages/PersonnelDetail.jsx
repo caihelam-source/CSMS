@@ -7,6 +7,7 @@ import { formatDate, getStatusColor, docExpiryStatus, DOC_EXPIRY_BADGE } from '.
 import { downloadDoc } from '../utils/fileAccess'
 import { DetailHeader, EmptyState, SectionSkeleton, taskPriorityColor, FormField, inputClass } from '../components/UIHelpers'
 import Breadcrumbs from '../components/Breadcrumbs'
+import { formatPersonName, personInitial } from '../utils/personName'
 
 // 角色元数据：标签 + 图标 + 配色（读时聚合自 Company.links.roles）
 const ROLE_META = {
@@ -164,18 +165,18 @@ export default function PersonnelDetail() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Personnel', to: '/personnel' }, { label: person?.name || '—' }]} />
+      <Breadcrumbs items={[{ label: 'Personnel', to: '/personnel' }, { label: formatPersonName(person) || '—' }]} />
       {/* Header */}
       <DetailHeader
         onBack={() => navigate('/personnel')}
-        title={person.name}
+        title={formatPersonName(person)}
         subtitle={
           <>
             {person.nric && <span>{person.nric} &middot; </span>}
             {person.nationality && <span>{person.nationality}</span>}
           </>
         }
-        initials={person.name?.charAt(0) || '?'}
+        initials={personInitial(person) || '?'}
         badges={
           <>
             {roleSet.map(r => (

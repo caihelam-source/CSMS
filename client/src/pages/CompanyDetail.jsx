@@ -12,6 +12,7 @@ import { useConfirm } from '../components/ConfirmDialog'
 import TaskForm from '../components/TaskForm'
 import { validate, required } from '../utils/validators'
 import { toArray } from '../utils/responseNormalize.js'
+import { formatPersonName, personInitial } from '../utils/personName'
 import { useCompanyTasks } from '../hooks/useCompanyTasks'
 import { useRuleLibrary } from '../hooks/useRuleLibrary'
 import CompanyInfoTab from '../components/company/CompanyInfoTab'
@@ -701,16 +702,16 @@ export default function CompanyDetail() {
       <div key={link._id} className="flex items-center justify-between p-3 bg-canvas rounded-lg">
         <div className="flex items-center gap-3">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${link.roles.includes('director') ? 'bg-primary-100 text-primary-700' : link.roles.includes('shareholder') ? 'bg-success/10 text-success' : link.roles.includes('secretary') ? 'bg-warning/10 text-warning' : 'bg-canvas text-ink'}`}>
-            {p.name?.charAt(0) || '?'}
+            {personInitial(p) || '?'}
           </div>
           <div>
             {link.linkModel === 'Personnel' ? (
               <Link to={`/personnel/${p._id || link.link?._id}`} className="font-medium text-primary-600 hover:underline flex items-center gap-1">
-                {p.name || link.link?.name || 'Unknown'} <ExternalLink size={12} />
+                {formatPersonName(p) || 'Unknown'} <ExternalLink size={12} />
               </Link>
             ) : (
               <Link to={`/companies/${p._id || link.link?._id}`} className="font-medium text-primary-600 hover:underline flex items-center gap-1">
-                {p.name || link.link?.name || 'Unknown'} <ExternalLink size={12} />
+                {formatPersonName(p) || 'Unknown'} <ExternalLink size={12} />
               </Link>
             )}
             <div className="flex items-center gap-2 text-xs text-ink-3 mt-0.5">

@@ -2,6 +2,7 @@
 // 行为 / 样式 / 交互与原版完全一致；RegisterTable / RegSelect 共享渲染器由 Shell 经 ctx 下传。
 import { BookOpen } from 'lucide-react'
 import { formatDate } from '../../utils/helpers'
+import { formatPersonName } from '../../utils/personName'
 
 export default function CompanyRegistersTab({ ctx }) {
   const {
@@ -36,7 +37,7 @@ export default function CompanyRegistersTab({ ctx }) {
         }
         columns={[
           { key: 'appointed', header: 'Date Appointed', tdClass: 'p-2 text-xs', cell: (l) => formatDate(l.appointedDate) },
-          { key: 'name', header: 'Full Name', tdClass: 'p-2', cell: (l, p) => p.name || '-' },
+          { key: 'name', header: 'Full Name', tdClass: 'p-2', cell: (l, p) => formatPersonName(p) || '-' },
           { key: 'nric', header: 'NRIC / Passport', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.nric || '-' },
           { key: 'nationality', header: 'Nationality', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.nationality || '-' },
           { key: 'address', header: 'Address', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.address?.country || '-' },
@@ -63,7 +64,7 @@ export default function CompanyRegistersTab({ ctx }) {
         }
         columns={[
           { key: 'entered', header: 'Date Entered', tdClass: 'p-2 text-xs', cell: (l) => formatDate(l.appointedDate) },
-          { key: 'name', header: 'Member Name', tdClass: 'p-2', cell: (l, p) => p.name || '-' },
+          { key: 'name', header: 'Member Name', tdClass: 'p-2', cell: (l, p) => formatPersonName(p) || '-' },
           { key: 'address', header: 'Address / Jurisdiction', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.address?.country || p.registrationNumber || '-' },
           { key: 'shares', header: 'No. of Shares', tdClass: 'p-2 text-right text-xs', cell: (l) => (l.shares || 0).toLocaleString() },
           { key: 'type', header: 'Type', tdClass: 'p-2 text-xs', cell: (l) => l.shareType || 'Ordinary' },
@@ -84,7 +85,7 @@ export default function CompanyRegistersTab({ ctx }) {
         emptyText="No secretary registered"
         columns={[
           { key: 'appointed', header: 'Date Appointed', tdClass: 'p-2 text-xs', cell: (l) => formatDate(l.appointedDate) },
-          { key: 'name', header: 'Name', tdClass: 'p-2', cell: (l, p) => p.name || '-' },
+          { key: 'name', header: 'Name', tdClass: 'p-2', cell: (l, p) => formatPersonName(p) || '-' },
           { key: 'nric', header: 'NRIC / Passport', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.nric || '-' },
           { key: 'address', header: 'Address', tdClass: 'p-2 text-xs text-ink-2', cell: (l, p) => p.address?.country || '-' },
           { key: 'ceased', header: 'Date Ceased', tdClass: 'p-2 text-xs', cell: (l) => l.ceasedDate ? formatDate(l.ceasedDate) : 'Present' },
