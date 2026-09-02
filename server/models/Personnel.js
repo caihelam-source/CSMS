@@ -25,10 +25,33 @@ const personnelSchema = new mongoose.Schema({
   documentServiceAddress: String,
   usualResidentialAddress: String,
   notes: String,
+
+  // ====== v6.x 人员去重 / 合并 (Personnel Dedup & Merge) ======
+  // 与 Company 同构的软合并：源 personnel status='merged' 后指向 target，零数据丢失。
+  // formerNames[]：中文名 / 曾用名 / 别名（含括注别名如「施侃成」），由 merge 接口或用户手填追加；
+  //   用于 (1) Personnel 检测重复（alias 命中）(2) PersonnelDetail 区块展示 (3) 反查定位。
+  status: { type: String, enum: ['active', 'merged'], default: 'active' },
+  formerNames: [{
+    name: { type: String, trim: true },
+    nameChinese: { type: String, trim: true },
+    changedAt: { type: Date },
+    source: { type: String, enum: ['merger', 'seed', 'manual'], default: 'manual' },
+    mergedFromPersonnelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Personnel' },
+    notes: { type: String, trim: true },
+  }],
+  // 软合并反向指针：源 personnel status='merged' 后指向 target _id（nullable）
+  mergedInto: { type: mongoose.Schema.Types.ObjectId, ref: 'Personnel' },
+  mergedAt: { type: Date },
+  mergedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
 // 全文本搜索索引（搜索增强 M2.1）：覆盖中英文名/证件号/邮箱
 personnelSchema.index({ name: 'text', nameChinese: 'text', nric: 'text', idNumber: 'text', email: 'text' });
 personnelSchema.index({ nric: 1 }, { sparse: true });
+// v6.x 合并：源 personnel mergedInto 反查 → 列出哪些人员被合并到当前 target
+personnelSchema.index({ mergedInto: 1 }, { sparse: true });
+// v6.x 去重：formerNames 任一项可命中 name/nameChinese（按元素查 → 用于 alias 重复检测）；sparse 跳过无曾用名的人员
+personnelSchema.index({ 'formerNames.name': 1 }, { sparse: true });
+personnelSchema.index({ 'formerNames.nameChinese': 1 }, { sparse: true });
 
 module.exports = mongoose.model('Personnel', personnelSchema);

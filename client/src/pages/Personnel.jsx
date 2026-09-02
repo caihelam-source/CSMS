@@ -110,11 +110,11 @@ export default function Personnel() {
       // normalize 规则 E 保证 listRes.data.data 是数组；防御性兜底防同类隐患
       setPersonnel(Array.isArray(listRes?.data?.data) ? listRes.data.data : [])
       setCompanies(Array.isArray(compRes?.data?.data) ? compRes.data.data : [])
-      // Load duplicate info
+      // Load duplicate info（后端 v6.x 返回 { success, duplicates:[...groups], total }）
       try {
         const dupRes = await personnelService.getDuplicates()
-        // normalize 后 success 已被吞；payload 在 dupRes.data.data；paging.total 在 dupRes.paging
-        setDuplicateWarnings(Array.isArray(dupRes?.data?.data) ? dupRes.data.data : [])
+        const groups = dupRes?.data?.duplicates || dupRes?.duplicates || []
+        setDuplicateWarnings(Array.isArray(groups) ? groups : [])
       } catch { /* 重复检测失败不影响主列表加载 */ }
     } catch (err) {
       const status = err?.response?.status
@@ -215,6 +215,19 @@ export default function Personnel() {
       toast.error(err.response?.data?.message || 'Merge failed')
     }
   }
+
+  // v6.x 人员去重：手动触发重复检测并提示结果
+  const openDuplicateCheck = useCallback(async () => {
+    try {
+      const dupRes = await personnelService.getDuplicates()
+      const groups = dupRes?.data?.duplicates || dupRes?.duplicates || []
+      setDuplicateWarnings(Array.isArray(groups) ? groups : [])
+      if (!groups.length) toast.success('未检测到重复人员')
+      else toast(`检测到 ${groups.length} 个重复组`, { icon: <AlertTriangle /> })
+    } catch (err) {
+      toast.error(err.response?.data?.message || '检测失败')
+    }
+  }, [])
 
   // ---- Excel 批量导入（统一：建人员 + 自动关联任职公司）----
   const downloadTemplate = () => {
@@ -318,6 +331,11 @@ export default function Personnel() {
                 <Merge size={16} /> Merge Selected
               </button>
             )}
+            <button onClick={openDuplicateCheck}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 border border-hairline text-ink rounded-lg hover:bg-canvas text-sm font-medium w-full sm:w-auto whitespace-nowrap"
+              title="按中文名 / 拼音 / 别名查找重复人员，可一键软合并">
+              <Merge size={15} /> 检测重复
+            </button>
             <button onClick={() => { setImportResult(null); setImportModal(true) }}
               className="flex items-center justify-center gap-1.5 px-3 py-2 border border-hairline text-ink rounded-lg hover:bg-canvas text-sm font-medium w-full sm:w-auto whitespace-nowrap">
               <Upload size={15} /> Excel 导入
@@ -454,7 +472,7 @@ export default function Personnel() {
 
       {/* Merge Modal */}
       <Modal isOpen={showMergeModal} onClose={() => { setShowMergeModal(false); setSelectedIds([]); setMergeTargetId('') }} title="Merge Personnel" size="md">
-            <p className="text-sm text-ink-2 mb-4">Select which person to keep as the main record. The other will be deleted and all references (companies, meetings, documents) will be updated.</p>
+            <p className="text-sm text-ink-2 mb-4">保留哪个人员作为主记录。另一方将进入 <span className="font-medium text-primary-700">软合并（status='merged'）</span>，其姓名/中文名作为曾用名（formerNames）保留在主记录，所有引用（公司任职、会议、文档、签署任务、待办）自动迁到主记录——零数据丢失，可回滚。</p>
             <div className="space-y-3">
               {selectedIds.map(id => {
                 const p = personnel.find(pp => pp._id === id)

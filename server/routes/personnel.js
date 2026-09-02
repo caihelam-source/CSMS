@@ -9,6 +9,7 @@ const Document = require('../models/Document');
 const Task = require('../models/Task');
 const ComplianceReminder = require('../models/ComplianceReminder');
 const SignTask = require('../models/SignTask');
+const { findPersonnelDuplicates, extractBracketAliases } = require('../utils/personnelDedup');
 const { auth } = require('../middleware/auth');
 const {
   scopeMiddleware,
@@ -56,6 +57,10 @@ router.get('/', auth, scopeMiddleware, async (req, res) => {
     // 行级数据范围：人员靠 Company.links 反查（Personnel 无 company 字段）
     // 语义：null=不受限；[]=明确无授权（结果为空）；[...]=受限
     // 与用户显式传入的 ?company= 取「交集」而非覆盖 —— 越权公司过滤后为空列表（无声过滤，不报 403）
+    // v6.x：默认排除已合并（status='merged'）的源人员，避免列表出现重复；?includeMerged=true 可显式包含
+    if (req.query.includeMerged !== 'true') {
+      query.status = { $ne: 'merged' }
+    }
     const scopedPids = await resolvePersonnelIdsInScope(req);
     if (scopedPids !== null) {
       const allow = new Set(scopedPids.map(String));
@@ -351,52 +356,72 @@ router.delete('/:id', auth, async (req, res) => {
 
 
 // Duplicate detection — GET /api/personnel/duplicates
+// v6.x：使用 personnelDedup 三层匹配（exact_nric / exact_chinese / alias / pinyin），
+// 能识别「纯中文 ↔ 拼音+中文」变体（如 施金帆 ↔ JINFAN / 施金帆）。
 router.get('/duplicates', auth, async (req, res) => {
   try {
-    const { search, idNumber, name } = req.query;
-    let query = {};
+    const all = await Personnel.find({ status: { $ne: 'merged' } }).lean();
+    const pairs = findPersonnelDuplicates(all);
 
-    // 按证件号精确匹配重复
-    if (idNumber) {
-      query.nric = { $regex: idNumber, $options: 'i' };
-    } else if (search) {
-      // 按姓名模糊匹配 + 证件号部分匹配
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { nameChinese: { $regex: search, $options: 'i' } },
-        ...(name ? [{ name: { $regex: name, $options: 'i' } }] : []),
-      ];
-      // 如果有证件号，加上精确匹配
-      if (idNumber) {
-        query.nric = { $regex: idNumber, $options: 'i' };
-      }
+    if (!pairs.length) {
+      return res.json({ success: true, duplicates: [], total: 0 });
     }
 
-    const records = await Personnel.find(query).lean().sort({ name: 1 });
+    // 并查集：把 pair 收敛为「重复组」（施南路 3 条记录 → 1 组）
+    const parent = {};
+    const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x] } return x }
+    const union = (a, b) => { parent[find(a)] = find(b) }
+    const idSet = new Set()
+    pairs.forEach((p) => {
+      const a = String(p.a._id), b = String(p.b._id)
+      idSet.add(a); idSet.add(b)
+      if (!parent[a]) parent[a] = a
+      if (!parent[b]) parent[b] = b
+      union(a, b)
+    })
+    const groups = {}
+    idSet.forEach((id) => {
+      const root = find(id)
+      if (!groups[root]) groups[root] = []
+      groups[root].push(id)
+    })
 
-    // 按 name 分组，找出有重复的记录
-    const duplicates = {};
-    records.forEach(r => {
-      const key = (r.name || '').toLowerCase().trim();
-      if (!duplicates[key]) duplicates[key] = [];
-      duplicates[key].push(r);
-    });
+    // 每组：找 link 数最多的成员作为建议 target（保住 Company.links 任职数据）
+    const linkCounts = {}
+    await Promise.all([...idSet].map(async (id) => {
+      linkCounts[id] = await Company.countDocuments({ 'links.link': id, 'links.linkModel': 'Personnel' })
+    }))
+    const byId = new Map(all.map((r) => [String(r._id), r]))
 
-    // 只返回有重复的组
-    const duplicateGroups = Object.entries(duplicates)
-      .filter(([_, group]) => group.length > 1)
-      .map(([_key, group]) => ({
-        name: group[0].name,
-        count: group.length,
-        records: group.map(r => ({
+    const duplicateGroups = Object.values(groups).map((ids) => {
+      const members = ids.map((id) => byId.get(id)).filter(Boolean)
+      // 建议 target：link 数最多 → 有 nameChinese → roles 多 → 名字更「标准」(含中文且不含空格)
+      const scored = members.map((m) => ({
+        m,
+        score: (linkCounts[String(m._id)] || 0) * 100
+          + (m.nameChinese ? 10 : 0)
+          + (m.roles ? m.roles.length : 0)
+          + (/[一-鿿]/.test(m.name) && !/\s/.test(m.name) ? 1 : 0),
+      }))
+      scored.sort((x, y) => y.score - x.score)
+      const target = scored[0].m
+      return {
+        key: ids.slice().sort().join('|'),
+        count: members.length,
+        name: target.name + (target.nameChinese ? ' / ' + target.nameChinese : ''),
+        suggestedTargetId: String(target._id),
+        records: members.map((r) => ({
           _id: r._id,
           name: r.name,
-          nric: r.nric,
-          email: r.email,
-          phone: r.phone,
-          appointments: 0, // v5.0 读时聚合：任职关系已迁至 Company.links，不再 stored
+          nameChinese: r.nameChinese || '',
+          nric: r.nric || '',
+          email: r.email || '',
+          phone: r.phone || '',
+          linkCount: linkCounts[String(r._id)] || 0,
+          roles: r.roles || [],
         })),
-      }));
+      }
+    })
 
     res.json({ success: true, duplicates: duplicateGroups, total: duplicateGroups.length });
   } catch (err) {
@@ -405,6 +430,8 @@ router.get('/duplicates', auth, async (req, res) => {
 });
 
 // Merge personnel — POST /api/personnel/merge
+// v6.x 软合并（与公司同构）：迁移全部 7 类引用 → 追加 formerNames 到 target → 保最佳数据 →
+// 将源 status='merged' + mergedInto=target（零数据丢失，可回滚方向）。不再硬删源。
 router.post('/merge', auth, async (req, res) => {
   try {
     const { targetId, sourceId } = req.body;
@@ -419,29 +446,52 @@ router.post('/merge', auth, async (req, res) => {
     const source = await Personnel.findById(sourceId);
     if (!target) return res.status(404).json({ message: 'Target personnel not found' });
     if (!source) return res.status(404).json({ message: 'Source personnel not found' });
+    if (target.status === 'merged' || source.status === 'merged') {
+      return res.status(409).json({ message: 'Cannot merge with an already-merged record' });
+    }
 
-    // v5.0 读时聚合：重指单一事实源 Company.links（不再维护 Personnel.appointments）
-    const sourceObj = mongoose.Types.ObjectId(sourceId);
-    const targetObj = mongoose.Types.ObjectId(targetId);
-    await Company.updateMany(
-      { 'links.link': sourceObj, 'links.linkModel': 'Personnel' },
-      { $set: { 'links.$[elem].link': targetObj } },
-      { arrayFilters: [{ 'elem.link': sourceObj, 'elem.linkModel': 'Personnel' }] }
-    );
+    const sourceObj = new mongoose.Types.ObjectId(sourceId);
+    const targetObj = new mongoose.Types.ObjectId(targetId);
 
-    // v5.0 读时聚合为事实源：合并后从 Company.links 重算 target.roles，
-    // 不再合并可能过期的 stored 缓存（source 的 links 已重指向 target，故重算即含合并结果）
-    const targetCos = await Company.find(
-      { 'links.link': targetObj, 'links.linkModel': 'Personnel' },
-      'links',
-    )
+    // 1) 迁移全部 7 类引用
+    await Promise.all([
+      // a) Company.links（单一事实源）
+      Company.updateMany(
+        { 'links.link': sourceObj, 'links.linkModel': 'Personnel' },
+        { $set: { 'links.$[elem].link': targetObj } },
+        { arrayFilters: [{ 'elem.link': sourceObj, 'elem.linkModel': 'Personnel' }] },
+      ),
+      // b) DirectorEntry.personnelRef
+      DirectorEntry.updateMany({ personnelRef: sourceId }, { $set: { personnelRef: targetId } }),
+      // c) ShareholderEntry.personnelRef
+      ShareholderEntry.updateMany({ personnelRef: sourceId }, { $set: { personnelRef: targetId } }),
+      // d) Meeting.attendees.ref
+      Meeting.updateMany(
+        { 'attendees.ref': sourceId },
+        { $set: { 'attendees.$.ref': targetId, 'attendees.$.name': target.name } },
+      ),
+      // e) Document.personnel
+      Document.updateMany({ personnel: sourceId }, { $set: { personnel: targetId } }),
+      // f) SignTask：顶层 signer + signers[] 数组（双写兼容）
+      SignTask.updateMany({ signer: sourceId }, { $set: { signer: targetId, signerName: target.name } }),
+      SignTask.updateMany(
+        { 'signers.signer': sourceId },
+        { $set: { 'signers.$[s].signer': targetId } },
+        { arrayFilters: [{ 's.signer': sourceObj }] },
+      ),
+      // g) Task.personnel
+      Task.updateMany({ personnel: sourceId }, { $set: { personnel: targetId } }),
+    ]);
+
+    // 2) 重算 target.roles（从 Company.links 读时聚合）
+    const targetCos = await Company.find({ 'links.link': targetObj, 'links.linkModel': 'Personnel' }, 'links')
     target.roles = [...new Set(
       targetCos.flatMap((c) => (c.links || [])
         .filter((l) => l.linkModel === 'Personnel' && l.link?.toString() === targetId)
         .flatMap((l) => l.roles || [])),
     )]
 
-    // Preserve best data from source
+    // 3) 保最佳数据
     if (!target.nric && source.nric) target.nric = source.nric;
     if (!target.email && source.email) target.email = source.email;
     if (!target.phone && source.phone) target.phone = source.phone;
@@ -450,39 +500,53 @@ router.post('/merge', auth, async (req, res) => {
     if (source.notes && !target.notes) target.notes = source.notes;
     else if (source.notes) target.notes += '\n[来自合并] ' + source.notes;
 
-    // Move company-level links: update references from sourceId to targetId
-    // 迁移完成后遗留表应废弃；默认不再双写，避免与 Company.links 单一事实源漂移
-    if (process.env.KEEP_LEGACY_ENTRIES) {
-      // Update ShareholderEntry references
-      await ShareholderEntry.updateMany(
-        { personnelRef: sourceId },
-        { $set: { personnelRef: targetId } }
-      );
-
-      // Update DirectorEntry references
-      await DirectorEntry.updateMany(
-        { personnelRef: sourceId },
-        { $set: { personnelRef: targetId } }
-      );
+    // 4) formerNames 入 target（源 name/nameChinese + 括注中文别名，如「施侃成」）
+    const newFormer = [{
+      name: source.name,
+      nameChinese: source.nameChinese || undefined,
+      changedAt: new Date(),
+      source: 'merger',
+      mergedFromPersonnelId: source._id,
+    }]
+    const aliases = extractBracketAliases(source.name)
+    for (const al of aliases) {
+      if (!target.formerNames?.some((f) => (f.nameChinese || f.name) === al)) {
+        newFormer.push({ name: al, nameChinese: al, changedAt: new Date(), source: 'merger', mergedFromPersonnelId: source._id })
+      }
     }
+    target.formerNames = [...(target.formerNames || []), ...newFormer]
 
-    // Update Meeting attendee references
-    await Meeting.updateMany(
-      { 'attendees.ref': sourceId },
-      { $set: { 'attendees.$.ref': targetId, 'attendees.$.name': target.name } }
-    );
+    await target.save()
 
-    // Update Document references
-    await Document.updateMany(
-      { personnel: sourceId },
-      { $set: { personnel: targetId } }
-    );
+    // 5) 软关 source（零数据丢失）
+    source.status = 'merged'
+    source.mergedInto = target._id
+    source.mergedAt = new Date()
+    source.mergedBy = req.user ? req.user._id : null
+    await source.save()
 
-    // Delete source
-    await Personnel.findByIdAndDelete(sourceId);
-    await target.save();
+    res.json({ success: true, message: 'Personnel merged successfully (soft)', personnel: target });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
-    res.json({ success: true, message: 'Personnel merged successfully', personnel: target });
+// Manage formerNames — PUT /api/personnel/:id/former-names
+// v6.x 对齐 Company：用户可手填/追加曾用名（中文名/别名），供 alias 重复检测与展示。
+router.put('/:id/former-names', auth, async (req, res) => {
+  try {
+    const p = await Personnel.findById(req.params.id)
+    if (!p) return res.status(404).json({ message: 'Personnel not found' })
+    const list = Array.isArray(req.body.formerNames) ? req.body.formerNames : []
+    p.formerNames = list.map((f) => ({
+      name: f.name || undefined,
+      nameChinese: f.nameChinese || undefined,
+      changedAt: f.changedAt ? new Date(f.changedAt) : new Date(),
+      source: f.source || 'manual',
+      notes: f.notes || undefined,
+    }))
+    await p.save()
+    res.json({ success: true, formerNames: p.formerNames })
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -491,17 +555,23 @@ router.post('/merge', auth, async (req, res) => {
 // Check duplicates on create — POST /api/personnel/check-duplicate
 router.post('/check-duplicate', auth, async (req, res) => {
   try {
-    const { name, nric, email } = req.body;
-    let query = {};
-    
+    const { name, nameChinese, nric, email } = req.body;
+    let query = { $or: [] };
+
     if (nric) {
-      query.nric = nric;
-    } else if (name) {
-      query.name = { $regex: `^${name}$`, $options: 'i' };
-    } else if (email) {
-      query.email = email;
+      query.$or.push({ nric: { $regex: nric.replace(/^demo-nric-/i, ''), $options: 'i' } });
+    }
+    if (name) {
+      query.$or.push({ name: { $regex: `^${name}$`, $options: 'i' } });
+    }
+    if (nameChinese) {
+      query.$or.push({ nameChinese: { $regex: `^${nameChinese}$`, $options: 'i' } });
+    }
+    if (email) {
+      query.$or.push({ email });
     }
 
+    if (!query.$or.length) query = {};
     const matches = await Personnel.find(query);
     const hasDuplicate = matches.length > 0;
 

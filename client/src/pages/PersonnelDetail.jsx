@@ -231,6 +231,24 @@ export default function PersonnelDetail() {
               <p className="text-sm text-ink-2">{person.notes}</p>
             </div>
           )}
+          {/* v6.x 曾用名 / 别名（合并来源）：由 merge 接口或用户手填追加 */}
+          {!editingPersonal && person.formerNames?.length > 0 && (
+            <div className="pt-3 border-t border-hairline">
+              <p className="text-xs text-ink-3 mb-1">曾用名 / 别名（合并来源）</p>
+              <div className="flex flex-wrap gap-1">
+                {person.formerNames.map((fn, i) => (
+                  <span key={i} className="tag bg-warning/10 text-warning" title={fn.source === 'merger' ? '由合并产生' : (fn.notes || '')}>
+                    {fn.nameChinese || fn.name}{fn.source === 'merger' ? ' · 合并' : ''}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {!editingPersonal && person.status === 'merged' && (
+            <div className="pt-3 border-t border-hairline text-xs text-ink-3">
+              此记录已软合并（status='merged'）
+            </div>
+          )}
         </div>
 
         {/* 右：任职公司（按角色） */}

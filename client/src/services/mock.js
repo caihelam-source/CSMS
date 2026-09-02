@@ -730,7 +730,7 @@ export const personnel = {
     throw new Error('Not found');
   },
   delete: async (id) => { await delay(); return { data: { data: { _id: id } } }; },
-  // Merge two personnel: source merged into target, then source deleted
+  // v6.x 人员软合并：源 status='merged' + mergedInto=target（零数据丢失），引用迁移，formerNames 入 target
   merge: async (targetId, sourceId) => {
     await delay();
     const targetIdx = MOCK_PERSONNEL.findIndex(p => p._id === targetId);
@@ -738,13 +738,12 @@ export const personnel = {
     if (targetIdx < 0 || sourceIdx < 0) throw new Error('Personnel not found');
     const target = MOCK_PERSONNEL[targetIdx];
     const source = MOCK_PERSONNEL[sourceIdx];
-    ['name','nric','email','phone','nationality','notes'].forEach(k => {
+    ['nric','email','phone','nationality','notes'].forEach(k => {
       if (!target[k] && source[k]) target[k] = source[k];
     });
-    if (source.address && source.address.country) {
-      if (!target.address) target.address = {};
-      if (!target.address.country) target.address.country = source.address.country;
-    }
+    if (!target.nameChinese && source.nameChinese) target.nameChinese = source.nameChinese;
+    if (!target.formerNames) target.formerNames = [];
+    target.formerNames.push({ name: source.name, nameChinese: source.nameChinese || undefined, source: 'merger', changedAt: new Date().toISOString() });
     MOCK_COMPANIES.forEach(c => {
       (c.links || []).forEach(link => {
         if (link.linkModel === 'Personnel' && link.link?._id === sourceId) link.link._id = targetId;
@@ -758,9 +757,16 @@ export const personnel = {
     MOCK_DOCUMENTS.forEach(d => {
       if (d.personnel?._id === sourceId) d.personnel._id = targetId;
     });
-    const adjustedSourceIdx = MOCK_PERSONNEL.findIndex(p => p._id === sourceId);
-    if (adjustedSourceIdx >= 0) MOCK_PERSONNEL.splice(adjustedSourceIdx, 1);
+    // 软关 source（mock 中保留但标记 merged，列表过滤 exclude）
+    source.status = 'merged';
+    source.mergedInto = targetId;
+    source.mergedAt = new Date().toISOString();
     return { data: { data: target } };
+  },
+  // v6.x 人员去重检测（mock：默认无重复对；真实环境由后端 findPersonnelDuplicates 返回）
+  duplicates: async () => {
+    await delay();
+    return { data: { duplicates: [], total: 0 } };
   },
 };
 

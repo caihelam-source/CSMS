@@ -230,6 +230,10 @@ export const personnelService = {
     (targetId, sourceId) => api.post(`/api/personnel/merge`, { targetId, sourceId }),
     mockPersonnel.merge,
   ),
+  getDuplicates: wrap(
+    () => api.get(`/api/personnel/duplicates`),
+    mockPersonnel.duplicates,
+  ),
   getByPersonnel: wrap(
     (id) => api.get(`/api/personnel/${id}/aggregate`),
     mockPersonnel.getByPersonnel,
