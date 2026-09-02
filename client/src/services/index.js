@@ -501,6 +501,11 @@ export const complianceReminderService = {
     () => api.get('/api/compliance-reminders/statistics'),
     mockComplianceReminders.getStatistics,
   ),
+  // 按公司+规则重建开放提醒（BR 续期 / NAR1 补录后刷新）；mock 下无副作用
+  recompute: wrap(
+    (data) => api.post('/api/compliance-reminders/recompute', data),
+    () => Promise.resolve({ data: { success: true, data: { created: 0, skipped: 0, cleared: 0 } } }),
+  ),
   triggerCheck: wrap(
     () => api.post('/api/compliance-reminders/trigger-check'),
     mockComplianceReminders.triggerCheck,

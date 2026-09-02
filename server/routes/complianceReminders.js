@@ -1,8 +1,11 @@
 const express = require('express');
 const ComplianceReminder = require('../models/ComplianceReminder');
+const ComplianceRule = require('../models/ComplianceRule');
+const Company = require('../models/Company');
 const { auth } = require('../middleware/auth');
 const { parsePaging, pagingEnvelope } = require('../utils/pagination');
 const { createTaskFromReminder, createTasksBatch } = require('../services/taskFromReminder');
+const { generateRemindersForRule } = require('../services/complianceService');
 
 const router = express.Router();
 
@@ -35,6 +38,34 @@ router.get('/', auth, async (req, res) => {
     const reminders = await q;
 
     res.json(pagingEnvelope('reminders', reminders, { usePaging, page, limit, total }));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/compliance-reminders/recompute — 按公司+规则重建开放提醒
+// 用途：BR 续期（更新 brExpiryDate 后旧截止日提醒会残留）/ NAR1 补录（补全成立日后）刷新。
+// 流程：先删该公司下相关规则的开放提醒，再按最新公司字段重新生成，保证单一当前周期提醒。
+router.post('/recompute', auth, async (req, res) => {
+  try {
+    const { companyId, ruleIds } = req.body || {};
+    if (!companyId || !Array.isArray(ruleIds) || !ruleIds.length) {
+      return res.status(400).json({ message: 'companyId 与 ruleIds 必填' });
+    }
+    const company = await Company.findById(companyId);
+    if (!company) return res.status(404).json({ message: 'Company not found' });
+    const rules = await ComplianceRule.find({ ruleId: { $in: ruleIds }, status: '启用' });
+    let created = 0, skipped = 0, cleared = 0;
+    for (const rule of rules) {
+      const del = await ComplianceReminder.deleteMany({
+        company: companyId, rule: rule._id, status: { $in: ['待办', '处理中'] },
+      });
+      cleared += del.deletedCount || 0;
+      const r = await generateRemindersForRule(rule, company);
+      created += r.created;
+      skipped += r.skipped;
+    }
+    res.json({ success: true, data: { created, skipped, cleared } });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

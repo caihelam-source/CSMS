@@ -21,9 +21,14 @@ import CompanyEquityTab from '../components/company/CompanyEquityTab'
 import CompanyRegistersTab from '../components/company/CompanyRegistersTab'
 import CompanyTasksTab from '../components/company/CompanyTasksTab'
 import CompanyComplianceTab from '../components/company/CompanyComplianceTab'
+import ComplianceStatusStrip from '../components/company/ComplianceStatusStrip'
 
 // 校验是否为有效 Date 对象（排除 invalid date 与 NaN）
 const isValidDate = (d) => d instanceof Date && !isNaN(d)
+
+// NAR1 / BR 与合规提醒打通所用的预设规则 ID（与 presetRules.js 一致）
+const NAR1_RULE = 'HK_AR_42'
+const BR_RULE = 'HK_BR_RENEW'
 
 // 日期偏移（天）
 const shiftDays = (date, days) => {
@@ -151,6 +156,14 @@ export default function CompanyDetail() {
     ruleFrequency: '',
   })
   const [savingReminder, setSavingReminder] = useState(false)
+
+  // NAR1 / BR 合规状态位（公司简介页双入口，与合规提醒打通）
+  const [showNar1Modal, setShowNar1Modal] = useState(false)
+  const [showBrModal, setShowBrModal] = useState(false)
+  const [nar1Reminder, setNar1Reminder] = useState(null)
+  const [nar1Form, setNar1Form] = useState({ filed: false, incorporationDate: '', file: null })
+  const [brForm, setBrForm] = useState({ expiry: '', file: null })
+  const [savingComplianceDate, setSavingComplianceDate] = useState(false)
 
   // 基本信息内联编辑
   const [editingInfo, setEditingInfo] = useState(false)
@@ -512,6 +525,88 @@ export default function CompanyDetail() {
     } catch { toast.error('添加失败') } finally { setSavingReminder(false) }
   }
 
+  // ── NAR1 / BR 状态位：与合规提醒闭环打通 ──
+  const handleUpdateNar1 = useCallback((rem) => {
+    setNar1Reminder(rem || null)
+    setNar1Form({
+      filed: !!(rem && rem.status !== '已完成'),
+      incorporationDate: company?.incorporationDate ? company.incorporationDate.substring(0, 10) : '',
+      file: null,
+    })
+    setShowNar1Modal(true)
+  }, [company])
+
+  const handleUpdateBr = useCallback((_rem) => {
+    setBrForm({
+      expiry: company?.brExpiryDate ? company.brExpiryDate.substring(0, 10) : '',
+      file: null,
+    })
+    setShowBrModal(true)
+  }, [company])
+
+  const handleGenerateReminder = useCallback(async (ruleId) => {
+    try {
+      await complianceReminderService.recompute({ companyId: id, ruleIds: [ruleId] })
+      toast.success('合规提醒已刷新')
+      loadAll()
+    } catch { toast.error('刷新失败') }
+  }, [id, loadAll])
+
+  const uploadComplianceDoc = useCallback(async (file, { name, type, category }) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('name', name)
+    fd.append('type', type)
+    fd.append('category', category)
+    fd.append('company', JSON.stringify({ _id: id, name: company?.name, registrationNumber: company?.registrationNumber }))
+    fd.append('note', '由公司简介页合规状态位上传')
+    await documentService.upload(fd)
+  }, [id, company])
+
+  const handleSaveNar1 = async () => {
+    setSavingComplianceDate(true)
+    try {
+      if (nar1Form.filed && nar1Reminder) {
+        await complianceReminderService.markCompleted(nar1Reminder._id)
+      }
+      if (nar1Form.incorporationDate && nar1Form.incorporationDate !== (company?.incorporationDate || '').substring(0, 10)) {
+        await companyService.update(id, { incorporationDate: nar1Form.incorporationDate })
+      }
+      if (nar1Form.file) {
+        await uploadComplianceDoc(nar1Form.file, {
+          name: `NAR1 - ${company?.name} (${new Date().getFullYear()})`,
+          type: 'annual_report',
+          category: 'annual_return',
+        })
+      }
+      // 重新生成下一年度提醒（标记完成后确保下一周期存在；补全成立日后确保首条存在）
+      await complianceReminderService.recompute({ companyId: id, ruleIds: [NAR1_RULE] })
+      toast.success('NAR1 已更新，提醒已刷新')
+      setShowNar1Modal(false)
+      loadAll()
+    } catch { toast.error('更新失败') } finally { setSavingComplianceDate(false) }
+  }
+
+  const handleSaveBr = async () => {
+    setSavingComplianceDate(true)
+    try {
+      if (brForm.expiry) {
+        await companyService.update(id, { brExpiryDate: brForm.expiry })
+      }
+      if (brForm.file) {
+        await uploadComplianceDoc(brForm.file, {
+          name: `BR - ${company?.name}`,
+          type: 'certificate',
+          category: 'license_renewal',
+        })
+      }
+      await complianceReminderService.recompute({ companyId: id, ruleIds: [BR_RULE] })
+      toast.success('BR 已更新，续期提醒已刷新')
+      setShowBrModal(false)
+      loadAll()
+    } catch { toast.error('更新失败') } finally { setSavingComplianceDate(false) }
+  }
+
   const downloadRegister = async (type) => {
     if (!company) return
     setGeneratingReg(type)
@@ -866,6 +961,16 @@ export default function CompanyDetail() {
         }
       />
 
+      {/* 合规状态位：NAR1 周年申报 + 商业登记证（与合规提醒打通，单一事实源） */}
+      <ComplianceStatusStrip
+        company={company}
+        reminders={reminders}
+        onUpdateNar1={handleUpdateNar1}
+        onUpdateBr={handleUpdateBr}
+        onViewReminders={() => setActiveTab('compliance')}
+        onGenerate={handleGenerateReminder}
+      />
+
       {/* Tabs */}
       <TabNav
         tabs={[
@@ -1096,6 +1201,58 @@ export default function CompanyDetail() {
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowReminderModal(false)} className="btn-secondary">取消</button>
             <button onClick={handleSaveReminder} disabled={savingReminder || !reminderForm.title || !reminderForm.dueDate} className="btn-primary">{savingReminder ? '添加中...' : '添加提醒'}</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ====== NAR1 更新 Modal（与合规提醒打通） ====== */}
+      <Modal isOpen={showNar1Modal} onClose={() => setShowNar1Modal(false)} title="更新 NAR1 周年申报表" size="md">
+        <div className="space-y-4">
+          {nar1Reminder && nar1Reminder.status !== '已完成' && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer bg-success/10 border border-success/20 rounded-lg p-3">
+              <input type="checkbox" checked={nar1Form.filed} onChange={e => setNar1Form(f => ({ ...f, filed: e.target.checked }))} className="rounded" />
+              <span className="font-medium text-ink">标记本年度已提交</span>
+              <span className="text-xs text-ink-3 ml-auto">下次到期：{formatDate(nar1Reminder.dueDate)}</span>
+            </label>
+          )}
+          {nar1Reminder && nar1Reminder.status === '已完成' && (
+            <div className="text-sm bg-success/10 border border-success/20 rounded-lg p-3 text-success font-medium">
+              ✓ 本年度 NAR1 已提交（到期日 {formatDate(nar1Reminder.dueDate)}）
+            </div>
+          )}
+          <FormField label="成立日期" hint="NAR1 提醒基准 = 成立周年日 + 42 天；补全后可自动续排">
+            <input type="date" className={inputClass} value={nar1Form.incorporationDate}
+              onChange={e => setNar1Form(f => ({ ...f, incorporationDate: e.target.value }))} />
+          </FormField>
+          <FormField label="上传 NAR1 正本（PDF，可选）">
+            <input type="file" accept="application/pdf,.pdf" className={inputClass}
+              onChange={e => setNar1Form(f => ({ ...f, file: e.target.files[0] || null }))} />
+          </FormField>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setShowNar1Modal(false)} className="btn-secondary">取消</button>
+            <button onClick={handleSaveNar1} disabled={savingComplianceDate} className="btn-primary">
+              {savingComplianceDate ? '保存中...' : '保存并更新提醒'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ====== BR 更新 Modal（与合规提醒打通） ====== */}
+      <Modal isOpen={showBrModal} onClose={() => setShowBrModal(false)} title="更新商业登记证（BR）" size="md">
+        <div className="space-y-4">
+          <FormField label="商业登记证到期日" required hint="续期提醒基准 = 到期日 - 30 天">
+            <input type="date" className={inputClass} value={brForm.expiry}
+              onChange={e => setBrForm(f => ({ ...f, expiry: e.target.value }))} />
+          </FormField>
+          <FormField label="上传 BR 证（PDF，可选）">
+            <input type="file" accept="application/pdf,.pdf" className={inputClass}
+              onChange={e => setBrForm(f => ({ ...f, file: e.target.files[0] || null }))} />
+          </FormField>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setShowBrModal(false)} className="btn-secondary">取消</button>
+            <button onClick={handleSaveBr} disabled={savingComplianceDate || !brForm.expiry} className="btn-primary">
+              {savingComplianceDate ? '保存中...' : '保存并刷新续期提醒'}
+            </button>
           </div>
         </div>
       </Modal>
