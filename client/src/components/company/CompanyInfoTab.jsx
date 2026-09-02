@@ -60,6 +60,23 @@ export default function CompanyInfoTab({ ctx }) {
                 </FormField>
               )}
             </div>
+            {/* HK 专属：标记「在港注册的非香港公司」，勾选后年度申报表由 NAR1 切换为 NN3 */}
+            {infoForm.jurisdiction === 'HK' && (
+              <label className="flex items-start gap-2.5 p-3 rounded-xl bg-info/5 border border-info/20 cursor-pointer hover:bg-info/10 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={!!infoForm.nonHongKongCompany}
+                  onChange={e => setInfoForm(f => ({ ...f, nonHongKongCompany: e.target.checked }))}
+                  className="mt-0.5 w-4 h-4 accent-primary-600"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink-1">在港注册的非香港公司</p>
+                  <p className="text-xs text-ink-3 mt-0.5 leading-relaxed">
+                    适用对象：根据《公司条例》注册的海外公司（如 BVI/Cayman 公司在港设有注册办事处）。勾选后年度申报表将由 <span className="font-medium text-primary-700">NAR1</span> 切换为 <span className="font-medium text-primary-700">NN3</span>。
+                  </p>
+                </div>
+              </label>
+            )}
             <div className="grid grid-cols-3 gap-3">
               <FormField label="已发行股份"><input type="number" className={inputClass} value={infoForm.issuedShares} onChange={e => setInfoForm(f => ({ ...f, issuedShares: e.target.value }))} /></FormField>
               <FormField label="已缴股本"><input type="number" className={inputClass} value={infoForm.paidUpCapital} onChange={e => setInfoForm(f => ({ ...f, paidUpCapital: e.target.value }))} /></FormField>
@@ -96,6 +113,15 @@ export default function CompanyInfoTab({ ctx }) {
                 <div className="flex justify-between"><span className="text-ink-2">已发行股份</span><span>{company.shareCapital.issued?.toLocaleString()} {company.shareCapital.currency}</span></div>
                 <div className="flex justify-between"><span className="text-ink-2">已缴股本</span><span>{company.shareCapital.paidUp?.toLocaleString()} {company.shareCapital.currency}</span></div>
               </>
+            )}
+            {/* 申报类型：HK 本地公司 NAR1 vs 在港注册非香港公司 NN3（BR 通用） */}
+            {company.jurisdiction === 'HK' && company.nonHongKongCompany && (
+              <div className="flex justify-between items-center pt-2 border-t border-hairline">
+                <span className="text-ink-2">年度申报表</span>
+                <span className="inline-flex items-center gap-1 text-xs font-medium bg-info/10 text-primary-700 px-2 py-1 rounded-full">
+                  NN3 · 在港注册非香港公司
+                </span>
+              </div>
             )}
           </dl>
         )}

@@ -407,6 +407,7 @@ export default function CompanyDetail() {
       currency: company?.shareCapital?.currency || 'HKD',
       brExpiryDate: company?.brExpiryDate?.substring?.(0, 10) || '',
       bviRelevantActivity: company?.bviRelevantActivity || '',
+      nonHongKongCompany: !!company?.nonHongKongCompany,
       street: company?.registeredAddress?.street || '',
       city: company?.registeredAddress?.city || '',
       state: company?.registeredAddress?.state || '',
@@ -418,6 +419,8 @@ export default function CompanyDetail() {
   const saveInfo = useCallback(async () => {
     setSavingInfo(true)
     try {
+      const prevNonHK = !!company?.nonHongKongCompany
+      const nextNonHK = !!infoForm.nonHongKongCompany
       await companyService.update(id, {
         name: infoForm.name,
         registrationNumber: infoForm.registrationNumber,
@@ -437,12 +440,18 @@ export default function CompanyDetail() {
         },
         brExpiryDate: infoForm.brExpiryDate || undefined,
         bviRelevantActivity: infoForm.bviRelevantActivity || undefined,
+        nonHongKongCompany: nextNonHK,
       })
       toast.success('公司信息已更新')
       setEditingInfo(false)
+      // 切换 nonHongKongCompany 后立即 ensure 对应年度申报 + BR 提醒（idempotent，幂等）
+      if (infoForm.jurisdiction === 'HK' && prevNonHK !== nextNonHK) {
+        const ruleIds = nextNonHK ? ['HK_NN3_AR', 'HK_BR_RENEW'] : ['HK_AR_42', 'HK_BR_RENEW']
+        complianceReminderService.ensure({ companyId: id, ruleIds }).catch(() => {})
+      }
       loadAll()
     } catch { toast.error('更新失败') } finally { setSavingInfo(false) }
-  }, [id, infoForm, loadAll])
+  }, [id, infoForm, company, loadAll])
 
   // ---- 合规提醒新增（联动 Rules + 自定义沉淀） ----
   const openAddReminder = () => {
