@@ -13,11 +13,13 @@
  * 凭证: 从 .workbuddy/memory/SECRETS.md 解析 (MONGODB_URI + R2_*)，沙箱需绕开 egress 才能连库/传桶。
  *
  * 用法:
- *   node scripts/seed-nar1-full.js            # 真实写入（数据 + 文件）
- *   node scripts/seed-nar1-full.js --dry-run  # 只校验 14 份 PDF 路径映射 + JSON 解析，不连库不传文件
+ *   node scripts/seed-nar1-full.js                      # 真实写入（数据 + 文件，已存在公司/人员仅补角色/文件引用）
+ *   node scripts/seed-nar1-full.js --dry-run            # 只校验 14 份 PDF 路径映射 + JSON 解析，不连库不传文件
+ *   node scripts/seed-nar1-full.js --overwrite          # 已存在公司/人员/法人实体也按修正后 JSON 全量更新字段（不删、不覆盖 notes）
+ *   node scripts/seed-nar1-full.js --overwrite --dry-run  # 连库预览将变更的字段，不写入、不上传
  *
  * 幂等: Company 按 registrationNumber upsert; Document 按 name+company upsert（已存在则补传文件引用）;
- *       links 合并去重; 重复运行安全。
+ *       --overwrite 时 Company/Personnel/法人实体 已存在则 $set 修正后字段（仅更新 JSON 提供的字段，保留 notes），重复运行安全。
  */
 'use strict'
 
@@ -52,6 +54,9 @@ process.env.R2_PUBLIC_URL = SEC.R2_PUBLIC_URL
 process.env.STORAGE_DRIVER = 'r2'
 
 const DRY_RUN = process.argv.includes('--dry-run')
+const OVERWRITE = process.argv.includes('--overwrite')
+// 保存封装：--overwrite --dry-run 预览模式时只 return 不落库
+let persist = (doc) => doc.save()
 
 // ---------- 14 份 NAR1 原件本地路径（sourceFile -> 绝对路径） ----------
 const PDF_ROOT = 'D:/BaiduSyncdisk/CNC接收文件/04_香港子公司'
@@ -140,6 +145,14 @@ function mapRole(role) {
   if (role === 'shareholder') return 'shareholder'
   return 'other'
 }
+// 人名规范化：去首尾空格 + 全大写 + 多空格合并（消除 SHI Nanlu / SHI NANLU 同人异写，
+// 与 fix-nar1-names.js 的 canonical 规则一致，避免覆盖写把已规范的名字打回混合大小写）
+function canonName(s) {
+  return String(s || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+}
 
 async function addLink(company, link) {
   const exist = company.links.find(
@@ -149,7 +162,7 @@ async function addLink(company, link) {
     for (const r of link.roles) if (!exist.roles.includes(r)) exist.roles.push(r)
     if (link.shares != null && exist.shares == null) exist.shares = link.shares
     if (link.shareType && !exist.shareType) exist.shareType = link.shareType
-    await company.save()
+    await persist(company)
     return
   }
   company.links.push({
@@ -160,7 +173,7 @@ async function addLink(company, link) {
     shareType: link.shareType || undefined,
     appointmentDate: undefined,
   })
-  await company.save()
+  await persist(company)
 }
 
 // ---------- dry-run：仅校验路径 + JSON ----------
@@ -238,9 +251,12 @@ function dryRun(data) {
 
 // ---------- 真实写入 ----------
 async function main() {
-  const { storage } = require(path.join(__dirname, '..', 'server/storage/r2'))
+  const PREVIEW = OVERWRITE && DRY_RUN
+  persist = PREVIEW ? (doc) => Promise.resolve(doc) : (doc) => doc.save()
+  const storage = PREVIEW ? null : require(path.join(__dirname, '..', 'server/storage/r2')).storage
   await mongoose.connect(process.env.MONGODB_URI)
   console.log('✅ Connected to', process.env.MONGODB_URI.replace(/\/\/[^@]*@/, '//***@'))
+  if (PREVIEW) console.log('🔍 PREVIEW 模式（--overwrite --dry-run）：仅预览变更，不写入、不上传\n')
 
   const Company = require(path.join(__dirname, '..', 'server/models/Company'))
   const Personnel = require(path.join(__dirname, '..', 'server/models/Personnel'))
@@ -271,7 +287,7 @@ async function main() {
     console.log('👤 Created import bot user:', BOT_EMAIL)
   }
 
-  const stats = { companies: 0, personnel: 0, entityCompanies: 0, documents: 0, documentsUpdated: 0, links: 0, skipped: 0, filesUploaded: 0 }
+  const stats = { companies: 0, personnel: 0, entityCompanies: 0, documents: 0, documentsUpdated: 0, links: 0, skipped: 0, filesUploaded: 0, companiesUpdated: 0, personnelUpdated: 0, entityCompaniesUpdated: 0 }
 
   for (const res of data.results) {
     const c = res.company
@@ -287,12 +303,16 @@ async function main() {
 
     // 上传原件到 R2
     let stored = null
-    try {
-      stored = await storage.upload(pdfBuf, pdfName, 'application/pdf')
-      stats.filesUploaded++
-      console.log(`  📤 已上传 R2: ${stored.key} (${stored.size} bytes)`)
-    } catch (e) {
-      console.log(`  ❌ R2 上传失败，文档将建空记录: ${e.message}`)
+    if (!PREVIEW) {
+      try {
+        stored = await storage.upload(pdfBuf, pdfName, 'application/pdf')
+        stats.filesUploaded++
+        console.log(`  📤 已上传 R2: ${stored.key} (${stored.size} bytes)`)
+      } catch (e) {
+        console.log(`  ❌ R2 上传失败，文档将建空记录: ${e.message}`)
+      }
+    } else {
+      console.log(`  🔍 PREVIEW: 将上传 R2 ${pdfName}`)
     }
 
     // --- Company upsert ---
@@ -322,7 +342,24 @@ async function main() {
       console.log(`  🏢 Created company: ${c.name} (${regNo})`)
     } else {
       stats.skipped++
-      console.log(`  ⏭ Exists company: ${c.name} (${regNo})`)
+      if (OVERWRITE) {
+        company.name = c.name
+        if (c.nameChinese) company.nameChinese = c.nameChinese
+        company.type = typeVal || company.type
+        company.jurisdiction = c.jurisdiction || company.jurisdiction
+        company.status = c.status || company.status
+        company.incorporationDate = c.incorporationDate || company.incorporationDate
+        const addr = parseAddress(c.registeredAddressRaw)
+        if (addr.street) company.registeredAddress = addr
+        const share = c.shareCapital || {}
+        if (share.issuedShares != null) company.shareCapital = { issued: share.issuedShares, paidUp: share.paidUpAmount, currency: share.currency || 'HKD' }
+        // notes 保留，不覆盖
+        await persist(company)
+        stats.companiesUpdated++
+        console.log(`  ${PREVIEW ? '🔍 PREVIEW' : '🔄'} 更新公司: ${c.name} (${regNo})`)
+      } else {
+        console.log(`  ⏭ Exists company: ${c.name} (${regNo})`)
+      }
     }
 
     // BR 有效期合并
@@ -338,7 +375,7 @@ async function main() {
       for (const item of g.items) {
         const linkRole = mapRole(item.role || g.role)
         if (item.entityType === 'person') {
-          const pname = String(item.name || '').trim()
+          const pname = canonName(item.name)
           if (!pname) continue
           let p = await Personnel.findOne({ name: pname })
           if (!p) {
@@ -354,6 +391,18 @@ async function main() {
             })
             stats.personnel++
             console.log(`  👤 Created personnel: ${pname} (${g.role})`)
+          } else if (OVERWRITE) {
+            p.name = pname
+            if (item.nameChinese) p.nameChinese = item.nameChinese
+            const a = parseAddress(item.addressRaw)
+            if (a.street) p.address = a
+            if (item.country && item.country !== 'Hong Kong') p.nationality = item.country
+            if (item.passport) p.passportNumber = item.passport.number || item.passportNo
+            if (!p.roles.includes(g.role)) p.roles.push(g.role)
+            // notes 保留，不覆盖
+            await persist(p)
+            stats.personnelUpdated++
+            console.log(`  ${PREVIEW ? '🔍 PREVIEW' : '🔄'} 更新人员: ${pname} (${g.role})`)
           } else if (!p.roles.includes(g.role)) {
             p.roles.push(g.role)
             await p.save()
@@ -379,6 +428,16 @@ async function main() {
             })
             stats.entityCompanies++
             console.log(`  🏢 Created entity-company: ${ename} (${ereg}) [${g.role}]`)
+          } else if (OVERWRITE) {
+            e.name = ename
+            if (item.nameChinese) e.nameChinese = item.nameChinese
+            const a = parseAddress(item.addressRaw)
+            if (a.street) e.registeredAddress = a
+            e.jurisdiction = mapJurisdiction(item.country) || e.jurisdiction
+            // notes 保留
+            await persist(e)
+            stats.entityCompaniesUpdated++
+            console.log(`  ${PREVIEW ? '🔍 PREVIEW' : '🔄'} 更新法人实体: ${ename} (${ereg}) [${g.role}]`)
           }
           await addLink(company, { link: e._id, linkModel: 'Company', roles: [linkRole], shares: item.shares, shareType: item.shareType })
           stats.links++
@@ -486,14 +545,18 @@ async function main() {
     for (const brFn of brFiles) {
       const brPath = path2.join(coPath, brFn)
       let buf, stored = null
-      try {
-        buf = fs2.readFileSync(brPath)
-        stored = await storage.upload(buf, brFn, 'application/pdf')
-        stats.filesUploaded++
-        console.log(`  📤 BR 上传 R2: ${stored.key} (${stored.size} bytes) — ${brFn.slice(0,60)}`)
-      } catch (e) {
-        console.log(`  ❌ BR 上传失败: ${brFn}: ${e.message}`)
-        continue
+      if (!PREVIEW) {
+        try {
+          buf = fs2.readFileSync(brPath)
+          stored = await storage.upload(buf, brFn, 'application/pdf')
+          stats.filesUploaded++
+          console.log(`  📤 BR 上传 R2: ${stored.key} (${stored.size} bytes) — ${brFn.slice(0,60)}`)
+        } catch (e) {
+          console.log(`  ❌ BR 上传失败: ${brFn}: ${e.message}`)
+          continue
+        }
+      } else {
+        console.log(`  🔍 PREVIEW: 将上传 BR R2 ${brFn.slice(0,60)}`)
       }
 
       // BR expiry 从文件名抓
@@ -515,11 +578,11 @@ async function main() {
         company: company._id,
         uploadedBy: bot._id,
         documentYear: brFn.match(/(\d{4})/)?.[1] ? +brFn.match(/(\d{4})/)[1] : undefined,
-        fileName: stored.key,
-        fileUrl: stored.url,
+        fileName: stored ? stored.key : brFn,
+        fileUrl: stored ? stored.url : undefined,
         originalName: brFn,
         mimeType: 'application/pdf',
-        fileSize: stored.size,
+        fileSize: stored ? stored.size : 0,
         expiresAt: brExpiryDate || undefined,
         note: 'BR 证书扫描件已上传 R2, expiry 由文件名解析或人工维护',
       }
@@ -539,7 +602,7 @@ async function main() {
       // 把 BR expiry 回填到 Company.brExpiryDate (取最新一年)
       if (brExpiryDate && (!company.brExpiryDate || brExpiryDate > new Date(company.brExpiryDate))) {
         company.brExpiryDate = brExpiryDate
-        await company.save()
+        await persist(company)
         console.log(`  📅 BR expiry 写入: ${brExpiryDate.toISOString().slice(0,10)}`)
       }
     }
@@ -552,7 +615,8 @@ async function main() {
 
 // ---------- 入口 ----------
 const data = JSON.parse(fs.readFileSync(path.join(__dirname, '_nar1_recognized.json'), 'utf8'))
-if (DRY_RUN) {
+if (DRY_RUN && !OVERWRITE) {
+  // 纯路径/JSON 校验，不连库
   dryRun(data)
   process.exit(0)
 } else {
