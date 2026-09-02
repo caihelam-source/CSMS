@@ -27,6 +27,7 @@ const AdminPanel = lazy(() => import('./pages/AdminPanel'))
 const Settings = lazy(() => import('./pages/Settings'))
 const SearchResults = lazy(() => import('./pages/SearchResults'))
 const ResultsTimetable = lazy(() => import('./pages/ResultsTimetable'))
+const Nar1Import = lazy(() => import('./pages/Nar1Import'))
 
 // Spinner used during auth check and lazy loading
 const Spinner = () => (
@@ -90,6 +91,7 @@ function App() {
           <Route path="calendar" element={<LazyPage><Calendar /></LazyPage>} />
           <Route path="companies" element={<LazyPage><Companies /></LazyPage>} />
           <Route path="companies/:id" element={<LazyPage><CompanyDetail /></LazyPage>} />
+          <Route path="nar1-import" element={<LazyPage><Nar1Import /></LazyPage>} />
           <Route path="meetings" element={<LazyPage><Meetings /></LazyPage>} />
           <Route path="meetings/:id" element={<LazyPage><MeetingDetail /></LazyPage>} />
           <Route path="documents" element={<LazyPage><Documents /></LazyPage>} />

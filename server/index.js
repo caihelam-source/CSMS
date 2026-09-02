@@ -28,6 +28,7 @@ const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
 const auditRoutes = require('./routes/audit');
 const calendarRoutes = require('./routes/calendar');   // Wave 日历模块 — 跨模块事件聚合 + 邮件摘要
+const nar1ImportRoutes = require('./routes/nar1Import');   // NAR1 周年申报表批量导入（识别 -> 冲突检测 -> 落库）
 
 // ── 模型预注册（mongoose 模型需 require 一次才会注册；
 //    Document.generateDocNumber 内部用 mongoose.model('Counter') 取编号计数器，
@@ -72,6 +73,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/audit', auditRoutes);   // Wave 0 rev2 — 审计日志（admin/auditor 可查）
 app.use('/api/calendar', calendarRoutes);   // Wave 日历模块 — 跨模块事件聚合 + 邮件摘要
+app.use('/api/nar1-import', nar1ImportRoutes);   // NAR1 批量导入
 app.use('/api/companies/:id', companyEntriesRoutes);   // shareholder-entries / director-entries
 app.use('/api/companies/:id', companyRegisterRoutes);  // rom / rod PDF
 

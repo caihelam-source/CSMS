@@ -6,7 +6,7 @@ import {
   CheckSquare, LogOut, Menu, X, Crown, Zap,
   Bell, ShieldCheck, FileCode, UserCircle, Settings as SettingsIcon,
   Sun, Moon, FileSignature, CalendarClock, CalendarDays,
-  Search,
+  Search, FileInput,
 } from 'lucide-react'
 import { useState, memo, useEffect } from 'react'
 import GlobalSearch from './GlobalSearch'
@@ -32,6 +32,7 @@ export const NAV_ITEMS = [
   { path: '/calendar',      icon: CalendarDays,    label: '日历',   group: 'Command' },
   { path: '/companies',     icon: Building2,       label: '公司',  group: 'Command' },
   { path: '/personnel',     icon: UserCircle,      label: '人员',  group: 'Command' },
+  { path: '/nar1-import',   icon: FileInput,       label: 'NAR1 导入', group: 'Command' },
   { path: '/documents',     icon: FileText,        label: '文档',  group: 'Operations' },
   { path: '/meetings',      icon: Calendar,        label: '会议',   group: 'Operations' },
   { path: '/tasks',         icon: CheckSquare,     label: '任务',  group: 'Operations' },

@@ -304,10 +304,11 @@ def parse_shareholders(text):
         out.append({"entityType": "unknown", "role": "shareholder", "name": None, "confidence": "gap"})
     return out
 
-def recognize(path):
+def recognize(path, render_scan=True):
     text, n = load_text(path)
     scanned = is_scanned(path, text)
-    scan_images = render_scan_pages(path) if scanned else []
+    # 云端(无 pypdfium2/ImageMagick)或 --no-render 时不渲染扫描页图, 仅标记待多模态
+    scan_images = render_scan_pages(path) if (scanned and render_scan) else []
     company = parse_company(text)
     secretary = parse_secretary(text)
     directors = parse_directors(text)
@@ -372,10 +373,29 @@ def main():
         if i + 1 < len(args):
             inject_path = args[i + 1]
             del args[i:i + 2]
-    files = args or sorted(glob.glob("client/public/docs/*NAR1*.pdf"))
-    results = [recognize(f) for f in files]
+
+    # ---- 服务端调用模式: --stdout <file...> 输出 JSON 到 stdout (供 Node spawn 解析) ----
+    # 不渲染扫描件图片(云端无图像依赖), 不写任何文件
+    stdout_mode = "--stdout" in args
+    if stdout_mode:
+        args.remove("--stdout")
+    files = args or ([] if stdout_mode else sorted(glob.glob("client/public/docs/*NAR1*.pdf")))
+    if stdout_mode and not files:
+        print(json.dumps({"count": 0, "results": [], "error": "no input file"}, ensure_ascii=False))
+        return
+    results = [recognize(f, render_scan=not stdout_mode) for f in files]
     if inject_path:
         results = apply_injection(results, inject_path)
+
+    if stdout_mode:
+        # 强制 UTF-8 输出, 避免 Windows GBK 控制台把中文/JSON 打乱
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+        print(json.dumps({"count": len(results), "results": results}, ensure_ascii=False))
+        return
+
     out = {"count": len(results), "results": results}
     with open("scripts/_nar1_recognized.json", "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)

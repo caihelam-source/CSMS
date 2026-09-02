@@ -10,7 +10,7 @@ services:
     region: oregon
     branch: main
     rootDir: .
-    buildCommand: npm install
+    buildCommand: npm install && (python3 -m pip install --quiet pdfplumber 2>/dev/null || echo "pdfplumber 未安装：NAR1 自动解析在线上将不可用，可本机识别后导入")
     startCommand: node server/index.js
     healthCheckPath: /api/health
     envVars:

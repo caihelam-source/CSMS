@@ -644,3 +644,37 @@ export const calendarService = {
     async () => ({ skipped: true, count: 0 }),
   ),
 }
+
+// ====== NAR1 Import Service（周年申报表批量导入）======
+// 该模块只在真实后端存在（依赖服务端 Python 解析引擎），无 mock 实现 —— 直连 api 取原始响应，
+// 不走 wrap/normalize：响应是复合结构 { success, count, results }，normalize 会整包返回对象，
+// 直接取 res.data 更清晰，也避免再踩 normalize 的实体键陷阱。
+export const nar1ImportService = {
+  /** 解析引擎可用性探测 */
+  capability: async () => (await api.get('/api/nar1-import/capability')).data,
+  /**
+   * 批量解析 PDF（不落库）
+   * @param {File[]} files
+   * @param {(pct:number)=>void} [onUploadProgress]
+   */
+  parse: async (files, onUploadProgress) => {
+    const fd = new FormData()
+    files.forEach((f) => fd.append('files', f, f.name))
+    const res = await api.post('/api/nar1-import/parse', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 600000, // 批量识别较慢（每份约 3-8s），给足超时
+      onUploadProgress: onUploadProgress
+        ? (e) => onUploadProgress(e.total ? Math.round((e.loaded * 100) / e.total) : 0)
+        : undefined,
+    })
+    return res.data
+  },
+  /**
+   * 按模式落库
+   * @param {Array<{id:string, fileName?:string, mode:'skip'|'create'|'overwrite', result:object, storage?:object}>} items
+   */
+  commit: async (items) => {
+    const res = await api.post('/api/nar1-import/commit', { items }, { timeout: 300000 })
+    return res.data
+  },
+}
