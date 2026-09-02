@@ -5,62 +5,75 @@ import RULES_MOCK from './timetableData.js'
 import generatedPresetData from '../../../shared/templatePresets.generated.json';
 
 // ====== 人员数据 ======
+// v6.x 统一规则：name = 拼音/拉丁化名(Legal)，nameChinese = 简体中文。
+// 括号里"别名/曾用名"独立写入 formerNames；繁体字简化为简体。
 const MOCK_PERSONNEL = [
   {
-    _id: 'p1', name: '施金帆', nric: 'P1000001', nationality: '中国',
+    _id: 'p1', name: 'SHI JINFAN', nameChinese: '施金帆',
+    nric: 'P1000001', nationality: '中国',
     address: { country: '中国香港' },
     email: 'shijinfan@example.com', phone: '+852 9000 0001',
   },
   {
-    _id: 'p2', name: '施南路', nric: 'P1000002', nationality: '中国',
+    _id: 'p2', name: 'SHI NANLU', nameChinese: '施南路',
+    nric: 'P1000002', nationality: '中国',
     address: { country: '中国香港' },
     email: 'shinanlu@example.com', phone: '+852 9000 0002',
   },
   {
-    _id: 'p3', name: '施中安 (施侃成)', nric: 'P1000003', nationality: '中国',
+    _id: 'p3', name: 'SHI ZHONGAN', nameChinese: '施中安',
+    formerNames: [{ name: '施侃成', nameChinese: '施侃成', source: 'manual', changedAt: new Date().toISOString() }],
+    nric: 'P1000003', nationality: '中国',
     address: { country: '中国' },
     email: 'shizhongan@example.com', phone: '+852 9000 0003',
   },
   {
-    _id: 'p4', name: '林才賀 (LIN CAI HE)', nric: 'P1000004', nationality: '中国',
+    _id: 'p4', name: 'LIN CAIHE', nameChinese: '林才贺',
+    nric: 'P1000004', nationality: '中国',
     address: { country: '中国香港' },
     email: 'lincaihe@example.com', phone: '+852 9000 0004',
     notes: '所有5家公司的公司秘书',
   },
   // === CNC 董事 ===
   {
-    _id: 'p5', name: '林友耀 (LAM YAU YIU)', nric: 'D308', nationality: '中国',
+    _id: 'p5', name: 'LAM YAU YIU', nameChinese: '林友耀',
+    nric: 'D308', nationality: '中国',
     address: { country: '中国香港' },
     email: 'LAURENCELAM@HOTMAIL.COM', phone: '+852 9000 0005',
   },
   {
-    _id: 'p6', name: '金建榮 (JIN JIANRONG)', nric: 'G3509', nationality: '中国',
+    _id: 'p6', name: 'JIN JIANRONG', nameChinese: '金建荣',
+    nric: 'G3509', nationality: '中国',
     passport: { number: 'G3509', country: 'China' },
     address: { country: '中国' },
     email: 'jinjr@example.com',
   },
   {
-    _id: 'p7', name: '袁淵 (YUAN YUAN)', nric: 'E4552', nationality: '中国',
+    _id: 'p7', name: 'YUAN YUAN', nameChinese: '袁渊',
+    nric: 'E4552', nationality: '中国',
     passport: { number: 'E4552', country: 'China' },
     address: { country: '中国' },
     email: 'YUAN.YUAN.PHD@FOXMAIL.COM',
   },
   {
-    _id: 'p8', name: '陳靜 (CHEN JING)', nric: 'P1000008', nationality: '中国',
+    _id: 'p8', name: 'CHEN JING', nameChinese: '陈静',
+    nric: 'P1000008', nationality: '中国',
     address: { country: '中国香港' },
     email: 'chenjing@example.com',
   },
   {
-    _id: 'p9', name: '须成发 (XU CHENGFA)', nric: 'P1000009', nationality: '中国',
+    _id: 'p9', name: 'XU CHENGFA', nameChinese: '须成发',
+    nric: 'P1000009', nationality: '中国',
     address: { country: '中国' },
     email: 'xuchengfa@example.com',
     notes: '独立非执行董事 INED',
   },
   {
-    _id: 'p10', name: '施中安 (SHI ZHONGAN)', nric: 'R578', nationality: '中国',
+    _id: 'p10', name: 'SHI ZHONGAN', nameChinese: '施中安',
+    formerNames: [{ name: '施侃成', nameChinese: '施侃成', source: 'seed', changedAt: new Date().toISOString(), notes: '曾用名/原名: 施侃成 (SHI KANCHENG)，中国新城市集团董事会主席' }],
+    nric: 'R578', nationality: '中国',
     address: { country: '中国香港' },
     email: 'shizhongan@example.com', phone: '+852 9000 0003',
-    notes: '曾用名: 施侃成 (SHI KANCHENG)，中国新城市集团董事会主席',
   },
 ];
 
@@ -77,7 +90,7 @@ const MOCK_COMPANIES = [
     links: [
       { _id: 'l1a', linkModel: 'Personnel', link: { _id: 'p1', name: '施金帆', nric: 'P1000001' }, roles: ['director'], appointedDate: '2017-04-21' },
       { _id: 'l1b', linkModel: 'Personnel', link: { _id: 'p2', name: '施南路', nric: 'P1000002' }, roles: ['director'], appointedDate: '2017-04-21' },
-      { _id: 'l1c', linkModel: 'Personnel', link: { _id: 'p4', name: '林才賀 (LIN CAI HE)', nric: 'P1000004' }, roles: ['secretary'], appointedDate: '2017-04-21' },
+      { _id: 'l1c', linkModel: 'Personnel', link: { _id: 'p4', name: 'LIN CAIHE', nameChinese: '林才贺', nric: 'P1000004' }, roles: ['secretary'], appointedDate: '2017-04-21' },
       { _id: 'l1d', linkModel: 'Company', link: { _id: 'c6', name: 'Easy Success Investments Ltd (BVI)', registrationNumber: 'N/A' }, roles: ['shareholder'], shares: 1, shareType: 'ordinary', appointedDate: '2017-04-21' },
     ],
   },
@@ -90,7 +103,7 @@ const MOCK_COMPANIES = [
     compliance: { arDueDate: '2026-09-28', lastArDate: '2026-04-03' },
     links: [
       { _id: 'l2a', linkModel: 'Personnel', link: { _id: 'p2', name: '施南路', nric: 'P1000002' }, roles: ['director'], appointedDate: '2018-09-28' },
-      { _id: 'l2b', linkModel: 'Personnel', link: { _id: 'p4', name: '林才賀 (LIN CAI HE)', nric: 'P1000004' }, roles: ['secretary'], appointedDate: '2018-09-28' },
+      { _id: 'l2b', linkModel: 'Personnel', link: { _id: 'p4', name: 'LIN CAIHE', nameChinese: '林才贺', nric: 'P1000004' }, roles: ['secretary'], appointedDate: '2018-09-28' },
       { _id: 'l2c', linkModel: 'Company', link: { _id: 'c7', name: 'Beyond Horizon Investments Ltd (BVI)', registrationNumber: 'N/A' }, roles: ['shareholder'], shares: 1, shareType: 'ordinary', appointedDate: '2018-09-28' },
     ],
   },
@@ -102,8 +115,8 @@ const MOCK_COMPANIES = [
     shareCapital: { issued: 1, paidUp: 1, currency: 'HKD' },
     compliance: { arDueDate: '2026-05-14', lastArDate: '2026-04-03' },
     links: [
-      { _id: 'l3a', linkModel: 'Personnel', link: { _id: 'p3', name: '施中安 (施侃成)', nric: 'P1000003' }, roles: ['director'], appointedDate: '2010-05-14' },
-      { _id: 'l3b', linkModel: 'Personnel', link: { _id: 'p4', name: '林才賀 (LIN CAI HE)', nric: 'P1000004' }, roles: ['secretary'], appointedDate: '2010-05-14' },
+      { _id: 'l3a', linkModel: 'Personnel', link: { _id: 'p3', name: 'SHI ZHONGAN', nameChinese: '施中安', formerNames: [{ name: '施侃成', nameChinese: '施侃成', source: 'manual' }], nric: 'P1000003' }, roles: ['director'], appointedDate: '2010-05-14' },
+      { _id: 'l3b', linkModel: 'Personnel', link: { _id: 'p4', name: 'LIN CAIHE', nameChinese: '林才贺', nric: 'P1000004' }, roles: ['secretary'], appointedDate: '2010-05-14' },
       { _id: 'l3c', linkModel: 'Company', link: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, roles: ['shareholder'], shares: 1, shareType: 'ordinary', appointedDate: '2010-05-14' },
     ],
   },
@@ -116,7 +129,7 @@ const MOCK_COMPANIES = [
     compliance: { arDueDate: '2026-12-14', lastArDate: '2025-12-04' },
     links: [
       { _id: 'l4a', linkModel: 'Personnel', link: { _id: 'p2', name: '施南路', nric: 'P1000002' }, roles: ['director'], appointedDate: '2021-12-14' },
-      { _id: 'l4b', linkModel: 'Personnel', link: { _id: 'p4', name: '林才賀 (LIN CAI HE)', nric: 'P1000004' }, roles: ['secretary'], appointedDate: '2021-12-14' },
+      { _id: 'l4b', linkModel: 'Personnel', link: { _id: 'p4', name: 'LIN CAIHE', nameChinese: '林才贺', nric: 'P1000004' }, roles: ['secretary'], appointedDate: '2021-12-14' },
       { _id: 'l4c', linkModel: 'Company', link: { _id: 'c9', name: 'Time Honour Global Ltd (BVI)', registrationNumber: 'N/A' }, roles: ['shareholder'], shares: 1, shareType: 'ordinary', appointedDate: '2021-12-14' },
     ],
   },
@@ -129,7 +142,7 @@ const MOCK_COMPANIES = [
     compliance: { arDueDate: '2026-12-14', lastArDate: '2025-12-02' },
     links: [
       { _id: 'l5a', linkModel: 'Personnel', link: { _id: 'p2', name: '施南路', nric: 'P1000002' }, roles: ['director'], appointedDate: '2021-12-14' },
-      { _id: 'l5b', linkModel: 'Personnel', link: { _id: 'p4', name: '林才賀 (LIN CAI HE)', nric: 'P1000004' }, roles: ['secretary'], appointedDate: '2021-12-14' },
+      { _id: 'l5b', linkModel: 'Personnel', link: { _id: 'p4', name: 'LIN CAIHE', nameChinese: '林才贺', nric: 'P1000004' }, roles: ['secretary'], appointedDate: '2021-12-14' },
       { _id: 'l5c', linkModel: 'Company', link: { _id: 'c10', name: 'First Achiever Holdings Ltd (BVI)', registrationNumber: 'N/A' }, roles: ['shareholder'], shares: 1, shareType: 'ordinary', appointedDate: '2021-12-14' },
     ],
   },
@@ -147,13 +160,13 @@ const MOCK_COMPANIES = [
     shareCapital: { issued: 100000000, paidUp: 100000000, currency: 'HKD' },
     compliance: { arDueDate: '2026-11-01', lastArDate: '2025-11-01' },
     links: [
-      { _id: 'lc1', linkModel: 'Personnel', link: { _id: 'p10', name: '施中安 (SHI ZHONGAN)', nric: 'R578' }, roles: ['director'], appointedDate: '2024-06-28' },
+      { _id: 'lc1', linkModel: 'Personnel', link: { _id: 'p10', name: 'SHI ZHONGAN', nameChinese: '施中安', nric: 'R578' }, roles: ['director'], appointedDate: '2024-06-28' },
       { _id: 'lc2', linkModel: 'Personnel', link: { _id: 'p2', name: '施南路 (SHI NANLU)', nric: 'P1000002' }, roles: ['director'], appointedDate: '2024-06-28' },
-      { _id: 'lc3', linkModel: 'Personnel', link: { _id: 'p6', name: '金建榮 (JIN JIANRONG)', nric: 'G3509' }, roles: ['director'], appointedDate: '2021-07-02' },
-      { _id: 'lc4', linkModel: 'Personnel', link: { _id: 'p5', name: '林友耀 (LAM YAU YIU)', nric: 'D308' }, roles: ['director'], appointedDate: '2021-06-18' },
-      { _id: 'lc5', linkModel: 'Personnel', link: { _id: 'p7', name: '袁淵 (YUAN YUAN)', nric: 'E4552' }, roles: ['director'], appointedDate: '2024-06-28' },
-      { _id: 'lc6', linkModel: 'Personnel', link: { _id: 'p8', name: '陳靜 (CHEN JING)', nric: 'P1000008' }, roles: ['director'], appointedDate: '2024-06-28' },
-      { _id: 'lc7', linkModel: 'Personnel', link: { _id: 'p4', name: '林才賀 (LIN CAI HE)', nric: 'P1000004' }, roles: ['secretary', 'authorized_representative'], appointedDate: '2020-06-24' },
+      { _id: 'lc3', linkModel: 'Personnel', link: { _id: 'p6', name: 'JIN JIANRONG', nameChinese: '金建荣', nric: 'G3509' }, roles: ['director'], appointedDate: '2021-07-02' },
+      { _id: 'lc4', linkModel: 'Personnel', link: { _id: 'p5', name: 'LAM YAU YIU', nameChinese: '林友耀', nric: 'D308' }, roles: ['director'], appointedDate: '2021-06-18' },
+      { _id: 'lc5', linkModel: 'Personnel', link: { _id: 'p7', name: 'YUAN YUAN', nameChinese: '袁渊', nric: 'E4552' }, roles: ['director'], appointedDate: '2024-06-28' },
+      { _id: 'lc6', linkModel: 'Personnel', link: { _id: 'p8', name: 'CHEN JING', nameChinese: '陈静', nric: 'P1000008' }, roles: ['director'], appointedDate: '2024-06-28' },
+      { _id: 'lc7', linkModel: 'Personnel', link: { _id: 'p4', name: 'LIN CAIHE', nameChinese: '林才贺', nric: 'P1000004' }, roles: ['secretary', 'authorized_representative'], appointedDate: '2020-06-24' },
       { _id: 'lc8', linkModel: 'Company', link: { _id: 'c12', name: 'Conyers Trust Company (Cayman) Ltd', registrationNumber: 'N/A' }, roles: ['corporate_secretary'], appointedDate: '2020-06-24' },
     ],
   },
@@ -179,8 +192,8 @@ const MOCK_DOCUMENTS = [
   // 个人证件文档
   { _id: 'd6', docNumber: 'OTH-ID-0006', name: '施金帆 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p1', name: '施金帆' }, scope: 'person', fileUrl: '', fileName: 'shijinfan_id.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2027-05-10' },
   { _id: 'd7', docNumber: 'OTH-PP-0007', name: '施南路 — 护照复印件', type: 'passport', category: 'other', company: null, personnel: { _id: 'p2', name: '施南路' }, scope: 'person', fileUrl: '', fileName: 'shinanlu_passport.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-07-20' },
-  { _id: 'd8', docNumber: 'OTH-ID-0008', name: '施中安 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p3', name: '施中安 (施侃成)' }, scope: 'person', fileUrl: '', fileName: 'shizhongan_id.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-07-10' },
-  { _id: 'd9', docNumber: 'OTH-NRIC-0009', name: '林才賀 — NRIC副本', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, scope: 'person', fileUrl: '', fileName: 'lincaihe_nric.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-08-01' },
+  { _id: 'd8', docNumber: 'OTH-ID-0008', name: '施中安 — 香港身份证', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p3', name: 'SHI ZHONGAN', nameChinese: '施中安', formerNames: [{ name: '施侃成', nameChinese: '施侃成', source: 'manual' }] }, scope: 'person', fileUrl: '', fileName: 'shizhongan_id.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-07-10' },
+  { _id: 'd9', docNumber: 'OTH-NRIC-0009', name: '林才賀 — NRIC副本', type: 'id_document', category: 'other', company: null, personnel: { _id: 'p4', name: 'LIN CAIHE', nameChinese: '林才贺' }, scope: 'person', fileUrl: '', fileName: 'lincaihe_nric.pdf', fileSize: 256000, createdAt: '2025-01-01', expiresAt: '2026-08-01' },
   // CNC 文档
   { _id: 'd10', docNumber: 'GOV-NN3-0010', name: 'NAR1 NN3 周年申报表 2025', type: 'return', category: 'government', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_NAR1_NN3_2025.pdf', fileSize: 1024000, createdAt: '2025-11-01', notes: '注册非香港公司周年申报表' },
   { _id: 'd11', docNumber: 'EST-COI-0011', name: 'Certificate of Incumbency 2026-01-08', type: 'certificate', category: 'establishment', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: null, fileUrl: '', fileName: 'CNC_COI_20260108.pdf', fileSize: 512000, createdAt: '2026-01-08', notes: '在职证明', expiresAt: '2027-01-08' },
@@ -220,7 +233,7 @@ const MOCK_MEETINGS = [
     meetingId: '888-777-666', meetingLink: 'https://meeting.tencent.com/888-777-666',
     company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' },
     attendees: [
-      { _id: 'b1', refModel: 'Personnel', ref: { _id: 'p3', name: '施中安' }, name: '施中安 (施侃成)', role: '董事会主席', status: 'accepted' },
+      { _id: 'b1', refModel: 'Personnel', ref: { _id: 'p3', name: '施中安' }, name: 'SHI ZHONGAN', nameChinese: '施中安', formerNames: [{ name: '施侃成', nameChinese: '施侃成', source: 'manual' }], role: '董事会主席', status: 'accepted' },
       { _id: 'b2', refModel: 'Personnel', ref: { _id: 'p4', name: '林才賀' }, name: '林才賀', role: '公司秘书', status: 'accepted' },
     ],
     agenda: [
@@ -235,14 +248,14 @@ const MOCK_MEETINGS = [
     location: '杭州市萧山区山阴路688号众安集团11楼11-1会议室', isVirtual: false,
     company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' },
     attendees: [
-      { _id: 'mc1', refModel: 'Personnel', ref: { _id: 'p10', name: '施中安' }, name: '施中安 (SHI ZHONGAN)', role: '董事会主席 · 非执行董事', status: 'attended' },
+      { _id: 'mc1', refModel: 'Personnel', ref: { _id: 'p10', name: '施中安' }, name: 'SHI ZHONGAN', nameChinese: '施中安', role: '董事会主席 · 非执行董事', status: 'attended' },
       { _id: 'mc2', refModel: 'Personnel', ref: { _id: 'p2', name: '施南路' }, name: '施南路 (SHI NANLU)', role: '执行董事 · 总裁', status: 'attended' },
-      { _id: 'mc3', refModel: 'Personnel', ref: { _id: 'p6', name: '金建榮' }, name: '金建榮 (JIN JIANRONG)', role: '执行董事', status: 'attended' },
-      { _id: 'mc4', refModel: 'Personnel', ref: { _id: 'p8', name: '陳靜' }, name: '陳靜 (CHEN JING)', role: '执行董事', status: 'attended' },
-      { _id: 'mc5', refModel: 'Personnel', ref: { _id: 'p9', name: '须成发' }, name: '须成发 (XU CHENGFA)', role: '独立非执行董事', status: 'attended' },
-      { _id: 'mc6', refModel: 'Personnel', ref: { _id: 'p5', name: '林友耀' }, name: '林友耀 (LAM YAU YIU)', role: '独立非执行董事', status: 'attended' },
-      { _id: 'mc7', refModel: 'Personnel', ref: { _id: 'p7', name: '袁淵' }, name: '袁淵 (YUAN YUAN)', role: '独立非执行董事', status: 'attended' },
-      { _id: 'mc8', name: '林才賀 (LIN CAI HE)', role: '公司秘书 · 列席', status: 'attended' }, // ad-hoc
+      { _id: 'mc3', refModel: 'Personnel', ref: { _id: 'p6', name: '金建榮' }, name: 'JIN JIANRONG', nameChinese: '金建荣', role: '执行董事', status: 'attended' },
+      { _id: 'mc4', refModel: 'Personnel', ref: { _id: 'p8', name: '陳靜' }, name: 'CHEN JING', nameChinese: '陈静', role: '执行董事', status: 'attended' },
+      { _id: 'mc5', refModel: 'Personnel', ref: { _id: 'p9', name: '须成发' }, name: 'XU CHENGFA', nameChinese: '须成发', role: '独立非执行董事', status: 'attended' },
+      { _id: 'mc6', refModel: 'Personnel', ref: { _id: 'p5', name: '林友耀' }, name: 'LAM YAU YIU', nameChinese: '林友耀', role: '独立非执行董事', status: 'attended' },
+      { _id: 'mc7', refModel: 'Personnel', ref: { _id: 'p7', name: '袁淵' }, name: 'YUAN YUAN', nameChinese: '袁渊', role: '独立非执行董事', status: 'attended' },
+      { _id: 'mc8', name: 'LIN CAIHE', nameChinese: '林才贺', role: '公司秘书 · 列席', status: 'attended' }, // ad-hoc
     ],
     agenda: [
       { item: '上次董事会会议需跟进事项', presenter: '全体董事' },
@@ -279,7 +292,7 @@ const MOCK_MEETINGS = [
       signedAt: '2026-03-28T14:00:00+08:00',
     },
     signatures: [
-      { _id: 'sig1', name: '施中安 (SHI ZHONGAN)', title: '会议主席 · 董事会主席', status: 'signed', signedAt: '2026-03-28T14:00:00+08:00' },
+      { _id: 'sig1', name: 'SHI ZHONGAN', nameChinese: '施中安', title: '会议主席 · 董事会主席', status: 'signed', signedAt: '2026-03-28T14:00:00+08:00' },
     ],
     documents: [],
   },
@@ -291,13 +304,13 @@ const MOCK_MEETINGS = [
     meetingId: '145-940-978', meetingLink: 'https://meeting.tencent.com/dm/wbu3MdyuXbDX', meetingPassword: '0603',
     company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' },
     attendees: [
-      { _id: 'md1', refModel: 'Personnel', ref: { _id: 'p10', name: '施中安' }, name: '施中安 (SHI ZHONGAN)', role: '董事会主席 · 非执行董事', status: 'accepted' },
+      { _id: 'md1', refModel: 'Personnel', ref: { _id: 'p10', name: '施中安' }, name: 'SHI ZHONGAN', nameChinese: '施中安', role: '董事会主席 · 非执行董事', status: 'accepted' },
       { _id: 'md2', refModel: 'Personnel', ref: { _id: 'p2', name: '施南路' }, name: '施南路 (SHI NANLU)', role: '执行董事 · 总裁', status: 'accepted' },
-      { _id: 'md3', refModel: 'Personnel', ref: { _id: 'p6', name: '金建榮' }, name: '金建榮 (JIN JIANRONG)', role: '执行董事', status: 'accepted' },
-      { _id: 'md4', refModel: 'Personnel', ref: { _id: 'p8', name: '陳靜' }, name: '陳靜 (CHEN JING)', role: '执行董事', status: 'accepted' },
-      { _id: 'md5', refModel: 'Personnel', ref: { _id: 'p9', name: '须成发' }, name: '须成发 (XU CHENGFA)', role: '独立非执行董事', status: 'pending' },
-      { _id: 'md6', refModel: 'Personnel', ref: { _id: 'p5', name: '林友耀' }, name: '林友耀 (LAM YAU YIU)', role: '独立非执行董事', status: 'pending' },
-      { _id: 'md7', refModel: 'Personnel', ref: { _id: 'p7', name: '袁淵' }, name: '袁淵 (YUAN YUAN)', role: '独立非执行董事', status: 'pending' },
+      { _id: 'md3', refModel: 'Personnel', ref: { _id: 'p6', name: '金建榮' }, name: 'JIN JIANRONG', nameChinese: '金建荣', role: '执行董事', status: 'accepted' },
+      { _id: 'md4', refModel: 'Personnel', ref: { _id: 'p8', name: '陳靜' }, name: 'CHEN JING', nameChinese: '陈静', role: '执行董事', status: 'accepted' },
+      { _id: 'md5', refModel: 'Personnel', ref: { _id: 'p9', name: '须成发' }, name: 'XU CHENGFA', nameChinese: '须成发', role: '独立非执行董事', status: 'pending' },
+      { _id: 'md6', refModel: 'Personnel', ref: { _id: 'p5', name: '林友耀' }, name: 'LAM YAU YIU', nameChinese: '林友耀', role: '独立非执行董事', status: 'pending' },
+      { _id: 'md7', refModel: 'Personnel', ref: { _id: 'p7', name: '袁淵' }, name: 'YUAN YUAN', nameChinese: '袁渊', role: '独立非执行董事', status: 'pending' },
     ],
     agenda: [
       { item: '审议及批准依据一般授权（General Mandate）配发新股', presenter: '董事会' },
@@ -1126,10 +1139,10 @@ function buildMinutesHtml({ companyName, meetingTitle, dateFull, time, location,
 // ====== Mock Data ======
 const MOCK_TASKS = [
   { _id: 'tt1', title: 'File Annual Return - Easy Rich Corporation', type: 'filing', priority: 'urgent', status: 'pending', dueDate: '2026-04-21', description: 'Submit NAR1 to ICAC.', createdBy: 'u1', createdAt: '2026-03-01', company: { _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)', registrationNumber: '65940948' }, personnel: { _id: 'p1', name: '施金帆' }, notes: [] },
-  { _id: 'tt2', title: 'Prepare Board Meeting Minutes - CNC', type: 'document', priority: 'high', status: 'completed', dueDate: '2026-03-28', description: 'Draft and sign minutes.', createdBy: 'u1', createdAt: '2026-03-26', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: { _id: 'p10', name: '施中安 (SHI ZHONGAN)' }, notes: [{ content: '主席已签署', createdAt: '2026-03-28T14:00:00+08:00' }] },
-  { _id: 'tt3', title: 'Update Director Register - HuiJun', type: 'compliance', priority: 'medium', status: 'in_progress', dueDate: '2026-05-14', description: '', createdBy: 'u1', createdAt: '2026-04-01', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' }, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, notes: [] },
-  { _id: 'tt4', title: 'Renew Business License Certificate', type: 'filing', priority: 'high', status: 'overdue', dueDate: '2026-06-01', description: ' renewal before expiry.', createdBy: 'u1', createdAt: '2026-04-15', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: { _id: 'p4', name: '林才賀 (LIN CAI HE)' }, notes: [] },
-  { _id: 'tt5', title: 'AGM 年度大会 - 匯駿控股', type: 'meeting_prep', priority: 'high', status: 'pending', dueDate: '2026-05-14', description: '准备并召开匯駿控股周年大会', createdBy: 'u1', createdAt: '2026-04-01', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' }, personnel: { _id: 'p3', name: '施中安 (施侃成)' }, notes: [] },
+  { _id: 'tt2', title: 'Prepare Board Meeting Minutes - CNC', type: 'document', priority: 'high', status: 'completed', dueDate: '2026-03-28', description: 'Draft and sign minutes.', createdBy: 'u1', createdAt: '2026-03-26', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: { _id: 'p10', name: 'SHI ZHONGAN', nameChinese: '施中安' }, notes: [{ content: '主席已签署', createdAt: '2026-03-28T14:00:00+08:00' }] },
+  { _id: 'tt3', title: 'Update Director Register - HuiJun', type: 'compliance', priority: 'medium', status: 'in_progress', dueDate: '2026-05-14', description: '', createdBy: 'u1', createdAt: '2026-04-01', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' }, personnel: { _id: 'p4', name: 'LIN CAIHE', nameChinese: '林才贺' }, notes: [] },
+  { _id: 'tt4', title: 'Renew Business License Certificate', type: 'filing', priority: 'high', status: 'overdue', dueDate: '2026-06-01', description: ' renewal before expiry.', createdBy: 'u1', createdAt: '2026-04-15', company: { _id: 'c8', name: 'China New City Group Ltd (中国新城市集团)', registrationNumber: '62264234' }, personnel: { _id: 'p4', name: 'LIN CAIHE', nameChinese: '林才贺' }, notes: [] },
+  { _id: 'tt5', title: 'AGM 年度大会 - 匯駿控股', type: 'meeting_prep', priority: 'high', status: 'pending', dueDate: '2026-05-14', description: '准备并召开匯駿控股周年大会', createdBy: 'u1', createdAt: '2026-04-01', company: { _id: 'c3', name: 'HuiJun (International) Holdings Ltd (匯駿控股)', registrationNumber: '35387857' }, personnel: { _id: 'p3', name: 'SHI ZHONGAN', nameChinese: '施中安', formerNames: [{ name: '施侃成', nameChinese: '施侃成', source: 'manual' }] }, notes: [] },
   // v5.2 模块4 演示：Dashboard 直接发起的签署任务（无会议）
   { _id: 'tt6', title: '签署 NAR1 申报表 - Easy Rich', type: 'signing', taskSource: 'dashboard', isCTC: false, priority: 'high', status: 'pending', dueDate: '2026-08-15', description: '由 Dashboard 发起的签署任务；关联文件：NAR1 周年申报表 2026。', createdBy: 'u1', createdAt: '2026-07-18', company: { _id: 'c1', name: 'Easy Rich Corporation Ltd (順富興業)', registrationNumber: '65940948' }, responsiblePerson: '施金帆', notes: [] },
   // v5.2 模块4 演示：会议衍生的签署任务（关联会议 m1 Easy Rich AGM）
