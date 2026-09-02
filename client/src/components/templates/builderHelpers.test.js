@@ -44,9 +44,9 @@ describe('BUILDER_FIELD_TYPES / CATEGORY_VALUES', () => {
     ])
   })
 
-  test('分类值域与 templateCategories.js 单一真源完全一致（12 项）', () => {
+  test('分类值域与 templateCategories.js 单一真源完全一致（13 项）', () => {
     expect(CATEGORY_VALUES).toEqual(TEMPLATE_CATEGORY_VALUES)
-    expect(CATEGORY_VALUES).toHaveLength(12)
+    expect(CATEGORY_VALUES).toHaveLength(13)
   })
 
   test('getFieldTypeLabel 已知类型返回中文，未知类型原样返回', () => {

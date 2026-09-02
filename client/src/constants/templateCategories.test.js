@@ -26,7 +26,7 @@ const shared = JSON.parse(readFileSync(sharedJsonPath, 'utf-8'))
 test('shared/templateCategories.json 可读且结构合法', () => {
   expect(Array.isArray(shared.values)).toBe(true)
   expect(typeof shared.labels).toBe('object')
-  expect(shared.values).toHaveLength(12)
+  expect(shared.values).toHaveLength(13)
 })
 
 test('values 数组与前端镜像逐项全等（含顺序）', () => {
