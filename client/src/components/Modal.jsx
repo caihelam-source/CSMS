@@ -22,12 +22,20 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
   const titleId = useId()
   const isMobile = useIsMobile()
 
-  // ESC 关闭 + 打开时锁定滚动 + 焦点进出管理
+  // 把 onClose 放到 ref，effect 只依赖 isOpen。
+  // 父组件若用 onClose={() => ...} 内联写法，每次渲染都是新引用；
+  // 若把它放进 effect 依赖，会导致父组件任何 state 变更（含输入框 onChange）
+  // 都重跑 effect，cleanup 把焦点夺回给 previouslyFocused 然后 body 再夺回，
+  // iOS Safari 焦点/虚拟键盘抖动，输入框失焦"一点就跳出"。
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
+  // 打开时锁定滚动 + 焦点进入；依赖仅 [isOpen]，避免父组件 re-render 触发
   useEffect(() => {
     if (!isOpen) return
     previouslyFocused.current = document.activeElement
 
-    const handleEsc = (e) => { if (e.key === 'Escape') onClose() }
+    const handleEsc = (e) => { if (e.key === 'Escape') onCloseRef.current() }
     document.addEventListener('keydown', handleEsc)
     document.body.style.overflow = 'hidden'
 
@@ -45,7 +53,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
         previouslyFocused.current.focus()
       }
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   // 焦点陷阱：Tab / Shift+Tab 在对话框内循环
   const handleKeyDown = (e) => {
