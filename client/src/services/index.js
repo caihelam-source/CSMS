@@ -506,6 +506,11 @@ export const complianceReminderService = {
     (data) => api.post('/api/compliance-reminders/recompute', data),
     () => Promise.resolve({ data: { success: true, data: { created: 0, skipped: 0, cleared: 0 } } }),
   ),
+  // 单公司 ensure 启用规则对应的提醒（幂等，只生成不删；NAR1 导入闭环 / 状态条「生成提醒」按钮）
+  ensure: wrap(
+    (data) => api.post('/api/compliance-reminders/ensure', data),
+    () => Promise.resolve({ data: { success: true, data: { ensured: true, created: 0, skipped: 0, blocked: 0, reasons: [] } } }),
+  ),
   triggerCheck: wrap(
     () => api.post('/api/compliance-reminders/trigger-check'),
     mockComplianceReminders.triggerCheck,

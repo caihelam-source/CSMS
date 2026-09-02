@@ -306,4 +306,34 @@ async function generateForRule(rule, companyIds) {
   return { created: totalCreated, skipped: totalSkipped, blocked: totalBlocked, blockedByField, blockedByReason, blockedDetails };
 }
 
-module.exports = { initPresetRules, generateRemindersForRule, generateBatch, generateForRule, calcDueDate, diagnoseCompanies };
+/**
+ * 为单家公司 ensure 启用规则对应的开放提醒。
+ * 与 /recompute 的区别：ensure 只 generate（不删任何提醒），内部已去重，幂等。
+ * 用途：NAR1 导入建档后 / CompanyDetail 首访自愈 / 状态位「生成提醒」按钮。
+ * 返回 { ensured, created, skipped, blocked, reasons[] }
+ */
+async function ensureCompanyReminders(companyId, ruleIds = []) {
+  const company = await Company.findById(companyId);
+  if (!company) return { ensured: false, reason: 'company_not_found' };
+  const query = { status: '启用' };
+  if (Array.isArray(ruleIds) && ruleIds.length) query.ruleId = { $in: ruleIds };
+  const rules = await ComplianceRule.find(query);
+  let created = 0, skipped = 0, blocked = 0;
+  const reasons = [];
+  for (const rule of rules) {
+    if (rule.jurisdiction !== 'ALL' && rule.jurisdiction !== company.jurisdiction) {
+      reasons.push({ ruleId: rule.ruleId, reason: 'jurisdiction_mismatch' });
+      continue;
+    }
+    const r = await generateRemindersForRule(rule, company);
+    created += r.created;
+    skipped += r.skipped;
+    if (r.blocked) {
+      blocked++;
+      reasons.push({ ruleId: rule.ruleId, reason: r.blockedReason, missingFields: r.missingFields });
+    }
+  }
+  return { ensured: true, created, skipped, blocked, reasons };
+}
+
+module.exports = { initPresetRules, generateRemindersForRule, generateBatch, generateForRule, ensureCompanyReminders, calcDueDate, diagnoseCompanies };

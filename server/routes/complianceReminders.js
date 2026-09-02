@@ -5,6 +5,7 @@ const Company = require('../models/Company');
 const { auth } = require('../middleware/auth');
 const { parsePaging, pagingEnvelope } = require('../utils/pagination');
 const { createTaskFromReminder, createTasksBatch } = require('../services/taskFromReminder');
+const { ensureCompanyReminders } = require('../services/complianceService');
 const { generateRemindersForRule } = require('../services/complianceService');
 
 const router = express.Router();
@@ -66,6 +67,20 @@ router.post('/recompute', auth, async (req, res) => {
       skipped += r.skipped;
     }
     res.json({ success: true, data: { created, skipped, cleared } });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/compliance-reminders/ensure — 单公司 ensure 启用规则对应的开放提醒
+// 与 /recompute 的差别：ensure 只 generate（不删任何提醒），幂等。供 NAR1 导入闭环、
+// CompanyDetail 首访自愈、状态条「生成提醒」按钮使用。
+router.post('/ensure', auth, async (req, res) => {
+  try {
+    const { companyId, ruleIds } = req.body || {};
+    if (!companyId) return res.status(400).json({ message: 'companyId 必填' });
+    const result = await ensureCompanyReminders(companyId, Array.isArray(ruleIds) ? ruleIds : []);
+    res.json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

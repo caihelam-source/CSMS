@@ -22,6 +22,7 @@ const Company = require('../models/Company')
 const Personnel = require('../models/Personnel')
 const Document = require('../models/Document')
 require('../models/Counter') // Document.generateDocNumber 内部依赖
+const { ensureCompanyReminders } = require('./complianceService')
 
 const COMPANY_TYPES = ['private_limited', 'public_limited', 'llp', 'sole_proprietorship', 'partnership', 'other']
 
@@ -397,6 +398,17 @@ async function commitOne({ result, mode, userId, storage }) {
       stats.document = { action: 'updated', docNumber: doc.docNumber, id: String(doc._id) }
     }
   }
+
+  // NAR1 导入闭环：HK 公司自动 ensure HK_AR_42 + HK_BR_RENEW 提醒
+  // ensure 只 generate 不删内部提醒，幂等；失败不阻断主流程（提醒可后补）。
+  if (company.jurisdiction === 'HK') {
+    try {
+      await ensureCompanyReminders(company._id, ['HK_AR_42', 'HK_BR_RENEW'])
+    } catch (e) {
+      console.warn('[NAR1 import] ensure reminders failed:', e && e.message)
+    }
+  }
+
   return { status: 'ok', stats }
 }
 

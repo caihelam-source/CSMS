@@ -546,10 +546,12 @@ export default function CompanyDetail() {
 
   const handleGenerateReminder = useCallback(async (ruleId) => {
     try {
-      await complianceReminderService.recompute({ companyId: id, ruleIds: [ruleId] })
-      toast.success('合规提醒已刷新')
+      // 「生成提醒」按钮只 ensure（幂等、不删已有提醒），与 recompute（用于 BR/NAR1 更新后的续排重建）区分
+      const { data } = await complianceReminderService.ensure({ companyId: id, ruleIds: [ruleId] })
+      const r = data && data.data
+      toast.success(r && r.created > 0 ? `已生成 ${r.created} 条提醒` : '提醒已存在或字段不足')
       loadAll()
-    } catch { toast.error('刷新失败') }
+    } catch { toast.error('生成失败') }
   }, [id, loadAll])
 
   const uploadComplianceDoc = useCallback(async (file, { name, type, category }) => {
