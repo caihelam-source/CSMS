@@ -173,7 +173,7 @@ export default function CompanyDetail() {
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [compRes, meetRes, compRes2, persRes, compsRes, remRes, taskRes, rulesRes] = await Promise.all([
+      const [compRes, meetRes, compRes2, persRes, compsRes, remRes, taskRes, rulesRes, docRes] = await Promise.all([
         companyService.getOne(id),
         meetingService.getByCompany(id).catch(() => ({ data: { data: [] } })),
         companyService.getCompliance(id).catch(() => null),
@@ -182,10 +182,12 @@ export default function CompanyDetail() {
         complianceReminderService.getAll({ companyId: id }).catch(() => ({ data: { data: [] } })),
         taskService.getByCompany(id).catch(() => ({ data: { data: [] } })),
         complianceRuleService.getAll().catch(() => ({ data: { data: [] } })),
+        documentService.getByCompany(id).catch(() => ({ data: { data: [] } })),
       ])
       setCompany(compRes.data.data)
       // 列表状态一律经 toArray 兜底：即便后端 / normalize 返回非数组也不会白屏
       setMeetings(toArray(meetRes?.data?.data, 'meetings'))
+      setDocuments(toArray(docRes?.data?.data, 'documents'))
       if (compRes2) setCompliance(compRes2.data.data)
       setReminders(toArray(remRes?.data?.data, 'reminders'))
       setTasks(toArray(taskRes?.data?.data, 'tasks'))

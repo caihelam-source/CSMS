@@ -27,12 +27,17 @@ export const DOC_TYPE_LABELS = {
 
 export const DOC_CATEGORY_LABELS = {
   establishment: '设立文件', government: '政府往来', financial: '财务税务',
-  banking: '银行文件', meeting: '会议文件', other: '其他',
+  banking: '银行文件', meeting: '会议文件',
+  annual_return: 'NAR1 周年申报', nn3_return: 'NN3 注册非香港公司周年申报',
+  br_certificate: '商业登记证 BR', nar1: 'NAR1 周年申报',
+  other: '其他',
 }
 
 const DOC_CATEGORIES = [
   { key: 'establishment', label: '设立文件' },
   { key: 'government', label: '政府往来' },
+  { key: 'annual_return', label: 'NAR1 周年申报' },
+  { key: 'br_certificate', label: '商业登记证 BR' },
   { key: 'financial', label: '财务税务' },
   { key: 'banking', label: '银行文件' },
   { key: 'meeting', label: '会议文件' },

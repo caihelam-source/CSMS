@@ -76,7 +76,7 @@ function Nar1Chip({ company, reminder, onUpdate, onView, onGenerate }) {
             ? `下次到期：${formatDate(reminder.dueDate)}`
             : hasField
               ? '提交后自动续排下一年度'
-              : '补全成立日期后可自动生成'}
+              : 'NAR1 不印成立日期，请在基本信息录入后可自动生成'}
         </p>
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
@@ -174,7 +174,7 @@ function BrChip({ company, reminder, onUpdate, onView, onGenerate }) {
             ? `有效期至：${formatDate(company.brExpiryDate)}`
             : reminder
               ? `续期截止：${formatDate(reminder.dueDate)}`
-              : '录入 BR 到期日后自动生成续期提醒'}
+              : '在基本信息录入 BR 到期日后自动续排；扫描件 OCR 失败时可在编辑页手动补'}
         </p>
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
