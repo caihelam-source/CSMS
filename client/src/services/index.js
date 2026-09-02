@@ -189,6 +189,19 @@ export const companyService = {
     (personnelId) => api.get(`/api/companies/reverse-links/${personnelId}`),
     mockCompanies.getReverseLinks,
   ),
+  // v6.x 公司去重 / 合并闭环
+  duplicates: wrap(
+    (params) => api.get(`/api/companies/duplicates${buildParams(params || {})}`),
+    mockCompanies.duplicates,
+  ),
+  merge: wrap(
+    (sourceId, payload) => api.post(`/api/companies/${sourceId}/merge`, payload),
+    mockCompanies.merge,
+  ),
+  updateFormerNames: wrap(
+    (id, op, payload) => api.put(`/api/companies/${id}/former-names`, { op, ...payload }),
+    mockCompanies.updateFormerNames,
+  ),
 }
 
 // ====== Personnel Service ======

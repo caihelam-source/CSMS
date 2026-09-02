@@ -120,6 +120,11 @@ export default function CompanyDetail() {
   const [editingLink, setEditingLink] = useState(null)
   const [linkForm, setLinkForm] = useState({ linkModel: 'Personnel', name: '', roles: ['director'], shares: '', shareType: 'ordinary', nric: '', appointedDate: '', ceasedDate: '', selectedId: '' })
   const [linkFormErrors, setLinkFormErrors] = useState({})
+  // v6.x 曾用名维护
+  const [showFormerNameModal, setShowFormerNameModal] = useState(false)
+  const [newFormerName, setNewFormerName] = useState('')
+  const [newFormerNameChinese, setNewFormerNameChinese] = useState('')
+  const [addingFormerName, setAddingFormerName] = useState(false)
   // 登记册生成
   const [generatingReg, setGeneratingReg] = useState(null) // 'rod' | 'rom' | null
   const [previewReg, setPreviewReg] = useState(null) // { type, title, region, purpose } | null
@@ -467,6 +472,40 @@ export default function CompanyDetail() {
 
   // B3：公司工作台 tasks Tab 的「＋新建任务」入口（预填本公司，把中枢做实）
   const openAddTask = () => setTaskModalOpen(true)
+
+  // v6.x 曾用名维护（手动 add / remove；merger 来源不可删，与后端 former-names PUT 路由对齐）
+  const saveNewFormerName = useCallback(async () => {
+    if (!newFormerName.trim()) return
+    setAddingFormerName(true)
+    try {
+      await companyService.updateFormerNames(id, 'add', {
+        name: newFormerName.trim(),
+        nameChinese: newFormerNameChinese.trim() || undefined,
+      })
+      toast.success('已添加曾用名')
+      setNewFormerName('')
+      setNewFormerNameChinese('')
+      setShowFormerNameModal(false)
+      const { data } = await companyService.getOne(id)
+      if (data?.data) setCompany(data.data)
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || '添加失败')
+    } finally {
+      setAddingFormerName(false)
+    }
+  }, [id, newFormerName, newFormerNameChinese])
+
+  const removeFormerName = useCallback(async (index) => {
+    if (!confirm(`确认删除这条曾用名？（仅手动/seed 来源可删；合并来源不可删）`)) return
+    try {
+      await companyService.updateFormerNames(id, 'remove', { index })
+      toast.success('已删除')
+      const { data } = await companyService.getOne(id)
+      if (data?.data) setCompany(data.data)
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || '删除失败')
+    }
+  }, [id])
   const handleCreateTask = async (payload) => {
     setTaskSaving(true)
     try {
@@ -947,6 +986,11 @@ export default function CompanyDetail() {
     RegisterTable, RegSelect, REGION_OPTS, PURPOSE_OPTS,
     // 任务
     openAddTask,
+    // v6.x 曾用名维护
+    showFormerNameModal, setShowFormerNameModal,
+    newFormerName, setNewFormerName,
+    newFormerNameChinese, setNewFormerNameChinese,
+    addingFormerName, saveNewFormerName, removeFormerName,
     // 合规
     openAddReminder, applicableRules, setReminderForm, handleRuleSelect, setShowReminderModal,
   }

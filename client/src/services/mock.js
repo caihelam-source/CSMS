@@ -510,6 +510,54 @@ export const companies = {
     throw new Error('Not found');
   },
   delete: async (id) => { await delay(); return { data: { data: { _id: id } } }; },
+
+  // v6.x 公司去重 / 合并闭环 —— mock 实现
+  duplicates: async () => {
+    await delay(80)
+    const pairs = []
+    for (let i = 0; i < MOCK_COMPANIES.length; i++) {
+      for (let j = i + 1; j < MOCK_COMPANIES.length; j++) {
+        const a = MOCK_COMPANIES[i]
+        const b = MOCK_COMPANIES[j]
+        if (a.registrationNumber && a.registrationNumber === b.registrationNumber) {
+          pairs.push({
+            type: 'exact_regno',
+            score: 1,
+            reason: { registrationNumberA: a.registrationNumber, registrationNumberB: b.registrationNumber },
+            a: { _id: a._id, name: a.name, nameChinese: a.nameChinese, registrationNumber: a.registrationNumber },
+            b: { _id: b._id, name: b.name, nameChinese: b.nameChinese, registrationNumber: b.registrationNumber },
+          })
+        }
+      }
+    }
+    return { data: { data: { count: pairs.length, pairs } } }
+  },
+  merge: async (sourceId, payload) => {
+    await delay(120)
+    const src = MOCK_COMPANIES.find(c => c._id === sourceId)
+    const tgt = MOCK_COMPANIES.find(c => c._id === payload?.targetCompanyId)
+    if (!src || !tgt) return { data: { success: false, message: 'company not found in mock' } }
+    src.status = 'merged'
+    src.mergedInto = tgt._id
+    src.mergedAt = new Date().toISOString()
+    tgt.formerNames = [...(tgt.formerNames || []), {
+      name: src.name, changedAt: new Date(), source: 'merger', mergedFromCompanyId: src._id,
+    }]
+    return { data: { success: true, source: { _id: src._id, status: src.status }, target: { _id: tgt._id } } }
+  },
+  updateFormerNames: async (id, op, payload) => {
+    await delay(80)
+    const c = MOCK_COMPANIES.find(co => co._id === id)
+    if (!c) return { data: { success: false, message: 'not found' } }
+    c.formerNames = c.formerNames || []
+    if (op === 'add') {
+      c.formerNames.push({ name: payload.name, changedAt: new Date(), source: 'manual' })
+    } else if (op === 'remove' && typeof payload?.index === 'number') {
+      c.formerNames.splice(payload.index, 1)
+    }
+    return { data: { success: true, formerNames: c.formerNames } }
+  },
+
   // Dashboard 统计 —— 直接取自各集合数组，确保与列表页计数口径完全一致
   getDashboardStats: async () => {
     await delay(50);

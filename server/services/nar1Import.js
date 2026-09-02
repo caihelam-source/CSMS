@@ -23,6 +23,7 @@ const Personnel = require('../models/Personnel')
 const Document = require('../models/Document')
 require('../models/Counter') // Document.generateDocNumber 内部依赖
 const { ensureCompanyReminders } = require('./complianceService')
+const { fuzzyMatch } = require('../utils/dedup')
 
 const COMPANY_TYPES = ['private_limited', 'public_limited', 'llp', 'sole_proprietorship', 'partnership', 'other']
 
@@ -259,6 +260,36 @@ async function upsertEntity(e, mode, plan) {
   let ent = await Company.findOne({ registrationNumber: e.regNo })
   if (ent && mode === 'create') return { entity: ent, action: 'exists' }
   if (!ent) {
+    // v6.x 补强：先按 BR 号查，无则按归一化名 fuzzy 查（应对 UI 手工建过同名公司但未填 BR 号的缺口）
+    // 模糊命中阈值取 dedup.DEFAULT_FUZZY_THRESHOLD，避免激进合并误伤；命中后返回 action='merge_candidate'
+    // 由 commitOne 上层决定走 merge 还是 create + formerNames
+    if (e.name) {
+      const candidates = await Company.find({
+        status: { $ne: 'merged' },
+        $or: [
+          { name: { $regex: '^' + (e.name || '').slice(0, 16), $options: 'i' } },
+          { nameChinese: { $regex: (e.nameChinese || e.name || '').slice(0, 8), $options: 'i' } },
+        ],
+      }).limit(20).lean()
+      for (const cand of candidates) {
+        if (cand.registrationNumber === e.regNo) continue // 已用 BR 号 match 跳过
+        const hit = fuzzyMatch({ name: e.name, nameChinese: e.nameChinese }, cand)
+        if (hit) {
+          // 模糊命中：返回候选信息，但不直接合并；上层可决定走 admin merge 接口
+          return {
+            entity: cand,
+            action: 'merge_candidate',
+            mergeCandidate: {
+              score: hit.score,
+              nameA: hit.nameA,
+              nameB: hit.nameB,
+              reason: 'fuzzy_name_match (no BR match)',
+            },
+            pendingCreate: e,
+          }
+        }
+      }
+    }
     ent = await Company.create({
       name: e.name,
       nameChinese: e.nameChinese,

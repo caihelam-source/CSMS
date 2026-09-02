@@ -1,7 +1,7 @@
 // CompanyInfoTab — 公司信息 / 地址 / 合规日期 / 近期会议任务（D2 等价重构，搬迁自 CompanyDetail 的 info Tab）。
 // 行为 / 样式 / 交互与原版完全一致；数据来自 Shell 经 props 下传的 ctx。
 import { Link } from 'react-router-dom'
-import { Edit3, Calendar, CheckSquare } from 'lucide-react'
+import { Edit3, Calendar, CheckSquare, History, Plus, X, GitMerge } from 'lucide-react'
 import { formatDate } from '../../utils/helpers'
 import { FormField, inputClass, jurisdictionLabel, taskPriorityColor } from '../../components/UIHelpers'
 
@@ -9,6 +9,11 @@ export default function CompanyInfoTab({ ctx }) {
   const {
     company, editingInfo, openEditInfo, setEditingInfo, saveInfo, savingInfo, infoForm, setInfoForm,
     tasks, meetings,
+    // v6.x 曾用名维护
+    showFormerNameModal, setShowFormerNameModal,
+    newFormerName, setNewFormerName,
+    newFormerNameChinese, setNewFormerNameChinese,
+    addingFormerName, saveNewFormerName, removeFormerName,
   } = ctx
 
   return (
@@ -253,6 +258,79 @@ export default function CompanyInfoTab({ ctx }) {
                 </span>
               </Link>
             ))}
+          </div>
+        </div>
+      )}
+    {/* v6.x 曾用名 / 合并记录卡 — 用户手填 + merge 接口产生 */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold flex items-center gap-2"><History size={16} /> 曾用名 / 历史记录</h3>
+          {!company.mergedInto && (
+            <button
+              onClick={() => setShowFormerNameModal(true)}
+              className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 font-medium"
+            >
+              <Plus size={14} /> 添加
+            </button>
+          )}
+        </div>
+        {company.mergedInto ? (
+          <p className="text-xs text-warning flex items-center gap-1.5">
+            <GitMerge size={14} /> 此公司已合并到另一公司，formerNames 不可修改。
+            <Link to={`/companies/${company.mergedInto}`} className="underline text-primary-600">查看目标公司</Link>
+          </p>
+        ) : (company.formerNames?.length || 0) === 0 ? (
+          <p className="text-sm text-ink-3">尚无历史名。可手动添加或通过 Companies → 检测重复 → 合并产生。</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {company.formerNames.map((fn, idx) => (
+              <li key={idx} className="flex items-start justify-between gap-2 py-2 px-3 rounded-lg hover:bg-canvas">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-ink-1 break-words">{fn.name}</div>
+                  {fn.nameChinese && <div className="text-xs text-ink-3 mt-0.5 break-words">{fn.nameChinese}</div>}
+                  <div className="text-xs text-ink-3 mt-0.5 flex flex-wrap items-center gap-2">
+                    <span className={`badge text-[10px] ${
+                      fn.source === 'merger' ? 'bg-warning/10 text-warning' :
+                      fn.source === 'seed' ? 'bg-info/10 text-primary-700' :
+                      'bg-canvas text-ink-3'
+                    }`}>
+                      {fn.source === 'merger' ? '合并自' : fn.source === 'seed' ? '系统引入' : '手动'}
+                    </span>
+                    {fn.changedAt && <span>{formatDate(fn.changedAt)}</span>}
+                    {fn.notes && <span className="text-ink-3">· {fn.notes}</span>}
+                  </div>
+                </div>
+                {fn.source !== 'merger' && (
+                  <button
+                    onClick={() => removeFormerName(idx)}
+                    className="p-1 text-ink-3 hover:text-danger rounded"
+                    title="删除（仅手动/seed 源；合并源不可删）"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {/* v6.x 曾用名新增 Modal */}
+      {showFormerNameModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowFormerNameModal(false)}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold">添加曾用名</h3>
+            <FormField label="曾用英文名（必填）">
+              <input className={inputClass} value={newFormerName} onChange={e => setNewFormerName(e.target.value)} placeholder="例如：OldCo Holdings Limited" />
+            </FormField>
+            <FormField label="曾用中文名（可选）">
+              <input className={inputClass} value={newFormerNameChinese} onChange={e => setNewFormerNameChinese(e.target.value)} placeholder="例如：旧公司控股有限公司" />
+            </FormField>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowFormerNameModal(false)} className="btn-secondary">取消</button>
+              <button onClick={saveNewFormerName} disabled={addingFormerName || !newFormerName.trim()} className="btn-primary">
+                {addingFormerName ? '保存中...' : '保存'}
+              </button>
+            </div>
           </div>
         </div>
       )}

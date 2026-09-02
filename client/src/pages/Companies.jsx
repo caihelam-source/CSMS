@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Building2, Plus, Pencil, Trash2, Upload, Download, FileUp, ShieldCheck } from 'lucide-react'
+import { Building2, Plus, Pencil, Trash2, Upload, Download, FileUp, ShieldCheck, GitMerge, AlertTriangle } from 'lucide-react'
 import { companyService } from '../services/index.js'
 import { formatDate, getStatusColor } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
@@ -43,7 +43,9 @@ const CompanyCard = memo(function CompanyCard({ company: c, onEdit, onDelete }) 
         <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
             <h3 className="font-semibold text-primary-600 line-clamp-2 break-words min-w-0">{c.name}</h3>
-            <span className={`badge ${getStatusColor(c.status)} flex-shrink-0 self-start`}>{c.status?.replace(/_/g, ' ')}</span>
+            <span className={`badge ${getStatusColor(c.status)} flex-shrink-0 self-start`}>
+              {c.status === 'merged' ? '已合并' : (c.status?.replace(/_/g, ' ') || '')}
+            </span>
           </div>
         </div>
       </div>
@@ -57,6 +59,18 @@ const CompanyCard = memo(function CompanyCard({ company: c, onEdit, onDelete }) 
       )}
       {c.links?.length > 0 && (
         <p className="text-xs text-ink-3 mt-1 break-words">{c.links.length} linked people/companies</p>
+      )}
+      {/* 合并态徽章：区别于正常卡片，提示这是曾用公司 */}
+      {c.status === 'merged' && c.mergedInto && (
+        <p className="text-xs text-warning mt-2 break-words">
+          已合并 · <Link to={`/companies/${c.mergedInto}`} className="underline" onClick={e => e.stopPropagation()}>查看目标公司</Link>
+        </p>
+      )}
+      {c.formerNames?.length > 0 && (
+        <p className="text-xs text-ink-3 mt-2 break-words" title={c.formerNames.map(fn => fn.name).join(' / ')}>
+          曾用名：{c.formerNames.slice(-2).map(fn => fn.name).join(' / ')}
+          {c.formerNames.length > 2 && ' 等'}
+        </p>
       )}
       <div className="flex gap-1 mt-3 pt-2 border-t border-hairline" onClick={e => e.preventDefault()}>
         <button onClick={() => onEdit(c)} className="p-1.5 text-ink-3 hover:text-primary-600 rounded-lg hover:bg-canvas" aria-label={`编辑 ${c.name}`}><Pencil size={14} /></button>
@@ -84,6 +98,13 @@ export default function Companies() {
   const importFileRef = useRef()
   // NAR1 批量导入（仅适用于香港公司）
   const [nar1Open, setNar1Open] = useState(false)
+  // v6.x 公司去重 / 合并闭环
+  const [dupModalOpen, setDupModalOpen] = useState(false)
+  const [dupLoading, setDupLoading] = useState(false)
+  const [dupPairs, setDupPairs] = useState([])
+  const [dupThreshold, setDupThreshold] = useState(0.92)
+  const [mergeBusy, setMergeBusy] = useState(null) // 正在合并的 pair 索引
+  const [mergingAll, setMergingAll] = useState(false)
 
   // 行级数据权限：渲染期无声过滤（真实模式服务端已过滤，此处幂等 no-op）
   const { noScope } = useScope()
@@ -230,6 +251,65 @@ export default function Companies() {
     [openEdit, setDeleteTarget]
   )
 
+  // v6.x 公司去重：打开模态并拉取重复对
+  const openDuplicateCheck = useCallback(async () => {
+    setDupModalOpen(true)
+    setDupLoading(true)
+    setDupPairs([])
+    try {
+      const { data } = await companyService.duplicates({ fuzzyThreshold: dupThreshold })
+      setDupPairs(data?.data?.pairs || data?.pairs || [])
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || '检测失败')
+    } finally {
+      setDupLoading(false)
+    }
+  }, [dupThreshold])
+
+  // v6.x 公司去重：执行单对合并（targetId 即"留下"那个，源被并入）
+  const handleMergePair = useCallback(async (pair, pairIdx, targetId, options) => {
+    const isA = targetId === pair.a._id
+    const src = isA ? pair.b : pair.a
+    const tgt = isA ? pair.a : pair.b
+    if (!confirm(`把「${src.name}」合并到「${tgt.name}」？\n\n源公司 status 会改为 'merged'，formerNames 加入 target，文件按 v6.x 重新编号（HKOP/LISTCO 等），反向引用全部迁到 target。\n此操作一旦执行请用 admin 工具手动清理。`)) return
+    setMergeBusy(pairIdx)
+    try {
+      await companyService.merge(src._id, { targetCompanyId: tgt._id, options })
+      toast.success(`已合并：${src.name} → ${tgt.name}`)
+      setDupPairs((ps) => ps.filter((_, i) => i !== pairIdx))
+      fetchCompanies()
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || '合并失败')
+    } finally {
+      setMergeBusy(null)
+    }
+  }, [fetchCompanies])
+
+  const handleMergeAll = useCallback(async (options) => {
+    if (dupPairs.length === 0) return
+    if (!confirm(`批量合并所有 ${dupPairs.length} 对？\n\n每对按「注册号较小者作为 target」自动选边，您仍可在合并后手动调整。`)) return
+    setMergingAll(true)
+    let success = 0, failed = 0
+    for (let i = 0; i < dupPairs.length; i++) {
+      const p = dupPairs[i]
+      // 默认归并规则：exact_regno → 完整 BR 号走 target；fuzzy → 先创建者（左 a）为 target
+      const target = p.type === 'exact_regno' ? p.a : p.a
+      const source = target === p.a ? p.b : p.a
+      setMergeBusy(i)
+      try {
+        await companyService.merge(source._id, { targetCompanyId: target._id, options })
+        success++
+      } catch {
+        failed++
+      }
+    }
+    setDupPairs([])
+    setMergeBusy(null)
+    setMergingAll(false)
+    toast.success(`批量合并：${success} 成功 / ${failed} 失败`)
+    fetchCompanies()
+  }, [dupPairs, fetchCompanies])
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -253,6 +333,14 @@ export default function Companies() {
                 <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-medium bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full">
                   <ShieldCheck size={10} /> HK
                 </span>
+              </button>
+            )}
+            {/* v6.x 公司去重：点开后列出 BR 号相同 / 名称模糊匹配的对 */}
+            {canEdit && (
+              <button onClick={openDuplicateCheck}
+                className="btn-secondary flex items-center gap-1.5"
+                title="按 BR 号 / 别名 / 模糊名查找重复公司，可一键软合并">
+                <GitMerge size={15} /> 检测重复
               </button>
             )}
             <button onClick={openNew} className="btn-primary flex items-center gap-2">
@@ -395,6 +483,102 @@ export default function Companies() {
       {/* NAR1 批量导入（嵌入 Nar1Import，embedded=true 隐藏 PageHeader、压缩 padding） */}
       <Modal isOpen={nar1Open} onClose={() => setNar1Open(false)} title="从 NAR1 导入香港公司" size="xl">
         {nar1Open && <Nar1ImportPage embedded />}
+      </Modal>
+
+      {/* v6.x 公司去重 / 合并 */}
+      <Modal isOpen={dupModalOpen} onClose={() => setDupModalOpen(false)} title="🔍 检测公司重复" size="xl">
+        <div className="space-y-4">
+          <div className="bg-info/10 border border-info/20 rounded-lg p-4 text-sm text-primary-700">
+            <p className="font-medium mb-1 flex items-center gap-1.5"><AlertTriangle size={14} /> 三层匹配规则</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li><strong>EXACT_REGNO</strong>：registrationNumber 完全相同（容忍 DEMO-CR- 前缀）</li>
+              <li><strong>ALIAS</strong>：任一方 formerNames[] 命中对方 name</li>
+              <li><strong>FUZZY</strong>：归一化后 Jaro-Winkler ≥ 阈值（默认 0.92）</li>
+            </ul>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="text-sm text-ink-2">
+              模糊阈值
+              <input
+                type="number" step="0.01" min="0.5" max="1"
+                value={dupThreshold}
+                onChange={e => setDupThreshold(parseFloat(e.target.value) || 0.92)}
+                className="ml-2 w-20 input-field inline-block"
+              />
+            </label>
+            <button onClick={openDuplicateCheck} className="btn-secondary text-sm">
+              重新检测
+            </button>
+            {dupPairs.length > 0 && (
+              <button
+                onClick={() => handleMergeAll({ addAsFormerName: true, renumberFiles: true, mergeLinks: true })}
+                disabled={mergingAll}
+                className="btn-primary text-sm flex items-center gap-1.5"
+              >
+                <GitMerge size={14} /> 一键合并全部（{dupPairs.length} 对）
+              </button>
+            )}
+          </div>
+
+          {dupLoading ? (
+            <div className="py-8 text-center text-ink-3">扫描中…</div>
+          ) : dupPairs.length === 0 ? (
+            <div className="py-8 text-center text-ink-3">✓ 没有发现重复公司</div>
+          ) : (
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {dupPairs.map((pair, idx) => (
+                <div key={idx} className="card flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className={`badge text-xs ${
+                      pair.type === 'exact_regno' ? 'bg-danger/15 text-danger' :
+                      pair.type === 'alias' ? 'bg-warning/15 text-warning' :
+                      'bg-primary/15 text-primary'
+                    }`}>
+                      {pair.type} · 相似度 {(pair.score * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[pair.a, pair.b].map((c) => (
+                      <div key={c._id} className="rounded-lg border border-hairline p-3 min-w-0">
+                        <div className="font-medium text-ink-1 break-words">{c.name}</div>
+                        {c.nameChinese && <div className="text-xs text-ink-3 mt-0.5 break-words">{c.nameChinese}</div>}
+                        <div className="text-xs text-ink-2 mt-1">BR: {c.registrationNumber || '—'}</div>
+                        {c.jurisdiction && <div className="text-xs text-ink-2">{jurisdictionLabel(c.jurisdiction)}</div>}
+                        {c.formerNames?.length > 0 && (
+                          <div className="text-xs text-ink-3 mt-1 break-words" title={c.formerNames.map(fn => fn.name).join(' / ')}>
+                            曾用名：{c.formerNames.slice(-2).map(fn => fn.name).join(' / ')}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      disabled={mergeBusy === idx || mergingAll}
+                      onClick={() => handleMergePair(pair, idx, pair.a._id)}
+                      className="btn-secondary text-xs"
+                    >
+                      {mergeBusy === idx ? '合并中…' : `把 B 合到 A`}
+                    </button>
+                    <button
+                      disabled={mergeBusy === idx || mergingAll}
+                      onClick={() => handleMergePair(pair, idx, pair.b._id)}
+                      className="btn-secondary text-xs"
+                    >
+                      {mergeBusy === idx ? '合并中…' : `把 A 合到 B`}
+                    </button>
+                    <span className="text-xs text-ink-3 self-center">说明：源公司将进入 status=merged 软合并，文件按 v6.x 重编号</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 mt-2 pt-3 border-t border-hairline">
+            <button onClick={() => setDupModalOpen(false)} className="btn-secondary">关闭</button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

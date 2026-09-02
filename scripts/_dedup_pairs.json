@@ -1,0 +1,294 @@
+{
+  "generatedAt": "2026-09-02T05:12:57.463Z",
+  "threshold": 0.92,
+  "includeMerged": false,
+  "scannedCompanies": 38,
+  "count": 10,
+  "pairs": [
+    {
+      "type": "exact_regno",
+      "score": 1,
+      "reason": {
+        "registrationNumberA": "DEMO-CR-65940948",
+        "registrationNumberB": "65940948"
+      },
+      "a": {
+        "_id": "6a6b1f50362a556234c0fd4e",
+        "name": "Easy Rich Corporation Ltd (順富興業)",
+        "registrationNumber": "DEMO-CR-65940948",
+        "jurisdiction": "HK",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 4
+      },
+      "b": {
+        "_id": "6a979b7127899233671c29ed",
+        "name": "EASY RICH CORPORATION LIMITED",
+        "nameChinese": "順富興業有限公司",
+        "registrationNumber": "65940948",
+        "jurisdiction": "HK",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 4
+      }
+    },
+    {
+      "type": "exact_regno",
+      "score": 1,
+      "reason": {
+        "registrationNumberA": "DEMO-CR-69459923",
+        "registrationNumberB": "69459923"
+      },
+      "a": {
+        "_id": "6a6b1f50362a556234c0fd50",
+        "name": "Zhong An Travel Ltd (眾安旅遊)",
+        "registrationNumber": "DEMO-CR-69459923",
+        "jurisdiction": "HK",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 3
+      },
+      "b": {
+        "_id": "6a979b7b27899233671c2b09",
+        "name": "Zhong An Travel Limited",
+        "nameChinese": "眾安旅遊有限公司",
+        "registrationNumber": "69459923",
+        "jurisdiction": "HK",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 3
+      }
+    },
+    {
+      "type": "exact_regno",
+      "score": 1,
+      "reason": {
+        "registrationNumberA": "DEMO-CR-35387857",
+        "registrationNumberB": "35387857"
+      },
+      "a": {
+        "_id": "6a6b1f50362a556234c0fd52",
+        "name": "HuiJun (International) Holdings Ltd (匯駿控股)",
+        "registrationNumber": "DEMO-CR-35387857",
+        "jurisdiction": "HK",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 3
+      },
+      "b": {
+        "_id": "6a979b7427899233671c2a42",
+        "name": "HUIJUN (INTERNATIONAL) HOLDINGS LIMITED",
+        "nameChinese": "匯駿(國際)控股有限公司",
+        "registrationNumber": "35387857",
+        "jurisdiction": "HK",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 3
+      }
+    },
+    {
+      "type": "exact_regno",
+      "score": 1,
+      "reason": {
+        "registrationNumberA": "DEMO-CR-63822186",
+        "registrationNumberB": "63822186"
+      },
+      "a": {
+        "_id": "6a6b1f50362a556234c0fd54",
+        "name": "Hong Kong Time Honour Property Ltd (香港時駿地産)",
+        "registrationNumber": "DEMO-CR-63822186",
+        "jurisdiction": "HK",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 3
+      },
+      "b": {
+        "_id": "6a979b7327899233671c2a2b",
+        "name": "Hong Kong Time Honour Property Limited",
+        "nameChinese": "香港時譽地産有限公司",
+        "registrationNumber": "63822186",
+        "jurisdiction": "HK",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 3
+      }
+    },
+    {
+      "type": "exact_regno",
+      "score": 1,
+      "reason": {
+        "registrationNumberA": "DEMO-CR-63822047",
+        "registrationNumberB": "63822047"
+      },
+      "a": {
+        "_id": "6a6b1f50362a556234c0fd56",
+        "name": "Pannix Industrial (Hong Kong) Ltd (佳穎實業)",
+        "registrationNumber": "DEMO-CR-63822047",
+        "jurisdiction": "HK",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 3
+      },
+      "b": {
+        "_id": "6a979b7527899233671c2a5b",
+        "name": "Pannix Industrial (Hong Kong) Limited",
+        "nameChinese": "佳潤實業(香港)有限公司",
+        "registrationNumber": "63822047",
+        "jurisdiction": "HK",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 3
+      }
+    },
+    {
+      "type": "fuzzy_name",
+      "score": 1,
+      "reason": {
+        "normalizedA": "easy success investments",
+        "normalizedB": "easy success investments"
+      },
+      "a": {
+        "_id": "6a6b1f50362a556234c0fd58",
+        "name": "Easy Success Investments Ltd (BVI)",
+        "registrationNumber": "DEMO-BVI-6",
+        "jurisdiction": "BVI",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 0
+      },
+      "b": {
+        "_id": "6a979b7127899233671c29fc",
+        "name": "EASY SUCCESS INVESTMENTS LIMITED",
+        "registrationNumber": "ENT-EASYSUCCESSINVESTM",
+        "jurisdiction": "BVI",
+        "type": "other",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 0
+      }
+    },
+    {
+      "type": "fuzzy_name",
+      "score": 1,
+      "reason": {
+        "normalizedA": "beyond horizon investments",
+        "normalizedB": "beyond horizon investments"
+      },
+      "a": {
+        "_id": "6a6b1f50362a556234c0fd5a",
+        "name": "Beyond Horizon Investments Ltd (BVI)",
+        "registrationNumber": "DEMO-BVI-7",
+        "jurisdiction": "BVI",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 0
+      },
+      "b": {
+        "_id": "6a979b7927899233671c2ac9",
+        "name": "BEYOND HORIZON INVESTMENTS LIMITED",
+        "registrationNumber": "ENT-BEYONDHORIZONINVES",
+        "jurisdiction": "BVI",
+        "type": "other",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 0
+      }
+    },
+    {
+      "type": "fuzzy_name",
+      "score": 1,
+      "reason": {
+        "normalizedA": "time honour global",
+        "normalizedB": "time honour global"
+      },
+      "a": {
+        "_id": "6a6b1f50362a556234c0fd5e",
+        "name": "Time Honour Global Ltd (BVI)",
+        "registrationNumber": "DEMO-BVI-9",
+        "jurisdiction": "BVI",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 0
+      },
+      "b": {
+        "_id": "6a979b7327899233671c2a34",
+        "name": "TIME HONOUR GLOBAL LIMITED",
+        "registrationNumber": "ENT-TIMEHONOURGLOBALLI",
+        "jurisdiction": "BVI",
+        "type": "other",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 0
+      }
+    },
+    {
+      "type": "fuzzy_name",
+      "score": 1,
+      "reason": {
+        "normalizedA": "first achiever holdings",
+        "normalizedB": "first achiever holdings"
+      },
+      "a": {
+        "_id": "6a6b1f50362a556234c0fd60",
+        "name": "First Achiever Holdings Ltd (BVI)",
+        "registrationNumber": "DEMO-BVI-10",
+        "jurisdiction": "BVI",
+        "type": "private_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 0
+      },
+      "b": {
+        "_id": "6a979b7527899233671c2a64",
+        "name": "FIRST ACHIEVER HOLDINGS LIMITED",
+        "registrationNumber": "ENT-FIRSTACHIEVERHOLDI",
+        "jurisdiction": "BVI",
+        "type": "other",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 0
+      }
+    },
+    {
+      "type": "fuzzy_name",
+      "score": 0.9428571428571428,
+      "reason": {
+        "normalizedA": "china new city group 中国新城市集团",
+        "normalizedB": "china new city group"
+      },
+      "a": {
+        "_id": "6a6b1f50362a556234c0fd5c",
+        "name": "China New City Group Ltd (中国新城市集团)",
+        "registrationNumber": "DEMO-CR-62264234",
+        "jurisdiction": "Cayman",
+        "type": "public_limited",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 0
+      },
+      "b": {
+        "_id": "6a979b7427899233671c2a4d",
+        "name": "CHINA NEW CITY GROUP LIMITED",
+        "registrationNumber": "ENT-CHINANEWCITYGROUPL",
+        "jurisdiction": "Cayman",
+        "type": "other",
+        "status": "active",
+        "formerNamesCount": 0,
+        "linksCount": 0
+      }
+    }
+  ]
+}
