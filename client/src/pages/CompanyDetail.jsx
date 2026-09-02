@@ -406,6 +406,7 @@ export default function CompanyDetail() {
   const openEditInfo = useCallback(() => {
     setInfoForm({
       name: company?.name || '',
+      nameChinese: company?.nameChinese || '',
       registrationNumber: company?.registrationNumber || '',
       type: company?.type || 'private_limited',
       jurisdiction: company?.jurisdiction || 'HK',
@@ -431,6 +432,7 @@ export default function CompanyDetail() {
       const nextNonHK = !!infoForm.nonHongKongCompany
       await companyService.update(id, {
         name: infoForm.name,
+        nameChinese: infoForm.nameChinese || undefined,
         registrationNumber: infoForm.registrationNumber,
         type: infoForm.type,
         jurisdiction: infoForm.jurisdiction,

@@ -13,6 +13,7 @@ const multer = require('multer');
 const mongoose = require('mongoose');
 const { findCompanyDuplicates, fuzzyMatch } = require('../utils/dedup');
 const { applyDocRenumbers } = require('../utils/docFileCode');
+const { classifyNameRelation } = require('../utils/companyNameNormalize');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -556,19 +557,37 @@ router.post('/:id/merge', auth, adminAuth, async (req, res) => {
       await target.save()
     }
 
-    // 3) formerNames[]：把 source 的当前 name / nameChinese 加入 target
+    // 3) formerNames[] 智能归类（同构 personnel merge 修复）：
+    //    仅在 source.name 与 target.name 真正不同时（distinct / renamed company）
+    //    才入 formerNames；合法变体（大小写/Ltd 缩写/标点）→ 不入；若 source
+    //    有 nameChinese 且 target 缺 → 回填 target.nameChinese（与 personnel 同构）。
     let formerNameAdded = null
+    let mergeDecision = null
     if (addAsFormerName && sourceName) {
-      const entry = {
-        name: sourceName,
-        nameChinese: sourceNameChinese || undefined,
-        changedAt: new Date(),
-        source: 'merger',
-        mergedFromCompanyId: sourceOid,
-        notes: sourceRegNo ? `原 BR: ${sourceRegNo}` : undefined,
+      const relation = classifyNameRelation(source, target)
+      mergeDecision = relation
+      if (relation === 'different') {
+        // 真曾用名（如 OldCo Holdings → NewCo Holdings）：进 formerNames
+        const entry = {
+          name: sourceName,
+          nameChinese: sourceNameChinese || undefined,
+          changedAt: new Date(),
+          source: 'merger',
+          mergedFromCompanyId: sourceOid,
+          notes: sourceRegNo ? `原 BR: ${sourceRegNo}` : undefined,
+        }
+        target.formerNames = [...(target.formerNames || []), entry]
+        formerNameAdded = entry
+      } else if (relation === 'chinese' || relation === 'variant' || relation === 'identical') {
+        // 合法变体：缺啥补啥
+        if (sourceNameChinese && !target.nameChinese) {
+          target.nameChinese = sourceNameChinese
+        }
+        // 缺注册号也补
+        if (sourceRegNo && !target.registrationNumber) {
+          target.registrationNumber = sourceRegNo
+        }
       }
-      target.formerNames = [...(target.formerNames || []), entry]
-      formerNameAdded = entry
       await target.save()
     }
 
@@ -598,6 +617,7 @@ router.post('/:id/merge', auth, adminAuth, async (req, res) => {
         mergedLinksCount: mergedLinks,
         formerNameAdded,
         filesRenumbered: renumberOpsApplied,
+        mergeDecision,
       },
     })
   } catch (err) {

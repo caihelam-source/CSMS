@@ -38,6 +38,11 @@ export default function CompanyInfoTab({ ctx }) {
             <FormField label="公司名称" required>
               <input className={inputClass} value={infoForm.name} onChange={e => setInfoForm(f => ({ ...f, name: e.target.value }))} />
             </FormField>
+            {/* 中文名独立可编辑（与 Personnel 同构）：简繁为公司当前使用的合法写法，
+                展示层会做 "英文 · 中文" 合并显示；仅编辑其中一个字段不视为改名 */}
+            <FormField label="中文名称（可选）">
+              <input className={inputClass} value={infoForm.nameChinese || ''} onChange={e => setInfoForm(f => ({ ...f, nameChinese: e.target.value }))} placeholder="例如：匯駿控股" />
+            </FormField>
             <div className="grid grid-cols-2 gap-3">
               <FormField label="注册号"><input className={inputClass} value={infoForm.registrationNumber} onChange={e => setInfoForm(f => ({ ...f, registrationNumber: e.target.value }))} /></FormField>
               <FormField label="类型">
