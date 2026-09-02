@@ -1,7 +1,7 @@
 // CompanyInfoTab — 公司信息 / 地址 / 合规日期 / 近期会议任务（D2 等价重构，搬迁自 CompanyDetail 的 info Tab）。
 // 行为 / 样式 / 交互与原版完全一致；数据来自 Shell 经 props 下传的 ctx。
 import { Link } from 'react-router-dom'
-import { Edit3, Calendar, CheckSquare, History, Plus, X, GitMerge } from 'lucide-react'
+import { Edit3, Calendar, CheckSquare, History, Plus, X, GitMerge, Sparkles } from 'lucide-react'
 import { formatDate } from '../../utils/helpers'
 import { FormField, inputClass, jurisdictionLabel, taskPriorityColor } from '../../components/UIHelpers'
 
@@ -14,6 +14,8 @@ export default function CompanyInfoTab({ ctx }) {
     newFormerName, setNewFormerName,
     newFormerNameChinese, setNewFormerNameChinese,
     addingFormerName, saveNewFormerName, removeFormerName,
+    // v6.x 系统级归位（清理误标记的曾用名）
+    normalizeFormerNames, normalizeReport, setNormalizeReport, normalizingFormerNames,
   } = ctx
 
   return (
@@ -270,14 +272,26 @@ export default function CompanyInfoTab({ ctx }) {
       <div className="card">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold flex items-center gap-2"><History size={16} /> 曾用名 / 历史记录</h3>
-          {!company.mergedInto && (
-            <button
-              onClick={() => setShowFormerNameModal(true)}
-              className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 font-medium"
-            >
-              <Plus size={14} /> 添加
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {(company.formerNames?.length || 0) > 0 && !company.mergedInto && (
+              <button
+                onClick={normalizeFormerNames}
+                disabled={normalizingFormerNames}
+                className="flex items-center gap-1 text-xs text-warning hover:text-warning/80 font-medium disabled:opacity-50"
+                title="扫描当前曾用名，按智能分类移除误标记项（大小写/缩写/标点差异），并回填空字段"
+              >
+                <Sparkles size={12} /> {normalizingFormerNames ? '归位中…' : '✨ 一键归位假曾用名'}
+              </button>
+            )}
+            {!company.mergedInto && (
+              <button
+                onClick={() => setShowFormerNameModal(true)}
+                className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
+                <Plus size={14} /> 添加
+              </button>
+            )}
+          </div>
         </div>
         {company.mergedInto ? (
           <p className="text-xs text-warning flex items-center gap-1.5">
@@ -335,6 +349,49 @@ export default function CompanyInfoTab({ ctx }) {
               <button onClick={saveNewFormerName} disabled={addingFormerName || !newFormerName.trim()} className="btn-primary">
                 {addingFormerName ? '保存中...' : '保存'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* v6.x 「一键归位」报告 Modal */}
+      {normalizeReport && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setNormalizeReport(null)}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg space-y-3" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold flex items-center gap-2 text-lg">
+              <Sparkles size={18} className="text-warning" /> 归位报告
+            </h3>
+            <div className="space-y-2 text-sm">
+              <p>
+                本次扫描 <b>{normalizeReport.scanned}</b> 条曾用名记录。
+              </p>
+              {normalizeReport.migrated.length > 0 ? (
+                <div className="space-y-1">
+                  <p className="text-success font-medium">✅ 已自动迁移 {normalizeReport.migrated.length} 条「合法变体」（非真曾用名）：</p>
+                  <ul className="text-xs space-y-1 pl-4 list-disc bg-canvas p-2 rounded">
+                    {normalizeReport.migrated.map((m, i) => (
+                      <li key={i}>
+                        <span className="font-mono">{m.former.name}</span>
+                        {m.former.nameChinese && <span className="ml-1 text-ink-3">({m.former.nameChinese})</span>}
+                        <span className="ml-2 badge bg-success/10 text-success text-[10px]">{m.reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-ink-3">没有发现误标记的曾用名。</p>
+              )}
+              {normalizeReport.kept.length > 0 && (
+                <p className="text-xs text-ink-3">保留 {normalizeReport.kept.length} 条真曾用名。</p>
+              )}
+              {normalizeReport.fieldsUpdated?.length > 0 && (
+                <p className="text-xs text-primary-700">
+                  回填字段：<b>{normalizeReport.fieldsUpdated.join('、')}</b>
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end pt-2">
+              <button onClick={() => setNormalizeReport(null)} className="btn-primary">知道了</button>
             </div>
           </div>
         </div>

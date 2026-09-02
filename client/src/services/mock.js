@@ -570,6 +570,55 @@ export const companies = {
     }
     return { data: { success: true, formerNames: c.formerNames } }
   },
+  // v6.x 公司 formerNames 智能归位（mock：直接重置为合法变体少于 1 条）
+  normalizeFormerNames: async (id) => {
+    await delay(120)
+    const c = MOCK_COMPANIES.find(co => co._id === id)
+    if (!c) return { data: { success: false, message: 'not found' } }
+    const before = (c.formerNames || []).slice()
+    const migrated = []
+    const kept = []
+    const fieldsUpdated = []
+    const keptList = []
+    for (const fn of before) {
+      // mock 简化：只要 former.name 与公司 name 大小写归一后相等，或纯大小写差异，就当变体
+      const a = (fn.name || '').toLowerCase().replace(/[.,()&]/g, '').replace(/\s+/g, ' ').trim()
+      const b = (c.name || '').toLowerCase().replace(/[.,()&]/g, '').replace(/\s+/g, ' ').trim()
+      const isVariant = a && b && (a === b || a.includes(b) || b.includes(a))
+      if (isVariant) {
+        migrated.push({ former: fn, reason: 'identical' })
+      } else {
+        kept.push(fn)
+        keptList.push(fn)
+      }
+    }
+    c.formerNames = keptList
+    return {
+      data: {
+        success: true,
+        companyId: c._id,
+        companyName: c.name,
+        scanned: before.length,
+        migrated,
+        kept,
+        fieldsUpdated,
+      },
+    }
+  },
+  normalizeAllFormerNames: async () => {
+    await delay(150)
+    return {
+      data: {
+        success: true,
+        companiesScanned: MOCK_COMPANIES.length,
+        companiesAffected: 0,
+        companies: [],
+        totalFormerNamesScanned: 0,
+        totalMigrated: 0,
+        byCompany: [],
+      },
+    }
+  },
 
   // Dashboard 统计 —— 直接取自各集合数组，确保与列表页计数口径完全一致
   getDashboardStats: async () => {

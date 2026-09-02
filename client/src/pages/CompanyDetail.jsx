@@ -126,6 +126,9 @@ export default function CompanyDetail() {
   const [newFormerName, setNewFormerName] = useState('')
   const [newFormerNameChinese, setNewFormerNameChinese] = useState('')
   const [addingFormerName, setAddingFormerName] = useState(false)
+  // v6.x 系统级归位：扫描当前 formerNames，把"合法变体"自动迁移到正确字段
+  const [normalizingFormerNames, setNormalizingFormerNames] = useState(false)
+  const [normalizeReport, setNormalizeReport] = useState(null)
   // 登记册生成
   const [generatingReg, setGeneratingReg] = useState(null) // 'rod' | 'rom' | null
   const [previewReg, setPreviewReg] = useState(null) // { type, title, region, purpose } | null
@@ -509,6 +512,30 @@ export default function CompanyDetail() {
       toast.error(err.response?.data?.message || err.message || '删除失败')
     }
   }, [id])
+
+  // v6.x 系统级归位：智能识别合法变体（同英文不同拼写 / 纯中文别名）并从 formerNames 移除
+  const normalizeFormerNames = useCallback(async () => {
+    if (!company?.formerNames?.length) return
+    if (!confirm('将扫描当前所有「曾用名」，按智能分类自动移除「合法变体」（大小写差异 / Ltd↔Limited / 标点 / 純中文别名），并回填空字段。真曾用名将保留。\n\n确定吗？')) return
+    setNormalizingFormerNames(true)
+    try {
+      const { data } = await companyService.normalizeFormerNames(id)
+      const r = data?.data || data
+      if (r?.migrated?.length > 0) {
+        toast.success(`已自动归位 ${r.migrated.length} 条「合法变体」`)
+      } else {
+        toast.success('没有发现误标记的曾用名')
+      }
+      // 刷新公司数据
+      const refreshed = await companyService.getOne(id)
+      if (refreshed?.data?.data) setCompany(refreshed.data.data)
+      setNormalizeReport(r)
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || '归位失败')
+    } finally {
+      setNormalizingFormerNames(false)
+    }
+  }, [id, company])
   const handleCreateTask = async (payload) => {
     setTaskSaving(true)
     try {
@@ -994,6 +1021,7 @@ export default function CompanyDetail() {
     newFormerName, setNewFormerName,
     newFormerNameChinese, setNewFormerNameChinese,
     addingFormerName, saveNewFormerName, removeFormerName,
+    normalizeFormerNames, normalizeReport, setNormalizeReport, normalizingFormerNames,
     // 合规
     openAddReminder, applicableRules, setReminderForm, handleRuleSelect, setShowReminderModal,
   }

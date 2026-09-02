@@ -700,4 +700,113 @@ router.put('/:id/former-names', auth, async (req, res) => {
   }
 })
 
+// ============= 「曾用名 / 历史记录」智能归位（系统级清理） =============
+//
+// 背景：之前按 person 同款方式合并时，会把 source 的 name / nameChinese 整段塞 formerNames，
+//       但「大小写 / Ltd↔Limited / 标点 / 纯中文别名」是合法变体，不是曾经的另一个名字。
+//       这个接口把当前 company.formerNames 用 classifyNameRelation 重新分类：
+//         - identical / variant / chinese  → 从 formerNames 移除 + 回填空字段
+//         - different                     → 保留（这些才是真曾用名）
+//       admin only，防止普通用户误改。
+function normalizeFormerNamesInCompany(company) {
+  const before = (company.formerNames || []).map((e) => e.toObject ? e.toObject() : { ...e })
+  const migrated = []
+  const kept = []
+  const fieldsUpdated = new Set()
+
+  const keptList = []
+  for (const former of before) {
+    const relation = classifyNameRelation(
+      { name: former.name, nameChinese: former.nameChinese },
+      { name: company.name, nameChinese: company.nameChinese },
+    )
+    if (relation === 'identical' || relation === 'variant' || relation === 'chinese') {
+      // 合法变体 → 从 formerNames 移除 + 回填空字段
+      // 1) nameChinese（仅当 target 完全为空时填，避免覆盖人工录入）
+      if (!company.nameChinese && former.nameChinese && String(former.nameChinese).trim()) {
+        company.nameChinese = String(former.nameChinese).trim()
+        fieldsUpdated.add('nameChinese')
+      }
+      // 2) registrationNumber（从 former.notes 里 '原 BR: xxx' / '原 CR: xxx' 提取）
+      if (!company.registrationNumber && former.notes) {
+        const m = former.notes.match(/(?:原\s*)?(?:BR|CR|注册号)[：:]\s*([A-Z0-9-]+)/i)
+        if (m && m[1]) {
+          company.registrationNumber = m[1].toUpperCase()
+          fieldsUpdated.add('registrationNumber')
+        }
+      }
+      migrated.push({ former, reason: relation })
+    } else {
+      kept.push(former)
+      keptList.push(former)
+    }
+  }
+  company.formerNames = keptList
+  return {
+    scanned: before.length,
+    migrated,
+    kept,
+    fieldsUpdated: Array.from(fieldsUpdated),
+  }
+}
+
+router.post('/:id/former-names/normalize', auth, adminAuth, async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: 'Invalid company id' })
+  }
+  try {
+    const company = await Company.findById(req.params.id)
+    if (!company) return res.status(404).json({ message: 'Company not found' })
+    if (company.status === 'merged') {
+      return res.status(409).json({ message: 'Company already merged; former names are immutable' })
+    }
+    const result = normalizeFormerNamesInCompany(company)
+    await company.save()
+    res.json({
+      success: true,
+      companyId: company._id,
+      companyName: company.name,
+      ...result,
+      company,
+    })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+router.post('/former-names/normalize-all', auth, adminAuth, async (req, res) => {
+  try {
+    const cursor = Company.find({ status: { $ne: 'merged' } }).cursor()
+    const byCompany = []
+    let totalScanned = 0
+    let totalMigrated = 0
+    const affected = []
+    for await (const company of cursor) {
+      const r = normalizeFormerNamesInCompany(company)
+      totalScanned += r.scanned
+      totalMigrated += r.migrated.length
+      if (r.migrated.length > 0) {
+        await company.save()
+        affected.push(company._id)
+        byCompany.push({
+          companyId: company._id,
+          companyName: company.name,
+          migration: r,
+        })
+      }
+    }
+    res.json({
+      success: true,
+      companiesScanned: byCompany.length === 0 ? 0 : affected.length,
+      companiesAffected: affected.length,
+      companies: affected,
+      totalFormerNamesScanned: totalScanned,
+      totalMigrated,
+      byCompany,
+    })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
 module.exports = router;

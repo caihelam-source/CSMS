@@ -202,6 +202,14 @@ export const companyService = {
     (id, op, payload) => api.put(`/api/companies/${id}/former-names`, { op, ...payload }),
     mockCompanies.updateFormerNames,
   ),
+  normalizeFormerNames: wrap(
+    (id) => api.post(`/api/companies/${id}/former-names/normalize`),
+    mockCompanies.normalizeFormerNames,
+  ),
+  normalizeAllFormerNames: wrap(
+    () => api.post(`/api/companies/former-names/normalize-all`),
+    mockCompanies.normalizeAllFormerNames,
+  ),
 }
 
 // ====== Personnel Service ======
