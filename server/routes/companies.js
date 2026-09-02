@@ -11,7 +11,7 @@ const { auth, adminAuth } = require('../middleware/auth');
 const { scopeMiddleware, applyListScope, inScope } = require('../middleware/scope');
 const multer = require('multer');
 const mongoose = require('mongoose');
-const { findCompanyDuplicates } = require('../utils/dedup');
+const { findCompanyDuplicates, fuzzyMatch } = require('../utils/dedup');
 const { applyDocRenumbers } = require('../utils/docFileCode');
 
 const router = express.Router();
@@ -310,6 +310,24 @@ router.post('/import/excel', auth, upload.single('file'), async (req, res) => {
         status: String(row['状态'] || '活跃').trim(),
         notes: String(row['备注'] || '').trim(),
       };
+
+      // 名称模糊补缺：无股票代码/注册号命中时按归一化名 fuzzy 查重（阈值 0.92），
+      // 应对"已在系统里手工建过同名公司但未填注册号"的缺口，避免 Excel 重导产生重复卡片。
+      if (!company && (name || data.nameChinese)) {
+        const prefix = String(name || data.nameChinese || '').slice(0, 16);
+        const candidates = await Company.find({
+          status: { $ne: 'merged' },
+          $or: [
+            { name: { $regex: '^' + prefix, $options: 'i' } },
+            { nameChinese: { $regex: String(data.nameChinese || name || '').slice(0, 8), $options: 'i' } },
+          ],
+        }).limit(20).lean();
+        for (const cand of candidates) {
+          if (cand.registrationNumber && registrationNumber && cand.registrationNumber !== registrationNumber) continue
+          const hit = fuzzyMatch({ name, nameChinese: data.nameChinese }, cand)
+          if (hit) { company = await Company.findById(cand._id); break }
+        }
+      }
 
       if (!company) {
         await Company.create(data);

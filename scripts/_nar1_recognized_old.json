@@ -34,24 +34,20 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI NANLU",
           "nameChinese": "施南路",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "NANLU",
+          "addressRaw": "26 HARBOUR ROAD, WANCHAI Building ／ ／ Hong Kong",
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -119,24 +115,20 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI NANLU",
           "nameChinese": "施南路",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "NANLU",
+          "addressRaw": "SHUSHAN STREET, XIAOSHAN DISTRICT Building HANGZHOU, ZHEJIANG PROVINCE ／ ／ China",
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -204,34 +196,28 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI JINFAN",
           "nameChinese": "施金帆",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "JINFAN",
+          "addressRaw": "26 HARBOUR ROAD, WANCHAI Building ／ ／ Hong Kong",
+          "confidence": "high"
         },
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI NANLU",
           "nameChinese": "施南路",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "NANLU",
+          "addressRaw": null,
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -299,34 +285,28 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "CHINA RESOURCES BUILDING Building 26 HARBOUR ROAD Wan Chai Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "CHINA RESOURCES BUILDING Building 26 HARBOUR ROAD Wan Chai Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI NANLU",
           "nameChinese": "施南路",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "CHINA RESOURCES BUILDING Building 26 HARBOUR ROAD Wan Chai Hong Kong"
+          "name": "NANLU",
+          "addressRaw": "ZHONG'AN SHANSHUIYUAN SHUSHAN Building STREET XIAOSHAN DISTRICT HANGZHOU ／ ／ China",
+          "confidence": "high"
         },
         {
           "entityType": "person",
           "role": "director",
-          "name": "XU GUANXING",
           "nameChinese": "徐關興",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "CHINA RESOURCES BUILDING Building 26 HARBOUR ROAD Wan Chai Hong Kong"
+          "name": "GUANXING",
+          "addressRaw": null,
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -394,24 +374,20 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI NANLU",
           "nameChinese": "施南路",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "NANLU",
+          "addressRaw": "SHUSHAN STREET, XIAOSHAN DISTRICT Building HANGZHOU, ZHEJIANG PROVINCE ／ ／ China",
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -479,24 +455,20 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI ZHONGAN",
           "nameChinese": "施中安",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "ZHONGAN",
+          "addressRaw": "26 HARBOUR ROAD, WANCHAI Building ／ ／ Hong Kong",
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -564,24 +536,20 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI NANLU",
           "nameChinese": "施南路",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "NANLU",
+          "addressRaw": "SHUSHAN STREET, XIAOSHAN DISTRICT Building HANGZHOU, ZHEJIANG PROVINCE ／ ／ China",
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -649,34 +617,28 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI JINFAN",
           "nameChinese": "施金帆",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "JINFAN",
+          "addressRaw": "CHINA RESOURCES BUILDING, Building 26 HARBOUR ROAD, WANCHAI ／ ／ Hong Kong",
+          "confidence": "high"
         },
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI NANLU",
           "nameChinese": "施南路",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "NANLU",
+          "addressRaw": null,
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -744,24 +706,20 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "JIN JIANRONG",
           "nameChinese": "金建榮",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "JIANRONG",
+          "addressRaw": "EASTERN DISTRICT, XIAOSHAN DISTRICT, HANGZHOU Building ZHEJINAG PROVINCE ／ ／ China",
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -829,34 +787,28 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "CHINA RESOURCE BUILDING Building 26 HARBOUR ROAD ／ ／ Hong Kong",
+          "confidence": "high"
         },
         {
           "entityType": "person",
           "role": "director",
-          "name": "JIN JIANRONG",
           "nameChinese": "金建榮",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "JIANRONG",
+          "addressRaw": null,
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -924,24 +876,20 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI NANLU",
           "nameChinese": "施南路",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "NANLU",
+          "addressRaw": "CHINA RESOURCES BUILDING, Building 26 HARBOUR ROAD, WANCHAI ／ ／ Hong Kong",
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -981,7 +929,16 @@
       "pages": 8,
       "scanned": true,
       "needsMultimodal": false,
-      "scanImages": [],
+      "scanImages": [
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p1.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p2.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p3.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p4.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p5.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p6.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p7.png",
+        "scripts\\_scan_HKOP_I1_2022_NAR1_-_Zhong_An_I_p8.png"
+      ],
       "narVersion": "Spec 1/2014 (scanned, 2022-10-11)",
       "company": {
         "name": "ZHONG AN INTERNATIONAL SHIPPING (HONG KONG) LIMITED",
@@ -1134,24 +1091,20 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "JIN JIANRONG",
           "nameChinese": "金建榮",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD WAN CHAI Building Hong Kong"
+          "name": "JIANRONG",
+          "addressRaw": "EASTERN DISTRICT, XIAOSHAN DISTRICT, HANGZHOU Building ZHEJIANG PROVINCE ／ ／ China",
+          "confidence": "high"
         }
       ],
       "shareholders": [
@@ -1219,24 +1172,20 @@
         {
           "entityType": "person",
           "role": "secretary",
-          "name": "LIN CAIHE",
           "nameChinese": "林才賀",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "CAIHE",
+          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong",
+          "confidence": "high"
         }
       ],
       "directors": [
         {
           "entityType": "person",
           "role": "director",
-          "name": "SHI NANLU",
           "nameChinese": "施南路",
-          "confidence": "high",
-          "nricPartial": null,
-          "idType": null,
-          "addressRaw": "26 HARBOUR ROAD Building WAN CHAI Hong Kong"
+          "name": "NANLU",
+          "addressRaw": "CHINA RESOURCES BUILDING, Building 26 HARBOUR ROAD, WANCHAI ／ ／ Hong Kong",
+          "confidence": "high"
         }
       ],
       "shareholders": [

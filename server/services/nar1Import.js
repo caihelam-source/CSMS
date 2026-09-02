@@ -165,6 +165,11 @@ async function detectConflicts(plan) {
       .select('_id name nameChinese registrationNumber')
     if (exist) conflicts.company = { id: String(exist._id), name: exist.name, registrationNumber: exist.registrationNumber }
   }
+  // 名称模糊补缺：无 BR 号命中（或 NAR1 未识别 BR 号）时按名查重，避免"同名不同号"的公司被当成新建
+  if (!conflicts.company) {
+    const fm = await findCompanyByNameFuzzy(plan.company.name, plan.company.nameChinese, { excludeRegno: plan.company.registrationNumber })
+    if (fm) conflicts.company = { id: String(fm.company._id), name: fm.company.name, registrationNumber: fm.company.registrationNumber, matchType: 'name', score: fm.score }
+  }
   for (const p of plan.people) {
     if (!p.name) continue
     const exist = await Personnel.findOne({ name: p.name }).select('_id name')
@@ -183,6 +188,25 @@ async function detectConflicts(plan) {
   return { conflicts, hasConflict }
 }
 
+// 名称模糊查公司已存在（与 upsertEntity 对齐）：应对"同名但未填 BR 号 / 旧导入 BR 号不同"的缺口，
+// 让 NAR1 导入对已存在的同名公司走更新/合并而非重复新建。excludeRegno 命中不同注册号的公司时跳过，避免误并。
+async function findCompanyByNameFuzzy(name, nameChinese, { excludeRegno } = {}) {
+  if (!name && !nameChinese) return null
+  const candidates = await Company.find({
+    status: { $ne: 'merged' },
+    $or: [
+      { name: { $regex: '^' + String(name || '').slice(0, 16), $options: 'i' } },
+      { nameChinese: { $regex: String(nameChinese || name || '').slice(0, 8), $options: 'i' } },
+    ],
+  }).limit(20).lean()
+  for (const cand of candidates) {
+    if (excludeRegno && cand.registrationNumber && cand.registrationNumber !== excludeRegno) continue
+    const hit = fuzzyMatch({ name, nameChinese }, cand)
+    if (hit) return { company: cand, score: hit.score }
+  }
+  return null
+}
+
 // ---------- 落库 ----------
 async function upsertCompany(plan, mode, existingId) {
   const data = plan.company
@@ -190,6 +214,11 @@ async function upsertCompany(plan, mode, existingId) {
   if (company && mode === 'create') return { company, action: 'exists' }
   if (!company && data.registrationNumber) {
     company = await Company.findOne({ registrationNumber: data.registrationNumber })
+  }
+  // 名称模糊兜底：已有同名公司但未填 BR 号 / 旧导入 BR 号不同时，走更新而非重复新建
+  if (!company) {
+    const fm = await findCompanyByNameFuzzy(data.name, data.nameChinese, { excludeRegno: data.registrationNumber })
+    if (fm) company = await Company.findById(fm.company._id)
   }
   if (company) {
     if (mode === 'create') return { company, action: 'exists' }

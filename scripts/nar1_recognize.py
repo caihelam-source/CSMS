@@ -4,6 +4,13 @@
 HK NAR1 (周年申報表 / Annual Return) -> CSMS-shaped recognizer.
 针对标准 NAR1（Companies Registry Specification 2/2025 固定版式）抽取 CSMS 维度，
 结构化输出并标注置信度/缺口。不写库，仅识别。
+
+人名提取（董事 / 自然人公司秘书）使用 pdfplumber 词坐标：NAR1 表单为双栏，
+姓名【真实值】全部落在右栏（x0≈198）。每个自然人区块内右栏值按纵向顺序为：
+  [中文姓名(CJK), 英文姓氏(ASCII), 英文名字(ASCII)]
+故：CJK 值 -> nameChinese；ASCII 值按顺序 -> "SURNAME GIVEN"。
+这避免了旧版只用「Name in English Surname\\n下一行」把【名字】误当【姓氏】、
+从而漏掉真实姓氏、且中文名/英文名错位的问题。
 """
 import pdfplumber, re, json, glob, os, sys
 
@@ -12,6 +19,10 @@ LABELS = ("Company Name", "Business Name", "Name in English", "Name in Chinese",
           "Address", "Email Address", "Identification", "Partial Number",
           "中文姓名", "英文姓名", "名字", "前用姓名", "別名", "通訊地址", "電郵地址",
           "身分識別", "部分號碼", "室", "樓", "座", "大廈", "街道", "區", "地區")
+
+# 右栏（真实值列）x 坐标范围；标签均在 x0<183，地址值也在右栏但位于姓名带下方（靠 top 区间排除）
+RIGHT_X_MIN = 183.0
+RIGHT_X_MAX = 285.0
 
 ADDR_STRIP = [
     r"室／樓／座等", r"Flat／Floor／Block etc\.", r"大廈", r"街道／屋苑／地段／村等",
@@ -38,13 +49,11 @@ def clean_addr_text(block):
 def extract_addr_structured(block):
     """按 NAR1 地址字段标签前缀提取值（室／樓／座等、大廈、地區），得到干净地址。"""
     parts = []
-    # 室／樓／座等：room/floor/block 字段值（含大厦名，勿删 Building）
     m = re.search(r"室／樓／座等\s*([^\n]+)", block)
     if m:
         v = m.group(1).strip().rstrip(",")
         if v:
             parts.append(v)
-    # 大廈：building 字段值（独立 Building 标签在此剥离）
     m = re.search(r"大廈\s*([^\n]+)", block)
     if m:
         v = re.sub(r"^\s*Building\s*", "", m.group(1).strip().rstrip(","), flags=re.I)
@@ -65,7 +74,7 @@ def load_text(path):
         n = len(pdf.pages)
         for p in pdf.pages:
             pages.append(p.extract_text() or "")
-    return SEP.join(pages), n
+    return "\n".join(pages), n
 
 def is_scanned(path, text=None, char_threshold=80):
     """扫描件 PDF 检测：文本层空或字符极少 + 有图。"""
@@ -125,6 +134,9 @@ def nonlabel_line(lines):
         return ln
     return ""
 
+def _is_cjk(s):
+    return bool(re.search(r"[\u4e00-\u9fff]", s or ""))
+
 def parse_company(text):
     c = {}
     m = re.search(r"1 公司名稱 Company Name\s*\n\s*([^\n]+)\s*\n\s*([^\n]+)", text)
@@ -179,37 +191,6 @@ def _num(s):
     except:
         return None
 
-def person_from_block(blk, role):
-    p = {"entityType": "person", "role": role}
-    m = re.search(r"中文姓名\s*\n\s*([^\n]+)", blk)
-    if m:
-        v = m.group(1).strip()
-        p["nameChinese"] = v if not _is_label(v) else None
-    else:
-        p["nameChinese"] = None
-    ms = re.search(r"Name in English Surname\s*\n\s*([^\n]+)", blk)
-    mg = re.search(r"Other Names\s*\n\s*([^\n]+)", blk)
-    sur = ms.group(1).strip() if ms else None
-    giv = mg.group(1).strip() if mg else None
-    if sur and not _is_label(sur):
-        p["name"] = (sur + ((" " + giv) if giv and not _is_label(giv) else "")).strip()
-    else:
-        p["name"] = None
-    m = re.search(r"香港身分證部分號碼\s*Partial Number[^\n]*\n\s*([A-Z]\d{3})", blk)
-    if m:
-        p["nricPartial"] = m.group(1)
-        p["idType"] = "HKID(partial)"
-    else:
-        mp = re.search(r"護照[^\n]*部分號碼\s*Partial Number\s*\n\s*([A-Za-z0-9]+)", blk)
-        if mp and mp.group(1) != "-":
-            p["nricPartial"] = mp.group(1)
-            p["idType"] = "Passport(partial)"
-    ab = block_after(blk, [r"通訊地址\s*Correspondence\s*Address", r"Correspondence\s*Address"],
-                     [r"電郵地址", r"Email Address", r"身分識別", r"Identification", r"前用姓名", r"Previous"])
-    p["addressRaw"] = clean_addr_text(ab)
-    p["confidence"] = "high" if (p.get("name") or p.get("nameChinese")) else "review"
-    return p
-
 def _is_label(v):
     v = v.strip()
     return any(v == L or v.startswith(L) or L in v for L in LABELS)
@@ -224,18 +205,95 @@ def _is_real_name(v):
         return False
     return True
 
-def parse_secretary(text):
+# ---------------------------------------------------------------------------
+# 人名坐标提取（董事 / 自然人公司秘书）
+# ---------------------------------------------------------------------------
+
+def _page_is_secretary(words):
+    return any(w["text"] == "Secretary" for w in words) or any(w["text"] == "秘書" for w in words)
+
+def _page_is_director(words):
+    has_dir = any(w["text"] == "Directors" for w in words) or any(w["text"] == "董事" for w in words)
+    has_sec = any(w["text"] == "Secretary" for w in words)
+    return has_dir and not has_sec
+
+def extract_natural_persons(words, role):
+    """从单页 words 中用右栏坐标提取自然人姓名块。
+
+    每个「中文姓名」标签开启一个自然人；其姓名值（右栏 x0∈[RIGHT_X_MIN,RIGHT_X_MAX]）
+    按 top 排序为 [中文名(CJK), 英文姓氏(ASCII), 英文名字(ASCII)]。
+    返回 list of {entityType, role, name, nameChinese, confidence}。
+    """
+    cn_labels = [w for w in words if w["text"] == "中文姓名"]
+    if not cn_labels:
+        return []
+    # 姓名带的上界：遇到「前用姓名 / 別名」(Previous Names / Alias) 即止，避免把别名/曾用名并入姓名
+    alias_anchors = {"前用姓名", "別名", "Previous", "Alias"}
+    persons = []
+    for i, lab in enumerate(cn_labels):
+        start = lab["top"] - 2
+        # 上界 = min(下一个人 中文姓名, 本节 前用姓名/別名 标签) - 2
+        bounds = []
+        if i + 1 < len(cn_labels):
+            bounds.append(cn_labels[i + 1]["top"] - 2)
+        for w in words:
+            if w["text"] in alias_anchors and w["top"] > lab["top"]:
+                bounds.append(w["top"] - 2)
+                break
+        end = min(bounds) if bounds else lab["top"] + 130
+        vals = [w for w in words
+                if RIGHT_X_MIN <= w["x0"] <= RIGHT_X_MAX and start <= w["top"] <= end
+                and w["text"] and not w["text"].startswith("\uf0dd")]
+        vals.sort(key=lambda w: w["top"])
+        cjk = [w for w in vals if _is_cjk(w["text"])]
+        asc = [w for w in vals if not _is_cjk(w["text"])]
+        nameChinese = "".join(w["text"] for w in cjk) if cjk else None
+        if asc:
+            surname = asc[0]["text"].strip()
+            given = " ".join(w["text"].strip() for w in asc[1:]) if len(asc) > 1 else ""
+            name = (surname + (" " + given if given else "")).strip()
+        else:
+            name = None
+        if name or nameChinese:
+            persons.append({"entityType": "person", "role": role,
+                            "name": name, "nameChinese": nameChinese,
+                            "confidence": "high"})
+    return persons
+
+def extract_nric_address_from_text(text):
+    """从全文本提取（自然人）香港身份证/护照部分号 + 通讯地址。应用于整段（整页共享）。"""
+    nricPartial = None
+    idType = None
+    m = re.search(r"香港身分證部分號碼\s*Partial Number[^\n]*\n\s*([A-Z]\d{3})", text)
+    if m:
+        nricPartial = m.group(1)
+        idType = "HKID(partial)"
+    else:
+        mp = re.search(r"護照[^\n]*部分號碼\s*Partial Number\s*\n\s*([A-Za-z0-9]+)", text)
+        if mp and mp.group(1) != "-":
+            nricPartial = mp.group(1)
+            idType = "Passport(partial)"
+    ab = block_after(text, [r"通訊地址\s*Correspondence\s*Address", r"Correspondence\s*Address"],
+                     [r"電郵地址", r"Email Address", r"身分識別", r"Identification", r"前用姓名", r"Previous"])
+    addressRaw = clean_addr_text(ab)
+    return nricPartial, idType, addressRaw
+
+def parse_secretary(text, pages_words):
+    out = []
+    # 自然人 A（坐标提取，逐页）
+    for words in pages_words:
+        if _page_is_secretary(words):
+            nat = extract_natural_persons(words, "secretary")
+            if nat:
+                nric, idt, addr = extract_nric_address_from_text(text)
+                for p in nat:
+                    p["nricPartial"] = nric
+                    p["idType"] = idt
+                    p["addressRaw"] = addr
+                out.extend(nat)
+    # 法人團體 B（文本提取）
     blk = block_after(text, [r"12 公司秘書", r"Company Secretary"],
                       [r"13 董事", r"Directors"])
-    out = []
-    # 自然人 A
-    nat = block_after(blk, [r"A\. 公司秘書 \(自然人\)", r"Company Secretary \(Natural Person\)"],
-                      [r"B\. 公司秘書", r"Body Corporate"])
-    if re.search(r"中文姓名", nat):
-        p = person_from_block(nat, "secretary")
-        if p.get("name") or p.get("nameChinese"):
-            out.append(p)
-    # 法人團體 B
     corp = block_after(blk, [r"B\. 公司秘書 \(法人團體\)", r"Company Secretary \(Body Corporate\)"],
                        [r"13 董事", r"Directors", r"指明編號"])
     if re.search(r"法人團體|Body Corporate", corp):
@@ -253,22 +311,18 @@ def parse_secretary(text):
         out.append({"entityType": "unknown", "role": "secretary", "name": None, "confidence": "gap"})
     return out
 
-def parse_directors(text):
-    blk = block_after(text, [r"13 董事", r"Directors"],
-                      [r"14 有股本", r"Particulars of Member", r"附表一", r"Schedule 1"])
+def parse_directors(text, pages_words):
     out = []
-    # 逐段：每个 "中文姓名" 起一段自然人董事
-    parts = re.split(r"中文姓名", blk)
-    for part in parts[1:]:
-        mini = "中文姓名" + part
-        # 仅自然人（含 Surname 标签），跳过空段
-        if not re.search(r"Name in English Surname", mini):
-            continue
-        p = person_from_block(mini, "director")
-        if p.get("name") or p.get("nameChinese"):
-            # 去重（续页可能重复同一董事）
-            if not any((o.get("name") == p.get("name") and o.get("nameChinese") == p.get("nameChinese")) for o in out):
-                out.append(p)
+    for words in pages_words:
+        if _page_is_director(words):
+            ds = extract_natural_persons(words, "director")
+            if ds:
+                nric, idt, addr = extract_nric_address_from_text(text)
+                for p in ds:
+                    p["nricPartial"] = nric
+                    p["idType"] = idt
+                    p["addressRaw"] = addr
+                out.extend(ds)
     if not out:
         out.append({"entityType": "unknown", "role": "director", "name": None, "confidence": "review"})
     return out
@@ -281,11 +335,8 @@ def parse_shareholders(text):
         name = m.group(1).strip()
         if not name:
             continue
-        # 持股数：成员行格式 "英文姓名 <持股数>" 位于 "英文名稱 <英文名> Shares are Jointly Held" 之前，
-        # 取本成员匹配点之前的最后一个 英文姓名 <数字>（避免吃到上一成员）。
         sm = re.search(r"英文姓名\s*([\d,]+)", blk[:m.start()])
         shares = _num(sm.group(1)) if sm else None
-        # 地址国家
         ab = block_after(blk[m.start():], [r"地址\s*Address", r"Address"],
                          [r"備註", r"Remarks", r"中文姓名", r"Name in Chinese", r"英文名稱", r"持有股份"])
         country = None
@@ -305,13 +356,19 @@ def parse_shareholders(text):
     return out
 
 def recognize(path, render_scan=True):
-    text, n = load_text(path)
+    pages_text = []
+    pages_words = []
+    with pdfplumber.open(path) as pdf:
+        n = len(pdf.pages)
+        for p in pdf.pages:
+            pages_text.append(p.extract_text() or "")
+            pages_words.append(p.extract_words())
+    text = "\n".join(pages_text)
     scanned = is_scanned(path, text)
-    # 云端(无 pypdfium2/ImageMagick)或 --no-render 时不渲染扫描页图, 仅标记待多模态
     scan_images = render_scan_pages(path) if (scanned and render_scan) else []
     company = parse_company(text)
-    secretary = parse_secretary(text)
-    directors = parse_directors(text)
+    secretary = parse_secretary(text, pages_words)
+    directors = parse_directors(text, pages_words)
     shareholders = parse_shareholders(text)
     sm = re.search(r"日期\s*Date\s*:\s*(\d{1,2})/(\d{1,2})/(\d{4})", text)
     ar_filed = f"{sm.group(3)}-{int(sm.group(2)):02d}-{int(sm.group(1)):02d}" if sm else None
@@ -374,8 +431,6 @@ def main():
             inject_path = args[i + 1]
             del args[i:i + 2]
 
-    # ---- 服务端调用模式: --stdout <file...> 输出 JSON 到 stdout (供 Node spawn 解析) ----
-    # 不渲染扫描件图片(云端无图像依赖), 不写任何文件
     stdout_mode = "--stdout" in args
     if stdout_mode:
         args.remove("--stdout")
@@ -388,7 +443,6 @@ def main():
         results = apply_injection(results, inject_path)
 
     if stdout_mode:
-        # 强制 UTF-8 输出, 避免 Windows GBK 控制台把中文/JSON 打乱
         try:
             sys.stdout.reconfigure(encoding="utf-8")
         except Exception:
