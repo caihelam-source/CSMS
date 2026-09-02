@@ -186,7 +186,15 @@ router.get('/:id', auth, scopeMiddleware, async (req, res) => {
     return res.status(400).json({ message: 'Invalid company id' });
   }
   try {
-    const company = await Company.findById(req.params.id).lean();
+    // populate links.link（refPath 自动按 linkModel 区分 Personnel / Company），
+    // 这样前端 CompanyDetail 的董事/股东/秘书区块能拿到 name/nameChinese，
+    // 不再 fallback 到 "Unknown"。
+    const company = await Company.findById(req.params.id)
+      .populate({
+        path: 'links.link',
+        select: 'name nameChinese nric nationality registrationNumber jurisdiction',
+      })
+      .lean();
     if (!company) return res.status(404).json({ message: 'Company not found' });
     // Wave 0 rev2 — 行级权限：越权访问返回 403
     if (!inScope(req, company._id)) {
