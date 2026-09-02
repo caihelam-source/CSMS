@@ -12,7 +12,7 @@ const { scopeMiddleware, applyListScope, inScope } = require('../middleware/scop
 const multer = require('multer');
 const mongoose = require('mongoose');
 const { findCompanyDuplicates } = require('../utils/dedup');
-const { renumberCompanyDocs } = require('../utils/docFileCode');
+const { applyDocRenumbers } = require('../utils/docFileCode');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -540,14 +540,11 @@ router.post('/:id/merge', auth, adminAuth, async (req, res) => {
     }
 
     // 4) 文件重编号（v6.x）；可选 — 对 target 现有文档 + 已迁入文档批量重编号
+    //    用 applyDocRenumbers 两遍写，规避 docNumber 唯一索引瞬时冲突
     let renumberOpsApplied = 0
     if (renumberFiles) {
       const allDocs = await Document.find({ company: targetOid }).lean().select('_id type createdAt docNumber')
-      const ops = renumberCompanyDocs(target, allDocs)
-      if (ops.length) {
-        const res2 = await Document.bulkWrite(ops, { ordered: false })
-        renumberOpsApplied = (res2.modifiedCount || res2.nModified || 0) + 0
-      }
+      renumberOpsApplied = await applyDocRenumbers(Document, target, allDocs)
     }
 
     // 5) 软关源公司

@@ -39,6 +39,7 @@ const Meeting = require('../server/models/Meeting')
 const Task = require('../server/models/Task')
 const SignTask = require('../server/models/SignTask')
 const ComplianceReminder = require('../server/models/ComplianceReminder')
+const { applyDocRenumbers, inferEntityCode } = require('../server/utils/docFileCode')
 
 function parseSecrets() {
   const p = path.join(__dirname, '..', '.workbuddy', 'memory', 'SECRETS.md')
@@ -186,6 +187,13 @@ function pickMergeTarget(pair) {
         SignTask.updateMany({ company: source._id }, { $set: { company: target._id } }),
         ComplianceReminder.updateMany({ company: source._id }, { $set: { company: target._id } }),
       ])
+      // 1.5) 合并后重编号 target 的全部文件（含迁来的源文件，按 (entityCode,year,typeCode) 组内 seq 重置）
+      //      用 applyDocRenumbers 两遍写，规避 docNumber 唯一索引瞬时冲突
+      const targetDocs = await Document.find({ company: target._id }).select('_id type createdAt docNumber').lean()
+      const renumCount = await applyDocRenumbers(Document, target, targetDocs)
+      if (renumCount) {
+        console.log(`     ↳ 文件重编号 ${renumCount} 份 (${inferEntityCode(target)}-...)`)
+      }
       // 2) formerNames 入 target
       target.formerNames = [
         ...(target.formerNames || []),

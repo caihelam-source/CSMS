@@ -100,20 +100,13 @@ function buildV6DocNumber({ company, type, createdAt, seq }) {
 }
 
 /**
- * 批量重编号：返回 Mongo bulkWrite ops（仅改 docNumber；filename / R2 object key 不动）
+ * 计算每篇文档的目标 docNumber（纯函数，供 renumberCompanyDocs / applyDocRenumbers 复用）
  *  - 按 (entityCode, year, typeCode) 分组 —— 每年同类型 seq 重置（v6.x 设计意图：NAR1 每年归零）
  *  - 每组内按 createdAt 升序编号（seq=1,2,3...）
- *  - 同 docNumber 不做 no-op，避免无谓写入
- *
- * @param {object} company lean
- * @param {Array<object>} documents lean 文档列表（必须含 _id, type, createdAt, docNumber）
- * @returns {Array<object>} bulkWrite 数组 — 空表示已全部对齐
+ * @returns {Map<string, string>} _id -> 目标 docNumber
  */
-function renumberCompanyDocs(company, documents) {
-  if (!documents || !documents.length) return []
+function computeDocNumbers(company, documents) {
   const ownerCode = inferEntityCode(company)
-
-  // key = `${ownerCode}|${year}|${typeCode}` —— 按此分组，每年同类型 seq 从 1 重置
   const byKey = new Map()
   for (const d of documents) {
     const typeCode = inferTypeCode(d.type)
@@ -122,25 +115,70 @@ function renumberCompanyDocs(company, documents) {
     if (!byKey.has(key)) byKey.set(key, [])
     byKey.get(key).push(d)
   }
-
-  const ops = []
+  const final = new Map()
   for (const [key, list] of byKey.entries()) {
     list.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0))
     list.forEach((d, i) => {
       const [, year, typeCode] = key.split('|')
       const seq = i + 1
-      const newNum = `${ownerCode}-${year}-${typeCode}-${String(seq).padStart(4, '0')}`
-      if (d.docNumber !== newNum) {
-        ops.push({
-          updateOne: {
-            filter: { _id: d._id },
-            update: { $set: { docNumber: newNum } },
-          },
-        })
-      }
+      final.set(String(d._id), `${ownerCode}-${year}-${typeCode}-${String(seq).padStart(4, '0')}`)
     })
   }
+  return final
+}
+
+/**
+ * 批量重编号：返回 Mongo bulkWrite ops（仅改 docNumber；filename / R2 object key 不动）
+ *  - 按 (entityCode, year, typeCode) 分组 —— 每年同类型 seq 重置（v6.x 设计意图：NAR1 每年归零）
+ *  - 每组内按 createdAt 升序编号（seq=1,2,3...）
+ *  - 同 docNumber 不做 no-op，避免无谓写入
+ *
+ * ⚠️ 直接 bulkWrite 这些 ops 会触发 docNumber 唯一索引的瞬时冲突（同组里被释放的旧号尚未让位）。
+ *    需要原子地重排时请用 applyDocRenumbers（两遍写：先临时号 → 再最终号）。
+ *
+ * @param {object} company lean
+ * @param {Array<object>} documents lean 文档列表（必须含 _id, type, createdAt, docNumber）
+ * @returns {Array<object>} bulkWrite 数组 — 空表示已全部对齐
+ */
+function renumberCompanyDocs(company, documents) {
+  if (!documents || !documents.length) return []
+  const final = computeDocNumbers(company, documents)
+  const ops = []
+  for (const d of documents) {
+    const newNum = final.get(String(d._id))
+    if (d.docNumber !== newNum) {
+      ops.push({
+        updateOne: {
+          filter: { _id: d._id },
+          update: { $set: { docNumber: newNum } },
+        },
+      })
+    }
+  }
   return ops
+}
+
+/**
+ * 安全地落地重编号（两遍写，规避 docNumber 唯一索引瞬时冲突）
+ *  - 第一遍：把该组全部文档临时置为 `__renum_tmp_<i>`（全局唯一，不会与真实编号撞车）
+ *  - 第二遍：一次性写入最终 docNumber（此时旧号已全部释放，无瞬时冲突）
+ * @param {Model} DocumentModel Mongoose Document model
+ * @param {object} company lean
+ * @param {Array<object>} documents lean 文档列表（含 _id, type, createdAt, docNumber）
+ * @returns {Promise<number>} 处理的文档数
+ */
+async function applyDocRenumbers(DocumentModel, company, documents) {
+  if (!documents || !documents.length) return 0
+  const final = computeDocNumbers(company, documents)
+  const pass1 = documents.map((d, i) => ({
+    updateOne: { filter: { _id: d._id }, update: { $set: { docNumber: `__renum_tmp_${i}` } } },
+  }))
+  const pass2 = documents.map((d) => ({
+    updateOne: { filter: { _id: d._id }, update: { $set: { docNumber: final.get(String(d._id)) } } },
+  }))
+  await DocumentModel.bulkWrite(pass1)
+  await DocumentModel.bulkWrite(pass2)
+  return documents.length
 }
 
 module.exports = {
@@ -151,4 +189,6 @@ module.exports = {
   parseV6Filename,
   buildV6DocNumber,
   renumberCompanyDocs,
+  computeDocNumbers,
+  applyDocRenumbers,
 }

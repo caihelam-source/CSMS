@@ -42,7 +42,7 @@ const documentSchema = new mongoose.Schema({
   renewalDueDate: { type: Date },
   documentYear: { type: Number },
   // Legacy fields
-  docNumber: { type: String, unique: true, sparse: true },
+  docNumber: { type: String, sparse: true },
   signStatus: { type: String, enum: ['draft', 'pending_sign', 'pending_ctc', 'partially_signed', 'fully_signed', 'ctc', 'archived'], default: 'draft' },
   // v5.1 来源追溯 + 归档锁定（会议纪要闭环 / 文件管理中心）
   // source: 记录文件从何处自动归集而来，便于公司档案展示"来自 [会议纪要]"并可跳回
@@ -70,6 +70,9 @@ documentSchema.index({ expiresAt: 1 });
 documentSchema.index({ company: 1, expiresAt: 1 });
 // 全文本搜索索引（搜索增强 M2.1）
 documentSchema.index({ title: 'text', docNumber: 'text', description: 'text', tags: 'text', keywords: 'text' });
+// v6.x 文件编号按「公司内」唯一（同一 entityCode 的多家公司各自从 0001 起，如 HKOP-2026-BR-0001 可重复出现在不同公司）
+// 故 docNumber 用 (company, docNumber) 复合唯一，而非全局唯一
+documentSchema.index({ company: 1, docNumber: 1 }, { unique: true, sparse: true, name: 'company_docnumber_unique' });
 
 // 文档类型 → 编号类型码映射（v6.x 动态编号）
 // 术语：BR 系商业登记证（Business Registration），号码段 BR；NAR1/NN3 系周年申报表。
