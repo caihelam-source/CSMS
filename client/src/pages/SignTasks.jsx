@@ -10,6 +10,7 @@ import { fmtDateShort, fmtDateTimeShort } from '../utils/helpers'
 import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
+import { formatPersonName } from '../utils/personName'
 import Modal from '../components/Modal'
 
 const SIGN_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled', 'expired']
@@ -296,7 +297,7 @@ const SignTasks = () => {
                               {s.status === 'signed'
                                 ? <CheckCircle2 size={16} className="text-success shrink-0" />
                                 : <Clock size={16} className="text-ink-3 shrink-0" />}
-                              <span className="text-ink">{s.name || s.email || '待填写'}</span>
+                              <span className="text-ink">{formatPersonName(s) || s.email || '待填写'}</span>
                               {s.role && <span className="text-xs text-ink-3">({s.role})</span>}
                               <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${s.status === 'signed' ? 'bg-success/10 text-success' : 'bg-canvas text-ink-2'}`}>
                                 {s.status === 'signed' ? '已签' : '待签'}

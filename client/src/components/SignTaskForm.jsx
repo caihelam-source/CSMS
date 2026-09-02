@@ -7,6 +7,7 @@ import { generateCtcPdf } from '../utils/ctcPdf'
 import { fetchDocBytes } from '../utils/fileAccess'
 import { PDFDocument } from 'pdf-lib'
 import { FormField, inputClass } from './UIHelpers'
+import { formatPersonName } from '../utils/personName'
 
 const OWNER_TYPES = [
   { key: 'company', label: '公司' },
@@ -236,7 +237,7 @@ export default function SignTaskForm({
         <FormField label="关联人员" error={errors.personnelId}>
           <select className={inputClass} value={form.personnelId} onChange={e => { set('personnelId', e.target.value); set('documentId', '') }} disabled={loadingRefs}>
             <option value="">请选择人员</option>
-            {personnel.map(p => <option key={p._id} value={p._id}>{p.name || p.englishName || p._id}</option>)}
+            {personnel.map(p => <option key={p._id} value={p._id}>{formatPersonName(p) || p._id}</option>)}
           </select>
         </FormField>
       )}

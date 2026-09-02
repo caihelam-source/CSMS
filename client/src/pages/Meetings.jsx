@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { meetingService, companyService, personnelService, signTaskService } from '../services/index.js'
 import { MEETING_TYPE_LABELS as TYPES, MEETING_STATUSES as STATUS, fmtDate, fmtTime, buildPhasesWithIcons } from '../utils/helpers'
-import { formatPersonName } from '../utils/personName'
+import { formatPersonName, personInitial } from '../utils/personName'
 import { LoadingSpinner, EmptyState, PageHeader, SearchBar, FormField, inputClass, labelClass, TabNav } from '../components/UIHelpers'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { useScope, useScopedItems } from '../hooks/useScope'
@@ -531,7 +531,7 @@ export default function Meetings() {
                           <h4 className="text-sm font-semibold text-ink-2 mb-3">签署状态</h4>
                           {step5.signatures.map((s, i) => (
                             <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                              <div><p className="font-medium">{s.name}</p><p className="text-xs text-ink-3">{s.title}</p></div>
+                              <div><p className="font-medium">{formatPersonName(s)}</p><p className="text-xs text-ink-3">{s.title}</p></div>
                               {s.status === 'signed' ? <CheckCircle2 size={20} className="text-success" /> : <Clock3 size={20} className="text-warning" />}
                             </div>
                           ))}
@@ -633,18 +633,22 @@ export default function Meetings() {
                   <div className="card">
                     <h4 className="text-sm font-semibold text-ink-2 mb-3">参会人员 ({detailMeeting.attendees?.length || 0})</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {detailMeeting.attendees?.map((a, i) => (
+                      {detailMeeting.attendees?.map((a, i) => {
+                        const pa = a.refId ? personnelList.find((x) => x._id === a.refId) : null
+                        const disp = pa || a
+                        return (
                         <div key={i} className="flex items-center gap-2 p-2 bg-canvas rounded-lg">
-                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xs">{a.name?.charAt(0)}</div>
+                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-xs">{personInitial(disp)}</div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{a.name}</p>
+                            <p className="text-sm font-medium truncate">{formatPersonName(disp)}</p>
                             <p className="text-xs text-ink-3 truncate">{a.role}</p>
                           </div>
                           <span className={`text-xs px-1.5 py-0.5 rounded-full ${a.status === 'attended' ? 'bg-success/10 text-success' : a.status === 'accepted' ? 'bg-info/10 text-primary-700' : 'bg-canvas text-ink-2'}`}>
                             {a.status === 'attended' ? '出席' : a.status === 'accepted' ? '已确认' : a.status === 'declined' ? '已拒绝' : '待确认'}
                           </span>
                         </div>
-                      ))}
+                      )
+                      })}
                     </div>
                   </div>
 
@@ -726,7 +730,7 @@ export default function Meetings() {
                           <p className="text-ink-3 text-sm">尚未签署</p>
                         ) : minutesData.signatures.map((s, i) => (
                           <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
-                            <div><p className="font-medium">{s.name}</p><p className="text-xs text-ink-3">{s.title}</p></div>
+                            <div><p className="font-medium">{formatPersonName(s)}</p><p className="text-xs text-ink-3">{s.title}</p></div>
                             {s.status === 'signed' ? <span className="text-xs text-success font-medium flex items-center gap-1"><CheckCircle2 size={14} />已签署 {s.signedAt ? `(${fmtDate(s.signedAt)})` : ''}</span> : <span className="text-xs text-warning flex items-center gap-1"><Clock3 size={14} />待签署</span>}
                           </div>
                         ))}
