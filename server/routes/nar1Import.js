@@ -30,8 +30,8 @@ const upload = multer({
   limits: { fileSize: 30 * 1024 * 1024 }, // 单份 NAR1 通常 <3MB，留足余量
 })
 
-// GET /api/nar1-import/capability — 解析引擎可用性
-router.get('/capability', auth, async (req, res) => {
+// GET /api/nar1-import/capability — 解析引擎可用性（公开探测：登录前即可用，前端据此启用/禁用上传）
+router.get('/capability', async (req, res) => {
   try {
     const engine = await detectEngine(true)
     return res.json({
