@@ -46,9 +46,18 @@
 ## v6.x 文件管理重构 (07-21 拍板, Phase A+B 已落)
 - 数据根=Company；Personnel 全局共享中枢、与公司多对多。文件编号 `归属码-年份-类型码-序号`。scope(company/person)。导出 CSV/ZIP。Phase C 待做(权限模型/Company Tab 组件化)。
 
+## 公司去重 / 合并 / 曾用名 (09-02 落地, commit dcbfe01)
+- 三层去重 `server/utils/dedup.js`：exact_regno(容忍 `DEMO-CR-` 前缀) > alias(formerNames) > fuzzy_name(Jaro-Winkler ≥0.92)。`findCompanyDuplicates` O(n²)。
+- 软合并 `POST /api/companies/:id/merge`(admin)：引用迁移→Personnel.links 去重合并→formerNames 入 target→文件重编号(`server/utils/docFileCode.js`, 按 entityCode+year+typeCode 组内 seq 重置)→源 status='merged'。零数据丢失。
+- `GET /api/companies/duplicates` 手动按钮触发；`PUT /api/companies/:id/former-names` 管曾用名(merger 来源不可删)。
+- `nar1Import.js` upsert 加模糊候选检测(返回 `merge_candidate` 不直接合)。
+- 安全设计：dry-run first。`scripts/dedup-dry-run.js`(连 Atlas 扫 38 家→10 对, 写 `_dedup_pairs.json`) + `exec-merge-plan.js`(--apply 真合 / --rollback / --only-auto)。真实库 10 对中 #1-5 exact_regno(含 HuiJun 35387857 用户截图案例)、#6-9 fuzzy 1.0、#10 China New City 0.943 需人工。
+- **09-02 已真合并 9 对**（commit a76da49）：遇 docNumber 全局唯一索引与 v6.x 公司内编号冲突 → E11000；根治为 (company,docNumber) 复合唯一 + `applyDocRenumbers` 两遍写（详见 skill `company-dedup-merge` 的"docNumber 唯一索引坑"）。验证：9 target formerNames 齐、反向引用 0 残留、0 临时号残留。#10 仍留人工。
+- **人员(Personnel)去重/合并同构落地**（commit a79f23a）：用户"personnel 也有同样问题"。`server/utils/personnelDedup.js` 三层 exact_nric>exact_chinese>alias>pinyin（拼音相互包含且被含串≥4 规避 SHI 误命中）；Personnel 模型加 status/mergedInto/formerNames；`POST /api/personnel/merge` 改软合并+迁移 7 类引用（原硬删源是 bug）；`GET /duplicates` 返回并查集收敛的重复组+建议 target(按 Company.links 数)；列表默认排除 merged。`dedup-personnel-dry-run.js`+`exec-merge-personnel.js`(--apply/--rollback)。**真实库已执行：17 条→10 人（7 条软合并），0 悬挂引用、formerNames 正确(含施侃成别名)**。单测 14/14（dedup 总 33/33）。详见 skill `company-dedup-merge` 的"Personnel 去重/合并"段。
+
 ## 待办
 - ⚠️ seed-admin.js(真实管理员 hk1321@agent.qq.com)未跑 → 真实登录链路仍不通；须本机跑 `node scripts/seed-admin-local.cjs --email hk1321@agent.qq.com --name "Vincent Lin" --password "lin19900731"`(Atlas 密码已正确)。
-- 🔑 Render API key(rnd_M8x2lSfoZmFfmzaDnnzOfCUaW5Gp) 收尾时提醒 Vincent 去 Account Settings 注销。
+- 🔑 Render API key `rnd_M8x2lSfoZmFfmzaDnnzOfCUaW5Gp` ~~收尾时提醒 Vincent 去 Account Settings 注销~~ — **2026-09-02 经验证不存在**：Vincent 打开 dashboard.render.com/settings/api-keys，页面显示 "No provisioned API keys"，该 key 实际从未存在 / 早已被清。**关闭。**
 - 迁移 --apply (migrate-v5.js, 待 DBA 复核+先备份库)。
 - NAR1 落库**已完成(09-02 闭环+独立验证 30 PDF)**: 14 公司/14 NAR1+16 BR 文档(R2 真文件)/45 links / ComplianceReminder 6 (Easy Rich 1 + 既有 BVI/CAY 5)。详见上方"落库阶段"。
 

@@ -32,10 +32,17 @@ const normalizeJurisdiction = (v) => {
 // GET /api/companies
 router.get('/', auth, scopeMiddleware, async (req, res) => {
   try {
-    const { status, jurisdiction, isListed, search, page, limit } = req.query;
+    const { status, jurisdiction, isListed, search, page, limit, includeMerged } = req.query;
     const query = {};
 
-    if (status) query.status = status;
+    // 软合并的源记录（status:'merged'）默认从列表隐藏，避免前端出现重复公司卡片。
+    // 仅当显式传入 ?includeMerged=true（如管理员审计合并历史）时才纳入。
+    // 注意：若显式传 status 过滤（如 status=active），以传入值为准，不叠加此规则。
+    if (status) {
+      query.status = status;
+    } else if (includeMerged !== 'true') {
+      query.status = { $ne: 'merged' };
+    }
     if (jurisdiction) query.jurisdiction = jurisdiction;
     if (isListed !== undefined) query.isListed = isListed === 'true';
     if (search) {
@@ -147,7 +154,7 @@ router.get('/stats/dashboard', auth, async (req, res) => {
       totalTasks, pendingTasks, completedTasks, totalReminders, upcomingReminders,
       expiredReminders, totalSignTasks,
     ] = await Promise.all([
-      Company.countDocuments(),
+      Company.countDocuments({ status: { $ne: 'merged' } }),
       Company.countDocuments({ status: 'active' }),
       Personnel.countDocuments(),
       Document.countDocuments(),
