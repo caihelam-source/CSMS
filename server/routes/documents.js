@@ -276,14 +276,20 @@ router.delete('/:id', auth, async (req, res) => {
 router.get('/:id/download', auth, scopeMiddleware, async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id).lean();
-    if (!doc || !doc.filename) return res.status(404).json({ message: 'File not found' });
+    if (!doc) return res.status(404).json({ message: 'Document not found' });
     if (!inScope(req, doc.company?._id || doc.company)) {
       return res.status(403).json({ message: 'Access denied: document not in your accessible scope' });
     }
-    const buf = await fileStorage.get(doc.filename);
+    // 优先用 filename 取存储；缺失时回退：用 fileName 或 fileUrl 直接拉（R2 公开 URL）
+    let buf = null
+    if (doc.filename) buf = await fileStorage.get(doc.filename)
+    if (!buf && doc.fileName && doc.fileName !== doc.filename) buf = await fileStorage.get(doc.fileName)
+    if (!buf && doc.fileUrl && /^https?:/.test(doc.fileUrl)) {
+      try { const r = await fetch(doc.fileUrl); if (r.ok) buf = Buffer.from(await r.arrayBuffer()) } catch { /* ignore */ }
+    }
     if (!buf) return res.status(404).json({ message: 'File not found on storage' });
-    res.set('Content-Type', doc.mimeType || doc.mimetype || 'application/octet-stream');
-    res.set('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.fileName || doc.name || 'file')}"`);
+    res.set('Content-Type', doc.mimeType || doc.mimetype || 'application/pdf');
+    res.set('Content-Disposition', `attachment; filename="${encodeURIComponent((doc.originalName || doc.fileName || doc.name || 'file').replace(/\.[^/.]+$/, ''))}.pdf"`);
     res.set('Cache-Control', 'private, max-age=300');
     return res.send(buf);
   } catch (err) {
@@ -297,14 +303,19 @@ router.get('/:id/download', auth, scopeMiddleware, async (req, res) => {
 router.get('/:id/view', auth, scopeMiddleware, async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id).lean();
-    if (!doc || !doc.filename) return res.status(404).json({ message: 'File not found' });
+    if (!doc) return res.status(404).json({ message: 'Document not found' });
     if (!inScope(req, doc.company?._id || doc.company)) {
       return res.status(403).json({ message: 'Access denied: document not in your accessible scope' });
     }
-    const buf = await fileStorage.get(doc.filename);
+    let buf = null
+    if (doc.filename) buf = await fileStorage.get(doc.filename)
+    if (!buf && doc.fileName && doc.fileName !== doc.filename) buf = await fileStorage.get(doc.fileName)
+    if (!buf && doc.fileUrl && /^https?:/.test(doc.fileUrl)) {
+      try { const r = await fetch(doc.fileUrl); if (r.ok) buf = Buffer.from(await r.arrayBuffer()) } catch { /* ignore */ }
+    }
     if (!buf) return res.status(404).json({ message: 'File not found on storage' });
-    res.set('Content-Type', doc.mimeType || doc.mimetype || 'application/octet-stream');
-    res.set('Content-Disposition', `inline; filename="${encodeURIComponent(doc.fileName || doc.name || 'file')}"`);
+    res.set('Content-Type', doc.mimeType || doc.mimetype || 'application/pdf');
+    res.set('Content-Disposition', `inline; filename="${encodeURIComponent((doc.originalName || doc.fileName || doc.name || 'file').replace(/\.[^/.]+$/, ''))}.pdf"`);
     res.set('Cache-Control', 'private, max-age=300');
     return res.send(buf);
   } catch (err) {

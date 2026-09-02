@@ -395,13 +395,14 @@ async function main() {
       const docFields = {
         name: docName,
         description: `周年申報表 Annual Return (${da.docTypeName || 'NAR1'})\nAR结算日: ${da.madeUpDate || '-'}\n申报日: ${da.filedDate || '-'}\n来源文件: ${res.sourceFile}`,
-        type: 'return',
+        type: 'nar1_return',
         category: 'annual_return',
         scope: 'company',
         company: company._id,
         uploadedBy: bot._id,
         documentYear: year || undefined,
         fileName: stored ? stored.key : docName + '.pdf',
+        filename: stored ? stored.key : docName + '.pdf',  // 修复：v6.x schema 定义的存储 key 字段（/view,/download 守卫必填）
         fileUrl: stored ? stored.url : undefined,
         originalName: pdfName,
         mimeType: 'application/pdf',
@@ -508,7 +509,7 @@ async function main() {
       const docFields = {
         name: docName,
         description: `商业登记证 Business Registration Certificate\nBR扫描件(沙箱无 OCR), expiry 从文件名识别: ${mExp ? mExp[0] : '?'}\n来源: ${brFn}\n如需精确到期日请上传 BR 后在 BR 卡片编辑`,
-        type: 'certificate',
+        type: 'business_registration',
         category: 'br_certificate',
         scope: 'company',
         company: company._id,
@@ -523,13 +524,13 @@ async function main() {
         note: 'BR 证书扫描件已上传 R2, expiry 由文件名解析或人工维护',
       }
       if (!doc) {
-        const docNumber = await Document.generateDocNumber({ company, type: 'certificate', year: docFields.documentYear })
+        const docNumber = await Document.generateDocNumber({ company, type: 'business_registration', year: docFields.documentYear })
         doc = await Document.create({ ...docFields, docNumber })
         stats.documents++
         console.log(`  📄 BR doc 创: ${docNumber} — ${docName}`)
       } else {
         Object.assign(doc, docFields)
-        if (!doc.docNumber) doc.docNumber = await Document.generateDocNumber({ company, type: 'certificate', year: docFields.documentYear })
+        if (!doc.docNumber) doc.docNumber = await Document.generateDocNumber({ company, type: 'business_registration', year: docFields.documentYear })
         await doc.save()
         stats.documentsUpdated++
         console.log(`  🔄 BR doc 更新: ${doc.docNumber} — ${docName}`)

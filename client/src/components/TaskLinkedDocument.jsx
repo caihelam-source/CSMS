@@ -19,8 +19,9 @@ const DOC_TYPE_LABELS = {
 const DOC_CATEGORIES = [
   { key: 'establishment', label: '设立文件' },
   { key: 'government', label: '政府往来' },
-  { key: 'annual_return', label: 'NAR1 周年申报' },
-  { key: 'br_certificate', label: '商业登记证 BR' },
+  { key: 'annual_return', label: '周年申报 (NAR1)' },
+  { key: 'nn3_return', label: '周年申报 (NN3)' },
+  { key: 'br_certificate', label: '商业登记证' },
   { key: 'financial', label: '财务税务' },
   { key: 'banking', label: '银行文件' },
   { key: 'meeting', label: '会议文件' },

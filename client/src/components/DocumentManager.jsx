@@ -17,27 +17,31 @@ import { useScope, useScopedItems, useScopedDocuments } from '../hooks/useScope'
 import { NO_SCOPE_HINT } from '../utils/scope'
 
 // ── 类型 / 分类标签 ──
+// 术语对齐用户纠正：BR 不是"证明书"，叫"商业登记证"；NAR1/NN3 正式名是"周年申报表"。
 export const DOC_TYPE_LABELS = {
   minutes: '会议纪要', resolution: '决议书', agreement: '协议书',
-  form: '表单', certificate: '证明书', return: '申报表', notice: '通知书',
+  form: '表单', certificate: '证明书', return: '周年申报表', notice: '通知书',
   annual_report: '周年申报', financial_statement: '财务报表',
   id_document: '身份证件', passport: '护照', proof_of_address: '地址证明',
-  board_resolution: '董事会决议', incorporation_doc: '注册成立书', other: '其他',
+  board_resolution: '董事会决议', incorporation_doc: '注册成立书',
+  business_registration: '商业登记证', nar1_return: '周年申报表 (NAR1)',
+  nn3_return: '周年申报表 (NN3)', ctc: 'CTC 盖章', other: '其他',
 }
 
 export const DOC_CATEGORY_LABELS = {
   establishment: '设立文件', government: '政府往来', financial: '财务税务',
   banking: '银行文件', meeting: '会议文件',
-  annual_return: 'NAR1 周年申报', nn3_return: 'NN3 注册非香港公司周年申报',
-  br_certificate: '商业登记证 BR', nar1: 'NAR1 周年申报',
+  annual_return: '周年申报 (NAR1)', nn3_return: '周年申报 (NN3)',
+  br_certificate: '商业登记证', nar1: '周年申报 (NAR1)',
   other: '其他',
 }
 
 const DOC_CATEGORIES = [
   { key: 'establishment', label: '设立文件' },
   { key: 'government', label: '政府往来' },
-  { key: 'annual_return', label: 'NAR1 周年申报' },
-  { key: 'br_certificate', label: '商业登记证 BR' },
+  { key: 'annual_return', label: '周年申报 (NAR1)' },
+  { key: 'nn3_return', label: '周年申报 (NN3)' },
+  { key: 'br_certificate', label: '商业登记证' },
   { key: 'financial', label: '财务税务' },
   { key: 'banking', label: '银行文件' },
   { key: 'meeting', label: '会议文件' },

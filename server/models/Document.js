@@ -7,7 +7,9 @@ const documentSchema = new mongoose.Schema({
     type: String,
     enum: ['minutes', 'resolution', 'agreement', 'form', 'certificate', 'return', 'notice', 'memo',
            'annual_report', 'financial_statement', 'id_document', 'passport', 'proof_of_address',
-           'board_resolution', 'incorporation_doc', 'ctc', 'other'],
+           'board_resolution', 'incorporation_doc', 'ctc',
+           'business_registration', 'nar1_return', 'nn3_return',
+           'other'],
     default: 'other',
   },
   fileUrl: { type: String },
@@ -70,11 +72,13 @@ documentSchema.index({ company: 1, expiresAt: 1 });
 documentSchema.index({ title: 'text', docNumber: 'text', description: 'text', tags: 'text', keywords: 'text' });
 
 // 文档类型 → 编号类型码映射（v6.x 动态编号）
+// 术语：BR 系商业登记证（Business Registration），号码段 BR；NAR1/NN3 系周年申报表。
 const DOC_TYPE_CODE = {
   minutes: 'MIN', resolution: 'RES', board_resolution: 'RES', agreement: 'AGR',
   form: 'FORM', certificate: 'COI', return: 'NAR1', notice: 'NOT', memo: 'MEM',
   annual_report: 'AR', financial_statement: 'FS', id_document: 'ID',
-  passport: 'PP', proof_of_address: 'ADDR', incorporation_doc: 'INC', ctc: 'CTC', other: 'OTH',
+  passport: 'PP', proof_of_address: 'ADDR', incorporation_doc: 'INC', ctc: 'CTC',
+  business_registration: 'BR', nar1_return: 'NAR1', nn3_return: 'NN3', other: 'OTH',
 };
 
 // 自动生成文档编号：<归属码>-<年份>-<类型码>-<序号>
