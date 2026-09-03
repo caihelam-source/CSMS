@@ -188,7 +188,7 @@ export default function CompanyDetail() {
         companyService.getCompliance(id).catch(() => null),
         personnelService.getAll().catch(() => ({ data: { data: [] } })),
         companyService.getAll().catch(() => ({ data: { data: [] } })),
-        complianceReminderService.getAll({ companyId: id }).catch(() => ({ data: { data: [] } })),
+        complianceReminderService.getAll({ company: id }).catch(() => ({ data: { data: [] } })),
         taskService.getByCompany(id).catch(() => ({ data: { data: [] } })),
         complianceRuleService.getAll().catch(() => ({ data: { data: [] } })),
         documentService.getByCompany(id).catch(() => ({ data: { data: [] } })),

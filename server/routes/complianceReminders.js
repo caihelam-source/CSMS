@@ -4,6 +4,7 @@ const ComplianceRule = require('../models/ComplianceRule');
 const Company = require('../models/Company');
 const { auth } = require('../middleware/auth');
 const { parsePaging, pagingEnvelope } = require('../utils/pagination');
+const { pickRef } = require('../utils/queryAlias');
 const { createTaskFromReminder, createTasksBatch } = require('../services/taskFromReminder');
 const { ensureCompanyReminders } = require('../services/complianceService');
 const { generateRemindersForRule } = require('../services/complianceService');
@@ -13,10 +14,13 @@ const router = express.Router();
 // GET /api/compliance-reminders
 router.get('/', auth, async (req, res) => {
   try {
-    const { status, company, priority, search, overdue } = req.query;
+    // 兼容 ?company=<id>（规范名）和 ?companyId=<id>（前端 service 习惯名），
+    // 历史上只认 company → companyId 被静默丢失导致跨公司提醒串台。
+    const { status, priority, search, overdue } = req.query;
     const query = {};
     if (status) query.status = status;
-    if (company) query.company = company;
+    const companyRef = pickRef(req.query, 'company');
+    if (companyRef) query.company = companyRef;
     if (priority) query.priority = priority;
     if (overdue === 'true') {
       query.dueDate = { $lt: new Date() };

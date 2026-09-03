@@ -5,6 +5,7 @@ const { auth } = require('../middleware/auth');
 const { scopeMiddleware, applyListScope, inScope } = require('../middleware/scope');
 const { logAudit } = require('../utils/audit');
 const { parsePaging, pagingEnvelope } = require('../utils/pagination');
+const { pickRef } = require('../utils/queryAlias');
 
 const router = express.Router();
 
@@ -13,12 +14,14 @@ const router = express.Router();
 // @access  Private
 router.get('/', auth, scopeMiddleware, async (req, res) => {
   try {
-    const { status, type, company, personnelId, startDate, endDate } = req.query;
+    const { status, type, personnelId, startDate, endDate } = req.query;
     const query = {};
 
     if (status) query.status = status;
     if (type) query.type = type;
-    if (company) query.company = company;
+    // 兼容 ?company 和 ?companyId 两种入参（见 queryAlias.js）
+    const companyRef = pickRef(req.query, 'company');
+    if (companyRef) query.company = companyRef;
     // v5.0 读时聚合：personnelId 反查该人关联公司的会议 + 其作为出席人的会议
     if (personnelId) {
       const linkedCompanies = await Company.find({ 'links.link': personnelId, 'links.linkModel': 'Personnel' }).lean().select('_id');
