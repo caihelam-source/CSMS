@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Users, CheckCircle, Crown, UserCog, Eye, Shield, CalendarClock,
-  Settings, ScrollText, Building2,
+  Settings, ScrollText, Building2, Database,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { userService } from '../services/index.js'
@@ -17,6 +17,7 @@ import DataScopeTab from '../components/admin/DataScopeTab'
 import RulesLibraryTab from '../components/admin/RulesLibraryTab'
 import SystemInfoTab from '../components/admin/SystemInfoTab'
 import AuditLogTab from '../components/admin/AuditLogTab'
+import DataExportTab from '../components/admin/DataExportTab'
 
 const AdminPanel = () => {
   const { user: currentUser, isAdmin } = useAuth()
@@ -62,6 +63,7 @@ const AdminPanel = () => {
       { id: 'permissions', label: '权限矩阵', icon: Shield },
       { id: 'scope', label: '数据权限', icon: Building2 },
       { id: 'rules', label: '业绩排期规则库', icon: CalendarClock },
+      { id: 'export', label: '数据导出', icon: Database },
       { id: 'system', label: '系统信息', icon: Settings },
     ] : []),
     ...(canViewAudit ? [
@@ -103,6 +105,7 @@ const AdminPanel = () => {
       {tab === 'permissions' && <PermissionMatrixTab />}
       {tab === 'scope' && <DataScopeTab />}
       {tab === 'rules' && isAdmin && <RulesLibraryTab />}
+      {tab === 'export' && <DataExportTab />}
       {tab === 'system' && <SystemInfoTab />}
       {tab === 'audit' && <AuditLogTab />}
     </div>
