@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Library, Users, CalendarClock, Plus, Upload, RotateCcw, Save,
-  Loader2, Pencil, Trash2, AlertTriangle, XCircle,
+  Loader2, Pencil, Trash2, AlertTriangle, XCircle, Search, X,
 } from 'lucide-react'
 import { scheduleService } from '../../services/index.js'
 import Modal from '../../components/Modal'
 import { inputClass, labelClass } from '../../components/UIHelpers'
+import useIsMobile from '../../hooks/useIsMobile'
 import { PERIOD_META, PRIORITY_OPTIONS, PRIORITY_COLOR, taskOffsetIds, taskRuleCode } from './_shared'
 
 export default function RulesLibraryTab() {
@@ -23,6 +24,8 @@ export default function RulesLibraryTab() {
   const [activeSection, setActiveSection] = useState('tasks-midyear')  // 当前激活的内容区 tab
   const [editing, setEditing] = useState(null)   // { kind:'rule'|'party'|'offset'|'task', period, idx, code/key, isNew }
   const [draft, setDraft] = useState(null)        // 弹窗编辑中的草稿对象
+  const [searchQuery, setSearchQuery] = useState('')  // 任务/偏移 列表内搜索词
+  const isMobile = useIsMobile()
 
   const meta = PERIOD_META[tabPeriod]
 
@@ -281,6 +284,7 @@ export default function RulesLibraryTab() {
   // 点击 tab 时自动联动期间切换
   const switchSection = (id) => {
     setActiveSection(id)
+    setSearchQuery('')  // 切 tab 时清空搜索词（不同 tab 的字段集不一致）
     if (id.startsWith('tasks-') || id.startsWith('offsets-')) {
       const p = id.replace(/^(tasks|offsets)-/, '')
       // p 可能是 'midyear'/'annual'，但 PERIOD_META 键是 'interim'/'annual'
@@ -292,62 +296,92 @@ export default function RulesLibraryTab() {
   // 当前内容区对应的 meta（仅 tasks/offsets tab 需要）
   const sectionMeta = activeSection.startsWith('tasks-') || activeSection.startsWith('offsets-')
     ? PERIOD_META[tabPeriod] : null
-  const sectionTasks = (activeSection === 'tasks-midyear' ? lib.tasks_midyear : activeSection === 'tasks-annual' ? lib.tasks_annual : []) || []
-  const sectionOffsets = (activeSection === 'offsets-midyear' ? lib.offsets_midyear : activeSection === 'offsets-annual' ? lib.offsets_annual : []) || []
+  const rawSectionTasks = (activeSection === 'tasks-midyear' ? lib.tasks_midyear : activeSection === 'tasks-annual' ? lib.tasks_annual : []) || []
+  const rawSectionOffsets = (activeSection === 'offsets-midyear' ? lib.offsets_midyear : activeSection === 'offsets-annual' ? lib.offsets_annual : []) || []
   const _sectionOffsetsKey = activeSection === 'offsets-midyear' ? 'offsets_midyear' : activeSection === 'offsets-annual' ? 'offsets_annual' : null
+
+  // 搜索过滤（任务：name/id/category；偏移：name/id；空串不过滤）
+  // 用 useMemo 缓存避免每次重渲染都重做字符串包含运算
+  const q = searchQuery.trim().toLowerCase()
+  const sectionTasks = useMemo(() => {
+    if (!q) return rawSectionTasks
+    return rawSectionTasks.filter(t =>
+      (t.name && t.name.toLowerCase().includes(q)) ||
+      (t.id && t.id.toLowerCase().includes(q)) ||
+      (t.category && t.category.toLowerCase().includes(q))
+    )
+  }, [rawSectionTasks, q])
+  const sectionOffsets = useMemo(() => {
+    if (!q) return rawSectionOffsets
+    return rawSectionOffsets.filter(o =>
+      (o.name && o.name.toLowerCase().includes(q)) ||
+      (o.id && o.id.toLowerCase().includes(q))
+    )
+  }, [rawSectionOffsets, q])
 
   // 为当前任务区构建 offsetMap / disabledCount
   const secOffsetMap = {}
-  ;(sectionOffsets || []).forEach(o => { secOffsetMap[o.id] = o })
-  const secDisabledCount = (sectionTasks || []).filter(t => t._disabled).length
+  ;(rawSectionOffsets || []).forEach(o => { secOffsetMap[o.id] = o })
+  const secDisabledCount = (rawSectionTasks || []).filter(t => t._disabled).length
 
   return (
     <div className="space-y-4">
       {/* ═══ 顶部操作栏（始终可见）════ */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Tab 导航栏 */}
-        <div className="flex flex-wrap gap-1.5">
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              onClick={() => switchSection(t.id)}
-              className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                activeSection === t.id
-                  ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
-                  : `${t.tone || 'bg-surface text-ink-2'} border-hairline hover:bg-canvas hover:border-primary-200`
-              }`}
-            >
-              {t.label}
-              <span className={`ml-1.5 tag ${
-                activeSection === t.id ? 'bg-white/20' : 'bg-black/5'
-              }`}>
-                {t.value}
-              </span>
-            </button>
-          ))}
+      <div className="space-y-3">
+        {/* Tab 导航栏：桌面端 flex-wrap，移动端横向滚动（无折行） */}
+        <div className="-mx-1 px-1 md:mx-0 md:px-0 overflow-x-auto md:overflow-visible">
+          <div className="flex md:flex-wrap gap-1.5 min-w-max md:min-w-0">
+            {tabs.map(t => (
+              <button
+                key={t.id}
+                onClick={() => switchSection(t.id)}
+                className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors whitespace-nowrap ${
+                  activeSection === t.id
+                    ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                    : `${t.tone || 'bg-surface text-ink-2'} border-hairline hover:bg-canvas hover:border-primary-200`
+                }`}
+              >
+                {t.label}
+                <span className={`ml-1.5 tag ${
+                  activeSection === t.id ? 'bg-white/20' : 'bg-black/5'
+                }`}>
+                  {t.value}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* 操作按钮组 */}
-        <div className="flex items-center gap-2">
+        {/* 操作按钮组：移动端纵向（满宽），桌面端横向；仅 dirty 时显示「放弃修改」与「保存修改」 */}
+        <div className={`flex ${isMobile ? 'flex-col' : 'flex-wrap items-center justify-end'} gap-2`}>
           <span className="text-xs text-ink-3 mr-1">
             版本 {lib.version || lib.meta?.version || '—'}
             {lib.revision != null && <span className="ml-1">· 修订 v{lib.revision}</span>}
           </span>
           <input ref={fileRef} type="file" accept=".js,.json" onChange={handleImport} className="hidden" />
           <button onClick={() => fileRef.current && fileRef.current.click()} disabled={importing}
-            className="flex items-center gap-2 px-4 py-2 text-sm border border-hairline rounded-lg hover:bg-canvas text-ink disabled:opacity-50">
+            className={`flex items-center justify-center gap-2 ${isMobile ? 'w-full' : ''} px-4 py-2 text-sm border border-hairline rounded-lg hover:bg-canvas text-ink disabled:opacity-50`}>
             {importing ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
             {importing ? '导入中…' : '导入规则文件'}
           </button>
-          <button onClick={load} disabled={saving || importing}
-            className="flex items-center gap-2 px-4 py-2 text-sm border border-hairline rounded-lg hover:bg-canvas text-ink disabled:opacity-50">
-            <RotateCcw size={15} /> 放弃修改
-          </button>
-          <button onClick={handleSave} disabled={saving || !dirty}
-            className="flex items-center gap-2 px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
-            {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-            {saving ? '保存中…' : dirty ? '保存修改' : '无修改'}
-          </button>
+          {dirty && (
+            <button onClick={load} disabled={saving || importing}
+              className={`flex items-center justify-center gap-2 ${isMobile ? 'w-full' : ''} px-4 py-2 text-sm border border-hairline rounded-lg hover:bg-canvas text-ink disabled:opacity-50`}>
+              <RotateCcw size={15} /> 放弃修改
+            </button>
+          )}
+          {dirty ? (
+            <button onClick={handleSave} disabled={saving}
+              className={`flex items-center justify-center gap-2 ${isMobile ? 'w-full' : ''} px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium shadow-sm`}>
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              {saving ? '保存中…' : '保存修改'}
+            </button>
+          ) : (
+            <span className={`flex items-center justify-center gap-1.5 ${isMobile ? 'w-full' : ''} px-5 py-2 text-sm text-ink-3`} title="所有更改已保存">
+              <Save size={14} className="text-success" />
+              <span>已保存到云端</span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -437,12 +471,29 @@ export default function RulesLibraryTab() {
       {/* ─── 偏移量列表（可编辑）─── */}
       {(activeSection === 'offsets-midyear' || activeSection === 'offsets-annual') && (
         <div className="bg-surface rounded-xl border border-hairline shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-hairline flex items-center gap-2">
+          <div className="px-5 py-3 border-b border-hairline flex items-center gap-2 flex-wrap">
             <CalendarClock size={16} className="text-primary-600" />
-            <h3 className="font-semibold text-ink text-sm">{sectionMeta?.label || ''} 偏移量（{sectionOffsets.length} 个）</h3>
+            <h3 className="font-semibold text-ink text-sm">{sectionMeta?.label || ''} 偏移量（{sectionOffsets.length} / {rawSectionOffsets.length} 个）</h3>
             <button onClick={() => openOffset(activeSection === 'offsets-midyear' ? 'midyear' : 'annual', null)} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-primary-600 text-white hover:bg-primary-700">
               <Plus size={14} /> 新增偏移量
             </button>
+          </div>
+          <div className="px-5 py-2 border-b border-hairline bg-canvas/50">
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="按名称 / ID 过滤…"
+                className="w-full pl-8 pr-8 py-1.5 text-sm border border-hairline rounded-lg bg-surface focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink" title="清除">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             <table className="w-full text-sm table-responsive">
@@ -457,6 +508,13 @@ export default function RulesLibraryTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
+                {sectionOffsets.length === 0 && (
+                  <tr><td colSpan={6} className="px-4 py-10 text-center text-ink-3">
+                    {q ? (
+                      <span>没有匹配「{q}」的偏移量。<button onClick={() => setSearchQuery('')} className="ml-2 text-primary-600 hover:underline">清除过滤</button></span>
+                    ) : '该期间暂无偏移量定义'}
+                  </td></tr>
+                )}
                 {sectionOffsets.map((o, i) => {
                   const refN = secOffsetRefCount[o.id] || 0
                   return (
@@ -491,12 +549,29 @@ export default function RulesLibraryTab() {
       {/* ─── 任务表 ─── */}
       {(activeSection === 'tasks-midyear' || activeSection === 'tasks-annual') && (
           <div className="bg-surface rounded-xl border border-hairline shadow-sm overflow-hidden">
-            <div className="px-5 py-3 border-b border-hairline flex items-center gap-2">
+            <div className="px-5 py-3 border-b border-hairline flex items-center gap-2 flex-wrap">
               <CalendarClock size={16} className="text-primary-600" />
-              <h3 className="font-semibold text-ink text-sm">{sectionMeta?.label || ''} 任务（{sectionTasks.length} 条）</h3>
+              <h3 className="font-semibold text-ink text-sm">{sectionMeta?.label || ''} 任务（{sectionTasks.length} / {rawSectionTasks.length} 条）</h3>
               <button onClick={() => openTask(activeSection === 'tasks-midyear' ? 'midyear' : 'annual', null)} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-primary-600 text-white hover:bg-primary-700">
                 <Plus size={14} /> 新增任务
               </button>
+            </div>
+            <div className="px-5 py-2 border-b border-hairline bg-canvas/50">
+              <div className="relative">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="按任务名 / ID / 类别 过滤…"
+                  className="w-full pl-8 pr-8 py-1.5 text-sm border border-hairline rounded-lg bg-surface focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink" title="清除">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm table-responsive">
@@ -514,7 +589,11 @@ export default function RulesLibraryTab() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {sectionTasks.length === 0 ? (
-                    <tr><td colSpan={8} className="px-4 py-10 text-center text-ink-3">该期间暂无任务定义</td></tr>
+                    <tr><td colSpan={8} className="px-4 py-10 text-center text-ink-3">
+                      {q ? (
+                        <span>没有匹配「{q}」的任务。<button onClick={() => setSearchQuery('')} className="ml-2 text-primary-600 hover:underline">清除过滤</button></span>
+                      ) : '该期间暂无任务定义'}
+                    </td></tr>
                   ) : sectionTasks.map((t, i) => {
                     const enabled = !t._disabled
                     const code = taskRuleCode(t, secOffsetMap)
@@ -527,12 +606,12 @@ export default function RulesLibraryTab() {
                           title={enabled ? '点击禁用该任务' : '点击启用该任务'} />
                       </td>
                       <td data-label="大类" className="px-4 py-3 text-ink-2 text-xs whitespace-nowrap">{t.category || '—'}</td>
-                      <td data-label="任务名称" className="px-4 py-3 text-ink">
-                        <div className="font-medium">{t.name || '—'}</div>
+                      <td data-label="任务名称" className="px-4 py-3 text-ink td-header">
+                        <div className="font-medium text-[15px] text-ink leading-snug">{t.name || '—'}</div>
                         <div className="text-[11px] text-ink-3 mt-0.5">{t.id} · {t.type === 'range' ? '区间' : '时点'}</div>
                       </td>
                       <td data-label="规则出处" className="px-4 py-3 text-ink-2 text-xs">{ruleSrc}</td>
-                      <td data-label="负责人" className="px-4 py-3 text-ink-2 text-xs min-w-[140px]">
+                      <td data-label="负责人" className="px-4 py-3 text-ink-2 text-xs min-w-[140px] td-stack">
                         {(() => {
                           const cur = (Array.isArray(t.parties) && t.parties.length) ? t.parties : (t.party ? [t.party] : [])
                           const labels = cur.map(pk => (lib.parties[pk] || {}).label || pk)
@@ -583,7 +662,7 @@ export default function RulesLibraryTab() {
                           {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
                       </td>
-                      <td data-label="偏移量 / 天数" className="px-4 py-3">
+                      <td data-label="偏移量 / 天数" className="px-4 py-3 td-stack">
                         {ids.length === 0 ? (<span className="text-xs text-ink-3">未绑定偏移量</span>) : (
                           <div className="space-y-1 min-w-0">
                             {ids.map((oid, k) => {

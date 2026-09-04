@@ -208,7 +208,14 @@
     .table-responsive tbody td:first-child,
     .table-responsive tbody td:last-child { border-radius: 0; }
     .table-responsive tbody td::before { content: attr(data-label); font-size: var(--text-xs); font-weight: 600;
-      color: rgb(var(--text-3)); text-align: left; flex: none; }
+      color: rgb(var(--text-3)); text-align: left; flex: none; max-width: 96px; }
+    /* 复杂单元格（值含多元素/输入框/列表）改为标签在上、值在下纵向布局 */
+    .table-responsive tbody td.td-stack { display: block; text-align: left; padding: var(--space-2) 0;
+      border-top: 1px dashed rgb(var(--border) / .6) !important; margin-top: var(--space-2); }
+    .table-responsive tbody td.td-stack::before { display: block; margin-bottom: var(--space-1.5); }
+    /* 行首作为卡片标题：去掉 ::before 标签样式，更大字号 */
+    .table-responsive tbody td.td-header { display: block; text-align: left; padding: 0 0 var(--space-2) 0; }
+    .table-responsive tbody td.td-header::before { content: none; }
     .app-content .table-responsive tbody tr:hover { background: rgb(var(--surface)); }
   }
 
