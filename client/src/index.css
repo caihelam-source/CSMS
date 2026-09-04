@@ -196,27 +196,30 @@
   .app-content tbody td:last-child { border-top-right-radius: var(--radius-md); border-bottom-right-radius: var(--radius-md); }
 
   /* Batch 08 · 响应式：表格移动端转卡片（给 <table> 加 .table-responsive 启用；每行 td 需 data-label 属性保留列信息）
-     窄屏隐藏表头，每行独立成卡，左标签右值，不丢失任何列信息 */
+     窄屏隐藏表头，每行独立成卡，左标签右值，不丢失任何列信息
+     Batch 09 · 卡片气口增强：margin-bottom 12→16、padding 加水平 16、加深 shadow-sm→md
+     让相邻卡片"浮起来"独立，不再因 12px 紧距 + 几乎不可见的阴影而"连一起" */
   @media (max-width: 767.98px) {
     .table-responsive { display: block; }
     .table-responsive thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
     .table-responsive tbody { display: block; }
     .table-responsive tbody tr { display: block; background: rgb(var(--surface)); border: 1px solid rgb(var(--border));
-      border-radius: var(--radius-lg); padding: var(--space-3); margin-bottom: var(--space-3); box-shadow: var(--shadow-sm); }
+      border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); box-shadow: var(--shadow-md);
+      transition: transform var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease); }
     .table-responsive tbody td { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
-      padding: 7px 2px; border: 0; text-align: right; }
+      padding: 7px 0; border: 0; text-align: right; }
     .table-responsive tbody td:first-child,
     .table-responsive tbody td:last-child { border-radius: 0; }
     .table-responsive tbody td::before { content: attr(data-label); font-size: var(--text-xs); font-weight: 600;
       color: rgb(var(--text-3)); text-align: left; flex: none; max-width: 96px; }
     /* 复杂单元格（值含多元素/输入框/列表）改为标签在上、值在下纵向布局 */
-    .table-responsive tbody td.td-stack { display: block; text-align: left; padding: var(--space-2) 0;
-      border-top: 1px dashed rgb(var(--border) / .6) !important; margin-top: var(--space-2); }
+    .table-responsive tbody td.td-stack { display: block; text-align: left; padding: var(--space-3) 0 var(--space-1);
+      border-top: 1px dashed rgb(var(--border) / .6); margin-top: var(--space-2); }
     .table-responsive tbody td.td-stack::before { display: block; margin-bottom: var(--space-1.5); }
     /* 行首作为卡片标题：去掉 ::before 标签样式，更大字号 */
     .table-responsive tbody td.td-header { display: block; text-align: left; padding: 0 0 var(--space-2) 0; }
     .table-responsive tbody td.td-header::before { content: none; }
-    .app-content .table-responsive tbody tr:hover { background: rgb(var(--surface)); }
+    .app-content .table-responsive tbody tr:hover { background: rgb(var(--surface)); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
   }
 
   /* P0-⑦ · 移动端触摸目标 ≥44px（Chapter 09 验收⑦）：表格内小按钮/链接、菜单项达标 */
