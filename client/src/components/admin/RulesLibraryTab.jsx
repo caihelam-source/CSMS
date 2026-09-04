@@ -337,10 +337,12 @@ export default function RulesLibraryTab() {
       <div className="space-y-3">
         {/* Tab 导航栏：桌面端 flex-wrap，移动端横向滚动（无折行） */}
         <div className="-mx-1 px-1 md:mx-0 md:px-0 overflow-x-auto md:overflow-visible">
-          <div className="flex md:flex-wrap gap-1.5 min-w-max md:min-w-0">
+          <div role="tablist" aria-label="业绩排期区块" className="flex md:flex-wrap gap-1.5 min-w-max md:min-w-0">
             {tabs.map(t => (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={activeSection === t.id}
                 onClick={() => switchSection(t.id)}
                 className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors whitespace-nowrap ${
                   activeSection === t.id
@@ -424,7 +426,13 @@ export default function RulesLibraryTab() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {Object.entries(lib.rules || {}).map(([code, r]) => (
-                  <tr key={code} onClick={() => openRule(code)} className="hover:bg-canvas cursor-pointer">
+                  <tr
+                    key={code}
+                    tabIndex={0}
+                    onClick={() => openRule(code)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRule(code) } }}
+                    className="hover:bg-canvas cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                  >
                     <td data-label="规则编码" className="px-4 py-2 text-ink font-mono text-xs">{code}</td>
                     <td data-label="出处" className="px-4 py-2 text-ink-2 text-xs">{r.source || '—'}</td>
                     <td data-label="类别" className="px-4 py-2 text-ink-2 text-xs">{r.category || '—'}</td>
@@ -466,7 +474,7 @@ export default function RulesLibraryTab() {
                   placeholder="未指派（生成时回退角色名）"
                   className="flex-1 min-w-0 px-2 py-1 border border-hairline rounded-md text-xs focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
-                <button onClick={() => openParty(key)} className="p-1 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded shrink-0" title="编辑角色">
+                <button onClick={() => openParty(key)} aria-label={`编辑角色 ${p.label || key}`} className="p-1 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded shrink-0" title="编辑角色">
                   <Pencil size={14} />
                 </button>
               </div>
@@ -496,7 +504,7 @@ export default function RulesLibraryTab() {
                 className="w-full pl-8 pr-8 py-1.5 text-sm border border-hairline rounded-lg bg-surface focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink" title="清除">
+                <button onClick={() => setSearchQuery('')} aria-label="清除过滤" className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink" title="清除">
                   <X size={14} />
                 </button>
               )}
@@ -540,7 +548,7 @@ export default function RulesLibraryTab() {
                         : <span className="text-ink-3">未引用</span>}
                     </td>
                       <td data-label="操作" className="px-4 py-2">
-                        <button onClick={() => openOffset(activeSection === 'offsets-midyear' ? 'midyear' : 'annual', i)} className="p-1 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded" title="编辑">
+                        <button onClick={() => openOffset(activeSection === 'offsets-midyear' ? 'midyear' : 'annual', i)} aria-label={`编辑偏移量 ${o?.name || o?.id || i + 1}`} className="p-1 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded" title="编辑">
                         <Pencil size={14} />
                       </button>
                     </td>
@@ -574,7 +582,7 @@ export default function RulesLibraryTab() {
                   className="w-full pl-8 pr-8 py-1.5 text-sm border border-hairline rounded-lg bg-surface focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink" title="清除">
+                  <button onClick={() => setSearchQuery('')} aria-label="清除过滤" className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink" title="清除">
                     <X size={14} />
                   </button>
                 )}
@@ -610,6 +618,7 @@ export default function RulesLibraryTab() {
                     <tr key={`${t.id || 'task'}-${i}`} className={`hover:bg-canvas transition-colors ${enabled ? '' : 'opacity-50'}`}>
                       <td data-label="启用" className="px-4 py-3 text-center">
                         <input type="checkbox" checked={enabled} onChange={() => patchTask(i, { _disabled: enabled })}
+                          aria-label={enabled ? `禁用任务 ${t.name || t.id || i + 1}` : `启用任务 ${t.name || t.id || i + 1}`}
                           title={enabled ? '点击禁用该任务' : '点击启用该任务'} />
                       </td>
                       <td data-label="大类" className="px-4 py-3 text-ink-2 text-xs whitespace-nowrap">{t.category || '—'}</td>
@@ -696,7 +705,7 @@ export default function RulesLibraryTab() {
                         )}
                       </td>
                       <td data-label="操作" className="px-4 py-3">
-                        <button onClick={() => openTask(activeSection === 'tasks-midyear' ? 'midyear' : 'annual', i)} className="p-1 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded" title="编辑">
+                        <button onClick={() => openTask(activeSection === 'tasks-midyear' ? 'midyear' : 'annual', i)} aria-label={`编辑任务 ${t.name || t.id || i + 1}`} className="p-1 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded" title="编辑">
                           <Pencil size={14} />
                         </button>
                       </td>
