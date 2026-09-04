@@ -63,6 +63,32 @@ export default function RulesLibraryTab() {
     return c
   }, [lib, activeSection, tabPeriod])
 
+  // 当前内容区对应的原始任务/偏移量列表（lib 为 null 时给空数组，hooks 链不中断）
+  const rawSectionTasks = (activeSection === 'tasks-midyear' ? lib?.tasks_midyear
+    : activeSection === 'tasks-annual' ? lib?.tasks_annual : []) || []
+  const rawSectionOffsets = (activeSection === 'offsets-midyear' ? lib?.offsets_midyear
+    : activeSection === 'offsets-annual' ? lib?.offsets_annual : []) || []
+  // 搜索关键词（trim + lowercase；空串时 useMemo 短路直接返回原数组，避免无谓重建）
+  const q = searchQuery.trim().toLowerCase()
+
+  // ⚠️ Hooks 必须按相同顺序每次都调用：以下两个 useMemo 也必须在早返回之前，
+  // 否则初次加载时早返回（loading=true）未调用，二次渲染调用 → React #310。
+  const sectionTasks = useMemo(() => {
+    if (!q) return rawSectionTasks
+    return rawSectionTasks.filter(t =>
+      (t.name && t.name.toLowerCase().includes(q)) ||
+      (t.id && t.id.toLowerCase().includes(q)) ||
+      (t.category && t.category.toLowerCase().includes(q))
+    )
+  }, [rawSectionTasks, q])
+  const sectionOffsets = useMemo(() => {
+    if (!q) return rawSectionOffsets
+    return rawSectionOffsets.filter(o =>
+      (o.name && o.name.toLowerCase().includes(q)) ||
+      (o.id && o.id.toLowerCase().includes(q))
+    )
+  }, [rawSectionOffsets, q])
+
   // ── 局部编辑（全部走不可变更新，保存时整库 PUT）──
   const patchTask = (index, patch) => {
     setLib(prev => {
@@ -296,28 +322,9 @@ export default function RulesLibraryTab() {
   // 当前内容区对应的 meta（仅 tasks/offsets tab 需要）
   const sectionMeta = activeSection.startsWith('tasks-') || activeSection.startsWith('offsets-')
     ? PERIOD_META[tabPeriod] : null
-  const rawSectionTasks = (activeSection === 'tasks-midyear' ? lib.tasks_midyear : activeSection === 'tasks-annual' ? lib.tasks_annual : []) || []
-  const rawSectionOffsets = (activeSection === 'offsets-midyear' ? lib.offsets_midyear : activeSection === 'offsets-annual' ? lib.offsets_annual : []) || []
-  const _sectionOffsetsKey = activeSection === 'offsets-midyear' ? 'offsets_midyear' : activeSection === 'offsets-annual' ? 'offsets_annual' : null
 
-  // 搜索过滤（任务：name/id/category；偏移：name/id；空串不过滤）
-  // 用 useMemo 缓存避免每次重渲染都重做字符串包含运算
-  const q = searchQuery.trim().toLowerCase()
-  const sectionTasks = useMemo(() => {
-    if (!q) return rawSectionTasks
-    return rawSectionTasks.filter(t =>
-      (t.name && t.name.toLowerCase().includes(q)) ||
-      (t.id && t.id.toLowerCase().includes(q)) ||
-      (t.category && t.category.toLowerCase().includes(q))
-    )
-  }, [rawSectionTasks, q])
-  const sectionOffsets = useMemo(() => {
-    if (!q) return rawSectionOffsets
-    return rawSectionOffsets.filter(o =>
-      (o.name && o.name.toLowerCase().includes(q)) ||
-      (o.id && o.id.toLowerCase().includes(q))
-    )
-  }, [rawSectionOffsets, q])
+  // 注：rawSectionTasks / rawSectionOffsets / sectionTasks / sectionOffsets / q
+  //     均已在 hooks 区（早返回之前）声明，此处仅复用，避免重复定义触发 hooks 顺序违规。
 
   // 为当前任务区构建 offsetMap / disabledCount
   const secOffsetMap = {}
