@@ -792,7 +792,7 @@ export default function CompanyDetail() {
     const renderRows = (list) => list.map(link => {
       const p = resolveLinkDisplay(link)
       return (
-        <tr key={link._id} className={`border-b hover:bg-canvas ${link.ceasedDate ? 'bg-danger/10/40' : ''}`}>
+        <tr key={link._id} className={`border-b hover:bg-canvas ${link.ceasedDate ? 'bg-danger/10' : ''}`}>
           {columns.map(col => (
             <td key={col.key} data-label={col.header} className={col.tdClass || 'p-2'}>{col.cell(link, p)}</td>
           ))}
@@ -1380,7 +1380,7 @@ export default function CompanyDetail() {
             <span>上传的文件将归入「{company?.name}」文档库{relForm.meetingId ? '，并关联所选会议（可在会议页查看）' : ''}。</span>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setUploadRelOpen(false)} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
+            <button onClick={() => setUploadRelOpen(false)} className="btn-secondary">取消</button>
             <button onClick={async () => {
               if (!relForm.name) { toast.error('请填写文件名称'); return }
               if (!relForm.file) { toast.error('请选择要上传的文件'); return }
@@ -1404,7 +1404,7 @@ export default function CompanyDetail() {
                 setUploadRelOpen(false)
                 loadAll()
               } catch { toast.error('上传失败') }
-            }} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">确认上传</button>
+            }} className="btn-primary">确认上传</button>
           </div>
         </div>
       </Modal>
