@@ -58,15 +58,17 @@ function Nar1Chip({ company, reminder, onUpdate, onView, onGenerate }) {
   const hasField = !!company.incorporationDate
   const st = deriveStatus(reminder, hasField)
   return (
-    <button
-      type="button"
-      onClick={onView}
-      className={`text-left card !p-4 border ${TONE[st.tone]} hover:shadow-2 transition-shadow flex items-start gap-3 w-full`}
+    <div
+      className={`card !p-4 border ${TONE[st.tone]} hover:shadow-2 transition-shadow flex items-start gap-3 w-full`}
     >
       <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
         <FileText size={20} />
       </div>
-      <div className="min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={onView}
+        className="min-w-0 flex-1 text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
         <div className="flex items-center justify-between gap-2">
           <p className="font-semibold text-ink-1">周年申报表 <span className="text-[10px] text-ink-3 font-normal">(NAR1)</span></p>
           <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${LABEL_COLOR[st.tone]}`}>
@@ -80,26 +82,26 @@ function Nar1Chip({ company, reminder, onUpdate, onView, onGenerate }) {
               ? '提交后自动续排下一年度'
               : 'NAR1 表本就不印成立日期，请在基本信息录入后可自动生成'}
         </p>
-      </div>
+      </button>
       <div className="flex flex-col items-end gap-1 shrink-0">
-        <span
-          role="button"
+        <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onUpdate(reminder) }}
           className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-surface border border-hairline text-ink-1 hover:bg-canvas font-medium"
         >
           <Pencil size={12} /> 更新
-        </span>
+        </button>
         {!reminder && hasField && (
-          <span
-            role="button"
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onGenerate() }}
             className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full text-primary-600 hover:bg-primary-50 font-medium"
           >
             <RefreshCw size={12} /> 生成提醒
-          </span>
+          </button>
         )}
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -107,15 +109,17 @@ function Nn3Chip({ company, reminder, onUpdate, onView, onGenerate }) {
   const hasField = !!company.incorporationDate
   const st = deriveStatus(reminder, hasField)
   return (
-    <button
-      type="button"
-      onClick={onView}
-      className={`text-left card !p-4 border ${TONE[st.tone]} hover:shadow-2 transition-shadow flex items-start gap-3 w-full`}
+    <div
+      className={`card !p-4 border ${TONE[st.tone]} hover:shadow-2 transition-shadow flex items-start gap-3 w-full`}
     >
       <div className="w-10 h-10 rounded-xl bg-info/10 text-primary-700 flex items-center justify-center shrink-0">
         <Globe2 size={20} />
       </div>
-      <div className="min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={onView}
+        className="min-w-0 flex-1 text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
         <div className="flex items-center justify-between gap-2">
           <p className="font-semibold text-ink-1">周年申报表 <span className="text-[10px] text-ink-3 font-normal">(NN3 · 非香港公司)</span></p>
           <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${LABEL_COLOR[st.tone]}`}>
@@ -129,26 +133,26 @@ function Nn3Chip({ company, reminder, onUpdate, onView, onGenerate }) {
               ? '提交后自动续排下一年度'
               : '请在基本信息补「在港注册日期」后可自动生成 NN3 周年申报提醒'}
         </p>
-      </div>
+      </button>
       <div className="flex flex-col items-end gap-1 shrink-0">
-        <span
-          role="button"
+        <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onUpdate(reminder) }}
           className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-surface border border-hairline text-ink-1 hover:bg-canvas font-medium"
         >
           <Pencil size={12} /> 更新
-        </span>
+        </button>
         {!reminder && hasField && (
-          <span
-            role="button"
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onGenerate() }}
             className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full text-primary-600 hover:bg-primary-50 font-medium"
           >
             <RefreshCw size={12} /> 生成提醒
-          </span>
+          </button>
         )}
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -156,15 +160,17 @@ function BrChip({ company, reminder, onUpdate, onView, onGenerate }) {
   const hasField = !!company.brExpiryDate
   const st = deriveStatus(reminder, hasField)
   return (
-    <button
-      type="button"
-      onClick={onView}
-      className={`text-left card !p-4 border ${TONE[st.tone]} hover:shadow-2 transition-shadow flex items-start gap-3 w-full`}
+    <div
+      className={`card !p-4 border ${TONE[st.tone]} hover:shadow-2 transition-shadow flex items-start gap-3 w-full`}
     >
       <div className="w-10 h-10 rounded-xl bg-info/10 text-primary-700 flex items-center justify-center shrink-0">
         <ShieldCheck size={20} />
       </div>
-      <div className="min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={onView}
+        className="min-w-0 flex-1 text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
         <div className="flex items-center justify-between gap-2">
           <p className="font-semibold text-ink-1">商业登记证 <span className="text-[10px] text-ink-3 font-normal">(BR)</span></p>
           <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${LABEL_COLOR[st.tone]}`}>
@@ -178,26 +184,26 @@ function BrChip({ company, reminder, onUpdate, onView, onGenerate }) {
               ? `续期截止：${formatDate(reminder.dueDate)}`
               : 'BR 扫描件 OCR 在沙箱不可用，请在基本信息补「商业登记证到期日」后可自动续排提醒'}
         </p>
-      </div>
+      </button>
       <div className="flex flex-col items-end gap-1 shrink-0">
-        <span
-          role="button"
+        <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onUpdate(reminder) }}
           className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-surface border border-hairline text-ink-1 hover:bg-canvas font-medium"
         >
           <Pencil size={12} /> 更新
-        </span>
+        </button>
         {!reminder && hasField && (
-          <span
-            role="button"
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onGenerate() }}
             className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full text-primary-600 hover:bg-primary-50 font-medium"
           >
             <RefreshCw size={12} /> 生成提醒
-          </span>
+          </button>
         )}
       </div>
-    </button>
+    </div>
   )
 }
 
