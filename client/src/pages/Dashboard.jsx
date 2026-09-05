@@ -4,6 +4,7 @@ import { companyService, personnelService, documentService, meetingService, comp
 import { formatDate } from '../utils/helpers'
 import { toArray } from '../utils/responseNormalize.js'
 import { LoadingSpinner, EmptyState } from '../components/UIHelpers'
+import { AnimatedNumber } from '../components/AnimatedNumber'
 import { ProgressRing } from '../components/VisualKit'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import BrandLogo from '../components/BrandLogo'
@@ -254,7 +255,7 @@ export default function Dashboard() {
               >
                 <Icon size={16} />
                 <span>{a.label}</span>
-                {typeof a.count === 'number' && <span className="qa-chip__count">{a.count}</span>}
+                {typeof a.count === 'number' && <AnimatedNumber value={a.count} className="qa-chip__count" />}
               </Link>
             )
           })}

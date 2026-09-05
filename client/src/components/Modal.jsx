@@ -105,7 +105,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
             ? `relative w-full ${sizeClass} bg-surface rounded-t-2xl shadow-4 max-h-[88vh] flex flex-col outline-none pb-safe`
             : `relative w-full ${sizeClass} bg-surface rounded-2xl shadow-4 max-h-[90vh] flex flex-col outline-none`
         }
-        style={isMobile ? { animation: 'csSheetUp .24s cubic-bezier(.16,1,.3,1) both' } : undefined}
+        style={isMobile ? { animation: 'csSheetUp .34s cubic-bezier(.16,1,.3,1) both' } : undefined}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-hairline shrink-0">

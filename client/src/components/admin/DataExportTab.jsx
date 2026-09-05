@@ -5,6 +5,7 @@
 //       不新增后端路由；全量取数（services.getAll 不传 page/limit → 后端 usePaging=false 返全量）。
 import { useState, useEffect, useCallback } from 'react'
 import { Download, Loader2, FileSpreadsheet, CheckCircle2 } from 'lucide-react'
+import { RippleButton } from '../../components/Ripple'
 import {
   companyService, personnelService, documentService, meetingService,
   complianceReminderService, taskService, signTaskService,
@@ -276,17 +277,17 @@ const DataExportTab = () => {
 
       {/* 操作区 */}
       <div className="flex items-center gap-3">
-        <button
+        <RippleButton
           onClick={handleExport}
           disabled={exporting || selected.length === 0}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
           {exporting ? '导出中…' : `导出 Excel（${selected.length} 个 Sheet）`}
-        </button>
+        </RippleButton>
         {done?.ok && (
           <span className="flex items-center gap-1 text-sm text-success">
-            <CheckCircle2 size={16} /> 已生成 CSMS_中央数据库_{done.stamp}.xlsx
+            <CheckCircle2 size={16} className="draw-check" /> 已生成 CSMS_中央数据库_{done.stamp}.xlsx
           </span>
         )}
         {done && !done.ok && (

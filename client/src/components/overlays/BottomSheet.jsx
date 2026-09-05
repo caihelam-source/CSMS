@@ -31,7 +31,7 @@ const BottomSheet = ({ isOpen, onClose, title, children }) => {
         role="dialog"
         aria-modal="true"
         className="relative w-full max-w-lg bg-surface rounded-t-2xl shadow-4 max-h-[88vh] flex flex-col outline-none pb-safe"
-        style={{ animation: 'csSheetUp .24s cubic-bezier(.16,1,.3,1) both' }}
+        style={{ animation: 'csSheetUp .34s cubic-bezier(.16,1,.3,1) both' }}
       >
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-hairline shrink-0">
           <div className="w-9" />

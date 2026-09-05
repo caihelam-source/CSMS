@@ -308,7 +308,7 @@ export const Toggle = ({ checked = false, onChange, label, className = '' }) => 
     onClick={() => onChange?.(!checked)}
     className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${checked ? 'bg-primary-600' : 'bg-ink-3/40'} ${className}`}
   >
-    <span className={`inline-block h-5 w-5 transform rounded-full bg-surface shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
+    <span className={`inline-block h-5 w-5 transform rounded-full bg-surface shadow transition-transform duration-200 ease-[cubic-bezier(.34,1.56,.64,1)] ${checked ? 'translate-x-5 scale-x-110' : 'translate-x-0.5'}`} />
   </button>
 )
 

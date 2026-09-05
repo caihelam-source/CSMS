@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 import {
   LayoutDashboard, Calendar, FileText, Building2,
-  CheckSquare, LogOut, Menu, X, Crown, Zap,
+  CheckSquare, LogOut, X, Crown, Zap,
   Bell, ShieldCheck, FileCode, UserCircle, Settings as SettingsIcon,
   Sun, Moon, FileSignature, CalendarClock, CalendarDays,
   Search,
@@ -212,13 +212,18 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* 移动端汉堡 */}
+            {/* 移动端汉堡：汉堡变叉（技巧⑪）— 三线连贯过渡为关闭叉号 */}
             <button
               onClick={() => setMobileOpen(o => !o)}
               className="lg:hidden p-1.5 rounded-full text-ink-2 hover:bg-canvas"
               aria-label="菜单"
+              aria-expanded={mobileOpen}
             >
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+              <svg width="20" height="20" viewBox="0 0 20 20" className="ham" aria-hidden="true">
+                <line x1="3" y1="6" x2="17" y2="6" className={`ham__l1 ${mobileOpen ? 'open' : ''}`} />
+                <line x1="3" y1="10" x2="17" y2="10" className={`ham__l2 ${mobileOpen ? 'open' : ''}`} />
+                <line x1="3" y1="14" x2="17" y2="14" className={`ham__l3 ${mobileOpen ? 'open' : ''}`} />
+              </svg>
             </button>
           </div>
         </nav>

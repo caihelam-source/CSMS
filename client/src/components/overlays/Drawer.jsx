@@ -31,7 +31,7 @@ const Drawer = ({ isOpen, onClose, title, subtitle, children, width = 'max-w-md'
         role="dialog"
         aria-modal="true"
         className={`relative w-full ${width} bg-surface rounded-l-2xl shadow-4 max-h-full flex flex-col outline-none`}
-        style={{ animation: 'csDrawerIn .24s cubic-bezier(.16,1,.3,1) both' }}
+        style={{ animation: 'csDrawerIn .34s cubic-bezier(.16,1,.3,1) both' }}
       >
         <div className="flex items-start justify-between px-6 py-4 border-b border-hairline shrink-0">
           <div className="min-w-0">
