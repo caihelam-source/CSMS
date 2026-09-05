@@ -72,6 +72,15 @@ const Navbar = () => {
   const [userOpen, setUserOpen] = useState(false)
   const [scopeMenuOpen, setScopeMenuOpen] = useState(false)
   const { theme, toggle } = useTheme()
+  const [scrolled, setScrolled] = useState(false)
+
+  // 滚动收缩（Shrink on Scroll）：下滚超过阈值时导航收缩高度、背景更实、阴影加重
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -95,11 +104,15 @@ const Navbar = () => {
     <>
       {/* 顶部导航栏：毛玻璃 + 圆角容器，悬浮于内容之上 */}
       <header className="fixed top-3 lg:top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] lg:w-[calc(100%-2rem)] max-w-[1400px]">
-        <nav className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2.5 py-2 bg-surface/95 dark:bg-surface/95 backdrop-blur-xl border border-line-strong rounded-2xl shadow-2">
+        <nav className={`flex flex-wrap items-center gap-x-2 gap-y-1 px-2.5 transition-[padding,background-color,box-shadow,backdrop-filter] duration-300 ease-out ${
+          scrolled
+            ? 'py-1.5 bg-surface/98 dark:bg-surface/98 backdrop-blur-2xl border border-line-strong rounded-2xl shadow-3'
+            : 'py-2 bg-surface/95 dark:bg-surface/95 backdrop-blur-xl border border-line-strong rounded-2xl shadow-2'
+        }`}>
           {/* Logo — 明暗双模：亮色 Navy 字标 / 暗色反白字标（图标为自包含 navy 方底印章，两态通用） */}
           <Link to="/dashboard" className="flex items-center gap-2 pl-1 pr-2 shrink-0">
             <BrandLogo variant="icon" size="sm" />
-            <span className="font-extrabold text-ink-brand dark:text-white text-base lg:text-lg tracking-tight">CSMS</span>
+            <span className={`font-extrabold text-ink-brand dark:text-white tracking-tight transition-[font-size] duration-300 ${scrolled ? 'text-sm lg:text-base' : 'text-base lg:text-lg'}`}>CSMS</span>
           </Link>
 
           {/* 桌面端水平导航：14 入口单行排布；容器 nowrap 防「设置」被挤到第二行，再以整 nav overflow-x-auto 做兜底 */}
