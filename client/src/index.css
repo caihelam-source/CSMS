@@ -734,6 +734,16 @@
     .metric-cell:first-child { border-top: none; }
   }
 
+  /* 合规状态卡 · 清爽轻量皮肤变体（design-taste-frontend Skill 驱动）
+     纪律：大圆角(2xl) + 柔和浅色阴影 + 留白充足 + 浅色图标 chip + 单圆角体系 + 0 em-dash
+     语义色调由 TONE（border 与 bg 工具类）注入，本类只管结构与质感，不覆盖背景色 */
+  .status-card { padding: var(--space-5); border-radius: var(--radius-2xl);
+    box-shadow: 0 10px 30px rgba(31,42,55,.06);
+    transition: box-shadow var(--dur-base) var(--ease-in), transform var(--dur-base) var(--ease-in); }
+  .status-card:hover { box-shadow: 0 16px 40px rgba(31,42,55,.10); transform: translateY(-2px); }
+  .dark .status-card { box-shadow: 0 10px 30px rgba(0,0,0,.28); }
+  .dark .status-card:hover { box-shadow: 0 16px 40px rgba(0,0,0,.36); }
+
   /* 公司登记册卡片头部：桌面端标题在左、操作区在右；移动端自动堆叠 */
   .register-card__header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); flex-wrap: wrap; }
   .register-card__title { min-width: 0; }

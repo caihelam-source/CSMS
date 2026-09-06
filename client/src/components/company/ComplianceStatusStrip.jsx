@@ -59,9 +59,9 @@ function Nar1Chip({ company, reminder, onUpdate, onView, onGenerate }) {
   const st = deriveStatus(reminder, hasField)
   return (
     <div
-      className={`card !p-4 border ${TONE[st.tone]} hover:shadow-2 transition-shadow flex items-start gap-3 w-full`}
+      className={`status-card border ${TONE[st.tone]} flex items-start gap-3 w-full`}
     >
-      <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+      <div className="w-11 h-11 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
         <FileText size={20} />
       </div>
       <button
@@ -110,9 +110,9 @@ function Nn3Chip({ company, reminder, onUpdate, onView, onGenerate }) {
   const st = deriveStatus(reminder, hasField)
   return (
     <div
-      className={`card !p-4 border ${TONE[st.tone]} hover:shadow-2 transition-shadow flex items-start gap-3 w-full`}
+      className={`status-card border ${TONE[st.tone]} flex items-start gap-3 w-full`}
     >
-      <div className="w-10 h-10 rounded-xl bg-info/10 text-primary-700 flex items-center justify-center shrink-0">
+      <div className="w-11 h-11 rounded-2xl bg-info/10 text-primary-700 flex items-center justify-center shrink-0">
         <Globe2 size={20} />
       </div>
       <button
@@ -161,9 +161,9 @@ function BrChip({ company, reminder, onUpdate, onView, onGenerate }) {
   const st = deriveStatus(reminder, hasField)
   return (
     <div
-      className={`card !p-4 border ${TONE[st.tone]} hover:shadow-2 transition-shadow flex items-start gap-3 w-full`}
+      className={`status-card border ${TONE[st.tone]} flex items-start gap-3 w-full`}
     >
-      <div className="w-10 h-10 rounded-xl bg-info/10 text-primary-700 flex items-center justify-center shrink-0">
+      <div className="w-11 h-11 rounded-2xl bg-info/10 text-primary-700 flex items-center justify-center shrink-0">
         <ShieldCheck size={20} />
       </div>
       <button
