@@ -744,6 +744,23 @@
   .dark .status-card { box-shadow: 0 10px 30px rgba(0,0,0,.28); }
   .dark .status-card:hover { box-shadow: 0 16px 40px rgba(0,0,0,.36); }
 
+  /* 暗黑科技皮肤（仅 .dark 下生效，遵守单主题锁）：电网格底 + 数据 glow + mono 数字
+     由 design-taste-frontend Skill 驱动；复用品牌蓝作 glow accent，不引入新色 */
+  .dark .metric-grid--minimalist {
+    background-image:
+      linear-gradient(rgba(37,99,235,.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37,99,235,.07) 1px, transparent 1px);
+    background-size: 28px 28px; border-radius: var(--radius-xl); padding: var(--space-2) var(--space-4); }
+  .dark .metric-cell { border-left-color: rgba(37,99,235,.22); }
+  .dark .metric-cell:first-child { border-left-color: transparent; }
+  .dark .metric-cell .m-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-shadow: 0 0 18px rgba(37,99,235,.40); }
+  .dark .status-card {
+    background-image:
+      linear-gradient(rgba(37,99,235,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37,99,235,.06) 1px, transparent 1px);
+    background-size: 22px 22px; }
+
   /* 公司登记册卡片头部：桌面端标题在左、操作区在右；移动端自动堆叠 */
   .register-card__header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); flex-wrap: wrap; }
   .register-card__title { min-width: 0; }
