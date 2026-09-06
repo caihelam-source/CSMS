@@ -268,9 +268,9 @@ export default function Dashboard() {
             <RefreshCw size={15} /> 刷新数据
           </button>
         </div>
-        <div className="metric-grid">
+        <div className="metric-grid metric-grid--minimalist">
           {metrics.map((m, i) => (
-            <Link to={m.to} className="metric-card" key={i} aria-label={`查看${m.label}`}>
+            <Link to={m.to} className="metric-cell" key={i} aria-label={`查看${m.label}`}>
               <div className="m-ico"><m.icon size={20} /></div>
               <p className="m-label">{m.label}</p>
               <p className="m-value">{m.value}</p>

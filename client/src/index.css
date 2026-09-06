@@ -713,6 +713,27 @@
 
   .metric-card .m-sub { font-size: var(--text-xs); color: rgb(var(--text-3)); margin-top: 2px; font-weight: 500; }
 
+  /* 核心指标 · 极简商务皮肤变体（由 design-taste-frontend Skill 驱动）
+     纪律：无卡片盒（去边框/阴影/位移） + 发丝分隔线建立层级 + 纯留白 + 单 accent(品牌蓝) + 单圆角体系 + 0 em-dash */
+  .metric-grid--minimalist { gap: 0; background: transparent; }
+  .metric-cell { position: relative; display: block; padding: var(--space-5) var(--space-6);
+    border-left: 1px solid rgb(var(--border)); text-decoration: none; color: inherit; cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-in); }
+  .metric-cell:first-child { border-left: none; padding-left: 0; }
+  .metric-cell:hover { background: rgb(var(--subtle)); }
+  .metric-cell:focus-visible { outline: 2px solid rgb(var(--color-primary)); outline-offset: -2px; }
+  .metric-cell .m-label { font-size: var(--text-sm); color: rgb(var(--text-2)); font-weight: 600; }
+  .metric-cell .m-value { font-size: clamp(1.8rem, 3.4vw, 2.6rem); font-weight: 800; letter-spacing: -.03em; line-height: 1;
+    color: rgb(var(--brand-navy)); font-variant-numeric: tabular-nums; margin-top: var(--space-3); }
+  .dark .metric-cell .m-value { color: rgb(var(--blue-300)); }
+  .metric-cell .m-sub { font-size: var(--text-xs); color: rgb(var(--text-3)); margin-top: var(--space-2); font-weight: 500; }
+  .metric-cell .m-ico { display: none; }
+  @media (max-width: 640px) {
+    .metric-grid--minimalist { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .metric-cell { border-left: none; padding: var(--space-4) 0; border-top: 1px solid rgb(var(--border)); }
+    .metric-cell:first-child { border-top: none; }
+  }
+
   /* 公司登记册卡片头部：桌面端标题在左、操作区在右；移动端自动堆叠 */
   .register-card__header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); flex-wrap: wrap; }
   .register-card__title { min-width: 0; }
