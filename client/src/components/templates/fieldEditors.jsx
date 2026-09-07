@@ -33,7 +33,7 @@ const RemoveButton = ({ onClick, title = '删除该项' }) => (
     onClick={onClick}
     title={title}
     aria-label={title}
-    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-hairline text-ink-3 hover:text-danger hover:border-danger/40 hover:bg-danger/10 transition-colors"
+    className="shrink-0 tap-target w-8 h-8 flex items-center justify-center rounded-lg border border-hairline text-ink-3 hover:text-danger hover:border-danger/40 hover:bg-danger/10 transition-colors"
   >
     ×
   </button>

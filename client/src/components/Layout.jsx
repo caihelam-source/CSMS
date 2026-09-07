@@ -38,7 +38,7 @@ export default function Layout() {
       {!isDashboard && (
         <Link
           to="/dashboard"
-          className="fixed top-[92px] lg:top-[104px] right-3 sm:right-auto sm:left-6 z-40 inline-flex items-center justify-center gap-1.5 w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-full shadow-md transition-colors"
+          className="fixed top-[92px] lg:top-[104px] right-3 sm:right-auto sm:left-6 z-40 inline-flex items-center justify-center gap-1.5 w-11 h-11 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-full shadow-md transition-colors"
           title="回到 Dashboard"
         >
           <LayoutDashboard size={16} className="sm:w-[14px] sm:h-[14px]" />

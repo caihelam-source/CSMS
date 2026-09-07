@@ -386,7 +386,7 @@ export default function Companies() {
           action={noScope ? null : <button onClick={openNew} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加公司</button>}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="cq-companies">
           {filtered.map(c => (
             <CompanyCard key={c._id} company={c} {...companyItemProps} />
           ))}

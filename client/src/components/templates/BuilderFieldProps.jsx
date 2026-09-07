@@ -325,7 +325,7 @@ const BuilderFieldProps = ({ field = null, allKeys = [], onChange, onDelete }) =
                   aria-label="上移该列"
                   disabled={index === 0}
                   onClick={() => moveColumn(index, -1)}
-                  className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-hairline text-ink-2 hover:bg-surface disabled:opacity-40"
+                  className="shrink-0 tap-target w-8 h-8 flex items-center justify-center rounded-lg border border-hairline text-ink-2 hover:bg-surface disabled:opacity-40"
                 >
                   <ArrowUp size={14} />
                 </button>
@@ -335,7 +335,7 @@ const BuilderFieldProps = ({ field = null, allKeys = [], onChange, onDelete }) =
                   aria-label="下移该列"
                   disabled={index === columns.length - 1}
                   onClick={() => moveColumn(index, 1)}
-                  className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-hairline text-ink-2 hover:bg-surface disabled:opacity-40"
+                  className="shrink-0 tap-target w-8 h-8 flex items-center justify-center rounded-lg border border-hairline text-ink-2 hover:bg-surface disabled:opacity-40"
                 >
                   <ArrowDown size={14} />
                 </button>
@@ -344,7 +344,7 @@ const BuilderFieldProps = ({ field = null, allKeys = [], onChange, onDelete }) =
                   title="删除该列"
                   aria-label="删除该列"
                   onClick={() => removeColumn(index)}
-                  className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-hairline text-ink-3 hover:text-danger hover:border-danger/40"
+                  className="shrink-0 tap-target w-8 h-8 flex items-center justify-center rounded-lg border border-hairline text-ink-3 hover:text-danger hover:border-danger/40"
                 >
                   <X size={14} />
                 </button>

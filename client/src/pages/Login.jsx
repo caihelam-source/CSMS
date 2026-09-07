@@ -1,153 +1,181 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import { Mail, Lock, AlertCircle, Zap } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext.jsx'
-import { LoadingSpinner, FormField, inputClass } from '../components/UIHelpers'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import BrandLogo from '../components/BrandLogo'
-import PageWatermark from '../components/PageWatermark'
-import { validate, required, email as emailValidator } from '../utils/validators'
+import {
+  Eye, EyeOff, ShieldCheck, Users, Workflow, Bell,
+  ArrowRight, Loader2, AlertCircle,
+} from 'lucide-react'
 
-const LOGIN_RULES = {
-  email: [required('请输入邮箱'), emailValidator('邮箱格式不正确')],
-  password: [required('请输入密码')],
-}
-
-const DEMO_ACCOUNTS = [
-  { label: '管理员', email: 'admin@example.com', password: 'admin123', color: 'bg-info/10 text-primary-700 hover:bg-info/20' },
-  { label: '秘书', email: 'demo@example.com', password: 'demo123', color: 'bg-success/10 text-success hover:bg-success/20' },
-]
-
-const DEMO_MODE = import.meta.env.VITE_USE_MOCK === 'true'
-
+// 登录页 · 左右分屏 B2B（claw-login-templates ② 主推，最贴合 CSMS）
+// 设计纪律：单主题锁（亮 / 暗各一套）、单 accent（品牌蓝）、单圆角体系、0 em-dash
+// 三态：focus 高亮环 / error 红边框+内联提示 / loading spinner+禁用
 const Login = () => {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { login } = useAuth()
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [errors, setErrors] = useState({})
+  const [showPw, setShowPw] = useState(false)
+  const [remember, setRemember] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
-  const navigate = useNavigate()
+
+  const from = location.state?.from?.pathname || '/'
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const { valid, errors: vErrors } = validate({ email, password }, LOGIN_RULES)
-    if (!valid) { setErrors(vErrors); return }
-    setErrors({})
     setError('')
+    if (!email.trim() || !password) {
+      setError('请输入账号与密码')
+      return
+    }
     setLoading(true)
     try {
-      await login(email, password)
-      toast.success('欢迎回来')
-      navigate('/dashboard', { replace: true })
+      await login(email.trim(), password)
+      navigate(from, { replace: true })
     } catch (err) {
-      setError(err.response?.data?.message || err.message || '登录失败')
+      setError(err?.message || '登录失败，请检查账号与密码后重试')
     } finally {
       setLoading(false)
     }
   }
 
-  const fillDemo = (acc) => {
-    setEmail(acc.email)
-    setPassword(acc.password)
-    setError('')
-  }
+  const fieldErr = Boolean(error)
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#EFF4FF] to-[#F1F5F9] px-4">
-      {/* 统一品牌出血水印（与内页同源：PageWatermark 组件 · 6 角轮转 + clamp(560,78vw,980) + 亮 .018 / 暗 .03 + fixed 出血 + pointer-events:none） */}
-      <PageWatermark position="br" />
+    <div className="login-split">
+      {/* 左栏 · 品牌展示（navy 锚点 + 品牌蓝，权威感来源） */}
+      <aside className="login-brand" aria-hidden="true">
+        <div className="login-brand__deco login-brand__deco--a" />
+        <div className="login-brand__deco login-brand__deco--b" />
 
-      {/* 登录卡（对齐设计稿：居中白卡 + 顶部 Logo + slogan） */}
-      <div className="relative z-10 w-full max-w-[380px] bg-surface rounded-2xl shadow-3 border border-hairline p-7">
-        <div className="flex items-center gap-3 justify-center mb-1">
-          <BrandLogo variant="icon" size="lg" />
-          <div className="text-left">
-            <div className="text-2xl font-extrabold tracking-tight text-[#0F2A5E] leading-none">CSMS</div>
-            <div className="text-[11px] text-ink-3 mt-1">香港公司秘书管理系统 · Company Secretary Management System</div>
-          </div>
+        <div className="login-brand__logo">
+          <BrandLogo variant="reversed" size="lg" />
         </div>
 
-        <p className="text-center text-[13px] font-semibold text-ink-2 mb-6 mt-3">井然有序，合規無憂</p>
+        <div className="login-brand__pitch">
+          <div className="login-brand__eyebrow">Company Secretarial Suite</div>
+          <h1>香港公司秘书与合规，一站式掌控</h1>
+          <ul>
+            <li>
+              <span className="tick"><ShieldCheck size={14} /></span>
+              <span>NAR1 / BR 周年申报自动排程，到期前主动提醒</span>
+            </li>
+            <li>
+              <span className="tick"><Users size={14} /></span>
+              <span>多实体台账中枢，董事 / 股东 / 文件关联一目了然</span>
+            </li>
+            <li>
+              <span className="tick"><Workflow size={14} /></span>
+              <span>合规规则引擎驱动提醒、任务、文档闭环</span>
+            </li>
+          </ul>
+        </div>
 
-        {error && (
-          <div className="mb-5 p-3.5 bg-danger/10 border border-danger/20 rounded-lg flex items-start gap-2.5 text-danger">
-            <AlertCircle size={17} className="mt-0.5 shrink-0" />
-            <span className="text-sm">{error}</span>
+        <div className="login-brand__foot">
+          <Bell size={13} className="login-brand__foot-ico" />
+          © 2026 Claw CSMS · 面向企业秘书与合规团队
+        </div>
+      </aside>
+
+      {/* 右栏 · 表单 */}
+      <main className="login-form-pane">
+        <form className="login-card" onSubmit={handleSubmit} noValidate>
+          {/* 移动端紧凑品牌头（≤860px 显示，替代隐藏的左栏） */}
+          <div className="login-card__brand">
+            <BrandLogo variant="full" size="md" />
+            <p>井然有序，合規無憂</p>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FormField label="邮箱 Email" required error={errors.email}>
-            <div className="relative">
-              <Mail size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
-              <input
-                type="email"
-                value={email}
-                onChange={e => { setEmail(e.target.value); setErrors(er => ({ ...er, email: '' })) }}
-                autoComplete="email"
-                className={`${inputClass} pl-10`}
-                placeholder="you@firm.com.hk"
-              />
+          <h2 className="login-card__title">欢迎回来</h2>
+          <p className="login-card__sub">登录以管理你的公司秘书与合规工作台</p>
+
+          {error && (
+            <div className="login-alert" role="alert">
+              <AlertCircle size={16} className="shrink-0" />
+              <span>{error}</span>
             </div>
-          </FormField>
+          )}
 
-          <FormField label="密码 Password" required error={errors.password}>
-            <div className="relative">
-              <Lock size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
+          <div className="field">
+            <label className="label" htmlFor="login-email">账号 / 邮箱</label>
+            <input
+              id="login-email"
+              type="email"
+              autoComplete="username"
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={`input-field login-input ${fieldErr ? 'has-error' : ''}`}
+            />
+          </div>
+
+          <div className="field">
+            <label className="label" htmlFor="login-pw">密码</label>
+            <div className="pw-wrap">
               <input
-                type="password"
-                value={password}
-                onChange={e => { setPassword(e.target.value); setErrors(er => ({ ...er, password: '' })) }}
+                id="login-pw"
+                type={showPw ? 'text' : 'password'}
                 autoComplete="current-password"
-                className={`${inputClass} pl-10`}
-                placeholder="••••••••"
+                placeholder="请输入密码"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`input-field login-input pr-12 ${fieldErr ? 'has-error' : ''}`}
               />
+              <button
+                type="button"
+                className="pw-toggle tap-target"
+                onClick={() => setShowPw((v) => !v)}
+                aria-label={showPw ? '隐藏密码' : '显示密码'}
+                aria-pressed={showPw}
+              >
+                {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
-          </FormField>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary-600 text-white py-2.5 px-4 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <LoadingSpinner size="xs" variant="inline" className="border-white/30 border-r-white" />
-                登录中…
-              </span>
-            ) : '登录 Sign in'}
-          </button>
-        </form>
-
-        <p className="text-center text-xs text-ink-3 mt-5">
-          本系统账号由管理员统一开通，如尚未拥有账号请联系您的管理员。
-        </p>
-
-        {DEMO_MODE && (
-          <div className="mt-6 pt-5 border-t border-hairline">
-            <p className="text-xs text-ink-3 mb-3 flex items-center gap-1.5">
-              <Zap size={13} />
-              快速演示 — 点击填入测试账号：
-            </p>
-            <div className="flex gap-2">
-              {DEMO_ACCOUNTS.map(acc => (
-                <button
-                  key={acc.label}
-                  type="button"
-                  onClick={() => fillDemo(acc)}
-                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors ${acc.color}`}
-                >
-                  {acc.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-ink-3 mt-2 text-center">
-              选择角色后点击登录
-            </p>
           </div>
-        )}
-      </div>
+
+          <div className="login-row">
+            <label className="remember">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
+              <span>记住我</span>
+            </label>
+            <Link to="/forgot" className="login-link">忘记密码？</Link>
+          </div>
+
+          <button type="submit" className="btn-primary login-submit" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                登录中…
+              </>
+            ) : (
+              <>
+                登录
+                <ArrowRight size={18} />
+              </>
+            )}
+          </button>
+
+          <div className="login-divider"><span>或使用企业身份</span></div>
+          <button
+            type="button"
+            className="btn-secondary login-sso"
+            onClick={() => navigate('/sso')}
+          >
+            企业 SSO 登录
+          </button>
+
+          <p className="login-foot">
+            还没有账号？<Link to="/register" className="login-link">申请开通</Link>
+          </p>
+        </form>
+      </main>
     </div>
   )
 }
