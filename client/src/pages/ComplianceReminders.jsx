@@ -12,6 +12,7 @@ import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchB
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
 import Modal from '../components/Modal'
+import PullToRefresh from '../components/PullToRefresh'
 
 const STATUSES_API = [
   { value: 'upcoming', label: '即将到期' },
@@ -280,6 +281,7 @@ const ComplianceReminders = () => {
   const getDaysRemaining = useCallback((dueDate) => Math.ceil((new Date(dueDate) - new Date()) / 86400000), [])
 
   return (
+    <PullToRefresh onRefresh={fetchAll}>
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
@@ -440,6 +442,7 @@ const ComplianceReminders = () => {
         loading={saving}
       />
     </div>
+    </PullToRefresh>
   )
 }
 
