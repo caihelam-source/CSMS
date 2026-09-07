@@ -223,6 +223,25 @@ export default function Personnel() {
     }
   }
 
+  // 移动端批量删除：从底部 action sheet 触发，单次确认后删除全部已选
+  const handleBatchDelete = useCallback(async () => {
+    if (selectedIds.length === 0) return
+    const ok = await confirm({
+      title: '批量删除人员',
+      message: `确定删除选中的 ${selectedIds.length} 名人员？将移除所有关联任职记录，不可撤销。`,
+      confirmLabel: '确认删除',
+    })
+    if (!ok) return
+    try {
+      await Promise.all(selectedIds.map(id => personnelService.delete(id)))
+      toast.success(`已删除 ${selectedIds.length} 名人员`)
+      setSelectedIds([])
+      loadPersonnel()
+    } catch {
+      toast.error('批量删除失败')
+    }
+  }, [confirm, selectedIds, loadPersonnel])
+
   // v6.x 人员去重：手动触发重复检测并提示结果
   const openDuplicateCheck = useCallback(async () => {
     try {
@@ -506,6 +525,16 @@ export default function Personnel() {
 
       {/* Confirm Dialog */}
       {ConfirmDialogComponent}
+
+      {/* 移动端批量操作 action sheet（长按进选择态后浮现，桌面不渲染） */}
+      <SelectionBar
+        count={selectedIds.length}
+        onCancel={() => setSelectedIds([])}
+        actions={[
+          { key: 'merge', label: '合并', icon: Merge, tone: 'primary', disabled: selectedIds.length !== 2, onClick: () => setShowMergeModal(true) },
+          { key: 'delete', label: '删除', icon: Trash2, tone: 'danger', onClick: handleBatchDelete },
+        ]}
+      />
     </div>
   )
 }

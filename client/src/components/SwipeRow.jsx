@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useIsMobile } from '../hooks/useBreakpoint'
 
 // 第 1 步 · 跨端左滑操作组件（2026-09-07）
@@ -12,7 +12,7 @@ import { useIsMobile } from '../hooks/useBreakpoint'
 
 const TRAY_BASE = 'flex items-center justify-center font-medium select-none text-white'
 
-export default function SwipeRow({ actions = [], children, className = '', style }) {
+export default function SwipeRow({ actions = [], children, className = '', style, onLongPress }) {
   const isMobile = useIsMobile()
   const fgRef = useRef(null)
   const trayRef = useRef(null)
@@ -21,9 +21,12 @@ export default function SwipeRow({ actions = [], children, className = '', style
   const drag = useRef(null)
   const movedRef = useRef(false)
   const justSwipedRef = useRef(false)
+  const longPressTimer = useRef(null)
+  const longPressedRef = useRef(false)
   const [reduce] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   )
+  useEffect(() => () => { if (longPressTimer.current) clearTimeout(longPressTimer.current) }, [])
 
   // 桌面：行内常驻按钮（与改造前视觉一致）
   if (!isMobile) {
@@ -55,11 +58,25 @@ export default function SwipeRow({ actions = [], children, className = '', style
       w: trayRef.current?.offsetWidth || actions.length * 44,
     }
     movedRef.current = false
+    // 长按检测（仅移动端、未展开时）：按住 500ms 且未明显移动 → 进入选择态
+    if (onLongPress && !open) {
+      longPressTimer.current = setTimeout(() => {
+        longPressTimer.current = null
+        longPressedRef.current = true
+        drag.current = null
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15)
+        onLongPress(e)
+      }, 500)
+    }
   }
   const onPointerMove = (e) => {
     if (!drag.current) return
     const dx = e.clientX - drag.current.startX
     const dy = e.clientY - drag.current.startY
+    if (longPressTimer.current && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
     if (drag.current.locked === null) {
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
       drag.current.locked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
@@ -73,6 +90,7 @@ export default function SwipeRow({ actions = [], children, className = '', style
     setX(Math.max(-w, Math.min(0, base + dx)))
   }
   const onPointerEnd = () => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
     if (!drag.current) return
     const w = drag.current.w
     const willOpen = x < -w / 2
@@ -85,6 +103,13 @@ export default function SwipeRow({ actions = [], children, className = '', style
     drag.current = null
   }
   const onFgClick = (e) => {
+    // 长按已触发选择：吞掉随之而来的 click，避免误触导航
+    if (longPressedRef.current) {
+      e.preventDefault()
+      e.stopPropagation()
+      longPressedRef.current = false
+      return
+    }
     // 已展开时，点前景 = 收起（不触发内部 Link 导航）
     if (open || justSwipedRef.current) {
       e.preventDefault()
