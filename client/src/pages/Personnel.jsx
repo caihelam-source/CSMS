@@ -12,6 +12,7 @@ import { validate, required, email as emailValidator } from '../utils/validators
 import { useConfirm } from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
 import VirtualList from '../components/VirtualList'
+import SwipeRow from '../components/SwipeRow'
 
 const EMPTY_FORM = { name: '', nric: '', email: '', phone: '', nationality: '', address: { country: '' } }
 
@@ -29,19 +30,26 @@ const PersonRow = memo(function PersonRow({ person: p, onEdit, onDelete, onToggl
   const display = formatPersonName(p)
   const avatarChar = personInitial(p)
   return (
-    <div style={style} className={`card flex items-center justify-between hover:shadow-md transition-shadow ${p.selected ? 'ring-2 ring-primary-500' : ''} ${p.dupCount ? 'border-l-4 border-l-yellow-400' : ''}`}>
-      <div className="flex items-center gap-3 flex-1">
+    <SwipeRow
+      style={style}
+      className={`card hover:shadow-md transition-shadow ${p.selected ? 'ring-2 ring-primary-500' : ''} ${p.dupCount ? 'border-l-4 border-l-yellow-400' : ''}`}
+      actions={[
+        { key: 'edit', label: `编辑 ${p.name}`, icon: Pencil, tone: 'primary', onClick: () => onEdit(p) },
+        { key: 'delete', label: `删除 ${p.name}`, icon: Trash2, tone: 'danger', onClick: () => onDelete(p) },
+      ]}
+    >
+      <div className="flex items-center gap-3 flex-1 min-w-0">
         <input type="checkbox" checked={p.selected} onChange={() => onToggleSelect(p._id)}
-          className="w-4 h-4 text-primary-600 rounded" aria-label={`选择 ${p.name}`} />
-        <Link to={`/personnel/${p._id}`} className="flex items-center gap-3 flex-1">
-          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold">
+          className="w-4 h-4 text-primary-600 rounded shrink-0" aria-label={`选择 ${p.name}`} />
+        <Link to={`/personnel/${p._id}`} className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold shrink-0">
             {avatarChar}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <p className="font-medium text-primary-600 hover:underline">{display}</p>
               {p.dupCount > 0 && (
-                <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full flex items-center gap-1" title="Duplicate detected">
+                <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0" title="Duplicate detected">
                   <AlertTriangle size={10} /> {p.dupCount}
                 </span>
               )}
@@ -53,7 +61,7 @@ const PersonRow = memo(function PersonRow({ person: p, onEdit, onDelete, onToggl
                 ))}
               </div>
             )}
-            <div className="flex gap-2 text-xs text-ink-3">
+            <div className="flex gap-2 text-xs text-ink-3 truncate">
               {p.nric && <span>{p.nric}</span>}
               {p.nationality && <span>· {p.nationality}</span>}
               {p.email && <span>· {p.email}</span>}
@@ -61,11 +69,7 @@ const PersonRow = memo(function PersonRow({ person: p, onEdit, onDelete, onToggl
           </div>
         </Link>
       </div>
-      <div className="flex gap-1">
-        <button onClick={() => onEdit(p)} className="p-2 text-ink-3 hover:text-primary-600 rounded" aria-label={`编辑 ${p.name}`}><Pencil size={14} /></button>
-        <button onClick={() => onDelete(p)} className="p-2 text-ink-3 hover:text-danger rounded" aria-label={`删除 ${p.name}`}><Trash2 size={14} /></button>
-      </div>
-    </div>
+    </SwipeRow>
   )
 })
 
