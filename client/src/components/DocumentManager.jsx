@@ -5,6 +5,7 @@ import JSZip from 'jszip'
 import {
   FileText, Download, Building2, User, Upload, CheckSquare, Square,
   Pencil, Trash2, Eye, FileSpreadsheet, FileArchive, FileSignature,
+  Camera, FolderOpen,
 } from 'lucide-react'
 import SignTaskModal from './SignTaskModal'
 import { documentService, companyService, personnelService } from '../services/index.js'
@@ -14,6 +15,7 @@ import { LoadingSpinner, EmptyState, SearchBar, FormField, inputClass, labelClas
 import Modal from '../components/Modal'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useScope, useScopedItems, useScopedDocuments } from '../hooks/useScope'
+import { useIsMobile } from '../hooks/useBreakpoint'
 import { NO_SCOPE_HINT } from '../utils/scope'
 
 // ── 类型 / 分类标签 ──
@@ -107,6 +109,12 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
   const [showUpload, setShowUpload] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadFiles, setUploadFiles] = useState([])
+  const isMobile = useIsMobile()
+  // 移动端追加式选文件（相机/系统选择器分两个隐藏 input，避免覆盖已选）
+  const appendFiles = useCallback((list) => {
+    if (!list || !list.length) return
+    setUploadFiles((prev) => [...prev, ...Array.from(list)])
+  }, [])
   const [uploadMeta, setUploadMeta] = useState({
     name: '', type: 'other', category: 'other',
     companyId: companyId || '', personnelId: personnelId || '',
@@ -552,7 +560,32 @@ export default function DocumentManager({ companyId, personnelId, embedded = fal
         <div className="space-y-4">
           <div>
             <label className={labelClass}>选择文件（可多选批量上传）</label>
-            <input type="file" multiple className={inputClass} onChange={(e) => setUploadFiles([...e.target.files])} />
+            {isMobile ? (
+              <div className="space-y-2">
+                {/* 移动三入口之①：相机扫描（现场拍 NAR1/BR 纸质件） */}
+                <input id="doc-cam-input" type="file" accept="image/*" capture="environment" className="hidden"
+                  onChange={(e) => { appendFiles(e.target.files); e.target.value = '' }} />
+                {/* 移动三入口之②：系统文件选择器（PDF / 图片） */}
+                <input id="doc-pick-input" type="file" multiple accept="application/pdf,image/*" className="hidden"
+                  onChange={(e) => { appendFiles(e.target.files); e.target.value = '' }} />
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => document.getElementById('doc-cam-input')?.click()}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium active:scale-[.98] transition-transform">
+                    <Camera size={16} /> 相机扫描
+                  </button>
+                  <button type="button" onClick={() => document.getElementById('doc-pick-input')?.click()}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 border border-hairline text-ink rounded-lg text-sm font-medium active:scale-[.98] transition-transform">
+                    <FolderOpen size={16} /> 从文件选择
+                  </button>
+                </div>
+                {/* 移动三入口之③：微信转发 —— 纯 Web PWA 无法直收，需微信 JS-SDK + 分享目标 manifest（PWA 后续增强）；此处保留说明，不塞无效按钮 */}
+                <p className="text-[11px] text-ink-3 leading-relaxed">
+                  微信内转发的文件须经微信 JS-SDK 接收，纯 Web PWA 暂用「相机扫描 / 从文件选择」覆盖移动主场景；微信转发入口将在 PWA 分享目标（manifest share_target + Service Worker）阶段补齐。
+                </p>
+              </div>
+            ) : (
+              <input type="file" multiple className={inputClass} onChange={(e) => setUploadFiles([...e.target.files])} />
+            )}
             {uploadFiles.length > 0 && <p className="text-xs text-ink-3 mt-1">已选 {uploadFiles.length} 个文件</p>}
           </div>
           <FormField label="文档名称" hint={uploadFiles.length > 1 ? '留空则使用各文件原名' : ''}>
