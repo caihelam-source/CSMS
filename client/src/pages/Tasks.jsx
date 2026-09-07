@@ -13,6 +13,7 @@ import { NO_SCOPE_HINT } from '../utils/scope'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Modal from '../components/Modal'
 import VirtualList from '../components/VirtualList'
+import SwipeRow from '../components/SwipeRow'
 import SignTaskForm from '../components/SignTaskForm'
 import TaskForm, { TASK_STATUSES, TASK_PRIORITIES } from '../components/TaskForm'
 import Segmented from '../components/ui/Segmented'
@@ -26,76 +27,73 @@ const statusIcon = (s) => {
 const TaskRow = memo(function TaskRow({ task, users, getDaysRemaining, onEdit, onDelete, onQuickComplete, onAddNote, onNavigate, style }) {
   const days = getDaysRemaining(task.dueDate)
   const overdue = task.status !== 'completed' && days < 0
+  // 跨端左滑操作（平行 Personnel）：编辑/备注/删除在移动端左滑唤出，桌面行内常驻按钮零变化
+  const actions = useMemo(() => ([
+    { key: 'note', label: '添加备注', icon: MessageSquare, tone: 'default', onClick: () => onAddNote(task) },
+    { key: 'edit', label: '编辑任务', icon: Pencil, tone: 'default', onClick: () => onEdit(task) },
+    { key: 'delete', label: '删除任务', icon: Trash2, tone: 'danger', onClick: () => onDelete(task) },
+  ]), [task, onEdit, onDelete, onAddNote])
   return (
-    <div style={style} className={`bg-surface rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${overdue ? 'border-danger/20' : 'border-hairline'}`}>
-      <div className="flex items-start gap-4">
-        {/* Quick complete toggle */}
-        <button onClick={() => onQuickComplete(task)} className="mt-0.5 shrink-0 hover:scale-110 transition-transform" title={task.status === 'completed' ? '重新打开' : '标记完成'}>
-          {statusIcon(overdue ? 'overdue' : task.status)}
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
-              <h3
-                onClick={() => onNavigate(`/tasks/${task._id}`)}
-                className={`font-semibold cursor-pointer hover:text-primary-600 transition-colors ${overdue ? 'text-danger' : task.status === 'completed' ? 'line-through text-ink-3' : 'text-ink'}`}
-              >
-                {task.title}
-              </h3>
-              <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${taskPriorityColor(task.priority)}`}>{task.priority}</span>
-              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${taskStatusColor(overdue ? 'overdue' : task.status)}`}>{(overdue ? 'overdue' : task.status).replace('_', ' ')}</span>
-              {task.description && <p className="text-sm text-ink-2 line-clamp-2 mb-2">{task.description}</p>}
-              <div className="flex flex-wrap gap-3 text-xs text-ink-2">
-                <span className={`flex items-center gap-1 ${overdue ? 'text-danger font-medium' : days <= 3 ? 'text-warning' : ''}`}>
-                  <Calendar size={13} />
-                  {overdue ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : `${days}d remaining`}
+    <SwipeRow
+      style={style}
+      className={`tasks-swipe bg-surface rounded-xl border shadow-sm hover:shadow-md transition-shadow ${overdue ? 'border-danger/20' : 'border-hairline'}`}
+      actions={actions}
+    >
+      <div className="p-5 h-full">
+        <div className="flex items-start gap-4">
+          {/* Quick complete toggle（常驻主操作，不进左滑托盘） */}
+          <button onClick={() => onQuickComplete(task)} className="mt-0.5 shrink-0 hover:scale-110 transition-transform" title={task.status === 'completed' ? '重新打开' : '标记完成'}>
+            {statusIcon(overdue ? 'overdue' : task.status)}
+          </button>
+          <div className="flex-1 min-w-0">
+            <h3
+              onClick={() => onNavigate(`/tasks/${task._id}`)}
+              className={`font-semibold cursor-pointer hover:text-primary-600 transition-colors ${overdue ? 'text-danger' : task.status === 'completed' ? 'line-through text-ink-3' : 'text-ink'}`}
+            >
+              {task.title}
+            </h3>
+            <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${taskPriorityColor(task.priority)}`}>{task.priority}</span>
+            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${taskStatusColor(overdue ? 'overdue' : task.status)}`}>{(overdue ? 'overdue' : task.status).replace('_', ' ')}</span>
+            {task.description && <p className="text-sm text-ink-2 line-clamp-2 mb-2">{task.description}</p>}
+            <div className="flex flex-wrap gap-3 text-xs text-ink-2">
+              <span className={`flex items-center gap-1 ${overdue ? 'text-danger font-medium' : days <= 3 ? 'text-warning' : ''}`}>
+                <Calendar size={13} />
+                {overdue ? `${Math.abs(days)}d overdue` : days === 0 ? 'Due today' : `${days}d remaining`}
+              </span>
+              {task.type && <span className="capitalize">{task.type.replace('_', ' ')}</span>}
+              {task.company?.name && <span className="text-primary-700 bg-info/10 px-1.5 py-0.5 rounded">{task.company.name}</span>}
+              {task.meeting?.title && <span className="text-primary-700 bg-canvas px-1.5 py-0.5 rounded border border-hairline">{task.meeting.title}</span>}
+              {task.complianceRuleId && (
+                <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded" title="来源：合规提醒">
+                  <Link2 size={12} /> 合规·{task.complianceRuleId}
                 </span>
-                {task.type && <span className="capitalize">{task.type.replace('_', ' ')}</span>}
-                {task.company?.name && <span className="text-primary-700 bg-info/10 px-1.5 py-0.5 rounded">{task.company.name}</span>}
-                {task.meeting?.title && <span className="text-primary-700 bg-canvas px-1.5 py-0.5 rounded border border-hairline">{task.meeting.title}</span>}
-                {task.complianceRuleId && (
-                  <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded" title="来源：合规提醒">
-                    <Link2 size={12} /> 合规·{task.complianceRuleId}
-                  </span>
-                )}
-                {task.assignedTo && task.assignedTo.length > 0 && (
-                  <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">
-                    {task.assignedTo.map(a => {
-                      const name = typeof a === 'object' ? a.name : (users.find(u => u._id === a)?.name || a)
-                      return a.role ? `${name} (${a.role})` : name
-                    }).join(', ')}
-                  </span>
-                )}
-                {!task.assignedTo?.length && task.responsiblePerson && (
-                  <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">{task.responsiblePerson}</span>
-                )}
+              )}
+              {task.assignedTo && task.assignedTo.length > 0 && (
+                <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">
+                  {task.assignedTo.map(a => {
+                    const name = typeof a === 'object' ? a.name : (users.find(u => u._id === a)?.name || a)
+                    return a.role ? `${name} (${a.role})` : name
+                  }).join(', ')}
+                </span>
+              )}
+              {!task.assignedTo?.length && task.responsiblePerson && (
+                <span className="text-success bg-success/10 px-1.5 py-0.5 rounded">{task.responsiblePerson}</span>
+              )}
+            </div>
+            {task.status !== 'completed' && (
+              <div className="mt-3 pt-3 border-t border-hairline">
+                <button
+                  onClick={() => onQuickComplete(task)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-success/10 text-success border border-success/20 rounded-lg hover:bg-success/10 hover:border-success/30 transition-colors"
+                >
+                  <CheckCircle2 size={14} /> 标记完成
+                </button>
               </div>
-            </div>
-            <div className="flex gap-1 shrink-0">
-              <button onClick={() => onAddNote(task)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-info/10 rounded-lg transition-colors" title="添加备注">
-                <MessageSquare size={15} />
-              </button>
-              <button onClick={() => onEdit(task)} className="p-1.5 text-ink-3 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="编辑任务">
-                <Pencil size={15} />
-              </button>
-              <button onClick={() => onDelete(task)} className="p-1.5 text-ink-3 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors" title="删除任务">
-                <Trash2 size={15} />
-              </button>
-            </div>
+            )}
           </div>
-          {task.status !== 'completed' && (
-            <div className="mt-3 pt-3 border-t border-hairline">
-              <button
-                onClick={() => onQuickComplete(task)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-success/10 text-success border border-success/20 rounded-lg hover:bg-success/10 hover:border-success/30 transition-colors"
-              >
-                <CheckCircle2 size={14} /> 标记完成
-              </button>
-            </div>
-          )}
         </div>
       </div>
-    </div>
+    </SwipeRow>
   )
 })
 
