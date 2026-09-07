@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claw 动效工具箱 · 10 个交互动画的取舍</title>
+<style>
+:root{
+  --primary:37 99 235; --navy:15 42 94;
+  --bg:#f5f7fb; --surface:#ffffff; --surface2:#fafbfd;
+  --text:#0f172a; --text2:#5b6676; --text3:#8a94a6;
+  --line:rgba(15,23,42,.10); --line2:rgba(15,23,42,.06);
+  --dur-fast:150ms; --dur-base:200ms; --dur-slow:300ms;
+  --ease:cubic-bezier(.4,0,.2,1); --ease-in:cubic-bezier(.16,1,.3,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-full:999px;
+}
+html.dark{
+  --bg:#0a1120; --surface:#111a2b; --surface2:#0e1728;
+  --text:#e8eef7; --text2:#9fb0c6; --text3:#6f8299;
+  --line:rgba(232,238,247,.14); --line2:rgba(232,238,247,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:0 20px 80px}
+header{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--surface) 88%,transparent);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.hbar{max-width:920px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:15px}
+.logo i{width:22px;height:22px;border-radius:6px;background:rgb(var(--primary));display:block}
+.hbar p{margin:0;font-size:12px;color:var(--text3)}
+.spacer{margin-left:auto}
+.tbtn{width:38px;height:38px;border-radius:var(--r-full);border:1px solid var(--line);
+  background:var(--surface);color:var(--text);cursor:pointer;display:grid;place-items:center;
+  transition:background var(--dur-fast),transform var(--dur-fast) var(--ease-spring)}
+.tbtn:active{transform:scale(.92)}
+h1{font-size:22px;font-weight:600;margin:34px 0 6px}
+.lead{margin:0 0 26px;color:var(--text2);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:18px;margin-bottom:16px}
+.chead{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.num{width:26px;height:26px;border-radius:8px;background:rgb(var(--primary));color:#fff;
+  display:grid;place-items:center;font-size:12px;font-weight:600;flex:none}
+.chead h2{font-size:15px;font-weight:600;margin:0}
+.badge{margin-left:auto;font-size:11px;padding:3px 10px;border-radius:var(--r-full);font-weight:600;flex:none}
+.ok{background:rgba(29,158,117,.14);color:#0F6E56}
+.warn{background:rgba(186,117,23,.16);color:#854F0B}
+.no{background:rgba(226,75,74,.13);color:#A32D2D}
+html.dark .ok{background:rgba(93,202,165,.18);color:#5DCAA5}
+html.dark .warn{background:rgba(239,159,39,.18);color:#FAC775}
+html.dark .no{background:rgba(240,149,149,.16);color:#F09595}
+.desc{margin:8px 0 14px;color:var(--text2);font-size:13px}
+.demo{background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r-md);padding:16px}
+.tok{margin-top:12px;font-size:11.5px;color:var(--text3);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+details{margin-top:12px}
+summary{cursor:pointer;font-size:12.5px;color:var(--text2);user-select:none;padding:4px 0}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px;
+  font-size:12px;line-height:1.7;overflow:auto;margin:8px 0 0;color:var(--text2);white-space:pre-wrap}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--text);
+  padding:7px 14px;border-radius:var(--r-sm);font-size:13px;cursor:pointer;
+  transition:background var(--dur-fast),transform var(--dur-fast) var(--ease-spring),border-color var(--dur-fast)}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:rgb(var(--primary));border-color:rgb(var(--primary));color:#fff}
+.drow{display:flex;align-items:center;gap:10px;padding:11px 12px;margin-bottom:6px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);font-size:13px}
+.drow .grip{color:var(--text3);cursor:grab;user-select:none}
+.drow.dragging{box-shadow:0 8px 24px rgba(0,0,0,.16);cursor:grabbing;position:relative;z-index:5;border-color:rgb(var(--primary))}
+.opts{display:flex;flex-direction:column;gap:7px}
+.opt{display:flex;align-items:center;gap:10px;font-size:13px}
+.box{width:19px;height:19px;border-radius:5px;border:1.5px solid var(--line);flex:none;
+  display:grid;place-items:center;transition:background var(--dur-fast),border-color var(--dur-fast),transform var(--dur-fast) var(--ease-spring)}
+.box svg{opacity:0;transform:scale(.4);transition:opacity var(--dur-fast),transform var(--dur-fast) var(--ease-spring)}
+.opt.on .box{background:rgb(var(--primary));border-color:rgb(var(--primary))}
+.opt.on .box svg{opacity:1;transform:scale(1)}
+.acc{border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;background:var(--surface)}
+.accbtn{width:100%;display:flex;align-items:center;gap:8px;padding:12px;background:none;border:none;
+  color:var(--text);font-size:13px;cursor:pointer;text-align:left;font-family:inherit}
+.accbtn svg{margin-left:auto;transition:transform var(--dur-base) var(--ease-in);color:var(--text3)}
+.acc.open .accbtn svg{transform:rotate(180deg)}
+.accbody{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--dur-slow) var(--ease-in)}
+.acc.open .accbody{grid-template-rows:1fr}
+.accbody>div{overflow:hidden}
+.accbody p{margin:0;padding:0 12px 12px;font-size:12.5px;color:var(--text2)}
+.steps{display:flex;gap:6px;margin-bottom:12px}
+.st{flex:1;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.st i{display:block;height:100%;width:0;background:rgb(var(--primary));border-radius:3px}
+.st i.fill{animation:stepFill var(--dur-slow) var(--ease) both}
+@keyframes stepFill{0%{width:0}62%{width:106%}100%{width:100%}}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--text2);
+  padding:6px 12px;border-radius:var(--r-full);font-size:12.5px;cursor:pointer;
+  transition:padding var(--dur-base) var(--ease-in),transform var(--dur-fast) var(--ease-spring),
+    background var(--dur-fast),color var(--dur-fast),border-color var(--dur-fast)}
+.chip.on{background:rgb(var(--primary));border-color:rgb(var(--primary));color:#fff;padding:6px 20px;transform:scale(1.06)}
+.dcard{display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-sm);font-size:13px;margin-bottom:8px}
+.dcard .del{margin-left:auto;border:none;background:none;color:var(--text3);cursor:pointer;
+  padding:4px 8px;border-radius:6px;font-size:12px}
+.dcard .del:hover{color:#A32D2D;background:rgba(226,75,74,.1)}
+.dcard.gone{animation:flyOut 480ms var(--ease-in) forwards;pointer-events:none}
+@keyframes flyOut{
+  0%{transform:none;opacity:1}
+  100%{transform:translate(38vw,-190px) scale(.22) rotate(16deg);opacity:0}
+}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);
+  background:rgb(var(--navy));color:#fff;padding:11px 16px;border-radius:var(--r-md);
+  font-size:13px;display:flex;align-items:center;gap:14px;opacity:0;
+  transition:transform var(--dur-base) var(--ease-spring),opacity var(--dur-base);z-index:99}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast button{background:none;border:none;color:#7FB0FF;cursor:pointer;font-size:13px;padding:0;font-weight:600}
+table.tok{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;font-family:inherit}
+table.tok th,table.tok td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line)}
+table.tok th{color:var(--text3);font-weight:500;font-size:11px}
+table.tok td:first-child{color:var(--text);white-space:nowrap}
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-old(root){z-index:1}
+::view-transition-new(root){z-index:9999}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+@media (max-width:640px){
+  .wrap{padding:0 14px 60px}
+  h1{font-size:19px}
+}
+</style>
+</head>
+<body>
+<header><div class="hbar">
+  <div class="logo"><i></i>Claw</div>
+  <p>动效工具箱 · 交互动画取舍</p>
+  <div class="spacer"></div>
+  <button class="tbtn" id="themeBtn" title="切换主题（圆形扩散）">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+  </button>
+</div></header>
+
+<div class="wrap">
+<h1>10 个交互动画，Claw 该用哪几个</h1>
+<p class="lead">合规 SaaS 的取舍标准：动画必须<b>解释因果关系</b>（东西从哪来、到哪去、状态是否确认），而不是表演。下面每条都可现场体验，附可直接喂给 AI 的大白话提示词。</p>
+
+<section class="card">
+  <div class="chead"><span class="num">01</span><h2>主题切换 · 圆形扩散</h2><span class="badge ok">采纳</span></div>
+  <p class="desc">点右上角按钮即可体验：从触点画圆放大铺满全屏，深浅两套界面真实叠加，上层只做圆形裁切不缩放，圆边扫过时文字图标不变形。</p>
+  <div class="demo"><button class="btn primary" onclick="document.getElementById('themeBtn').click()">点我切换主题</button>
+  <span style="margin-left:10px;font-size:12px;color:var(--text3)">或直接点右上角图标</span></div>
+  <div class="tok">520ms · var(--ease) · 半径 = hypot(触点到最远角) · 降级：不支持 View Transitions 时瞬时切换</div>
+  <details><summary>大白话提示词</summary><pre>点击右上角主题按钮时，不要整屏一起淡入淡出。从手指按下的那个点开始，画一个圆慢慢放大，直到盖住整个屏幕，圆放大的同时露出下面的深色界面。圆的半径按触点到屏幕最远那个角的距离计算，保证刚好铺满不留边。深浅两套页面要真实叠加，上层只做圆形裁切、不整体缩放——圆边扫过的时候文字和图标不能变形。全程约 0.5 秒。用户开启了"减少动态效果"就直接瞬间切换。</pre></details>
+</section>
+
+<section class="card">
+  <div class="chead"><span class="num">02</span><h2>拖拽排序 · 让位弹簧</h2><span class="badge ok">采纳</span></div>
+  <p class="desc">按住任意一行上下拖：其他行主动让出空位，各自用弹簧动画滑到新位置；手指停半路它们同步停住，不提前归位。</p>
+  <div class="demo" id="dragList">
+    <div class="drow"><span class="grip">⠿</span>周年申报表 NAR1</div>
+    <div class="drow"><span class="grip">⠿</span>商业登记证 BR</div>
+    <div class="drow"><span class="grip">⠿</span>董事名册 Register of Directors</div>
+    <div class="drow"><span class="grip">⠿</span>公司章程 M&amp;A</div>
+  </div>
+  <div class="tok">让位 var(--dur-base) + var(--ease-spring) · 被拖行 scale(1.02) + 阴影脱离列表</div>
+  <details><summary>大白话提示词</summary><pre>按住列表某一行往上或往下拖时，其他行不要一下子跳开，要主动让出空位。手指每移动一帧就重新算一次应该插到第几位；被拖的那一行暂时脱离列表、稍微放大并加阴影，其余各行各自用弹簧动画滑到新位置。手指停在半路时其他行也要同步停住，不要提前归位，让"让位"过程有连续反馈。</pre></details>
+</section>
+
+<section class="card">
+  <div class="chead"><span class="num">03</span><h2>批量勾选 · 错峰打勾</h2><span class="badge ok">采纳</span></div>
+  <p class="desc">点"全选"：从第一条起每隔约 40ms 依次打勾，每次打勾方框轻微弹性放大再回弹，让用户感到逐条确认而不是一次性覆盖。</p>
+  <div class="demo">
+    <div class="opts" id="opts">
+      <div class="opt"><span class="box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span> Easy Rich Enterprises Limited</div>
+      <div class="opt"><span class="box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span> Boss Team Holdings Limited</div>
+      <div class="opt"><span class="box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span> Bravo King Investments Limited</div>
+      <div class="opt"><span class="box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span> Direct Start Global Limited</div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn primary" id="selAll">全选</button>
+      <button class="btn" id="selNone">清空</button>
+    </div>
+  </div>
+  <div class="tok">间隔 40ms · 打勾 var(--dur-fast) + var(--ease-spring) · 项数多时上限 8 档后并发</div>
+  <details><summary>大白话提示词</summary><pre>点"全选"时，不要让所有选项同一时间打勾。从第一条开始，每一项隔大约 40 毫秒依次出现勾选反馈，每次打勾的瞬间方框轻微弹性放大一下再回弹。这种错峰节奏能让用户产生"逐项确认"的感知，而不是觉得系统突然把结果一次性刷了上去。</pre></details>
+</section>
+
+<section class="card">
+  <div class="chead"><span class="num">04</span><h2>滑杆 · 惯性过冲与吸附</h2><span class="badge no">不建议</span></div>
+  <p class="desc"><b>弃用理由：</b>Claw 是合规台账系统，几乎没有连续数值滑杆（配速、目标值这类控件属于健身 / 理财类 App）。为零个真实场景建一套"过冲 + 刻度吸附"动效，投入产出比不成立。等真出现滑杆场景再补，届时直接复用 <code>--ease-spring</code>。</p>
+</section>
+
+<section class="card">
+  <div class="chead"><span class="num">05</span><h2>文本展开 · 高度生长</h2><span class="badge ok">采纳</span></div>
+  <p class="desc">点标题展开：容器高度跟着文字一起长出来，右侧箭头同步旋转 180°，明确表示"同一块内容被打开"而非页面凭空多出区域。</p>
+  <div class="demo">
+    <div class="acc" id="acc">
+      <button class="accbtn">打印存档说明
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="accbody"><div><p>正本须以 A4 白色 80g 纸单面打印，董事会决议须由主席签署并加盖公司钢印；扫描件分辨率不低于 300dpi，文件名沿用「公司代码-年份-类型-序号」编号规则，打印版另存 _Print 副本归档。</p></div></div>
+    </div>
+  </div>
+  <div class="tok">高度 grid-template-rows 0fr→1fr · var(--dur-slow) + var(--ease-in) · 箭头 rotate(180deg)</div>
+  <details><summary>大白话提示词</summary><pre>折叠的说明文字点开时，不要让内容突然出现。容器高度要跟着文字一起长出来，让用户看清空间被逐渐打开的过程；右边的箭头同时旋转 180 度，明确表示从"收起"切换到"展开"。收起时反过来做一遍。这样用户能明确感知到是同一块内容被打开，而不是页面凭空多出来一个新区域。</pre></details>
+</section>
+
+<section class="card">
+  <div class="chead"><span class="num">06</span><h2>步骤条 · 超调回弹</h2><span class="badge ok">采纳</span></div>
+  <p class="desc">点"完成当前步骤"：进度线先略微冲过目标位（约 +6%）再回弹到准确位置，让用户感到"这一步被系统确认完成"。</p>
+  <div class="demo">
+    <div class="steps" id="steps"><div class="st"><i></i></div><div class="st"><i></i></div><div class="st"><i></i></div><div class="st"><i></i></div></div>
+    <button class="btn primary" id="stepBtn">完成当前步骤</button>
+    <button class="btn" id="stepReset" style="margin-left:8px">重置</button>
+  </div>
+  <div class="tok">关键帧 0%→62%(106%)→100% · var(--dur-slow) · 仅用于 /initialize 向导、文件生成向导</div>
+  <details><summary>大白话提示词</summary><pre>完成当前步骤后，下一段进度线不要匀速补齐。让进度线先稍微超过目标位置一点点，然后再回弹到准确位置。这个微小的超调与回弹能让用户明确感觉到"这一步是被系统确认完成了"，而不是一条静态线条自己在自动补全。</pre></details>
+</section>
+
+<section class="card">
+  <div class="chead"><span class="num">07</span><h2>开关联动 · 涟漪震动</h2><span class="badge no">不建议</span></div>
+  <p class="desc"><b>弃用理由：</b>合规设置页里"动一个开关、同组其他开关跟着抖"容易被误读成"它们的状态也变了"。原文自己也强调要"状态隔离"，但视觉上的联动抖动与"状态未变"是互相矛盾的——在追求确定性的后台里这是负分。<br><b>替代方案：</b>用「卡片容器 + 分组标题 + 统一左边距」表达归属关系，比抖动更稳。</p>
+</section>
+
+<section class="card">
+  <div class="chead"><span class="num">08</span><h2>卡片删除 · 弧线飞出</h2><span class="badge warn">采纳，但撤销优先</span></div>
+  <p class="desc">点删除：卡片沿弧线飞向右上角，边飞边缩小、旋转、变透明；同时底部弹出「已删除 · 撤销」。<b>合规系统里误删代价极高，撤销比动画本身更重要。</b></p>
+  <div class="demo" id="cards">
+    <div class="dcard">NAR1_2025_EasyRich.pdf<button class="del">删除</button></div>
+    <div class="dcard">BR_2026_BossTeam.pdf<button class="del">删除</button></div>
+    <div class="dcard">Register_Directors.pdf<button class="del">删除</button></div>
+  </div>
+  <div class="tok">480ms + var(--ease-in) · translate + scale(.22) + rotate(16deg) + opacity · 撤销窗口 ≥ 6 秒</div>
+  <details><summary>大白话提示词</summary><pre>划走或删除卡片后，不要让它直接从页面消失。让卡片沿着一条弧线飞向角落的删除图标，移动过程中逐渐缩小、轻微旋转并降低透明度，让用户能追踪它的去向。同时底部必须弹出"已删除 · 撤销"提示条，给用户反悔的机会——合规系统里误删代价很高，撤销功能比动画本身更重要，撤销窗口至少保留 6 秒。</pre></details>
+</section>
+
+<section class="card">
+  <div class="chead"><span class="num">09</span><h2>卡片堆叠 · 层级压缩</h2><span class="badge no">不建议</span></div>
+  <p class="desc"><b>弃用理由：</b>数据密集列表里把已浏览卡片压缩成一摞会<b>遮挡数据本身</b>。公司秘书要横向比对多家公司的合规状态，任何遮挡都是减分。移动端改用<b>吸顶分组标题（sticky header）</b>表达层级，更省空间也更专业。</p>
+</section>
+
+<section class="card">
+  <div class="chead"><span class="num">10</span><h2>标签选择 · 邻位让路</h2><span class="badge ok">采纳</span></div>
+  <p class="desc">点标签：选中项轻微放大并加宽，旁边标签主动向两侧移动腾出空间，整个标签区协同调整，而不是选中项硬盖在别人上面。</p>
+  <div class="demo">
+    <div class="chips" id="chips">
+      <button class="chip on">全部</button>
+      <button class="chip">逾期</button>
+      <button class="chip">30 天内</button>
+      <button class="chip">已完成</button>
+      <button class="chip">草稿</button>
+    </div>
+  </div>
+  <div class="tok">选中 scale(1.06) + padding 12px→20px · var(--dur-base) + var(--ease-in) · 用于文档 / 提醒筛选器</div>
+  <details><summary>大白话提示词</summary><pre>点击一个标签后，选中的标签稍微放大一点以突出显示。旁边的标签不要继续固定在原位，而是主动向两侧移动，为当前选中的标签腾出空间。这样整个标签区域是协同为其调整布局的，避免了选中标签简单叠加在其他标签之上的突兀感。</pre></details>
+</section>
+
+<section class="card">
+  <div class="chead"><span class="num">Σ</span><h2>动效令牌映射表</h2></div>
+  <p class="desc">所有动画必须挂到 Claw 既有令牌上，禁止在组件里写魔法值。</p>
+  <table class="tok">
+    <tr><th>动画</th><th>时长</th><th>曲线</th><th>降级</th></tr>
+    <tr><td>主题圆形扩散</td><td>520ms</td><td>var(--ease)</td><td>瞬时切换</td></tr>
+    <tr><td>拖拽让位</td><td>var(--dur-base)</td><td>var(--ease-spring)</td><td>直接跳位</td></tr>
+    <tr><td>错峰打勾</td><td>var(--dur-fast) / +40ms</td><td>var(--ease-spring)</td><td>同时勾</td></tr>
+    <tr><td>手风琴展开</td><td>var(--dur-slow)</td><td>var(--ease-in)</td><td>直接展开</td></tr>
+    <tr><td>步骤超调</td><td>var(--dur-slow)</td><td>106% 关键帧</td><td>直接补齐</td></tr>
+    <tr><td>卡片飞出</td><td>480ms</td><td>var(--ease-in)</td><td>直接移除 + 撤销</td></tr>
+    <tr><td>标签让位</td><td>var(--dur-base)</td><td>var(--ease-in)</td><td>仅变色</td></tr>
+  </table>
+  <div class="tok" style="margin-top:10px">全局：@media (prefers-reduced-motion: reduce) 统一压到 0.01ms</div>
+</section>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg">已删除</span><button id="undoBtn">撤销</button></div>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  function toggleTheme(){ root.classList.toggle('dark'); }
+  document.getElementById('themeBtn').addEventListener('click',function(e){
+    var x=e.clientX, y=e.clientY;
+    if(!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches){ toggleTheme(); return; }
+    var r=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y));
+    var t=document.startViewTransition(toggleTheme);
+    t.ready.then(function(){
+      root.animate({clipPath:['circle(0px at '+x+'px '+y+'px)','circle('+r+'px at '+x+'px '+y+'px)']},
+        {duration:520,easing:'cubic-bezier(.4,0,.2,1)',pseudoElement:'::view-transition-new(root)'});
+    });
+  });
+
+  var list=document.getElementById('dragList'), dragEl=null, startY=0, curIdx=0;
+  function flip(mutate){
+    var items=[].slice.call(list.children), before=items.map(function(el){return el.getBoundingClientRect().top;});
+    mutate();
+    [].slice.call(list.children).forEach(function(el){
+      var i=items.indexOf(el); if(i<0) return;
+      var d=before[i]-el.getBoundingClientRect().top; if(!d) return;
+      el.style.transition='none'; el.style.transform='translateY('+d+'px)';
+      requestAnimationFrame(function(){
+        el.style.transition='transform var(--dur-base) var(--ease-spring)'; el.style.transform='';
+      });
+    });
+  }
+  list.addEventListener('pointerdown',function(e){
+    var row=e.target.closest('.drow'); if(!row) return;
+    dragEl=row; startY=e.clientY; curIdx=[].slice.call(list.children).indexOf(row);
+    row.classList.add('dragging'); row.setPointerCapture(e.pointerId);
+  });
+  list.addEventListener('pointermove',function(e){
+    if(!dragEl) return;
+    dragEl.style.transition='none';
+    dragEl.style.transform='translateY('+(e.clientY-startY)+'px) scale(1.02)';
+    var others=[].slice.call(list.children).filter(function(r){return r!==dragEl;});
+    var cy=dragEl.getBoundingClientRect().top+dragEl.offsetHeight/2;
+    var idx=others.findIndex(function(r){var b=r.getBoundingClientRect(); return cy<b.top+b.height/2;});
+    if(idx===-1) idx=others.length;
+    if(idx!==curIdx){ curIdx=idx; flip(function(){ list.insertBefore(dragEl, others[idx]||null); }); }
+  });
+  function endDrag(){
+    if(!dragEl) return;
+    dragEl.classList.remove('dragging');
+    dragEl.style.transition='transform var(--dur-base) var(--ease-spring)';
+    dragEl.style.transform=''; dragEl=null;
+  }
+  list.addEventListener('pointerup',endDrag);
+  list.addEventListener('pointercancel',endDrag);
+
+  var opts=[].slice.call(document.querySelectorAll('#opts .opt')), timers=[];
+  function setAll(on){
+    timers.forEach(clearTimeout); timers=[];
+    opts.forEach(function(o,i){
+      timers.push(setTimeout(function(){
+        o.classList.toggle('on',on);
+        var b=o.querySelector('.box');
+        b.style.transform='scale(1.28)';
+        setTimeout(function(){ b.style.transform=''; },150);
+      }, on? i*40 : 0));
+    });
+  }
+  document.getElementById('selAll').onclick=function(){ setAll(true); };
+  document.getElementById('selNone').onclick=function(){ setAll(false); };
+
+  var acc=document.getElementById('acc');
+  acc.querySelector('.accbtn').onclick=function(){ acc.classList.toggle('open'); };
+
+  var sts=[].slice.call(document.querySelectorAll('#steps .st i')), si=0;
+  document.getElementById('stepBtn').onclick=function(){
+    if(si>=sts.length) return;
+    var el=sts[si++]; el.classList.remove('fill'); void el.offsetWidth; el.classList.add('fill');
+  };
+  document.getElementById('stepReset').onclick=function(){
+    si=0; sts.forEach(function(el){ el.classList.remove('fill'); el.style.width='0'; });
+  };
+
+  var cards=document.getElementById('cards'), toast=document.getElementById('toast'),
+      toastMsg=document.getElementById('toastMsg'), last=null, toastTimer=null;
+  cards.addEventListener('click',function(e){
+    if(!e.target.classList.contains('del')) return;
+    var card=e.target.closest('.dcard'); last=card;
+    card.classList.add('gone');
+    setTimeout(function(){ card.style.display='none'; },480);
+    toastMsg.textContent='已删除「'+card.firstChild.textContent.trim()+'」';
+    toast.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(function(){ toast.classList.remove('show'); },6000);
+  });
+  document.getElementById('undoBtn').onclick=function(){
+    if(last){ last.classList.remove('gone'); last.style.display=''; }
+    toast.classList.remove('show');
+  };
+
+  var chips=[].slice.call(document.querySelectorAll('#chips .chip'));
+  chips.forEach(function(c){ c.onclick=function(){ chips.forEach(function(x){x.classList.remove('on');}); c.classList.add('on'); }; });
+})();
+</script>
+</body>
+</html>
