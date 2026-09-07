@@ -93,6 +93,13 @@ const Navbar = () => {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
+  // 移动外壳第 0 步：底部 Tab 的「更多」派发 claw:open-mobile-nav，复用现有移动抽屉
+  useEffect(() => {
+    const open = () => setMobileOpen(true)
+    window.addEventListener('claw:open-mobile-nav', open)
+    return () => window.removeEventListener('claw:open-mobile-nav', open)
+  }, [])
+
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : '??'

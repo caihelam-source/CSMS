@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { LayoutDashboard } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import Navbar from './Navbar'
+import BottomTabBar from './BottomTabBar'
 import PageWatermark from './PageWatermark'
 
 export default function Layout() {
@@ -66,6 +67,9 @@ export default function Layout() {
 
       {/* 底层品牌印章水印（系列：按路由落不同角落，见 components/PageWatermark.jsx） */}
       <PageWatermark position={watermarkPos} />
+
+      {/* 移动外壳第 0 步：底部 Tab 栏（仅 lg 以下渲染），桌面端侧栏/横向导航不变 */}
+      <BottomTabBar />
     </div>
   )
 }
