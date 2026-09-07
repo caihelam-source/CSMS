@@ -13,6 +13,7 @@ import { useSearchFilter } from '../hooks/useSearchFilter'
 import { validate, required } from '../utils/validators'
 import Modal from '../components/Modal'
 import PullToRefresh from '../components/PullToRefresh'
+import BorderGlow from '../components/ui/BorderGlow'
 
 const STATUSES_API = [
   { value: 'upcoming', label: '即将到期' },
@@ -344,8 +345,9 @@ const ComplianceReminders = () => {
           {filtered.map(r => {
             const days = r.dueDate ? getDaysRemaining(r.dueDate) : null
             const isOverdue = r.status !== 'completed' && days !== null && days < 0
-            return (
-              <div key={r._id} className={`bg-surface rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${isOverdue ? 'border-danger/20' : 'border-hairline'}`}>
+            const cardCls = `bg-surface rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${isOverdue ? 'border-danger/20' : 'border-hairline'}`
+            const inner = (
+              <div className={cardCls}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -406,6 +408,9 @@ const ComplianceReminders = () => {
                 </div>
               </div>
             )
+            return (isOverdue || r.priority === 'critical')
+              ? <BorderGlow key={r._id} tone={isOverdue ? 'danger' : 'warning'}>{inner}</BorderGlow>
+              : <div key={r._id}>{inner}</div>
           })}
         </div>
       )}

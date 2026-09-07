@@ -1,5 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { Building2, UserCircle, FileText, Bell, Menu } from 'lucide-react'
+import Badge from '../components/ui/Badge'
+import { useReminderCount } from '../hooks/useReminderCount'
 
 // 第 0 步 · 移动外壳底部 Tab 栏（2026-09-07）
 // 拇指可达的主导航：仅 4 个高频入口 + 更多（开现有抽屉）。
@@ -15,6 +17,7 @@ const TABS = [
 export default function BottomTabBar() {
   const { pathname } = useLocation()
   const isActive = (p) => pathname === p || pathname.startsWith(p + '/')
+  const reminderCount = useReminderCount()
   // 与 Navbar 现有移动抽屉解耦：派发自定义事件，Navbar 监听后打开同一抽屉
   const openMore = () => window.dispatchEvent(new CustomEvent('claw:open-mobile-nav'))
 
@@ -36,7 +39,12 @@ export default function BottomTabBar() {
                 active ? 'text-primary-600' : 'text-ink-3 hover:text-ink-2'
               }`}
             >
-              <t.icon size={22} strokeWidth={active ? 2.4 : 1.8} />
+              <span className="relative">
+                <t.icon size={22} strokeWidth={active ? 2.4 : 1.8} />
+                {t.path === '/compliance-reminders' && reminderCount > 0 && (
+                  <Badge count={reminderCount} />
+                )}
+              </span>
               <span>{t.label}</span>
             </Link>
           )

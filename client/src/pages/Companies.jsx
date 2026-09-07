@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { Building2, Plus, Pencil, Trash2, Upload, Download, FileUp, ShieldCheck, GitMerge, AlertTriangle } from 'lucide-react'
 import { companyService } from '../services/index.js'
 import { formatDate, getStatusColor } from '../utils/helpers'
-import { LoadingSpinner, EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
+import { EmptyState, PageHeader, SearchBar, DeleteConfirmModal, FormField, inputClass, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
 import { IconBadge } from '../components/VisualKit'
 import { useSearchFilter } from '../hooks/useSearchFilter'
 import { useScope, useScopedItems } from '../hooks/useScope'
@@ -122,6 +122,14 @@ export default function Companies() {
     },
     { status: '', type: '', jurisdiction: '' }
   )
+
+  // 分页：长列表切片 + 翻页器（加载时以骨架屏撑版，防布局跳动）
+  const PAGE_SIZE = 12
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  useEffect(() => { setPage(1) }, [search, filters.status, filters.type, filters.jurisdiction])
 
   const fetchCompanies = useCallback(async () => {
     setLoading(true)
@@ -377,7 +385,11 @@ export default function Companies() {
 
       {/* Company List */}
       {loading ? (
-        <LoadingSpinner size="lg" />
+        <div className="cq-companies" aria-busy="true">
+          {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Building2}
@@ -386,11 +398,14 @@ export default function Companies() {
           action={noScope ? null : <button onClick={openNew} className="btn-primary flex items-center gap-1.5"><Plus size={16} />添加公司</button>}
         />
       ) : (
-        <div className="cq-companies">
-          {filtered.map(c => (
-            <CompanyCard key={c._id} company={c} {...companyItemProps} />
-          ))}
-        </div>
+        <>
+          <div className="cq-companies">
+            {pageItems.map(c => (
+              <CompanyCard key={c._id} company={c} {...companyItemProps} />
+            ))}
+          </div>
+          <Pagination page={safePage} totalPages={totalPages} onChange={setPage} className="mt-6" />
+        </>
       )}
 
       {/* New/Edit Modal */}

@@ -6,6 +6,7 @@ import { toArray } from '../utils/responseNormalize.js'
 import { LoadingSpinner, EmptyState } from '../components/UIHelpers'
 import { AnimatedNumber } from '../components/AnimatedNumber'
 import { ProgressRing } from '../components/VisualKit'
+import Carousel from '../components/ui/Carousel'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import BrandLogo from '../components/BrandLogo'
 import {
@@ -19,6 +20,13 @@ import {
 } from 'lucide-react'
 
 const BANNER_KEY = 'csms.dashboardBanner'
+
+// 首页公告走马灯（静态运营位；未来可接公告 API）。纯信息型幻灯片，避免 SPA 内 <a> 整页刷新
+const ANNOUNCEMENTS = [
+  { eyebrow: '合规提醒', title: '周年申报表（NAR1）提交期限将至？', subtitle: '及时提交避免罚款，可在「合规提醒」一键生成关联任务并追踪进度。' },
+  { eyebrow: '文件归档', title: 'NAR1 / BR 证书一键归档至公司档案', subtitle: '上传即自动创建公司与人员关联，三层去重杜绝重复实体。' },
+  { eyebrow: '日程聚合', title: '合规、任务、会议、到期——一屏掌握', subtitle: '日历聚合视图按月份汇总全部待办来源，不再错过任何节点。' },
+]
 
 // 日历来源着色（与 pages/Calendar.jsx 保持一致）—— 统一走数据 6 色板令牌，杜绝 hex 硬编码
 const SOURCE_TOKEN = {
@@ -239,6 +247,9 @@ export default function Dashboard() {
             </Link>
           </div>
         </div>
+
+        {/* 公告走马灯：自动轮播运营重点（悬停暂停 / 指示点跳转 / reduced-motion 关闭自动播放） */}
+        <Carousel items={ANNOUNCEMENTS} className="mb-6" />
 
         {/* 快捷操作：状态入口 + 创建入口，全部可点 */}
         <div className="dash-eyebrow dash-eyebrow--plain">

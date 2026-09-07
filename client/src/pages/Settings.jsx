@@ -4,7 +4,8 @@ import { useTheme } from '../contexts/ThemeContext.jsx'
 import { useLanguage } from '../contexts/LanguageContext.jsx'
 import toast from 'react-hot-toast'
 import { User, Lock, Bell, SunMoon, Check } from 'lucide-react'
-import { PageHeader, FormField, inputClass, TabNav, Toggle } from '../components/UIHelpers'
+import { PageHeader, FormField, inputClass, TabNav } from '../components/UIHelpers'
+import Switch from '../components/ui/Switch'
 import { validate, required, email as emailValidator, minLength } from '../utils/validators'
 
 const PROFILE_RULES = {
@@ -210,14 +211,14 @@ export default function Settings() {
                     <p className="font-medium text-ink">{t('notifEmailTitle')}</p>
                     <p className="text-sm text-ink-2">{t('notifEmailDesc')}</p>
                   </div>
-                  <Toggle checked={notif.email} onChange={(v) => setNotifKey('email', v)} label={t('notifEmailTitle')} />
+                  <Switch checked={notif.email} onChange={(v) => setNotifKey('email', v)} label={t('notifEmailTitle')} />
                 </div>
                 <div className="flex items-center justify-between gap-4 py-3">
                   <div className="min-w-0">
                     <p className="font-medium text-ink">{t('notifTaskTitle')}</p>
                     <p className="text-sm text-ink-2">{t('notifTaskDesc')}</p>
                   </div>
-                  <Toggle checked={notif.task} onChange={(v) => setNotifKey('task', v)} label={t('notifTaskTitle')} />
+                  <Switch checked={notif.task} onChange={(v) => setNotifKey('task', v)} label={t('notifTaskTitle')} />
                 </div>
               </div>
               <p className="text-xs text-ink-3 pt-2">{t('notifNote')}</p>

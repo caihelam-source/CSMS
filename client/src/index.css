@@ -911,3 +911,36 @@
   @container app (min-width: 480px) { .cq-companies { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @container app (min-width: 900px) { .cq-companies { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 }
+
+/* ============================================================
+   通用组件库 · 8 件（2026-09-07 头脑风暴落地）
+   徽标 / 数字步进 / 时间轴 / 翻页 / 边框流光 / 骨架屏 / 开关 / 走马灯
+   全部令牌驱动、暗色适配、尊重 reduced-motion
+   ============================================================ */
+@layer components {
+  /* 骨架屏：灰块撑版 + 微光扫过，内容到达后替换，防止布局跳动 */
+  .skeleton { background: linear-gradient(90deg, rgb(var(--subtle)) 0%, rgb(var(--border)) 20%, rgb(var(--subtle)) 40%); background-size: 400% 100%; animation: skeletonShimmer 1.4s ease infinite; }
+  @keyframes skeletonShimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  .dark .skeleton { background: linear-gradient(90deg, rgb(var(--subtle)) 0%, rgb(var(--border-strong)) 20%, rgb(var(--subtle)) 40%); background-size: 400% 100%; }
+
+  /* 边框流光：一道沿边缘循环流动的光线，突出特定卡片（会员/公告/重点）
+     @property 注册使 --glow-angle 可被动画平滑插值（否则 Chrome 会跳变） */
+  @property --glow-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+  @property --glow-tone { syntax: '<color>'; inherits: false; initial-value: rgb(37 99 235); }
+  .border-glow { position: relative; border-radius: var(--glow-radius, var(--radius-xl)); }
+  .border-glow::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px;
+    background: conic-gradient(from var(--glow-angle),
+      transparent 0deg, transparent 290deg,
+      var(--glow-tone, rgb(var(--color-primary))) 330deg,
+      color-mix(in srgb, var(--glow-tone, rgb(var(--color-primary))) 55%, white) 358deg,
+      transparent 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: glowSpin 3.2s linear infinite; pointer-events: none;
+  }
+  @keyframes glowSpin { to { --glow-angle: 360deg; } }
+  @media (prefers-reduced-motion: reduce) {
+    .border-glow::before { animation: none; background: conic-gradient(from 0deg, transparent 0deg, var(--glow-tone, rgb(var(--color-primary))) 360deg); }
+  }
+}

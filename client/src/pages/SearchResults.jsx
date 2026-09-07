@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, CornerDownLeft } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { searchService } from '../services'
 import { PageHeader, LoadingSpinner } from '../components/UIHelpers'
+import Pagination from '../components/ui/Pagination'
 
 // 实体类型 → 中文标签 + 徽章配色（与 GlobalSearch 保持一致）
 const TYPE_META = {
@@ -34,7 +35,9 @@ export default function SearchResults() {
   const [input, setInput] = useState(q)
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
-  const [limit, setLimit] = useState(30)
+  const PAGE_SIZE = 20
+  const FETCH_CAP = 200 // 一次拉取上限，再于本地分页
+  const [page, setPage] = useState(1)
 
   useEffect(() => { setInput(q) }, [q])
 
@@ -42,26 +45,29 @@ export default function SearchResults() {
     if (!q) { setResults([]); return }
     setLoading(true)
     try {
-      const res = await searchService.globalSearch(q, limit)
+      const res = await searchService.globalSearch(q, FETCH_CAP)
       const data = res?.data?.data || {}
       setResults(data.results || [])
     } catch {
       setResults([])
     } finally { setLoading(false) }
-  }, [q, limit])
+  }, [q])
 
   useEffect(() => { run() }, [run])
 
   const onSearch = (e) => {
     e.preventDefault()
     const term = input.trim()
-    if (term) { setLimit(30); setSearchParams({ q: term }) }
+    if (term) { setPage(1); setSearchParams({ q: term }) }
   }
 
-  const grouped = TYPE_ORDER
-    .map((type) => ({ type, items: results.filter((r) => r.type === type) }))
-    .filter((g) => g.items.length > 0)
   const total = results.length
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const pageItems = results.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const grouped = TYPE_ORDER
+    .map((type) => ({ type, items: pageItems.filter((r) => r.type === type) }))
+    .filter((g) => g.items.length > 0)
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
@@ -123,15 +129,7 @@ export default function SearchResults() {
             </section>
           ))}
 
-          {total >= limit && (
-            <button
-              onClick={() => setLimit((l) => l + 30)}
-              className="w-full py-2.5 text-sm font-medium text-primary-700 hover:bg-primary-50 rounded-lg border border-hairline flex items-center justify-center gap-1.5"
-            >
-              <CornerDownLeft size={14} />
-              加载更多
-            </button>
-          )}
+          <Pagination page={safePage} totalPages={totalPages} onChange={setPage} className="mt-4" />
         </>
       )}
     </div>

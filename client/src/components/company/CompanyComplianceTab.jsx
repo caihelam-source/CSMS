@@ -2,12 +2,35 @@
 // 行为 / 样式 / 交互与原版完全一致。
 import { formatDate, getStatusColor } from '../../utils/helpers'
 import { TabActionBar } from '../../components/UIHelpers'
+import Timeline from '../../components/ui/Timeline'
 
 export default function CompanyComplianceTab({ ctx }) {
   const {
     reminders, openAddReminder, applicableRules, setReminderForm,
     handleRuleSelect, setShowReminderModal, compliance,
   } = ctx
+
+  // 合规里程碑时间轴：把 reminders 按到期日排序为 done/current/upcoming/alert 四态节点
+  const daysLeft = (d) => {
+    if (!d) return null
+    return Math.ceil((new Date(d) - new Date()) / 86400000)
+  }
+  const remStatus = (r) => {
+    if (r.status === 'completed' || r.status === 'expired') return 'done'
+    const dl = daysLeft(r.dueDate)
+    if (dl !== null && dl < 0) return 'alert'
+    if (r.priority === 'critical' || (dl !== null && dl <= 30)) return 'current'
+    return 'upcoming'
+  }
+  const timelineItems = [...reminders]
+    .sort((a, b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0))
+    .map((r) => ({
+      key: r._id,
+      title: r.title,
+      date: r.dueDate ? formatDate(r.dueDate) : '—',
+      description: `优先级 ${r.priority} · 状态 ${r.status}`,
+      status: remStatus(r),
+    }))
 
   return (
     <div className="space-y-4">
@@ -38,6 +61,14 @@ export default function CompanyComplianceTab({ ctx }) {
           </div>
         )}
       </div>
+
+      {/* 合规里程碑时间轴：直观呈现各提醒的先后与紧急度 */}
+      {reminders.length > 0 && (
+        <div className="card">
+          <h3 className="font-semibold mb-4">合规里程碑</h3>
+          <Timeline items={timelineItems} />
+        </div>
+      )}
 
       {/* 可用规则库（快捷参考，仅显示适配本公司的规则） */}
       {applicableRules.length > 0 && (

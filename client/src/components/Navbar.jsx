@@ -14,6 +14,8 @@ import CommandPalette from './CommandPalette'
 import BrandLogo from './BrandLogo'
 import { useScope } from '../hooks/useScope'
 import { MOCK_DEMO_ACCOUNTS } from '../services/mock.js'
+import Badge from './ui/Badge'
+import { useReminderCount } from '../hooks/useReminderCount'
 
 // UX 架构：顶部水平导航（2026-08-27）
 // 左侧 Logo，中间一级导航，右侧搜索/主题/用户。
@@ -72,6 +74,7 @@ const Navbar = () => {
   const [userOpen, setUserOpen] = useState(false)
   const [scopeMenuOpen, setScopeMenuOpen] = useState(false)
   const { theme, toggle } = useTheme()
+  const reminderCount = useReminderCount()
   const [scrolled, setScrolled] = useState(false)
 
   // 滚动收缩（Shrink on Scroll）：下滚超过阈值时导航收缩高度、背景更实、阴影加重
@@ -156,6 +159,16 @@ const Navbar = () => {
             >
               {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             </button>
+
+            {/* 合规提醒铃铛：桌面端快捷入口，带待处理数量徽标（移动端由底部 Tab 承载） */}
+            <Link
+              to="/compliance-reminders"
+              aria-label="合规提醒"
+              className="relative hidden lg:flex p-1.5 rounded-full text-ink-2 hover:bg-canvas transition-colors"
+            >
+              <Bell size={17} />
+              {reminderCount > 0 && <Badge count={reminderCount} />}
+            </Link>
 
             {isDemoMode && (
               <span className="hidden md:flex items-center gap-1 text-xs bg-warning/10 text-warning px-2 py-1 rounded-full font-medium">

@@ -75,7 +75,7 @@ const RuleForm = ({ initial = {}, onSave, onCancel, loading }) => {
         </div>
         <div>
           <label className={labelClass}>提前提醒天数</label>
-          <input type="number" min={1} max={365} className={inputClass} value={form.daysBefore} onChange={e => set('daysBefore', Number(e.target.value))} />
+          <NumberStepper value={form.daysBefore} onChange={(v) => set('daysBefore', v)} min={1} max={365} step={1} suffix="天" label="提前提醒天数" />
         </div>
         <div>
           <label className={labelClass}>状态</label>
