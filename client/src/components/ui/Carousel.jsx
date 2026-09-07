@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 const cx = (...a) => a.filter(Boolean).join(' ')
 
-export default function Carousel({ items = [], autoPlay = 5000, showDots = true, showArrows = true, className = '', aspect = 'aspect-[21/9]' }) {
+export default function Carousel({ items = [], autoPlay = 5000, showDots = true, showArrows = true, className = '', aspect = 'aspect-[5/3] md:aspect-[16/9]' }) {
   const [index, setIndex] = useState(0)
   const n = items.length
   const pauseRef = useRef(false)
@@ -31,7 +31,7 @@ export default function Carousel({ items = [], autoPlay = 5000, showDots = true,
             <div className="absolute inset-0 flex flex-col justify-center gap-2 p-6 md:p-10 text-white">
               {it.eyebrow && <span className="text-xs font-bold tracking-widest uppercase opacity-80">{it.eyebrow}</span>}
               {it.title && <h3 className="text-xl md:text-2xl font-bold max-w-xl">{it.title}</h3>}
-              {it.subtitle && <p className="text-sm md:text-base opacity-90 max-w-xl">{it.subtitle}</p>}
+              {it.subtitle && <p className="text-sm md:text-base opacity-90 max-w-xl line-clamp-2">{it.subtitle}</p>}
               {it.actionHref && it.actionLabel && (
                 <a href={it.actionHref} className="mt-2 inline-flex w-fit items-center gap-2 px-4 py-2 rounded-full bg-white font-semibold text-sm hover:scale-[1.03] transition-transform"
                   style={{ color: 'rgb(var(--brand-navy))' }}>{it.actionLabel}</a>

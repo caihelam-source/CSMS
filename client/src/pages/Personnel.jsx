@@ -13,6 +13,7 @@ import { useConfirm } from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
 import VirtualList from '../components/VirtualList'
 import SwipeRow from '../components/SwipeRow'
+import SelectionBar from '../components/SelectionBar'
 
 const EMPTY_FORM = { name: '', nric: '', email: '', phone: '', nationality: '', address: { country: '' } }
 
