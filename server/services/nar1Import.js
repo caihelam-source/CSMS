@@ -120,6 +120,7 @@ function buildPlan(result) {
   }
   const da = (result && result.documentAssociation) || {}
   const year = da.year ? parseInt(da.year, 10) : undefined
+  const formType = (result && result.formType) || da.docType || 'NAR1'
   return {
     company: {
       name: c.name || '(未识别公司名)',
@@ -129,6 +130,7 @@ function buildPlan(result) {
       type: typeVal,
       typeNote: note,
       jurisdiction: c.jurisdiction || 'HK',
+      nonHongKongCompany: !!(c.nonHongKongCompany),
       registeredAddress: parseAddress(c.registeredAddressRaw),
       shareCapital: c.shareCapital
         ? {
@@ -141,12 +143,13 @@ function buildPlan(result) {
     },
     people,
     entities,
+    formType,
     document: {
-      name: `NAR1 - ${c.name || '(未识别公司名)'} (${da.year || '—'})`,
+      name: `${formType} - ${c.name || '(未识别公司名)'} (${da.year || '—'})`,
       year,
       madeUpDate: da.madeUpDate,
       filedDate: da.filedDate,
-      docType: da.docType || 'NAR1',
+      docType: formType,
       sourceFile: result && result.sourceFile,
     },
     narVersion: (result && result.narVersion) || undefined,
@@ -227,30 +230,32 @@ async function upsertCompany(plan, mode, existingId) {
     if (data.nameChinese) company.nameChinese = data.nameChinese
     if (data.type) company.type = data.type
     if (data.jurisdiction) company.jurisdiction = data.jurisdiction
+    if (data.nonHongKongCompany) company.nonHongKongCompany = true
     if (data.registeredAddress && (data.registeredAddress.street || data.registeredAddress.country)) {
       company.registeredAddress = data.registeredAddress
     }
     if (data.shareCapital) company.shareCapital = data.shareCapital
     company.notes = [
-      `数据来源: NAR1 (${plan.narVersion || '未知版本'})`,
+      `数据来源: ${plan.formType} (${plan.narVersion || '未知版本'})`,
       `registrationNumber 来源: ${data.regNoSource}`,
       data.typeNote,
     ].filter(Boolean).join('\n')
     await company.save()
     return { company, action: 'updated' }
   }
-  company = await Company.create({
-    name: data.name,
-    nameChinese: data.nameChinese,
-    registrationNumber: data.registrationNumber,
-    type: data.type,
-    jurisdiction: data.jurisdiction,
-    status: 'active',
+    company = await Company.create({
+      name: data.name,
+      nameChinese: data.nameChinese,
+      registrationNumber: data.registrationNumber,
+      type: data.type,
+      jurisdiction: data.jurisdiction,
+      nonHongKongCompany: !!data.nonHongKongCompany,
+      status: 'active',
     incorporationDate: data.incorporationDate,
     registeredAddress: data.registeredAddress,
     shareCapital: data.shareCapital,
     notes: [
-      `数据来源: NAR1 (${plan.narVersion || '未知版本'})`,
+      `数据来源: ${plan.formType} (${plan.narVersion || '未知版本'})`,
       `registrationNumber 来源: ${data.regNoSource}`,
       data.typeNote,
     ].filter(Boolean).join('\n'),
@@ -272,7 +277,7 @@ async function upsertPerson(p, mode, plan) {
       nationality: p.raw && p.raw.country && p.raw.country !== 'Hong Kong' ? p.raw.country : undefined,
       passportNumber: passport,
       roles: [p.role],
-      notes: `来源: NAR1 ${plan.narVersion || ''}`.trim(),
+      notes: `来源: ${plan.formType} ${plan.narVersion || ''}`.trim(),
     })
     return { person, action: 'created' }
   }
@@ -326,7 +331,7 @@ async function upsertEntity(e, mode, plan) {
       type: 'other',
       jurisdiction: mapJurisdiction(e.country),
       status: 'active',
-      notes: `法人实体（来自 NAR1 ${plan.narVersion || ''}）：${e.role}；真实注册号${e.raw && e.raw.crNumber ? '=' + e.raw.crNumber : '待补'}`,
+      notes: `法人实体（来自 ${plan.formType} ${plan.narVersion || ''}）：${e.role}；真实注册号${e.raw && e.raw.crNumber ? '=' + e.raw.crNumber : '待补'}`,
     })
     return { entity: ent, action: 'created' }
   }
@@ -459,15 +464,22 @@ async function commitOne({ result, mode, userId, storage }) {
     }
   }
 
-  // NAR1 导入闭环：HK 本地公司自动 ensure HK_AR_42 + HK_BR_RENEW 提醒
+  // 周年申报表导入闭环：提醒规则按表单类型分流
+  // - NAR1（香港本地公司）：HK_AR_42 + HK_BR_RENEW
+  // - NN3（註冊非香港公司）：HK_NN3_AR + HK_BR_RENEW
   // ensure 只 generate 不删内部提醒，幂等；失败不阻断主流程（提醒可后补）。
-  // 排除 nonHongKongCompany=true（这类公司不报 NAR1 而报 NN3；NN3 提醒待用户在 CompanyDetail
-  // 手动标记 nonHongKongCompany=true 后通过 ensureCompanyReminders(['HK_NN3_AR','HK_BR_RENEW']) 启用）。
-  if (company.jurisdiction === 'HK' && !company.nonHongKongCompany) {
+  const isNN3 = (result && (result.formType === 'NN3' || (result.company && result.company.nonHongKongCompany)))
+  if (isNN3) {
+    try {
+      await ensureCompanyReminders(company._id, ['HK_NN3_AR', 'HK_BR_RENEW'])
+    } catch (e) {
+      console.warn('[周年申报表 import] ensure NN3 reminders failed:', e && e.message)
+    }
+  } else if (company.jurisdiction === 'HK' && !company.nonHongKongCompany) {
     try {
       await ensureCompanyReminders(company._id, ['HK_AR_42', 'HK_BR_RENEW'])
     } catch (e) {
-      console.warn('[NAR1 import] ensure reminders failed:', e && e.message)
+      console.warn('[周年申报表 import] ensure reminders failed:', e && e.message)
     }
   }
 

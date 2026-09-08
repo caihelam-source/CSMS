@@ -68,6 +68,22 @@ def extract_addr_structured(block):
         return ", ".join(parts)
     return clean_addr_text(block)
 
+def detect_form_type(text, filename=None):
+    """周年申报表类型识别：NN3（註冊非香港公司）与 NAR1（香港本地）共用同一套字段抽取逻辑，
+    仅 jurisdiction / 提醒规则不同。文件名优先（扫描件无正文时仍可判型），正文次之。"""
+    fn = (filename or "").upper()
+    if "NN3" in fn:
+        return "NN3"
+    if "NAR1" in fn:
+        return "NAR1"
+    t = text or ""
+    if "註冊非香港公司周年申報表" in t or "NN3" in t.upper():
+        return "NN3"
+    if "周年申報表" in t or "NAR1" in t.upper():
+        return "NAR1"
+    # 兜底：本导入通道最初为 NAR1 设计，无明确信号时按 NAR1 处理
+    return "NAR1"
+
 def load_text(path):
     pages = []
     with pdfplumber.open(path) as pdf:
@@ -366,7 +382,13 @@ def recognize(path, render_scan=True):
     text = "\n".join(pages_text)
     scanned = is_scanned(path, text)
     scan_images = render_scan_pages(path) if (scanned and render_scan) else []
+    form_type = detect_form_type(text, os.path.basename(path))
     company = parse_company(text)
+    # NN3 = 註冊非香港公司周年申報表：内容/字段与 NAR1 基本一致，仅 jurisdiction 与提醒规则不同。
+    # 复用同一套抽取逻辑；标 nonHongKongCompany 让后端走 HK_NN3_AR 提醒而非 HK_AR_42。
+    if form_type == "NN3":
+        company["nonHongKongCompany"] = True
+        company["jurisdiction"] = company.get("jurisdiction") or "HK"
     secretary = parse_secretary(text, pages_words)
     directors = parse_directors(text, pages_words)
     shareholders = parse_shareholders(text)
@@ -374,6 +396,7 @@ def recognize(path, render_scan=True):
     ar_filed = f"{sm.group(3)}-{int(sm.group(2)):02d}-{int(sm.group(1)):02d}" if sm else None
     return {
         "sourceFile": os.path.basename(path), "pages": n,
+        "formType": form_type,
         "scanned": scanned,
         "needsMultimodal": scanned,
         "scanImages": scan_images,
@@ -381,12 +404,14 @@ def recognize(path, render_scan=True):
         "company": company, "companySecretary": secretary, "directors": directors,
         "shareholders": shareholders,
         "documentAssociation": {
-            "scope": "company", "docType": "NAR1",
-            "docTypeName": "周年申報表 Annual Return",
+            "scope": "company", "docType": form_type,
+            "docTypeName": ("註冊非香港公司周年申報表 Annual Return (NN3)"
+                            if form_type == "NN3" else "周年申報表 Annual Return (NAR1)"),
             "madeUpDate": company.get("arMadeUpDate"),
             "filedDate": ar_filed,
             "year": (company.get("arMadeUpDate") or "")[:4] or None,
-            "note": "NAR1 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）",
+            "note": ("%(ft)s 作为公司关联文件挂 Company 下（scope=company，关联公司=识别出的公司名）；"
+                     "NN3=註冊非香港公司，提醒规则走 HK_NN3_AR" % {"ft": form_type}),
         },
         "gaps": {
             "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",

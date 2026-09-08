@@ -143,8 +143,8 @@ export default function Nar1ImportPage({ embedded = false }) {
     <div className={embedded ? 'space-y-4' : 'space-y-6'}>
       {!embedded && (
         <PageHeader
-          title="NAR1 导入"
-          subtitle="上传香港公司周年申报表，自动建档公司、董事、秘书与股东"
+          title="周年申报表导入"
+          subtitle="上传香港公司周年申报表（NAR1 / NN3 註冊非香港公司），自动建档公司、董事、秘书与股东"
           icon={FileUp}
           actions={
             phase !== 'idle' && (
@@ -177,7 +177,7 @@ export default function Nar1ImportPage({ embedded = false }) {
           ) : engine?.ok ? (
             <p className="text-ink-2">
               解析引擎就绪（<span className="font-mono text-xs">{engine.python || 'python3'}</span> + pdfplumber）。
-              支持批量上传多份 NAR1。
+              支持批量上传多份周年申报表（NAR1 / NN3）。
             </p>
           ) : (
             <div className="space-y-1">
@@ -230,7 +230,7 @@ export default function Nar1ImportPage({ embedded = false }) {
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click() }}
         >
           <FileUp size={34} className="mx-auto text-ink-3 mb-3" />
-          <p className="font-medium text-ink-1">拖拽 NAR1 文件到这里，或点击选择</p>
+          <p className="font-medium text-ink-1">拖拽周年申报表文件到这里，或点击选择</p>
           <p className="text-sm text-ink-3 mt-1">支持一次选择多份 PDF（单次最多 20 份，每份 ≤ 30MB）</p>
           <input
             ref={inputRef}
@@ -272,7 +272,7 @@ export default function Nar1ImportPage({ embedded = false }) {
         <div className="card flex items-center gap-3">
           <Loader2 size={20} className="animate-spin text-primary-600" />
           <div className="text-sm">
-            <p className="font-medium text-ink-1">正在识别 {files.length} 份 NAR1…</p>
+            <p className="font-medium text-ink-1">正在识别 {files.length} 份周年申报表…</p>
             <p className="text-ink-3 text-xs">每份约需 3-8 秒{uploadPct ? `，上传 ${uploadPct}%` : ''}</p>
           </div>
         </div>
@@ -341,7 +341,16 @@ export default function Nar1ImportPage({ embedded = false }) {
                     <td className="py-3 pr-3">
                       {it.ok ? (
                         <>
-                          <p className="font-medium text-ink-1">{it.plan?.company?.name}</p>
+                          <p className="font-medium text-ink-1 flex items-center gap-2">
+                            {it.plan?.company?.name}
+                            {it.plan?.formType && (
+                              <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                                it.plan.formType === 'NN3'
+                                  ? 'bg-info/10 text-info'
+                                  : 'bg-ink-1/[0.06] text-ink-3'
+                              }`}>{it.plan.formType}</span>
+                            )}
+                          </p>
                           {it.plan?.company?.nameChinese && (
                             <p className="text-xs text-ink-3">{it.plan.company.nameChinese}</p>
                           )}
@@ -349,7 +358,16 @@ export default function Nar1ImportPage({ embedded = false }) {
                         </>
                       ) : (
                         <>
-                          <p className="font-medium text-ink-1">{it.fileName}</p>
+                          <p className="font-medium text-ink-1 flex items-center gap-2">
+                            {it.fileName}
+                            {it.result?.formType && (
+                              <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                                it.result.formType === 'NN3'
+                                  ? 'bg-info/10 text-info'
+                                  : 'bg-ink-1/[0.06] text-ink-3'
+                              }`}>{it.result.formType}</span>
+                            )}
+                          </p>
                           <p className="text-xs text-danger">{it.error}</p>
                           {it.detail && (
                             <details className="mt-1 group">
@@ -425,7 +443,7 @@ export default function Nar1ImportPage({ embedded = false }) {
             <p className="text-sm text-ink-2">
               将导入 <span className="font-semibold text-ink-1">{pendingCount}</span> 份
               <span className="text-ink-3 text-xs ml-2">
-                「仅补缺失」= 已存在的公司/人员不改动，只补关联；「覆盖」= 用 NAR1 数据重写已有字段
+                「仅补缺失」= 已存在的公司/人员不改动，只补关联；「覆盖」= 用周年申报表数据重写已有字段
               </span>
             </p>
             <button
@@ -495,7 +513,7 @@ function ConflictNotes({ conflicts }) {
   if (!conflicts) return null
   const notes = []
   if (conflicts.company) notes.push(`公司已存在：${conflicts.company.name}`)
-  if (conflicts.document) notes.push(`NAR1 文档已存在：${conflicts.document.docNumber}`)
+  if (conflicts.document) notes.push(`周年申报表文档已存在：${conflicts.document.docNumber}`)
   if (conflicts.people?.length) notes.push(`人员重复 ${conflicts.people.length} 人：${conflicts.people.map((p) => p.name).join('、')}`)
   if (conflicts.entities?.length) notes.push(`法人重复 ${conflicts.entities.length} 个`)
   if (conflicts.companyError) notes.push(conflicts.companyError)
