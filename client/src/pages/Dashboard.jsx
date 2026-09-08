@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 
 const BANNER_KEY = 'csms.dashboardBanner'
+// 默认采用 navy 蓝底（与品牌一致）；旧版可能存过 'light'，启动期一次性读取后即固定（已无切换按钮）
+const BANNER_DEFAULT = 'navy'
 
 // 首页公告走马灯（静态运营位；未来可接公告 API）。纯信息型幻灯片，避免 SPA 内 <a> 整页刷新
 const ANNOUNCEMENTS = [
@@ -56,7 +58,8 @@ export default function Dashboard() {
   const [calendarItems, setCalendarItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastRefreshed, setLastRefreshed] = useState(null)
-  const [bannerVariant, setBannerVariant] = useState(() => localStorage.getItem(BANNER_KEY) || 'light')
+  // Hero Banner 风格：navy 是默认；旧版可能选过 'light'，启动期一次性读取后即固定（切换控件已移除）
+  const bannerVariant = useMemo(() => localStorage.getItem(BANNER_KEY) || BANNER_DEFAULT, [])
   // 首页公告走马灯：初始用静态默认值占位，挂载后由公告 API 覆盖（管理员可后台编辑）
   const [announcements, setAnnouncements] = useState(ANNOUNCEMENTS)
 
@@ -183,12 +186,6 @@ export default function Dashboard() {
     return parts.length ? parts.join(' · ') : '全局合规概览已就绪'
   }, [pendingTasksCount, signTasksCount, expiredReminders.length, upcomingReminders.length])
 
-  const toggleBanner = () => {
-    const next = bannerVariant === 'navy' ? 'light' : 'navy'
-    localStorage.setItem(BANNER_KEY, next)
-    setBannerVariant(next)
-  }
-
   // 8 项核心指标（标签 / 数据不变；副文案用真实派生数据，去除占位 trend 串）
   const metrics = [
     { icon: CsmsIconCompanies, label: '公司总数', value: stats?.totalCompanies || 0, sub: `在管 ${stats?.activeCompanies || 0} 家`, to: '/companies' },
@@ -234,20 +231,8 @@ export default function Dashboard() {
     <>
       <div id="main" className="max-w-[var(--fluid-content-max)] mx-auto w-full page-fade">
 
-        {/* Hero Banner：深蓝/浅蓝切换 + 印章线框纹理 + CSMS 字标（与设计稿同系列） */}
+        {/* Hero Banner：品牌深蓝底 + 印章线框纹理 + 问候 + CTA（「深蓝/浅蓝」风格切换为开发者向，已移除避免与 Navbar 视觉竞争） */}
         <div className={`dash-banner dash-banner--${bannerVariant}`}>
-          <button
-            type="button"
-            className="dash-banner__toggle"
-            onClick={toggleBanner}
-            title={`当前：${bannerVariant === 'navy' ? '深蓝' : '浅蓝'}，点击切换`}
-            aria-label="切换 Banner 风格"
-          >
-            <span className={bannerVariant === 'navy' ? 'is-active' : ''}>深蓝</span>
-            <span className="dash-banner__toggle-divider" aria-hidden="true">/</span>
-            <span className={bannerVariant === 'light' ? 'is-active' : ''}>浅蓝</span>
-          </button>
-
           <div className="dash-banner__watermark" aria-hidden="true" />
 
           <div className="dash-banner__body">

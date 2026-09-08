@@ -40,7 +40,8 @@ export default function Carousel({ items = [], autoPlay = 5000, showDots = true,
           </div>
         ))}
       </div>
-      {showArrows && n > 1 && (
+      {/* compact slim ticker：不渲染左右切换按钮，避免按钮压在 eyebrow/title 上；auto-play + dots 足够 */}
+      {showArrows && !compact && n > 1 && (
         <>
           <button onClick={() => go(index - 1)} aria-label="上一张" className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 grid place-items-center rounded-full bg-black/30 text-white hover:bg-black/50 backdrop-blur transition-colors tap-target">
             <span aria-hidden="true">‹</span>
@@ -51,10 +52,10 @@ export default function Carousel({ items = [], autoPlay = 5000, showDots = true,
         </>
       )}
       {showDots && n > 1 && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+        <div className={cx('absolute left-1/2 -translate-x-1/2 flex gap-1.5', compact ? 'bottom-1.5' : 'bottom-3')}>
           {items.map((_, i) => (
             <button key={i} onClick={() => setIndex(i)} aria-label={`第 ${i + 1} 张`}
-              className={cx('h-2 rounded-full transition-all', i === index ? 'w-5 bg-white' : 'w-2 bg-white/50 hover:bg-white/80')} />
+              className={cx('h-2 rounded-full transition-all tap-target', i === index ? 'w-5 bg-white' : 'w-2 bg-white/50 hover:bg-white/80')} />
           ))}
         </div>
       )}
