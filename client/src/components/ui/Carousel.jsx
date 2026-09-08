@@ -28,10 +28,10 @@ export default function Carousel({ items = [], autoPlay = 5000, showDots = true,
           <div key={i} aria-hidden={i !== index} className="relative w-full h-full shrink-0"
             style={{ background: it.bg || 'linear-gradient(135deg, rgb(var(--brand-navy)), rgb(var(--blue-600)))' }}>
             {it.image && <img src={it.image} alt="" className="absolute inset-0 w-full h-full object-cover" />}
-            <div className={cx('absolute inset-0 flex flex-col justify-center text-white', compact ? 'gap-0.5 p-3 md:p-5' : 'gap-2 p-6 md:p-10')}>
-              {it.eyebrow && <span className={cx('font-bold tracking-widest uppercase opacity-80', compact ? 'text-[10px] md:text-xs' : 'text-xs')}>{it.eyebrow}</span>}
-              {it.title && <h3 className={cx('font-bold max-w-xl', compact ? 'text-sm md:text-lg' : 'text-xl md:text-2xl')}>{it.title}</h3>}
-              {it.subtitle && <p className={cx('opacity-90 max-w-xl', compact ? 'text-[11px] md:text-sm line-clamp-1' : 'text-sm md:text-base line-clamp-2')}>{it.subtitle}</p>}
+            <div className={cx('absolute inset-0 flex flex-col justify-center text-white', compact ? 'gap-0.5 p-2.5 md:p-4' : 'gap-2 p-6 md:p-10')}>
+              {it.eyebrow && <span className={cx('font-bold tracking-widest uppercase opacity-80', compact ? 'text-[9px] md:text-[10px]' : 'text-xs')}>{it.eyebrow}</span>}
+              {it.title && <h3 className={cx('font-bold max-w-xl leading-tight', compact ? 'text-sm md:text-base' : 'text-xl md:text-2xl')}>{it.title}</h3>}
+              {it.subtitle && <p className={cx('opacity-90 max-w-xl leading-snug', compact ? 'text-[10px] md:text-xs line-clamp-1' : 'text-sm md:text-base line-clamp-2')}>{it.subtitle}</p>}
               {it.actionHref && it.actionLabel && (
                 <a href={it.actionHref} className="mt-2 inline-flex w-fit items-center gap-2 px-4 py-2 rounded-full bg-white font-semibold text-sm hover:scale-[1.03] transition-transform"
                   style={{ color: 'rgb(var(--brand-navy))' }}>{it.actionLabel}</a>
