@@ -28,19 +28,24 @@ api.interceptors.response.use(
     }
 
     // 2) 网络错误 / CORS 被拒（err.response 为 undefined）：多为 Render 免费套餐休眠唤醒失败
-    //    浏览器读不到被 CORS 拦截的 503 响应头，统一在此处理：自动重试一次，命中冷启动即活。
+    //    浏览器读不到被 CORS 拦截的 503 响应头。Render 冷启动典型 30-60 秒，
+    //    自动重试覆盖整个唤醒窗口：默认 6 次 × 8 秒 ≈ 48 秒，期间成功即吞掉错误。
+    //    全部重试耗尽才标记 isColdStart 抛给 UI 兜底卡。
     if (!err.response && err.code === 'ERR_NETWORK') {
-      if (!cfg.__retryCount) {
-        cfg.__retryCount = 1
-        const delay = cfg.__retryDelay || 6000
-        await new Promise((r) => setTimeout(r, delay))
+      const maxRetries = cfg.__maxRetries ?? 6
+      const retryDelay = cfg.__retryDelay ?? 8000
+      cfg.__retryCount = (cfg.__retryCount || 0) + 1
+      if (cfg.__retryCount <= maxRetries) {
+        await new Promise((r) => setTimeout(r, retryDelay))
         try {
           return await api(cfg)
         } catch (e2) {
-          err = e2 // 重试仍失败，继续向下统一提示
+          // 递归调用会再次进 interceptor；__retryCount 通过 cfg 持久化继续累加。
+          // 若 e2 仍为 ERR_NETWORK 会继续重试；其他错误会走 401/5xx 分支。
+          return Promise.reject(e2)
         }
       }
-      // 统一文案（不再误判 VITE_API_BASE 配错——实测线上该变量已正确指向 claw-api-5zq7）
+      // 全部重试耗尽：标记冷启动并给出友好提示
       err.isColdStart = true
       err.message =
         '后端暂时无法连接——很可能是 Render 免费套餐处于休眠冷启动（约 30-60 秒），请稍候重试；' +

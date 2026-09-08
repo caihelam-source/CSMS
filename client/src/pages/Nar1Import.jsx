@@ -41,6 +41,7 @@ export default function Nar1ImportPage({ embedded = false }) {
       const res = await nar1ImportService.capability()
       setEngine(res?.engine || { ok: false, reason: '未返回引擎状态' })
     } catch (err) {
+      if (err?.isColdStart) setColdStart(true) // 引擎探测冷启动 → 蓝卡优先于引擎红字
       setEngine({ ok: false, reason: err?.response?.data?.message || err?.message || '探测失败' })
     } finally {
       setEngineLoading(false)
@@ -198,7 +199,7 @@ export default function Nar1ImportPage({ embedded = false }) {
           <div className="text-sm flex-1">
             <p className="font-medium text-ink-1">后端正在从休眠唤醒</p>
             <p className="text-ink-2">
-              Render 免费套餐冷启动约需 30-60 秒。所选文件已保留，可点击下方按钮重试，或稍候片刻自动恢复。
+              Render 免费套餐冷启动约需 30-60 秒。系统已自动重试 6 次仍未恢复，可点击下方按钮再次重试，所选文件已保留。
             </p>
             <button
               onClick={() => {
