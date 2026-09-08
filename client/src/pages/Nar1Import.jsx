@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   FileUp, AlertTriangle, CheckCircle2, XCircle, Loader2, Building2,
-  FileText, RefreshCw, ShieldAlert, ScanLine, CloudOff, ChevronRight,
+  FileText, RefreshCw, ShieldAlert, ScanLine, CloudOff, ChevronRight, Check,
 } from 'lucide-react'
 import { nar1ImportService } from '../services/index.js'
 import { notify } from '../services/notify'
@@ -291,11 +291,36 @@ export default function Nar1ImportPage({ embedded = false }) {
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              {MODE_OPTIONS.map((o) => (
-                <button key={o.value} onClick={() => setAllMode(o.value)} className="btn-secondary text-xs px-2 py-1">
-                  全部：{o.label}
-                </button>
-              ))}
+              {MODE_OPTIONS.map((o) => {
+                // 计算该 mode 下会落库的份数（用于按钮上的小数字反馈）
+                const wouldImport = items.filter((it) => {
+                  if (!it.ok) return false
+                  if (o.value === 'overwrite' && it.needsMultimodal) return false
+                  return o.value !== 'skip'
+                }).length
+                const active = items.some((it) => it.ok && it.mode === o.value && !(o.value === 'overwrite' && it.needsMultimodal))
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setAllMode(o.value) }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className={`text-xs px-2.5 py-1 rounded-md border transition-all flex items-center gap-1.5 ${
+                      active
+                        ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold shadow-sm'
+                        : 'border-border bg-surface text-ink-2 hover:border-primary-300 hover:text-ink-1'
+                    }`}
+                    title={`将所有非扫描件设为「${o.label}」`}
+                  >
+                    {active && <Check size={11} />}
+                    全部：{o.label}
+                    <span className={`text-[10px] tabular-nums ${active ? 'text-primary-600' : 'text-ink-3'}`}>
+                      {wouldImport}/{items.filter((i) => i.ok).length}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 

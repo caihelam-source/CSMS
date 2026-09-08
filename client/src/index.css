@@ -470,38 +470,38 @@
      设计来源：claw-brand-preview.html §DASHBOARD BANNER
      ============================================================ */
   .dash-banner { position: relative; overflow: hidden; border-radius: var(--radius-xl);
-    min-height: 170px; padding: clamp(1.5rem, 3vw, 2.5rem);
-    margin-bottom: var(--fluid-section-xl); box-shadow: var(--shadow-lg);
+    min-height: 96px; padding: var(--space-3) var(--space-5);
+    margin-bottom: var(--space-5); box-shadow: var(--shadow-sm);
     display: flex; align-items: center; }
-  /* 印章线框水印：铺满背景、极低透明度、与 logo 同源母题 */
+  /* 印章线框水印：铺满背景、极低透明度、与 logo 同源母题（缩小后降低不透明度） */
   .dash-banner__watermark { position: absolute; inset: 0; pointer-events: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23ffffff' stroke-width='2'/%3E%3Cpath d='M32 18 A14 14 0 1 0 32 46' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-size: 130px; opacity: .10; }
+    background-size: 100px; opacity: .05; }
   /* 风格切换开关：右上角，胶囊，当前项高亮 */
-  .dash-banner__toggle { position: absolute; top: var(--space-4); right: var(--space-4); z-index: 2;
-    display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: var(--radius-full);
+  .dash-banner__toggle { position: absolute; top: var(--space-2); right: var(--space-3); z-index: 2;
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 5px; border-radius: var(--radius-full);
     background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25);
     color: rgba(255,255,255,.8); font-size: var(--text-xs); font-weight: 700; cursor: pointer;
     transition: background var(--dur-fast), border-color var(--dur-fast); }
   .dash-banner__toggle:hover { background: rgba(255,255,255,.24); border-color: rgba(255,255,255,.4); }
-  .dash-banner__toggle span { padding: 4px 8px; border-radius: var(--radius-full); transition: all var(--dur-fast); white-space: nowrap; }
+  .dash-banner__toggle span { padding: 3px 7px; border-radius: var(--radius-full); transition: all var(--dur-fast); white-space: nowrap; }
   .dash-banner__toggle span.is-active { background: rgba(255,255,255,.95); color: rgb(var(--brand-navy)); box-shadow: 0 2px 8px rgba(0,0,0,.15); }
   .dash-banner__toggle-divider { opacity: .5; padding: 0 1px; }
-  /* Banner 主体：三栏（brand / main / cta），窄屏自动折行 */
+  /* Banner 主体：紧凑单行（标题 + 摘要 + CTA 一行排），窄屏自动折行 */
   .dash-banner__body { position: relative; z-index: 1; width: 100%; display: flex; flex-wrap: wrap;
-    align-items: center; gap: var(--space-6); }
+    align-items: center; gap: var(--space-4); }
   .dash-banner__brand { display: flex; align-items: center; gap: var(--space-3); flex: none; }
-  .dash-banner__seal { width: 56px; height: 56px; color: rgba(255,255,255,.9); }
+  .dash-banner__seal { width: 32px; height: 32px; color: rgba(255,255,255,.9); }
   .dash-banner__main { min-width: 0; flex: 1 1 280px; }
-  /* Batch 03：hero 标题升级到规范 ch1 = 46px（宽屏上限），窄屏随流体缩放下限 28px */
-  .dash-banner__title { font-size: clamp(1.75rem, 4vw, var(--ts-46)); font-weight: 800; letter-spacing: -.02em; line-height: var(--leading-tight); }
-  .dash-banner__summary { font-size: var(--fluid-hero-sub); opacity: .88; margin-top: var(--space-2);
-    font-weight: 500; }
-  .dash-banner__cta { display: inline-flex; align-items: center; gap: var(--space-2);
-    padding: var(--space-3) var(--space-5); background: #fff; color: rgb(var(--brand-navy));
-    border-radius: var(--radius-lg); font-weight: 700; text-decoration: none;
-    box-shadow: 0 4px 16px rgba(0,0,0,.18); transition: transform var(--dur-fast), box-shadow var(--dur-fast); flex: none; }
-  .dash-banner__cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.22); }
+  /* 标题/摘要收紧：h1=22px，副文案=13px */
+  .dash-banner__title { font-size: clamp(1.125rem, 2vw, 1.375rem); font-weight: 700; letter-spacing: -.01em; line-height: 1.25; }
+  .dash-banner__summary { font-size: 13px; opacity: .8; margin-top: 2px;
+    font-weight: 500; line-height: 1.4; }
+  .dash-banner__cta { display: inline-flex; align-items: center; gap: var(--space-1.5);
+    padding: 6px 12px; background: #fff; color: rgb(var(--brand-navy));
+    border-radius: var(--radius-md); font-size: 13px; font-weight: 700; text-decoration: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12); transition: transform var(--dur-fast), box-shadow var(--dur-fast); flex: none; }
+  .dash-banner__cta:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,.16); }
   .dash-banner__cta svg { flex: none; }
 
   /* 深蓝版：navy 锚点 #0F2A5E（与设计稿截图一致） */
@@ -657,11 +657,11 @@
     .dash-eyebrow { margin-bottom: var(--space-3); }
     .dash-eyebrow__title .en { display: none; }
 
-    .dash-banner { padding: var(--space-5) var(--space-4); min-height: auto; }
-    .dash-banner__body { gap: var(--space-4); }
-    .dash-banner__toggle { top: var(--space-3); right: var(--space-3); gap: 2px; padding: 3px 5px; font-size: 11px; }
-    .dash-banner__toggle span { padding: 3px 6px; }
-    .dash-banner__title { padding-right: 90px; }
+    .dash-banner { padding: var(--space-3) var(--space-4); min-height: 72px; }
+    .dash-banner__body { gap: var(--space-3); }
+    .dash-banner__toggle { top: var(--space-2); right: var(--space-2); gap: 2px; padding: 2px 4px; font-size: 10px; }
+    .dash-banner__toggle span { padding: 2px 5px; }
+    .dash-banner__title { padding-right: 72px; }
 
     .mini-col { padding: var(--space-4); }
     .mini-col__head { flex-wrap: wrap; gap: var(--space-2); min-height: 28px; }
