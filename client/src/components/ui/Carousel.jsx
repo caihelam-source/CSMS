@@ -1,5 +1,6 @@
-// 走马灯（Carousel）— 环形排列多张横幅，定时自动轮播 + 指示点 + 箭头手动控制
+// 走马灯（Carousel）— 环形排列多张横幅，定时自动轮播 + 可选指示点 + 可选箭头
 // 适合首页活动推广 / 公告 / 商品图集；悬停暂停、reduced-motion 关闭自动播放
+// compact=true（slim ticker）下不渲染任何手控控件：箭头 + 指示点都让位给纯自动滚动
 import { useEffect, useRef, useState } from 'react'
 
 const cx = (...a) => a.filter(Boolean).join(' ')
@@ -40,7 +41,7 @@ export default function Carousel({ items = [], autoPlay = 5000, showDots = true,
           </div>
         ))}
       </div>
-      {/* compact slim ticker：不渲染左右切换按钮，避免按钮压在 eyebrow/title 上；auto-play + dots 足够 */}
+      {/* slim ticker（compact）：既不渲染箭头也不渲染指示点，让位给自动滚动 + 悬停暂停；满高 banner 保留箭头+点 */}
       {showArrows && !compact && n > 1 && (
         <>
           <button onClick={() => go(index - 1)} aria-label="上一张" className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 grid place-items-center rounded-full bg-black/30 text-white hover:bg-black/50 backdrop-blur transition-colors tap-target">
@@ -51,7 +52,7 @@ export default function Carousel({ items = [], autoPlay = 5000, showDots = true,
           </button>
         </>
       )}
-      {showDots && n > 1 && (
+      {showDots && !compact && n > 1 && (
         <div className={cx('absolute left-1/2 -translate-x-1/2 flex gap-1.5', compact ? 'bottom-1.5' : 'bottom-3')}>
           {items.map((_, i) => (
             <button key={i} onClick={() => setIndex(i)} aria-label={`第 ${i + 1} 张`}
