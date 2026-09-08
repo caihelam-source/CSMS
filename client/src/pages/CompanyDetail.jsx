@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Building2, Users, FileText, Plus, Trash2, Shield, ExternalLink, BookOpen, Download, Edit3, Network, CheckSquare, AlertTriangle, Eye } from 'lucide-react'
-import { companyService, documentService, personnelService, complianceReminderService, complianceRuleService, taskService, meetingService } from '../services/index.js'
+import { companyService, documentService, personnelService, complianceReminderService, complianceRuleService, taskService, meetingService, nar1ImportService } from '../services/index.js'
 import { formatDate, getStatusColor, generateDocFilename, saveBlob } from '../utils/helpers'
 import { inferRegion } from '../utils/regionHelpers'
 import { LoadingSpinner, EmptyState, DetailHeader, FormField, inputClass, TabNav, jurisdictionLabel } from '../components/UIHelpers'
@@ -170,8 +170,8 @@ export default function CompanyDetail() {
   const [showNar1Modal, setShowNar1Modal] = useState(false)
   const [showBrModal, setShowBrModal] = useState(false)
   const [nar1Reminder, setNar1Reminder] = useState(null)
-  const [nar1Form, setNar1Form] = useState({ filed: false, incorporationDate: '', file: null })
-  const [brForm, setBrForm] = useState({ expiry: '', file: null })
+  const [nar1Form, setNar1Form] = useState({ filed: false, incorporationDate: '', file: null, recognizing: false, recognizedFrom: null })
+  const [brForm, setBrForm] = useState({ expiry: '', file: null, recognizing: false, recognizedFrom: null })
   const [savingComplianceDate, setSavingComplianceDate] = useState(false)
 
   // 基本信息内联编辑
@@ -687,6 +687,88 @@ export default function CompanyDetail() {
       setShowBrModal(false)
       loadAll()
     } catch { toast.error('更新失败') } finally { setSavingComplianceDate(false) }
+  }
+
+  /**
+   * 上传 BR 证 PDF → 自动识别 brExpiryDate → 回填表单
+   * 扫描件/PDF 无文字层时标注「OCR 不可用，需手动填」
+   */
+  const handleBrFileChange = async (e) => {
+    const file = e.target.files?.[0] || null
+    setBrForm((f) => ({ ...f, file, recognizing: false, recognizedFrom: null }))
+    if (!file) return
+    if (!/\.pdf$/i.test(file.name)) {
+      toast.error('请选择 PDF 文件')
+      return
+    }
+    setBrForm((f) => ({ ...f, recognizing: true }))
+    try {
+      const res = await nar1ImportService.parse([file])
+      const r = res?.results?.[0]
+      if (!r || !r.ok) {
+        toast.error(r?.error || '识别失败，请手动填写到期日')
+        return
+      }
+      const company = r.plan?.company || r.result?.company || {}
+      const expiry = company.brExpiryDate || r.result?.documentAssociation?.expiryDate
+      const scanned = !!r.scanned
+      if (expiry) {
+        setBrForm((f) => ({ ...f, expiry, recognizing: false, recognizedFrom: scanned ? 'OCR' : 'pdfplumber' }))
+        toast.success(scanned ? `已识别届满日 ${expiry}（扫描件 OCR，请核对）` : `已自动填入届满日 ${expiry}`)
+      } else {
+        setBrForm((f) => ({ ...f, recognizing: false }))
+        toast(scanned ? '该 PDF 为纯扫描件，沙箱无 OCR；请手动填写到期日' : '未能识别到期日，请手动填写', { icon: '⚠️' })
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || '识别请求失败'
+      toast.error(msg)
+      setBrForm((f) => ({ ...f, recognizing: false }))
+    } finally {
+      e.target.value = ''
+    }
+  }
+
+  /**
+   * NAR1 弹窗上传 PDF → 自动识别 incorporationDate（CI/BR 联动）
+   * NAR1 通常不带成立日；但 CI 识别若挂上可共用该回调。
+   */
+  const handleNar1FileChange = async (e) => {
+    const file = e.target.files?.[0] || null
+    setNar1Form((f) => ({ ...f, file, recognizing: false, recognizedFrom: null }))
+    if (!file) return
+    if (!/\.pdf$/i.test(file.name)) {
+      toast.error('请选择 PDF 文件')
+      return
+    }
+    setNar1Form((f) => ({ ...f, recognizing: true }))
+    try {
+      const res = await nar1ImportService.parse([file])
+      const r = res?.results?.[0]
+      if (!r || !r.ok) {
+        toast.error(r?.error || '识别失败')
+        return
+      }
+      const company = r.plan?.company || r.result?.company || {}
+      const formKind = r.plan?.formKind || r.result?.formKind || 'NAR1'
+      const incDate = company.incorporationDate
+      const scanned = !!r.scanned
+      if (formKind === 'CI' && incDate) {
+        setNar1Form((f) => ({ ...f, incorporationDate: incDate, recognizing: false, recognizedFrom: scanned ? 'OCR' : 'pdfplumber' }))
+        toast.success(`已从 CI 证自动填入成立日期 ${incDate}`)
+      } else if (scanned) {
+        setNar1Form((f) => ({ ...f, recognizing: false }))
+        toast('扫描件 OCR 不可用，请手动填写成立日期', { icon: '⚠️' })
+      } else {
+        setNar1Form((f) => ({ ...f, recognizing: false }))
+        toast(`未识别到成立日期（NAR1 本身不印成立日，建议上传 CI 证；formKind=${formKind}）`, { icon: 'ℹ️' })
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || '识别请求失败'
+      toast.error(msg)
+      setNar1Form((f) => ({ ...f, recognizing: false }))
+    } finally {
+      e.target.value = ''
+    }
   }
 
   const downloadRegister = async (type) => {
@@ -1308,13 +1390,17 @@ export default function CompanyDetail() {
               ✓ 本年度 NAR1 已提交（到期日 {formatDate(nar1Reminder.dueDate)}）
             </div>
           )}
-          <FormField label="成立日期" hint="NAR1 提醒基准 = 成立周年日 + 42 天；补全后可自动续排">
+          <FormField label="成立日期" hint="NAR1 提醒基准 = 成立周年日 + 42 天；补全后可自动续排；如上传 CI 证可自动识别">
             <input type="date" className={inputClass} value={nar1Form.incorporationDate}
               onChange={e => setNar1Form(f => ({ ...f, incorporationDate: e.target.value }))} />
           </FormField>
-          <FormField label="上传 NAR1 正本（PDF，可选）">
+          <FormField label="上传 CI 证或 NAR1 正本（PDF，可选）" hint="CI 证可自动识别成立日期回填；NAR1 正本将标记本年已提交">
             <input type="file" accept="application/pdf,.pdf" className={inputClass}
-              onChange={e => setNar1Form(f => ({ ...f, file: e.target.files[0] || null }))} />
+              onChange={handleNar1FileChange} />
+            {nar1Form.recognizing && <p className="text-xs text-info mt-1">正在识别 PDF…</p>}
+            {nar1Form.recognizedFrom && !nar1Form.recognizing && nar1Form.file && (
+              <p className="text-xs text-success mt-1">✓ 已识别并回填，请核对</p>
+            )}
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowNar1Modal(false)} className="btn-secondary">取消</button>
@@ -1332,9 +1418,13 @@ export default function CompanyDetail() {
             <input type="date" className={inputClass} value={brForm.expiry}
               onChange={e => setBrForm(f => ({ ...f, expiry: e.target.value }))} />
           </FormField>
-          <FormField label="上传 BR 证（PDF，可选）">
+          <FormField label="上传 BR 证（PDF，可选）" hint="如选择 PDF，将尝试自动识别届满日回填；扫描件 OCR 沙箱不可用，仍可保存为文档">
             <input type="file" accept="application/pdf,.pdf" className={inputClass}
-              onChange={e => setBrForm(f => ({ ...f, file: e.target.files[0] || null }))} />
+              onChange={handleBrFileChange} />
+            {brForm.recognizing && <p className="text-xs text-info mt-1">正在识别 PDF…</p>}
+            {brForm.recognizedFrom && !brForm.recognizing && brForm.file && (
+              <p className="text-xs text-success mt-1">✓ 届满日已由 {brForm.recognizedFrom === 'OCR' ? 'OCR' : 'pdfplumber'} 自动回填，请核对</p>
+            )}
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowBrModal(false)} className="btn-secondary">取消</button>

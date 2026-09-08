@@ -68,19 +68,33 @@ def extract_addr_structured(block):
         return ", ".join(parts)
     return clean_addr_text(block)
 
-def detect_form_type(text, filename=None):
-    """周年申报表类型识别：NN3（註冊非香港公司）与 NAR1（香港本地）共用同一套字段抽取逻辑，
-    仅 jurisdiction / 提醒规则不同。文件名优先（扫描件无正文时仍可判型），正文次之。"""
+def detect_form_kind(text=None, filename=None):
+    """统一 form 识别 (CI / BR / NAR1 / NN3)。文件名优先（扫描件无正文时仍可判型），正文次之。
+
+    设计:
+      - CI   公司注册证明书   → scripts/ci_recognize.recognize
+      - BR   商业登记证       → scripts/br_recognize.recognize (现有 schema) + 规整
+      - NAR1 周年申报表 (HK)  → parse_company / parse_secretary / parse_directors / parse_shareholders
+      - NN3  註冊非香港公司周年申报表 → 与 NAR1 同套流程，仅 jurisdiction 与提醒规则不同
+    """
     fn = (filename or "").upper()
+    if "CI" in fn.split("-") or re.search(r"(?:^|[^A-Z])CI(?:[_\-.]|INC|CERT|CERTIFICATE)", fn):
+        return "CI"
+    if "BR" in fn.split("-") or re.search(r"(?:^|[^A-Z])BR(?:[_\-.]|REGISTRATION)", fn):
+        return "BR"
     if "NN3" in fn:
         return "NN3"
     if "NAR1" in fn:
         return "NAR1"
-    t = text or ""
+    t = (text or "")
     if "註冊非香港公司周年申報表" in t or "NN3" in t.upper():
         return "NN3"
     if "周年申報表" in t or "NAR1" in t.upper():
         return "NAR1"
+    if "Certificate of Incorporation" in t or "公司註冊證書" in t or "公司註冊証明書" in t:
+        return "CI"
+    if "商業登記證" in t or "Business Registration Certificate" in t:
+        return "BR"
     # 兜底：本导入通道最初为 NAR1 设计，无明确信号时按 NAR1 处理
     return "NAR1"
 
@@ -372,17 +386,37 @@ def parse_shareholders(text):
     return out
 
 def recognize(path, render_scan=True):
-    pages_text = []
+    """formKind dispatcher: CI / BR / NAR1 / NN3.
+
+    - CI / BR → 子模块识别（结构化字段填充型）
+    - NAR1 / NN3 → 现有周年申报表多角色解析（实体创建型）
+
+    返回统一 schema: { formKind, company, documentAssociation, ... }，NAR1/NN3 多带 companySecretary/directors/shareholders。
+    """
+    # 文件级 dispatch：先看类型，避免先 parse NAR1 (慢)
+    text, n = load_text(path)
+    form_kind = detect_form_kind(text, os.path.basename(path))
+
+    if form_kind == "CI":
+        from ci_recognize import recognize as ci_recognize_inner
+        result = ci_recognize_inner(path, render_scan)
+        # 顶层加 formKind 兼容 key
+        result["formKind"] = "CI"
+        result.setdefault("formType", "CI")
+        return result
+
+    if form_kind == "BR":
+        return _recognize_br(path, n, render_scan)
+
+    # NAR1 / NN3 — 沿用原有解析
     pages_words = []
     with pdfplumber.open(path) as pdf:
         n = len(pdf.pages)
         for p in pdf.pages:
-            pages_text.append(p.extract_text() or "")
             pages_words.append(p.extract_words())
-    text = "\n".join(pages_text)
     scanned = is_scanned(path, text)
     scan_images = render_scan_pages(path) if (scanned and render_scan) else []
-    form_type = detect_form_type(text, os.path.basename(path))
+    form_type = form_kind  # 'NAR1' or 'NN3'
     company = parse_company(text)
     # NN3 = 註冊非香港公司周年申報表：内容/字段与 NAR1 基本一致，仅 jurisdiction 与提醒规则不同。
     # 复用同一套抽取逻辑；标 nonHongKongCompany 让后端走 HK_NN3_AR 提醒而非 HK_AR_42。
@@ -396,7 +430,8 @@ def recognize(path, render_scan=True):
     ar_filed = f"{sm.group(3)}-{int(sm.group(2)):02d}-{int(sm.group(1)):02d}" if sm else None
     return {
         "sourceFile": os.path.basename(path), "pages": n,
-        "formType": form_type,
+        "formKind": form_kind,
+        "formType": form_type,  # 兼容旧 key
         "scanned": scanned,
         "needsMultimodal": scanned,
         "scanImages": scan_images,
@@ -416,12 +451,80 @@ def recognize(path, render_scan=True):
         "gaps": {
             "registrationNumber": "已用 BR 号填充（决策 09-01：NAR1 不印 CR 号，CSMS registrationNumber 字段映射到 BR 号；如需 CR 号须从 CI 证回填）",
             "brNumber_field": "NAR1 有 BR 号；已同步到 registrationNumber + brNumber（双字段保留以便审计）",
-            "incorporationDate": "需 CI 注册证明书",
-            "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取）",
+            "incorporationDate": "需 CI 注册证明书（见 ci_recognize.py 抽取，已被 _recognize_ci 调用）",
+            "brExpiryDate": "需 BR 证（见 br_recognize.py 抽取，已被 _recognize_br 规整）",
             "financialYearEnd": "NAR1 通常空白",
             "director_appointmentDate": "NAR1 董事任命日期常空白，缺则无法填 Company.links.appointmentDate",
             "companyType_radio": "NAR1 公司类别单选框无法从文本可靠识别，需人工确认",
         },
+    }
+
+
+def _recognize_br(path, n, render_scan=True):
+    """规整 br_recognize.recognize() 的 schema 与 nar1_recognize 输出对齐。
+
+    br_recognize 既有 schema: { sourceFile, ocrStatus, fields:{brNumber, brExpiryDate, nameEnglish, nameChinese, ...} }
+    规整后: { formKind:'BR', formType:'BR', company:{name, nameChinese, registrationNumber, brExpiryDate, brIssueDate}, documentAssociation, gaps }
+    """
+    import br_recognize
+    rec = br_recognize.recognize(path)
+    fields = rec.get("fields") or {}
+    from datetime import datetime
+    def to_iso(d):
+        if not d:
+            return None
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", str(d)): return d
+        m = re.search(r"(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})", str(d))
+        if m:
+            d_, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            if y < 100: y += 2000
+            try: return datetime(y, mo, d_).strftime("%Y-%m-%d")
+            except Exception: return None
+        return None
+    br_expiry = to_iso(fields.get("brExpiryDate"))
+    br_commence = to_iso(fields.get("brCommencementDate"))
+    name = fields.get("nameEnglish")
+    name_zh = fields.get("nameChinese")
+    scanned = rec.get("ocrStatus") == "ocr_pending"
+    company = {
+        "name": name,
+        "nameChinese": name_zh,
+        "registrationNumber": fields.get("brNumber") or None,
+        "brNumber": fields.get("brNumber") or None,
+        "brExpiryDate": br_expiry,
+        "brIssueDate": br_commence,
+        "addressRaw": fields.get("addressRaw") or None,
+        "type": None,
+        "jurisdiction": "HK",
+        "status": "active",
+    }
+    scan_images = []
+    if scanned and render_scan:
+        scan_images = render_scan_pages(path)
+    return {
+        "sourceFile": rec.get("sourceFile") or os.path.basename(path),
+        "pages": n,
+        "formKind": "BR",
+        "formType": "BR",
+        "scanned": scanned,
+        "needsMultimodal": scanned or not fields.get("brExpiryDate"),
+        "scanImages": scan_images,
+        "narVersion": "scanned" if scanned else "text",
+        "company": company,
+        "documentAssociation": {
+            "scope": "company",
+            "docType": "BR",
+            "docTypeName": "商业登记证 Business Registration Certificate",
+            "issuedDate": br_commence,
+            "expiryDate": br_expiry,
+            "note": "BR 作为公司关联文件挂 Company 下；导入后自动回填 Company.brExpiryDate + BR 号；HK_BR_RENEW 提醒重排",
+        },
+        "gaps": {
+            "brExpiryDate": ("BR 证为扫描件，沙箱无 OCR；需 OCR 或人工注入"
+                              if scanned else "由 BR 证 Valid till / 届满日期抽取"),
+            "brNumber": ("扫描件：Value injected manually" if scanned else "由 BR 号抽取"),
+        },
+        "ocrStatus": rec.get("ocrStatus"),
     }
 
 def apply_injection(results, inject_path):

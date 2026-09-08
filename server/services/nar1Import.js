@@ -23,6 +23,8 @@ const Personnel = require('../models/Personnel')
 const Document = require('../models/Document')
 require('../models/Counter') // Document.generateDocNumber 内部依赖
 const { ensureCompanyReminders } = require('./complianceService')
+const ComplianceReminder = require('../models/ComplianceReminder')
+const ComplianceRule = require('../models/ComplianceRule')
 const { fuzzyMatch } = require('../utils/dedup')
 
 const COMPANY_TYPES = ['private_limited', 'public_limited', 'llp', 'sole_proprietorship', 'partnership', 'other']
@@ -120,7 +122,8 @@ function buildPlan(result) {
   }
   const da = (result && result.documentAssociation) || {}
   const year = da.year ? parseInt(da.year, 10) : undefined
-  const formType = (result && result.formType) || da.docType || 'NAR1'
+  const formKind = (result && (result.formKind || result.formType)) || da.docType || 'NAR1'
+  const formType = formKind // 兼容旧 key：plan.formType === plan.formKind
   return {
     company: {
       name: c.name || '(未识别公司名)',
@@ -140,16 +143,21 @@ function buildPlan(result) {
         }
         : undefined,
       incorporationDate: c.incorporationDate || undefined,
+      brExpiryDate: c.brExpiryDate || undefined,
+      brIssueDate: c.brIssueDate || undefined,
     },
     people,
     entities,
     formType,
+    formKind,
     document: {
-      name: `${formType} - ${c.name || '(未识别公司名)'} (${da.year || '—'})`,
+      name: `${formKind} - ${c.name || '(未识别公司名)'} (${da.year || '—'})`,
       year,
       madeUpDate: da.madeUpDate,
       filedDate: da.filedDate,
-      docType: formType,
+      expiryDate: da.expiryDate,
+      issuedDate: da.issuedDate,
+      docType: formKind,
       sourceFile: result && result.sourceFile,
     },
     narVersion: (result && result.narVersion) || undefined,
@@ -370,6 +378,42 @@ function upsertLink(company, { refId, linkModel, role, shares, shareType, mode }
 }
 
 /**
+ * 关闭某公司过去已过期/已达成条件的合规提醒（用于 NAR1 / BR / CI 导入后清理「待办」旧项）。
+ *
+ * @param {string} companyId  公司 _id
+ * @param {object} opts       { ruleIds:[...], reason:'imported_NAR1_2026' }
+ *
+ * 规则:
+ *   - 仅标 status:'已完成'（不是删除），保留审计轨迹；completedAt 记当前时间
+ *   - 仅 status='待办' 的会被关闭；已是'已完成'的跳过
+ *   - dueDate <= 今天 的关闭（"过去"的提醒）；未来的不动
+ *   - 同公司+同 ruleId 一年内关闭不超过 N（防误伤），N 默认 1
+ */
+async function closePastCompanyReminders(companyId, { ruleIds = [], reason = 'imported_doc' } = {}) {
+  if (!companyId || !Array.isArray(ruleIds) || !ruleIds.length) return { closed: 0 }
+  const today = new Date()
+  today.setHours(23, 59, 59, 999)
+  const rules = await ComplianceRule.find({ ruleId: { $in: ruleIds } }).select('_id ruleId')
+  if (!rules.length) return { closed: 0 }
+  const ruleIdsFound = rules.map((r) => r.ruleId)
+  const reminders = await ComplianceReminder.find({
+    company: companyId,
+    ruleId: { $in: ruleIdsFound },
+    status: '待办',
+    dueDate: { $lte: today },
+  }).limit(20)
+  let closed = 0
+  for (const r of reminders) {
+    r.status = '已完成'
+    r.completedAt = new Date()
+    r.completionNote = `[import] ${reason}`
+    await r.save()
+    closed++
+  }
+  return { closed }
+}
+
+/**
  * 提交单条导入
  * @param {object} opts
  * @param {object} opts.result  识别器原始结果
@@ -380,7 +424,13 @@ function upsertLink(company, { refId, linkModel, role, shares, shareType, mode }
 async function commitOne({ result, mode, userId, storage }) {
   if (mode === 'skip') return { status: 'skipped' }
   const plan = buildPlan(result)
-  const stats = { company: null, peopleCreated: 0, peopleUpdated: 0, entitiesCreated: 0, links: 0, document: null }
+  const formKind = plan.formKind || plan.formType || 'NAR1'
+  const stats = { company: null, peopleCreated: 0, peopleUpdated: 0, entitiesCreated: 0, links: 0, document: null, remindersClosed: 0, remindersRefreshed: 0 }
+
+  // CI / BR：纯字段填充，不创建新公司（除非公司不存在）
+  if (formKind === 'CI' || formKind === 'BR') {
+    return await commitCompanyDoc({ plan, mode, userId, storage, stats, formKind })
+  }
 
   const { company, action } = await upsertCompany(plan, mode, null)
   stats.company = { id: String(company._id), name: company.name, action }
@@ -467,19 +517,161 @@ async function commitOne({ result, mode, userId, storage }) {
   // 周年申报表导入闭环：提醒规则按表单类型分流
   // - NAR1（香港本地公司）：HK_AR_42 + HK_BR_RENEW
   // - NN3（註冊非香港公司）：HK_NN3_AR + HK_BR_RENEW
-  // ensure 只 generate 不删内部提醒，幂等；失败不阻断主流程（提醒可后补）。
+  // 关键改进：导入即关闭过期 open 提醒（不只是 ensure 新增），避免"两个一样文件"的视觉重复
   const isNN3 = (result && (result.formType === 'NN3' || (result.company && result.company.nonHongKongCompany)))
-  if (isNN3) {
-    try {
-      await ensureCompanyReminders(company._id, ['HK_NN3_AR', 'HK_BR_RENEW'])
-    } catch (e) {
-      console.warn('[周年申报表 import] ensure NN3 reminders failed:', e && e.message)
+  const targetRuleIds = isNN3 ? ['HK_NN3_AR'] : ['HK_AR_42']
+  // 1) 关闭过去的 open 提醒（这条 NAR1 就是"刚提交"的那个）
+  try {
+    const { closed } = await closePastCompanyReminders(company._id, {
+      ruleIds: targetRuleIds,
+      reason: `imported_${isNN3 ? 'NN3' : 'NAR1'}_${plan.document.year || (plan.document.madeUpDate || '').slice(0, 4) || ''}`,
+    })
+    stats.remindersClosed = closed
+  } catch (e) {
+    console.warn('[周年申报表 import] closePast failed:', e && e.message)
+  }
+  // 2) ensure 新一轮提醒（基于新数据计算下次到期日）
+  try {
+    await ensureCompanyReminders(company._id, [...targetRuleIds, 'HK_BR_RENEW'])
+    stats.remindersRefreshed = 1
+  } catch (e) {
+    console.warn('[周年申报表 import] ensure reminders failed:', e && e.message)
+  }
+
+  return { status: 'ok', stats }
+}
+
+/**
+ * CI / BR 提交：纯字段填充到现有公司，没有人员/股东写入。
+ * - CI: incorporationDate / name (Chinese) → 写到该公司
+ * - BR: brExpiryDate / brIssueDate / brNumber → 写到该公司
+ * - mode 行为：
+ *     skip → 不动
+ *     create → 仅在字段缺失时填充
+ *     overwrite → 直接覆盖（用户显式同意）
+ */
+async function commitCompanyDoc({ plan, mode, userId, storage, stats, formKind }) {
+  if (mode === 'skip') return { status: 'skipped' }
+  let company = null
+  // 1) 优先按 registrationNumber 匹配
+  const regNo = plan.company.registrationNumber
+  if (regNo) {
+    company = await Company.findOne({ registrationNumber: regNo })
+  }
+  // 2) 名称模糊兜底（CI/BR 经常无注册号）
+  if (!company && (plan.company.name || plan.company.nameChinese)) {
+    const fm = await findCompanyByNameFuzzy(plan.company.name, plan.company.nameChinese, { excludeRegno: regNo })
+    if (fm) company = await Company.findById(fm.company._id)
+  }
+  if (!company) {
+    // 公司未建档：CI/BR 默认不自动建公司，但允许在 mode=overwrite 时建
+    // 极少出现（通常 NAR1 已建）。这里返回清晰的错误，让用户先 import NAR1
+    return {
+      ok: false,
+      error: `${formKind} 导入需要已有公司档案：未找到 ${regNo ? `registrationNumber=${regNo}` : `name=${plan.company.name || plan.company.nameChinese}`} 的公司。请先导入 NAR1 或手动建档该公司。`,
+      stats,
     }
-  } else if (company.jurisdiction === 'HK' && !company.nonHongKongCompany) {
+  }
+
+  const patch = {}
+  if (formKind === 'CI') {
+    // incorporationDate / 公司名（中英）
+    if (plan.company.incorporationDate) patch.incorporationDate = new Date(plan.company.incorporationDate)
+    if (plan.company.name) {
+      if (mode === 'overwrite' || !company.name || /^\(.*\)$/.test(company.name)) patch.name = plan.company.name
+    }
+    if (plan.company.nameChinese) {
+      if (mode === 'overwrite' || !company.nameChinese) patch.nameChinese = plan.company.nameChinese
+    }
+  } else if (formKind === 'BR') {
+    if (plan.company.brExpiryDate) patch.brExpiryDate = new Date(plan.company.brExpiryDate)
+    if (plan.company.brIssueDate) patch.brIssueDate = new Date(plan.company.brIssueDate)
+    // BR 号：若已有则保留；当前 plan.registrationNumber 已被 BR 填充
+    if (regNo && !company.registrationNumber && mode !== 'skip') {
+      // 仅在缺号时回填 BR 号；NAR1 已建的有 CR/BR 号时不动
+      patch.registrationNumber = regNo
+      patch.regNoSource = patch.regNoSource || 'BR号(CI/BR 导入)'
+    }
+  }
+
+  const fieldsApplied = []
+  for (const [k, v] of Object.entries(patch)) {
+    if (v == null) continue
+    if (mode === 'create' && company[k] != null && k !== 'name') continue
+    company[k] = v
+    fieldsApplied.push(k)
+  }
+  await company.save()
+  stats.company = { id: String(company._id), name: company.name, action: 'updated', fieldsApplied, formKind }
+
+  // 2) 上传 BR/CI 原件为 Document 记录
+  const docName = plan.document.name
+  let doc = await Document.findOne({ name: docName, company: company._id })
+  if (doc && mode === 'create') {
+    stats.document = { action: 'exists', docNumber: doc.docNumber }
+  } else {
+    const description = [
+      `${formKind === 'CI' ? '公司注册证明书 Certificate of Incorporation' : '商业登记证 Business Registration Certificate'}`,
+      formKind === 'CI' ? `注册日: ${plan.company.incorporationDate || '-'}` : `届满日: ${plan.company.brExpiryDate || '-'} | 发出日: ${plan.company.brIssueDate || '-'}`,
+      `BR 号: ${plan.company.registrationNumber || '-'}`,
+      plan.document.sourceFile ? `来源文件: ${plan.document.sourceFile}` : '',
+    ].filter(Boolean).join('\n')
+    if (!doc) {
+      const docType = formKind === 'CI' ? 'certificate_of_incorporation' : 'business_registration'
+      const docNumber = await Document.generateDocNumber({
+        company, type: docType, year: undefined,
+      })
+      doc = await Document.create({
+        name: docName,
+        description,
+        type: docType,
+        category: formKind === 'CI' ? 'incorporation' : 'business_registration',
+        scope: 'company',
+        company: company._id,
+        uploadedBy: userId || undefined,
+        docNumber,
+        filename: storage && storage.key,
+        originalName: (storage && storage.originalName) || `${docName}.pdf`,
+        filepath: storage && storage.url,
+        fileUrl: storage && storage.url,
+        mimeType: (storage && storage.mimeType) || 'application/pdf',
+        fileSize: (storage && storage.size) || 0,
+        note: storage ? `由 ${formKind} 导入自动建立` : `由 ${formKind} 导入建立（未上传正文）`,
+      })
+      stats.document = { action: 'created', docNumber, id: String(doc._id) }
+    } else if (mode === 'overwrite' && storage) {
+      doc.description = description
+      doc.filename = storage.key
+      doc.filepath = storage.url
+      doc.fileUrl = storage.url
+      doc.fileSize = storage.size || 0
+      doc.mimeType = storage.mimeType || 'application/pdf'
+      await doc.save()
+      stats.document = { action: 'updated', docNumber: doc.docNumber, id: String(doc._id) }
+    }
+  }
+
+  // 3) BR/CI 导入后刷新合规提醒
+  if (formKind === 'BR') {
     try {
-      await ensureCompanyReminders(company._id, ['HK_AR_42', 'HK_BR_RENEW'])
+      const { closed } = await closePastCompanyReminders(company._id, {
+        ruleIds: ['HK_BR_RENEW'],
+        reason: `imported_BR_exp_${plan.company.brExpiryDate || 'pending'}`,
+      })
+      stats.remindersClosed += closed
+      await ensureCompanyReminders(company._id, ['HK_BR_RENEW'])
+      stats.remindersRefreshed += 1
     } catch (e) {
-      console.warn('[周年申报表 import] ensure reminders failed:', e && e.message)
+      console.warn('[BR import] reminder refresh failed:', e && e.message)
+    }
+  } else if (formKind === 'CI') {
+    // CI 写入了 incorporationDate：刷新 HK_AR_42 / HK_NN3_AR
+    try {
+      const ruleIds = (company.nonHongKongCompany || company.jurisdiction !== 'HK') ? ['HK_NN3_AR'] : ['HK_AR_42']
+      await ensureCompanyReminders(company._id, ruleIds)
+      stats.remindersRefreshed += 1
+    } catch (e) {
+      console.warn('[CI import] reminder refresh failed:', e && e.message)
     }
   }
 
@@ -490,7 +682,9 @@ module.exports = {
   buildPlan,
   detectConflicts,
   commitOne,
+  commitCompanyDoc,
+  closePastCompanyReminders,
   stableEntityRegNo,
   _internals: { pickRegNo, pickType, parseAddress, mapJurisdiction, roleGroups },
-  _models: { Company, Personnel, Document, mongoose },
+  _models: { Company, Personnel, Document, ComplianceReminder, ComplianceRule, mongoose },
 }

@@ -91,7 +91,7 @@ export default function Nar1ImportPage({ embedded = false }) {
       if (okCount < list.length) {
         notify.error(`${list.length - okCount} 份未能识别，详见列表`)
       } else {
-        notify.success(`已识别 ${okCount} 份 NAR1`)
+        notify.success(`已识别 ${okCount} 份`)
       }
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || '解析失败'
@@ -177,7 +177,7 @@ export default function Nar1ImportPage({ embedded = false }) {
           ) : engine?.ok ? (
             <p className="text-ink-2">
               解析引擎就绪（<span className="font-mono text-xs">{engine.python || 'python3'}</span> + pdfplumber）。
-              支持批量上传多份周年申报表（NAR1 / NN3）。
+              支持批量上传 NAR1 / NN3 / CI / BR 四类公司文件。
             </p>
           ) : (
             <div className="space-y-1">
@@ -343,12 +343,8 @@ export default function Nar1ImportPage({ embedded = false }) {
                         <>
                           <p className="font-medium text-ink-1 flex items-center gap-2">
                             {it.plan?.company?.name}
-                            {it.plan?.formType && (
-                              <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                                it.plan.formType === 'NN3'
-                                  ? 'bg-info/10 text-info'
-                                  : 'bg-ink-1/[0.06] text-ink-3'
-                              }`}>{it.plan.formType}</span>
+                            {it.plan?.formKind && (
+                              <FormKindBadge kind={it.plan.formKind} />
                             )}
                           </p>
                           {it.plan?.company?.nameChinese && (
@@ -360,12 +356,8 @@ export default function Nar1ImportPage({ embedded = false }) {
                         <>
                           <p className="font-medium text-ink-1 flex items-center gap-2">
                             {it.fileName}
-                            {it.result?.formType && (
-                              <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                                it.result.formType === 'NN3'
-                                  ? 'bg-info/10 text-info'
-                                  : 'bg-ink-1/[0.06] text-ink-3'
-                              }`}>{it.result.formType}</span>
+                            {it.result?.formKind && (
+                              <FormKindBadge kind={it.result.formKind} />
                             )}
                           </p>
                           <p className="text-xs text-danger">{it.error}</p>
@@ -507,6 +499,24 @@ function countByRole(plan, role) {
   if (!plan) return 0
   return (plan.people || []).filter((p) => p.role === role).length +
     (plan.entities || []).filter((e) => e.role === role).length
+}
+
+// NAR1 / NN3 / CI / BR 四种类徽章；颜色按合规语义：CI=已注册 primary / NN3=非港 info / BR=待续 warning / NAR1=brand
+const KIND_BADGE_CLASS = {
+  NAR1: 'bg-primary-50 text-primary-700',
+  NN3: 'bg-info/10 text-info',
+  CI: 'bg-success/10 text-success',
+  BR: 'bg-warning/10 text-warning',
+}
+function FormKindBadge({ kind }) {
+  if (!kind) return null
+  const cls = KIND_BADGE_CLASS[kind] || 'bg-ink-1/[0.06] text-ink-3'
+  const label = { NAR1: 'NAR1', NN3: 'NN3', CI: 'CI 注册证', BR: 'BR 商业登记证' }[kind] || kind
+  return (
+    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${cls}`}>
+      {label}
+    </span>
+  )
 }
 
 function ConflictNotes({ conflicts }) {
