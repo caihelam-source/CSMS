@@ -249,7 +249,7 @@ export default function Dashboard() {
         </div>
 
         {/* 公告走马灯：自动轮播运营重点（悬停暂停 / 指示点跳转 / reduced-motion 关闭自动播放） */}
-        <Carousel items={ANNOUNCEMENTS} className="mb-6" />
+        <Carousel items={ANNOUNCEMENTS} className="mb-6" aspect="aspect-[5/3] md:aspect-[2.5/1]" />
 
         {/* 快捷操作：状态入口 + 创建入口，全部可点 */}
         <div className="dash-eyebrow dash-eyebrow--plain">
