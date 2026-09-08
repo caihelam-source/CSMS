@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   FileUp, AlertTriangle, CheckCircle2, XCircle, Loader2, Building2,
-  FileText, RefreshCw, ShieldAlert, ScanLine, CloudOff,
+  FileText, RefreshCw, ShieldAlert, ScanLine, CloudOff, ChevronRight,
 } from 'lucide-react'
 import { nar1ImportService } from '../services/index.js'
 import { notify } from '../services/notify'
@@ -325,6 +325,17 @@ export default function Nar1ImportPage({ embedded = false }) {
                         <>
                           <p className="font-medium text-ink-1">{it.fileName}</p>
                           <p className="text-xs text-danger">{it.error}</p>
+                          {it.detail && (
+                            <details className="mt-1 group">
+                              <summary className="flex cursor-pointer list-none select-none items-center gap-0.5 text-[11px] text-ink-3 transition-colors hover:text-ink-1">
+                                技术详情（识别器 stderr）
+                                <ChevronRight size={12} className="transition-transform group-open:rotate-90" />
+                              </summary>
+                              <pre className="mt-1 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-ink-1/[0.04] p-2 font-mono text-[11px] leading-relaxed text-ink-2">
+{it.detail}
+                              </pre>
+                            </details>
+                          )}
                         </>
                       )}
                     </td>
