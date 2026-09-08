@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
-import toast from 'react-hot-toast'
+import { notify } from "../services/notify"
 import { Building2, Plus, Pencil, Trash2, Upload, Download, FileUp, ShieldCheck, GitMerge, AlertTriangle } from 'lucide-react'
 import { companyService } from '../services/index.js'
 import { formatDate, getStatusColor } from '../utils/helpers'
@@ -139,7 +139,7 @@ export default function Companies() {
       const { data } = await companyService.getAll()
       setCompanies(data.data || [])
     } catch {
-      toast.error('Failed to load companies')
+      notify.error('Failed to load companies')
     } finally {
       setLoading(false)
     }
@@ -174,15 +174,15 @@ export default function Companies() {
       if (editTarget) {
         const { data } = await companyService.update(editTarget._id, form)
         setCompanies(cs => cs.map(c => c._id === editTarget._id ? data.data : c))
-        toast.success('Company updated')
+        notify.success('Company updated')
       } else {
         const { data } = await companyService.create(form)
         setCompanies(cs => [data.data, ...cs])
-        toast.success('Company created')
+        notify.success('Company created')
       }
       setModal(null)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Save failed')
+      notify.error(err.response?.data?.message || 'Save failed')
     } finally {
       setSaving(false)
     }
@@ -194,9 +194,9 @@ export default function Companies() {
     try {
       if (!isDemo) await companyService.delete(deleteTarget._id)
       setCompanies(cs => cs.filter(c => c._id !== deleteTarget._id))
-      toast.success('Company deleted')
+      notify.success('Company deleted')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed')
+      notify.error(err.response?.data?.message || 'Delete failed')
     } finally {
       setSaving(false)
       setDeleteTarget(null)
@@ -249,7 +249,7 @@ export default function Companies() {
       }
       setImportResult({ success: true, created, skipped, errors })
       fetchCompanies()
-      toast.success(`导入完成：新增 ${created} 家，跳过 ${skipped} 家`)
+      notify.success(`导入完成：新增 ${created} 家，跳过 ${skipped} 家`)
     } catch (err) {
       setImportResult({ success: false, message: err.message || '导入失败' })
     }
@@ -271,7 +271,7 @@ export default function Companies() {
       const { data } = await companyService.duplicates({ fuzzyThreshold: dupThreshold })
       setDupPairs(data?.data?.pairs || data?.pairs || [])
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || '检测失败')
+      notify.error(err.response?.data?.message || err.message || '检测失败')
     } finally {
       setDupLoading(false)
     }
@@ -286,11 +286,11 @@ export default function Companies() {
     setMergeBusy(pairIdx)
     try {
       await companyService.merge(src._id, { targetCompanyId: tgt._id, options })
-      toast.success(`已合并：${src.name} → ${tgt.name}`)
+      notify.success(`已合并：${src.name} → ${tgt.name}`)
       setDupPairs((ps) => ps.filter((_, i) => i !== pairIdx))
       fetchCompanies()
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || '合并失败')
+      notify.error(err.response?.data?.message || err.message || '合并失败')
     } finally {
       setMergeBusy(null)
     }
@@ -317,7 +317,7 @@ export default function Companies() {
     setDupPairs([])
     setMergeBusy(null)
     setMergingAll(false)
-    toast.success(`批量合并：${success} 成功 / ${failed} 失败`)
+    notify.success(`批量合并：${success} 成功 / ${failed} 失败`)
     fetchCompanies()
   }, [dupPairs, fetchCompanies])
 

@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import toast from 'react-hot-toast'
 import {
   FileUp, AlertTriangle, CheckCircle2, XCircle, Loader2, Building2,
-  FileText, RefreshCw, ShieldAlert, ScanLine,
+  FileText, RefreshCw, ShieldAlert, ScanLine, CloudOff,
 } from 'lucide-react'
 import { nar1ImportService } from '../services/index.js'
+import { notify } from '../services/notify'
 import { PageHeader, LoadingSpinner } from '../components/UIHelpers'
 import { useAuth } from '../contexts/AuthContext.jsx'
 
@@ -32,6 +32,7 @@ export default function Nar1ImportPage({ embedded = false }) {
   const [uploadPct, setUploadPct] = useState(0)
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef(null)
+  const [coldStart, setColdStart] = useState(false) // 后端休眠冷启动中（C 状态卡）
 
   // ── 引擎可用性探测 ──
   const checkEngine = useCallback(async () => {
@@ -52,7 +53,7 @@ export default function Nar1ImportPage({ embedded = false }) {
   const addFiles = (list) => {
     const pdfs = Array.from(list || []).filter((f) => /\.pdf$/i.test(f.name))
     if (pdfs.length !== (list ? list.length : 0)) {
-      toast('已忽略非 PDF 文件', { icon: '⚠️' })
+      notify('已忽略非 PDF 文件', { icon: '⚠️' })
     }
     if (!pdfs.length) return
     setFiles((prev) => {
@@ -87,13 +88,14 @@ export default function Nar1ImportPage({ embedded = false }) {
       setPhase('review')
       const okCount = list.filter((i) => i.ok).length
       if (okCount < list.length) {
-        toast.error(`${list.length - okCount} 份未能识别，详见列表`)
+        notify.error(`${list.length - okCount} 份未能识别，详见列表`)
       } else {
-        toast.success(`已识别 ${okCount} 份 NAR1`)
+        notify.success(`已识别 ${okCount} 份 NAR1`)
       }
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || '解析失败'
-      toast.error(msg)
+      if (err.isColdStart) setColdStart(true) // C：后端冷启动 → 状态卡替代硬红条
+      notify.error(msg)
       setPhase('idle')
     }
   }
@@ -103,16 +105,17 @@ export default function Nar1ImportPage({ embedded = false }) {
     const payload = items
       .filter((it) => it.mode !== 'skip' && it.ok)
       .map((it) => ({ id: it.id, fileName: it.fileName, mode: it.mode, result: it.result, storage: it.storage }))
-    if (!payload.length) { toast('没有需要导入的项目'); return }
+    if (!payload.length) { notify('没有需要导入的项目'); return }
     setPhase('committing')
     try {
       const res = await nar1ImportService.commit(payload)
       setCommitResult(res)
       setPhase('done')
       const s = res?.summary || {}
-      toast.success(`导入完成：成功 ${s.imported || 0}，失败 ${s.failed || 0}`)
+      notify.success(`导入完成：成功 ${s.imported || 0}，失败 ${s.failed || 0}`)
     } catch (err) {
-      toast.error(err?.response?.data?.message || err?.message || '导入失败')
+      if (err.isColdStart) setColdStart(true) // C：后端冷启动 → 状态卡替代硬红条
+      notify.error(err?.response?.data?.message || err?.message || '导入失败')
       setPhase('review')
     }
   }
@@ -187,6 +190,29 @@ export default function Nar1ImportPage({ embedded = false }) {
           )}
         </div>
       </div>
+
+      {/* 后端冷启动状态卡（C）：替代硬红 toast，提示用户等待并支持手动重试 */}
+      {coldStart && (
+        <div className="card border-l-4 border-l-info bg-info/5 flex items-start gap-3">
+          <CloudOff size={18} className="text-info mt-0.5 shrink-0" />
+          <div className="text-sm flex-1">
+            <p className="font-medium text-ink-1">后端正在从休眠唤醒</p>
+            <p className="text-ink-2">
+              Render 免费套餐冷启动约需 30-60 秒。所选文件已保留，可点击下方按钮重试，或稍候片刻自动恢复。
+            </p>
+            <button
+              onClick={() => {
+                setColdStart(false)
+                if (phase === 'review') runCommit()
+                else if (files.length) runParse()
+              }}
+              className="btn-secondary text-xs mt-2 flex items-center gap-1.5"
+            >
+              <RefreshCw size={13} /> 重试
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 上传区 */}
       {phase === 'idle' && (

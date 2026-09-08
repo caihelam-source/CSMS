@@ -18,12 +18,34 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    // 网络错误 / 超时：给出可操作提示，而非笼统「登录失败」
+  async (err) => {
+    const cfg = err.config || {}
+
+    // 1) 超时：免费套餐冷启动常见，给温和提示
     if (err.code === 'ECONNABORTED' || /timeout/i.test(err.message || '')) {
       err.message = '请求超时。若使用免费套餐，后端可能正在冷启动（约 30-60 秒），请稍后重试。'
-    } else if (!err.response && err.code === 'ERR_NETWORK') {
-      err.message = '无法连接服务器，请确认后端 claw-api 已启动且 VITE_API_BASE 配置正确。'
+      return Promise.reject(err)
+    }
+
+    // 2) 网络错误 / CORS 被拒（err.response 为 undefined）：多为 Render 免费套餐休眠唤醒失败
+    //    浏览器读不到被 CORS 拦截的 503 响应头，统一在此处理：自动重试一次，命中冷启动即活。
+    if (!err.response && err.code === 'ERR_NETWORK') {
+      if (!cfg.__retryCount) {
+        cfg.__retryCount = 1
+        const delay = cfg.__retryDelay || 6000
+        await new Promise((r) => setTimeout(r, delay))
+        try {
+          return await api(cfg)
+        } catch (e2) {
+          err = e2 // 重试仍失败，继续向下统一提示
+        }
+      }
+      // 统一文案（不再误判 VITE_API_BASE 配错——实测线上该变量已正确指向 claw-api-5zq7）
+      err.isColdStart = true
+      err.message =
+        '后端暂时无法连接——很可能是 Render 免费套餐处于休眠冷启动（约 30-60 秒），请稍候重试；' +
+        '若持续失败请确认 Atlas MONGODB_URI 有效、且后端已部署。'
+      return Promise.reject(err)
     }
 
     if (err.response?.status === 401) {
