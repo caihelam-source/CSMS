@@ -143,8 +143,8 @@ export default function Nar1ImportPage({ embedded = false }) {
     <div className={embedded ? 'space-y-4' : 'space-y-6'}>
       {!embedded && (
         <PageHeader
-          title="周年申报表导入"
-          subtitle="上传香港公司周年申报表（NAR1 / NN3 註冊非香港公司），自动建档公司、董事、秘书与股东"
+          title="公司文件导入"
+          subtitle="支持周年申报表（NAR1 / NN3）、公司注册证明书（CI）、商业登记证（BR）一次性上传，自动识别字段回填到对应公司"
           icon={FileUp}
           actions={
             phase !== 'idle' && (
@@ -230,8 +230,8 @@ export default function Nar1ImportPage({ embedded = false }) {
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click() }}
         >
           <FileUp size={34} className="mx-auto text-ink-3 mb-3" />
-          <p className="font-medium text-ink-1">拖拽周年申报表文件到这里，或点击选择</p>
-          <p className="text-sm text-ink-3 mt-1">支持一次选择多份 PDF（单次最多 20 份，每份 ≤ 30MB）</p>
+          <p className="font-medium text-ink-1">拖拽公司文件到这里，或点击选择</p>
+          <p className="text-sm text-ink-3 mt-1">支持 NAR1 / NN3 / CI / BR（自动识别文件类型），单次最多 20 份 PDF，每份 ≤ 30MB</p>
           <input
             ref={inputRef}
             type="file"
@@ -272,7 +272,7 @@ export default function Nar1ImportPage({ embedded = false }) {
         <div className="card flex items-center gap-3">
           <Loader2 size={20} className="animate-spin text-primary-600" />
           <div className="text-sm">
-            <p className="font-medium text-ink-1">正在识别 {files.length} 份周年申报表…</p>
+            <p className="font-medium text-ink-1">正在识别 {files.length} 份文件…</p>
             <p className="text-ink-3 text-xs">每份约需 3-8 秒{uploadPct ? `，上传 ${uploadPct}%` : ''}</p>
           </div>
         </div>
