@@ -54,7 +54,7 @@ export default function Carousel({ items = [], autoPlay = 5000, showDots = true,
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
           {items.map((_, i) => (
             <button key={i} onClick={() => setIndex(i)} aria-label={`第 ${i + 1} 张`}
-              className={cx('h-2 rounded-full transition-all tap-target', i === index ? 'w-5 bg-white' : 'w-2 bg-white/50 hover:bg-white/80')} />
+              className={cx('h-2 rounded-full transition-all', i === index ? 'w-5 bg-white' : 'w-2 bg-white/50 hover:bg-white/80')} />
           ))}
         </div>
       )}
