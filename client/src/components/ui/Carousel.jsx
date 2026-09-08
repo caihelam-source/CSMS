@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 const cx = (...a) => a.filter(Boolean).join(' ')
 
-export default function Carousel({ items = [], autoPlay = 5000, showDots = true, showArrows = true, className = '', aspect = 'aspect-[5/3] md:aspect-[16/9]' }) {
+export default function Carousel({ items = [], autoPlay = 5000, showDots = true, showArrows = true, className = '', aspect = 'aspect-[5/3] md:aspect-[16/9]', compact = false }) {
   const [index, setIndex] = useState(0)
   const n = items.length
   const pauseRef = useRef(false)
@@ -28,10 +28,10 @@ export default function Carousel({ items = [], autoPlay = 5000, showDots = true,
           <div key={i} aria-hidden={i !== index} className="relative w-full h-full shrink-0"
             style={{ background: it.bg || 'linear-gradient(135deg, rgb(var(--brand-navy)), rgb(var(--blue-600)))' }}>
             {it.image && <img src={it.image} alt="" className="absolute inset-0 w-full h-full object-cover" />}
-            <div className="absolute inset-0 flex flex-col justify-center gap-2 p-6 md:p-10 text-white">
-              {it.eyebrow && <span className="text-xs font-bold tracking-widest uppercase opacity-80">{it.eyebrow}</span>}
-              {it.title && <h3 className="text-xl md:text-2xl font-bold max-w-xl">{it.title}</h3>}
-              {it.subtitle && <p className="text-sm md:text-base opacity-90 max-w-xl line-clamp-2">{it.subtitle}</p>}
+            <div className={cx('absolute inset-0 flex flex-col justify-center text-white', compact ? 'gap-0.5 p-3 md:p-5' : 'gap-2 p-6 md:p-10')}>
+              {it.eyebrow && <span className={cx('font-bold tracking-widest uppercase opacity-80', compact ? 'text-[10px] md:text-xs' : 'text-xs')}>{it.eyebrow}</span>}
+              {it.title && <h3 className={cx('font-bold max-w-xl', compact ? 'text-sm md:text-lg' : 'text-xl md:text-2xl')}>{it.title}</h3>}
+              {it.subtitle && <p className={cx('opacity-90 max-w-xl', compact ? 'text-[11px] md:text-sm line-clamp-1' : 'text-sm md:text-base line-clamp-2')}>{it.subtitle}</p>}
               {it.actionHref && it.actionLabel && (
                 <a href={it.actionHref} className="mt-2 inline-flex w-fit items-center gap-2 px-4 py-2 rounded-full bg-white font-semibold text-sm hover:scale-[1.03] transition-transform"
                   style={{ color: 'rgb(var(--brand-navy))' }}>{it.actionLabel}</a>

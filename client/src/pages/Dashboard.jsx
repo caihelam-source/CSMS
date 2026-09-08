@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { companyService, personnelService, documentService, meetingService, complianceReminderService, templateService, taskService, calendarService } from '../services/index.js'
+import { companyService, personnelService, documentService, meetingService, complianceReminderService, templateService, taskService, calendarService, announcementService } from '../services/index.js'
 import { formatDate } from '../utils/helpers'
 import { toArray } from '../utils/responseNormalize.js'
 import { LoadingSpinner, EmptyState } from '../components/UIHelpers'
@@ -57,6 +57,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [lastRefreshed, setLastRefreshed] = useState(null)
   const [bannerVariant, setBannerVariant] = useState(() => localStorage.getItem(BANNER_KEY) || 'light')
+  // 首页公告走马灯：初始用静态默认值占位，挂载后由公告 API 覆盖（管理员可后台编辑）
+  const [announcements, setAnnouncements] = useState(ANNOUNCEMENTS)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -126,6 +128,18 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => { loadAll() }, [loadAll])
+
+  // 首页公告：挂后由公告 API 覆盖静态占位（管理员后台可编辑；mock 下回退默认 3 条）
+  useEffect(() => {
+    let alive = true
+    announcementService.getActive()
+      .then((res) => {
+        const list = res?.data?.data
+        if (alive && Array.isArray(list) && list.length) setAnnouncements(list)
+      })
+      .catch(() => { /* 失败保留静态占位，不影响首页 */ })
+    return () => { alive = false }
+  }, [])
 
   // 日历聚合：本月 + 未来 14 天的未完成事件（逾期 + 待办），作为 Dashboard「打开即见」提醒面
   useEffect(() => {
@@ -248,8 +262,20 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 公告走马灯：自动轮播运营重点（悬停暂停 / 指示点跳转 / reduced-motion 关闭自动播放） */}
-        <Carousel items={ANNOUNCEMENTS} className="mb-6" aspect="aspect-[5/3] md:aspect-[2.5/1]" />
+        {/* 公告走马灯：自动轮播运营重点（悬停暂停 / 指示点跳转 / reduced-motion 关闭自动播放）
+            高度收紧为原来的 1/3（移动 5:1 / 桌面 7.5:1），compact 缩小内边距与字号 */}
+        <Carousel
+          items={announcements.map((a) => ({
+            eyebrow: a.eyebrow,
+            title: a.title,
+            subtitle: a.subtitle,
+            actionHref: a.link || undefined,
+            actionLabel: a.linkText || undefined,
+          }))}
+          className="mb-6"
+          aspect="aspect-[5/1] md:aspect-[7.5/1]"
+          compact
+        />
 
         {/* 快捷操作：状态入口 + 创建入口，全部可点 */}
         <div className="dash-eyebrow dash-eyebrow--plain">

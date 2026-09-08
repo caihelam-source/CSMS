@@ -1822,3 +1822,47 @@ export const calendar = {
     return { data: { data: { success: true } } }
   },
 };
+
+// ====== Announcements（首页公告走马灯 · 前端 mock）======
+// 默认 3 条与后端 initialize 种子一致；后台 CRUD 走内存数组，保证演示可编辑。
+const MOCK_ANNOUNCEMENTS = [
+  { _id: 'a1', eyebrow: '合规提醒', title: '周年申报表（NAR1）提交期限将至？', subtitle: '及时提交避免罚款，可在「合规提醒」一键生成关联任务并追踪进度。', link: '', linkText: '', active: true, order: 1 },
+  { _id: 'a2', eyebrow: '文件归档', title: 'NAR1 / BR 证书一键归档至公司档案', subtitle: '上传即自动创建公司与人员关联，三层去重杜绝重复实体。', link: '', linkText: '', active: true, order: 2 },
+  { _id: 'a3', eyebrow: '日程聚合', title: '合规、任务、会议、到期——一屏掌握', subtitle: '日历聚合视图按月份汇总全部待办来源，不再错过任何节点。', link: '', linkText: '', active: true, order: 3 },
+];
+
+export const announcements = {
+  getActive: async () => {
+    await delay();
+    const list = MOCK_ANNOUNCEMENTS.filter((a) => a.active).sort((x, y) => x.order - y.order);
+    return { data: { data: list } };
+  },
+  getAll: async () => {
+    await delay();
+    const list = [...MOCK_ANNOUNCEMENTS].sort((x, y) => x.order - y.order);
+    return { data: { data: list } };
+  },
+  create: async (data = {}) => {
+    await delay();
+    const neu = { _id: 'a' + Date.now(), eyebrow: data.eyebrow || '', title: data.title || '', subtitle: data.subtitle || '', link: data.link || '', linkText: data.linkText || '', active: data.active !== false, order: Number(data.order) || 0 };
+    MOCK_ANNOUNCEMENTS.push(neu);
+    return { data: { data: neu } };
+  },
+  update: async (id, data = {}) => {
+    await delay();
+    const idx = MOCK_ANNOUNCEMENTS.findIndex((a) => a._id === id);
+    if (idx === -1) throw new Error('公告不存在');
+    MOCK_ANNOUNCEMENTS[idx] = { ...MOCK_ANNOUNCEMENTS[idx], ...data };
+    return { data: { data: MOCK_ANNOUNCEMENTS[idx] } };
+  },
+  remove: async (id) => {
+    await delay();
+    const idx = MOCK_ANNOUNCEMENTS.findIndex((a) => a._id === id);
+    if (idx >= 0) MOCK_ANNOUNCEMENTS.splice(idx, 1);
+    return { data: { data: { _id: id } } };
+  },
+  initialize: async () => {
+    await delay();
+    return { data: { data: [...MOCK_ANNOUNCEMENTS] } };
+  },
+};

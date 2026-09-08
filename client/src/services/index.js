@@ -17,6 +17,7 @@ import {
   audit as mockAudit,
   schedules as mockSchedules,
   calendar as mockCalendar,
+  announcements as mockAnnouncements,
 } from './mock.js'
 
 // 生产环境通过 VITE_USE_MOCK=false 注入真实 API 模式
@@ -721,4 +722,37 @@ export const nar1ImportService = {
     const res = await api.post('/api/nar1-import/commit', { items }, { timeout: 300000 })
     return res.data
   },
+}
+
+// ====== Announcement Service（首页公告走马灯）======
+// 前台 GET /api/announcements（公开，仅 active）；后台 GET/POST/PUT/DELETE /all、/:id（adminAuth）。
+// mock：返回默认 3 条，保证演示/开发体验一致。
+export const announcementService = {
+  // 前台读取（Dashboard 轮播用）
+  getActive: wrap(
+    () => api.get('/api/announcements'),
+    mockAnnouncements.getActive,
+  ),
+  // 后台读取（含 inactive）
+  getAll: wrap(
+    () => api.get('/api/announcements/all'),
+    mockAnnouncements.getAll,
+  ),
+  create: wrap(
+    (data) => api.post('/api/announcements', data),
+    mockAnnouncements.create,
+  ),
+  update: wrap(
+    (id, data) => api.put(`/api/announcements/${id}`, data),
+    mockAnnouncements.update,
+  ),
+  remove: wrap(
+    (id) => api.delete(`/api/announcements/${id}`),
+    mockAnnouncements.remove,
+  ),
+  // 初始化默认公告（库为空时种子）
+  initialize: wrap(
+    () => api.post('/api/announcements/initialize'),
+    mockAnnouncements.initialize,
+  ),
 }
