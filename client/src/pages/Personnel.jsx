@@ -12,7 +12,6 @@ import { validate, required, email as emailValidator } from '../utils/validators
 import { useConfirm } from '../components/ConfirmDialog'
 import Modal from '../components/Modal'
 import VirtualList from '../components/VirtualList'
-import SwipeRow from '../components/SwipeRow'
 import SelectionBar from '../components/SelectionBar'
 
 const EMPTY_FORM = { name: '', nric: '', email: '', phone: '', nationality: '', address: { country: '' } }
@@ -27,50 +26,98 @@ const ROLE_LABELS = { director: '董事', alternate_director: '替任董事', sh
 const roleLabel = (r) => ROLE_LABELS[r] || r
 
 // 列表行抽成 memo 组件：父组件状态变更时仅数据/选中态变化的行会重渲染
+// - 移动端 (09-08 调整): 移除 SwipeRow 包装，采用与 CompanyCard 一致的「内联图标」方案，
+//   卡片右侧永远显示编辑/删除图标（44px tap-target），无预告条视觉噪音。
+// - 长按 500ms 进选择态 → 触发 onToggleSelect（与 SelectionBar 配合），
+//   食指明显移动 (|dx|>10 || |dy|>10) 自动取消；长按后的 click 通过 onClickCapture 吞掉，
+//   避免同时跳转到详情页。
 const PersonRow = memo(function PersonRow({ person: p, onEdit, onDelete, onToggleSelect, style }) {
   const display = formatPersonName(p)
   const avatarChar = personInitial(p)
+  const longPressTimer = useRef(null)
+  const longPressedRef = useRef(false)
+  const startX = useRef(0)
+  const startY = useRef(0)
+  useEffect(() => () => { if (longPressTimer.current) clearTimeout(longPressTimer.current) }, [])
+
+  const onPointerDown = (e) => {
+    startX.current = e.clientX
+    startY.current = e.clientY
+    longPressedRef.current = false
+    if (p.selected) return  // 已选中：长按不再触发 onToggleSelect
+    longPressTimer.current = setTimeout(() => {
+      longPressTimer.current = null
+      longPressedRef.current = true
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15)
+      onToggleSelect(p._id)
+    }, 500)
+  }
+  const onPointerMove = (e) => {
+    if (!longPressTimer.current) return
+    const dx = Math.abs(e.clientX - startX.current)
+    const dy = Math.abs(e.clientY - startY.current)
+    if (dx > 10 || dy > 10) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
+  const onPointerEnd = () => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+  }
+  const onClickCapture = (e) => {
+    if (longPressedRef.current) {
+      e.preventDefault()
+      e.stopPropagation()
+      longPressedRef.current = false
+    }
+  }
+
   return (
-    <SwipeRow
+    <div
       style={style}
-      className={`card hover:shadow-md transition-shadow ${p.selected ? 'ring-2 ring-primary-500' : ''} ${p.dupCount ? 'border-l-4 border-l-yellow-400' : ''}`}
-      actions={[
-        { key: 'edit', label: `编辑 ${p.name}`, icon: Pencil, tone: 'primary', onClick: () => onEdit(p) },
-        { key: 'delete', label: `删除 ${p.name}`, icon: Trash2, tone: 'danger', onClick: () => onDelete(p) },
-      ]}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerEnd}
+      onPointerCancel={onPointerEnd}
+      onClickCapture={onClickCapture}
+      className={`card hover:shadow-md transition-shadow flex items-center gap-3 ${p.selected ? 'ring-2 ring-primary-500' : ''} ${p.dupCount ? 'border-l-4 border-l-yellow-400' : ''}`}
     >
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <input type="checkbox" checked={p.selected} onChange={() => onToggleSelect(p._id)}
-          className="w-4 h-4 text-primary-600 rounded shrink-0" aria-label={`选择 ${p.name}`} />
-        <Link to={`/personnel/${p._id}`} className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold shrink-0">
-            {avatarChar}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-primary-600 hover:underline">{display}</p>
-              {p.dupCount > 0 && (
-                <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0" title="Duplicate detected">
-                  <AlertTriangle size={10} /> {p.dupCount}
-                </span>
-              )}
-            </div>
-            {p.roles?.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-0.5">
-                {p.roles.map(r => (
-                  <span key={r} className="tag bg-primary-50 text-primary-700">{roleLabel(r)}</span>
-                ))}
-              </div>
+      <input type="checkbox" checked={p.selected} onChange={() => onToggleSelect(p._id)}
+        className="w-4 h-4 text-primary-600 rounded shrink-0 ml-1" aria-label={`选择 ${p.name}`} />
+      <Link to={`/personnel/${p._id}`} className="flex items-center gap-3 flex-1 min-w-0 py-2">
+        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold shrink-0">
+          {avatarChar}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-primary-600 hover:underline">{display}</p>
+            {p.dupCount > 0 && (
+              <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0" title="Duplicate detected">
+                <AlertTriangle size={10} /> {p.dupCount}
+              </span>
             )}
-            <div className="flex gap-2 text-xs text-ink-3 truncate">
-              {p.nric && <span>{p.nric}</span>}
-              {p.nationality && <span>· {p.nationality}</span>}
-              {p.email && <span>· {p.email}</span>}
-            </div>
           </div>
-        </Link>
+          {p.roles?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {p.roles.map(r => (
+                <span key={r} className="tag bg-primary-50 text-primary-700">{roleLabel(r)}</span>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2 text-xs text-ink-3 truncate">
+            {p.nric && <span>{p.nric}</span>}
+            {p.nationality && <span>· {p.nationality}</span>}
+            {p.email && <span>· {p.email}</span>}
+          </div>
+        </div>
+      </Link>
+      {/* 内联操作按钮 — 与 CompanyCard 底部图标一致的「永远可见」方案
+          (吞 click 防止穿透触发 Link 跳转，参考 CompanyCard line 77) */}
+      <div className="flex items-center gap-1 pr-2 shrink-0" onClick={e => e.preventDefault()}>
+        <button type="button" onClick={() => onEdit(p)} className="p-2 text-ink-3 hover:text-primary-600 rounded-lg hover:bg-canvas tap-target" aria-label={`编辑 ${p.name}`}><Pencil size={16} /></button>
+        <button type="button" onClick={() => onDelete(p)} className="p-2 text-ink-3 hover:text-danger rounded-lg hover:bg-canvas tap-target" aria-label={`删除 ${p.name}`}><Trash2 size={16} /></button>
       </div>
-    </SwipeRow>
+    </div>
   )
 })
 
