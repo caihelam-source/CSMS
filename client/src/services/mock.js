@@ -1320,6 +1320,28 @@ export const complianceRules = {
     const totalMissing = Object.values(byField).reduce((a, b) => a + b, 0);
     return { data: { data: { companies: list, companiesWithGaps, totalCompanies: list.length, summary: { byField, totalMissing } } } };
   },
+  // mock 批量更新：返回与真实后端 PATCH /batch-status 一致的 { success, matched, modified, scope, rules }
+  batchUpdateStatus: async ({ ids, jurisdiction, status } = {}) => {
+    await delay();
+    const VALID = ['启用', '停用'];
+    if (!VALID.includes(status)) throw new Error(`status 必须是 ${VALID.join('|')}`);
+    let targets;
+    let scope = '';
+    if (Array.isArray(ids) && ids.length) {
+      scope = `ids(${ids.length})`;
+      targets = MOCK_COMPLIANCE_RULES.filter(r => ids.includes(r._id));
+    } else if (jurisdiction) {
+      scope = `jurisdiction=${jurisdiction}`;
+      targets = MOCK_COMPLIANCE_RULES.filter(r => r.jurisdiction === jurisdiction);
+    } else {
+      throw new Error('ids / jurisdiction 至少传一个');
+    }
+    let modified = 0;
+    for (const r of targets) {
+      if (r.status !== status) { r.status = status; modified++; }
+    }
+    return { data: { data: { success: true, matched: targets.length, modified, scope, rules: targets.map(r => ({ _id: r._id, ruleName: r.ruleName, jurisdiction: r.jurisdiction, status: r.status })) } } };
+  },
 };
 
 // ====== Compliance Reminders ======

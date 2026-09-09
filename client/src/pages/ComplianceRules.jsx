@@ -248,6 +248,8 @@ const ComplianceRules = () => {
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [bulkSaving, setBulkSaving] = useState(false)
+  const [togglingRuleId, setTogglingRuleId] = useState(null)
   const [modal, setModal] = useState(null)
   const [editTarget, setEditTarget] = useState(null)
   const [genResult, setGenResult] = useState(null)
@@ -418,6 +420,64 @@ const ComplianceRules = () => {
     }
   }
 
+  // 行内就地切换 status（optimistic + 失败回滚）
+  const handleToggleRuleStatus = async (rule) => {
+    const current = rule.status === '启用' ? '启用' : '停用'
+    const next = rule.status === '启用' ? '停用' : '启用'
+    if (togglingRuleId === rule._id) return
+    setTogglingRuleId(rule._id)
+    // optimistic
+    setRules(rs => rs.map(r => r._id === rule._id ? { ...r, status: next } : r))
+    try {
+      const { data: res } = await complianceRuleService.batchUpdateStatus({ ids: [rule._id], status: next })
+      const payload = res?.data || res || {}
+      if (payload.success === false) throw new Error(payload.message || '切换失败')
+      toast.success(`「${rule.ruleName}」已${next}`)
+    } catch (e) {
+      // 回滚
+      setRules(rs => rs.map(r => r._id === rule._id ? { ...r, status: current } : r))
+      toast.error(e.response?.data?.message || e.message || '切换失败')
+    } finally {
+      setTogglingRuleId(null)
+    }
+  }
+
+  // 按当前 jurisdiction 分组批量改 status（按 displayRules._id 发，服务端按 ids 优先）
+  // - 触发位置：activeTab 非空时（即选了具体注册地或 ALL），标题旁「启用全部/停用全部」按钮
+  // - 「全部启用」即用户原话"默认选上对应地区的规则"的实现入口
+  const handleBulkSetGroupStatus = async (next) => {
+    if (!activeTab || bulkSaving) return
+    const ids = displayRules.map(r => r._id)
+    if (ids.length === 0) {
+      toast.error('当前分组无规则')
+      return
+    }
+    const verb = next === '启用' ? '启用' : '停用'
+    const ok = await confirm({
+      title: `批量${verb}当前分组`,
+      message: `将把当前分组（${jurisdictionLabel(activeTab)}）下 ${ids.length} 条规则批量${verb}。${next === '停用' ? '停用后规则不再生成提醒。' : ''}`,
+      confirmLabel: `确认${verb}`,
+      variant: next === '停用' ? 'warning' : 'info',
+    })
+    if (!ok) return
+    setBulkSaving(true)
+    const prevSnapshot = rules // 失败回滚用
+    setRules(rs => rs.map(r => ids.includes(r._id) ? { ...r, status: next } : r))
+    try {
+      const { data: res } = await complianceRuleService.batchUpdateStatus({ ids, status: next })
+      const payload = res?.data || res || {}
+      if (payload.success === false) throw new Error(payload.message || '批量操作失败')
+      toast.success(`已将 ${payload.modified ?? ids.length} 条规则设为「${verb}」`)
+    } catch (e) {
+      setRules(prevSnapshot)
+      toast.error(e.response?.data?.message || e.message || '批量操作失败')
+    } finally {
+      setBulkSaving(false)
+    }
+  }
+
+  const currentGroupEnabledCount = activeTab ? displayRules.filter(r => r.status === '启用').length : 0
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -488,9 +548,29 @@ const ComplianceRules = () => {
       ) : (
         <div className="space-y-4">
           {activeTab && (
-            <div className="text-sm font-medium text-ink-2">
-              {jurisdictionLabel(activeTab)} Rules ({displayRules.length})
-              <span className="ml-2 text-xs text-ink-3 font-normal">含全局（ALL）规则</span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm font-medium text-ink-2">
+                {jurisdictionLabel(activeTab)} Rules ({displayRules.length})
+                <span className="ml-2 text-xs text-ink-3 font-normal">含全局（ALL）规则 · 已启用 {currentGroupEnabledCount}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleBulkSetGroupStatus('启用')}
+                  disabled={bulkSaving || displayRules.length === 0}
+                  title="把当前注册地下（含 ALL 通用规则）的全部规则置为启用——不再需要一条条勾选"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-success/30 bg-success/5 text-success hover:bg-success/10 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Power size={13} /> 启用当前分组全部
+                </button>
+                <button
+                  onClick={() => handleBulkSetGroupStatus('停用')}
+                  disabled={bulkSaving || displayRules.length === 0}
+                  title="把当前分组下的全部规则批量停用——停用后规则不再生成提醒"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-hairline text-ink-2 hover:bg-canvas text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <PowerOff size={13} /> 停用当前分组全部
+                </button>
+              </div>
             </div>
           )}
           {/* Desktop: table */}
@@ -528,9 +608,23 @@ const ComplianceRules = () => {
                     <td className="px-4 py-3 text-ink-2">{rule.frequency || '—'}</td>
                     <td className="px-4 py-3 text-ink-2">{rule.dueDaysBefore ?? rule.daysBefore ? `${rule.dueDaysBefore ?? rule.daysBefore} 天` : '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${rule.status === 'active' ? 'bg-success/10 text-success' : 'bg-canvas text-ink-2'}`}>
-                        {rule.status === 'active' ? '启用' : '停用'}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRuleStatus(rule)}
+                        disabled={togglingRuleId === rule._id}
+                        title={rule.status === '启用' ? '点击停用此规则' : '点击启用此规则'}
+                        aria-pressed={rule.status === '启用'}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-60 disabled:cursor-wait ${
+                          rule.status === '启用'
+                            ? 'bg-success/10 text-success hover:bg-success/20 cursor-pointer'
+                            : 'bg-canvas text-ink-2 hover:bg-ink-2/10 border border-hairline cursor-pointer'
+                        }`}
+                      >
+                        <span className={`relative inline-block w-6 h-3 rounded-full transition-colors ${rule.status === '启用' ? 'bg-success/60' : 'bg-ink-3/40'}`}>
+                          <span className={`absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-white shadow transition-transform ${rule.status === '启用' ? 'translate-x-3' : 'translate-x-0'}`} />
+                        </span>
+                        {rule.status === '启用' ? '启用' : '停用'}
+                      </button>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 justify-end">
@@ -572,9 +666,23 @@ const ComplianceRules = () => {
                       {rule.category && <span>{rule.category}</span>}
                     </div>
                   </div>
-                  <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${rule.status === 'active' ? 'bg-success/10 text-success' : 'bg-canvas text-ink-2'}`}>
-                    {rule.status === 'active' ? '启用' : '停用'}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleRuleStatus(rule)}
+                    disabled={togglingRuleId === rule._id}
+                    title={rule.status === '启用' ? '点击停用此规则' : '点击启用此规则'}
+                    aria-pressed={rule.status === '启用'}
+                    className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-60 disabled:cursor-wait ${
+                      rule.status === '启用'
+                        ? 'bg-success/10 text-success hover:bg-success/20 cursor-pointer'
+                        : 'bg-canvas text-ink-2 hover:bg-ink-2/10 border border-hairline cursor-pointer'
+                    }`}
+                  >
+                    <span className={`relative inline-block w-6 h-3 rounded-full transition-colors ${rule.status === '启用' ? 'bg-success/60' : 'bg-ink-3/40'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-white shadow transition-transform ${rule.status === '启用' ? 'translate-x-3' : 'translate-x-0'}`} />
+                    </span>
+                    {rule.status === '启用' ? '启用' : '停用'}
+                  </button>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-ink-2">
                   <span className={`px-2 py-0.5 rounded-full font-medium ${jurisdictionColor(rule.jurisdiction)}`}>

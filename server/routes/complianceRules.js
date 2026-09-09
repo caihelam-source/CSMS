@@ -1,7 +1,7 @@
 const express = require('express');
 const ComplianceRule = require('../models/ComplianceRule');
 const { auth } = require('../middleware/auth');
-const { initPresetRules, generateForRule, generateBatch, diagnoseCompanies } = require('../services/complianceService');
+const { initPresetRules, generateForRule, generateBatch, diagnoseCompanies, bulkUpdateStatus } = require('../services/complianceService');
 const { parsePaging, pagingEnvelope } = require('../utils/pagination');
 
 const router = express.Router();
@@ -140,6 +140,22 @@ router.post('/initialize', auth, async (req, res) => {
     res.json({ success: true, message: '预设规则初始化完成' });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// PATCH /api/compliance-rules/batch-status — 批量更新规则状态
+// body: { ids?: string[], jurisdiction?: string, status: '启用'|'停用' }
+// ids 优先于 jurisdiction；二者至少传一个；status 严格白名单
+// 用途：合规规则页 jurisdiction Tab 顶部「启用/停用当前分组全部」一键批量操作
+router.patch('/batch-status', auth, async (req, res) => {
+  try {
+    const result = await bulkUpdateStatus(req.body || {});
+    res.json({ success: true, ...result });
+  } catch (err) {
+    // 业务校验错（status 非法 / 缺过滤）返回 400，DB 错返回 500
+    const msg = err.message || '批量更新失败';
+    const status = /必须是|至少传一个/.test(msg) ? 400 : 500;
+    res.status(status).json({ message: msg });
   }
 });
 

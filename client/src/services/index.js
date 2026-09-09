@@ -487,6 +487,13 @@ export const complianceRuleService = {
     () => api.get('/api/compliance-rules/diagnose'),
     mockComplianceRules.diagnose,
   ),
+  // 批量更新 status：ids / jurisdiction 二选一，status ∈ {'启用','停用'}
+  // - 后端 PATCH /api/compliance-rules/batch-status，ids 优先
+  // - 用于合规规则页行内就地 toggle + Tab 顶部「启用/停用当前分组全部」一键操作
+  batchUpdateStatus: wrap(
+    (payload) => api.patch('/api/compliance-rules/batch-status', payload),
+    mockComplianceRules.batchUpdateStatus,
+  ),
 }
 
 // ====== Compliance Reminder Service ======

@@ -336,4 +336,35 @@ async function ensureCompanyReminders(companyId, ruleIds = []) {
   return { ensured: true, created, skipped, blocked, reasons };
 }
 
-module.exports = { initPresetRules, generateRemindersForRule, generateBatch, generateForRule, ensureCompanyReminders, calcDueDate, diagnoseCompanies };
+/**
+ * 批量更新合规规则状态（按 ids 或按 jurisdiction）。
+ * - 参数互斥：ids 与 jurisdiction 至少传一个；二者均传时，ids 优先（更精细）
+ * - status 严格白名单（与 ComplianceRule.status enum 对齐：['启用','停用']）
+ * - 返回 matched/modified + 已更新文档摘要，供前端 toast 用
+ *
+ * 触发场景：
+ *  1. 「合规规则」页 jurisdiction Tab 顶部「启用当前分组全部 / 停用当前分组全部」
+ *  2. 后续如果接入「按公司批量适配规则」也可复用
+ */
+async function bulkUpdateStatus({ ids, jurisdiction, status } = {}) {
+  const VALID = ['启用', '停用']
+  if (!VALID.includes(status)) {
+    throw new Error(`status 必须是 ${VALID.join('|')}`)
+  }
+  const query = {}
+  let scope = ''
+  if (Array.isArray(ids) && ids.length) {
+    query._id = { $in: ids }
+    scope = `ids(${ids.length})`
+  } else if (jurisdiction) {
+    query.jurisdiction = jurisdiction
+    scope = `jurisdiction=${jurisdiction}`
+  } else {
+    throw new Error('ids / jurisdiction 至少传一个')
+  }
+  const result = await ComplianceRule.updateMany(query, { $set: { status } })
+  const rules = await ComplianceRule.find(query).select('_id ruleName jurisdiction status').lean()
+  return { matched: result.matchedCount || 0, modified: result.modifiedCount || 0, scope, rules }
+}
+
+module.exports = { initPresetRules, generateRemindersForRule, generateBatch, generateForRule, ensureCompanyReminders, bulkUpdateStatus, calcDueDate, diagnoseCompanies };
