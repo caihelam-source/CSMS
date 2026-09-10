@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import toast from 'react-hot-toast'
 import {
   ShieldCheck, Plus, RefreshCw, Zap, Download, AlertTriangle,
-  Pencil, Trash2, Sparkles
+  Pencil, Trash2, Sparkles, Power, PowerOff
 } from 'lucide-react'
 import { complianceRuleService, companyService, complianceReminderService } from '../services/index.js'
 import { LoadingSpinner, EmptyState, inputClass, labelClass, PageHeader, SearchBar, DeleteConfirmModal, FormField, jurisdictionLabel, JURISDICTION_OPTIONS } from '../components/UIHelpers'
