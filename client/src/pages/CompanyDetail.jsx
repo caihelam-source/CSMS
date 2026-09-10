@@ -420,6 +420,11 @@ export default function CompanyDetail() {
       brExpiryDate: company?.brExpiryDate?.substring?.(0, 10) || '',
       bviRelevantActivity: company?.bviRelevantActivity || '',
       nonHongKongCompany: !!company?.nonHongKongCompany,
+      // 上市状态：决定 isListedOnly 类规则（10 条 HKEX 规则）是否命中。
+      // 此前 UI 无录入入口，全库 isListed 恒为 false → 那批规则形同虚设。
+      isListed: !!company?.isListed,
+      listingLocation: company?.listingLocation || (company?.isListed ? 'HK' : ''),
+      stockCode: company?.stockCode || '',
       street: company?.registeredAddress?.street || '',
       city: company?.registeredAddress?.city || '',
       state: company?.registeredAddress?.state || '',
@@ -454,11 +459,17 @@ export default function CompanyDetail() {
         brExpiryDate: infoForm.brExpiryDate || undefined,
         bviRelevantActivity: infoForm.bviRelevantActivity || undefined,
         nonHongKongCompany: nextNonHK,
+        isListed: !!infoForm.isListed,
+        listingLocation: infoForm.isListed ? (infoForm.listingLocation || 'HK') : '',
+        stockCode: infoForm.stockCode || undefined,
       })
       toast.success('公司信息已更新')
       setEditingInfo(false)
       // 切换 nonHongKongCompany 后立即 ensure 对应年度申报 + BR 提醒（idempotent，幂等）
-      if (infoForm.jurisdiction === 'HK' && prevNonHK !== nextNonHK) {
+      // 注意：不能 gate 在 jurisdiction==='HK' —— 「注册非香港公司」的主体恰恰是
+      // 注册地非 HK（BVI/Cayman/SG）的公司。引擎侧 companyScope 会保证 NAR1/NN3 互斥，
+      // 因此对非港公司误传 HK_AR_42 也会被 ruleApplicability 挡下，安全。
+      if (prevNonHK !== nextNonHK) {
         const ruleIds = nextNonHK ? ['HK_NN3_AR', 'HK_BR_RENEW'] : ['HK_AR_42', 'HK_BR_RENEW']
         complianceReminderService.ensure({ companyId: id, ruleIds }).catch(() => {})
       }

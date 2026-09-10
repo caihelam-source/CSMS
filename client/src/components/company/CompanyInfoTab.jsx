@@ -18,6 +18,16 @@ export default function CompanyInfoTab({ ctx }) {
     normalizeFormerNames, normalizeReport, setNormalizeReport, normalizingFormerNames,
   } = ctx
 
+  // 上市地：编辑下拉与只读展示共用一份映射，避免两边漂移
+  const LISTING_OPTIONS = [
+    { value: 'HK', label: '香港 (HKEX)' },
+    { value: 'SG', label: '新加坡 (SGX)' },
+    { value: 'US', label: '美国 (NYSE / NASDAQ)' },
+    { value: 'UK', label: '英国 (LSE)' },
+    { value: 'OTHER', label: '其他' },
+  ]
+  const listingLabel = (v) => LISTING_OPTIONS.find((o) => o.value === v)?.label || v || '已上市'
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="card relative">
@@ -104,6 +114,42 @@ export default function CompanyInfoTab({ ctx }) {
                 </p>
               </div>
             </label>
+            {/* 上市状态：isListedOnly 类规则（10 条 HKEX：年报/中期报/季报/月报表/内幕消息/
+                董事权益披露等）的命中开关。此前 model 有字段但 UI 无录入入口，
+                导致全库 isListed 恒为 false，那 10 条规则永不命中任何公司。 */}
+            <label className="flex items-start gap-2.5 p-3 rounded-xl bg-success/5 border border-success/20 cursor-pointer hover:bg-success/10 transition-colors">
+              <input
+                type="checkbox"
+                checked={!!infoForm.isListed}
+                onChange={e => setInfoForm(f => ({
+                  ...f,
+                  isListed: e.target.checked,
+                  listingLocation: e.target.checked ? (f.listingLocation || 'HK') : '',
+                }))}
+                className="mt-0.5 w-4 h-4 accent-primary-600"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ink-1">上市公司</p>
+                <p className="text-xs text-ink-3 mt-0.5 leading-relaxed">
+                  勾选后适用上市合规规则（HKEX 年报 / 中期报 / 季报 / 证券变动月报表 / 内幕消息披露 / 董事权益披露等 10 条）。
+                  {infoForm.jurisdiction !== 'HK' && (
+                    <>在港上市的 {jurisdictionLabel(infoForm.jurisdiction)} 公司通常还应勾选上方「注册非香港公司」，以便并行适用香港规则。</>
+                  )}
+                </p>
+              </div>
+            </label>
+            {infoForm.isListed && (
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="上市地">
+                  <select className={inputClass} value={infoForm.listingLocation || 'HK'} onChange={e => setInfoForm(f => ({ ...f, listingLocation: e.target.value }))}>
+                    {LISTING_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+                  </select>
+                </FormField>
+                <FormField label="股票代码">
+                  <input className={inputClass} value={infoForm.stockCode || ''} placeholder="如 00672" onChange={e => setInfoForm(f => ({ ...f, stockCode: e.target.value }))} />
+                </FormField>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-3">
               <FormField label="已发行股份"><input type="number" className={inputClass} value={infoForm.issuedShares} onChange={e => setInfoForm(f => ({ ...f, issuedShares: e.target.value }))} /></FormField>
               <FormField label="已缴股本"><input type="number" className={inputClass} value={infoForm.paidUpCapital} onChange={e => setInfoForm(f => ({ ...f, paidUpCapital: e.target.value }))} /></FormField>
@@ -135,6 +181,16 @@ export default function CompanyInfoTab({ ctx }) {
               );
             })()}
             {company.bviRelevantActivity && <div className="flex justify-between"><span className="text-ink-2">经济实质</span><span>{company.bviRelevantActivity}</span></div>}
+            {/* 上市状态：isListedOnly 类规则（10 条 HKEX）的命中依据。
+                全库此前 isListed 恒 false，此行可让人一眼看出该公司是否已登记为上市公司。 */}
+            {company.isListed && (
+              <div className="flex justify-between items-center gap-3">
+                <span className="text-ink-2 shrink-0">上市</span>
+                <span className="inline-flex items-center gap-1 text-xs font-medium bg-success/10 text-success px-2 py-1 rounded-full">
+                  {listingLabel(company.listingLocation)}{company.stockCode ? ` · ${company.stockCode}` : ''}
+                </span>
+              </div>
+            )}
             {company.shareCapital && (
               <>
                 <div className="flex justify-between"><span className="text-ink-2">已发行股份</span><span>{company.shareCapital.issued?.toLocaleString()} {company.shareCapital.currency}</span></div>
