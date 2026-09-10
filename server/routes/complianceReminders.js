@@ -100,7 +100,12 @@ router.post('/ensure-all-hk', auth, async (req, res) => {
       return res.status(403).json({ message: '需要管理员权限' });
     }
     const Company = require('../models/Company');
-    const companies = await Company.find({ jurisdiction: 'HK' }).select('_id name nonHongKongCompany').lean();
+    // 并行适用：除 jurisdiction='HK' 的香港本地公司外，也要覆盖「在港注册的非香港公司」——
+    // 后者注册地可能是 BVI/Cayman/SG/OTHER，但 nonHongKongCompany=true，同样要守香港规则（NN3 + BR）。
+    // 旧实现只查 { jurisdiction: 'HK' }，会把这批公司整个漏掉。
+    const companies = await Company.find({
+      $or: [{ jurisdiction: 'HK' }, { nonHongKongCompany: true }],
+    }).select('_id name jurisdiction nonHongKongCompany').lean();
     let processed = 0, created = 0, skipped = 0, blocked = 0;
     const errors = [];
     for (const c of companies) {

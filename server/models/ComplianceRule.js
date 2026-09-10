@@ -16,6 +16,26 @@ const complianceRuleSchema = new mongoose.Schema({
   isListedOnly: { type: Boolean, default: false },          // 仅上市公司
   listingLocation: { type: String },                        // 如 HK 仅香港上市
 
+  /**
+   * 公司主体范围（与 jurisdiction 配合，用来表达 NAR1 / NN3 这类互斥规则）。
+   *
+   * 背景：注册地在开曼/BVI 但在港注册的公司（「注册非香港公司」，Company.nonHongKongCompany=true）
+   * 除适用其注册地规则外，还**并行**适用香港规则。但周年申报表二者互斥——
+   * 香港本地公司交 NAR1，注册非香港公司交 NN3，不能同时生成。
+   *
+   * 取值：
+   *  - 'ANY'（默认）      ：不额外限制，仅按 jurisdiction 匹配（既有规则行为不变）
+   *  - 'HK_LOCAL'         ：仅香港本地成立公司（jurisdiction=HK 且 nonHongKongCompany=false）→ NAR1
+   *  - 'HK_NON_HK'        ：仅「在港注册的非香港公司」（nonHongKongCompany=true）→ NN3
+   *
+   * 注意：不要用 condition 文本表达该约束——引擎不解析 condition，它只是展示用说明。
+   */
+  companyScope: {
+    type: String,
+    enum: ['ANY', 'HK_LOCAL', 'HK_NON_HK'],
+    default: 'ANY'
+  },
+
   // 截止日期计算
   baseDateType: {
     type: String,

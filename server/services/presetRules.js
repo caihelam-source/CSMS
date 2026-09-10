@@ -30,6 +30,7 @@ const PRESET_RULES = [
     category: '公司注册处',
     legalReference: '《公司条例》第662条',
     jurisdiction: 'HK',
+    companyScope: 'HK_LOCAL',   // 香港本地公司专属（NAR1）；在港注册的非香港公司走 HK_NN3_AR
     isListedOnly: false,
     baseDateType: 'incorporationDate',
     baseDateOffset: 365,
@@ -49,6 +50,7 @@ const PRESET_RULES = [
     category: '公司注册处',
     legalReference: '《公司条例》第XI部（原第 XI 部）',
     jurisdiction: 'ALL',        // 不限 jurisdiction（实务主体在港注册，但公司本身是 BVI/Cayman/...）
+    companyScope: 'HK_NON_HK',  // 仅 Company.nonHongKongCompany=true 适用；与 HK_AR_42 互斥
     isListedOnly: false,
     baseDateType: 'incorporationDate',  // 锚点：境外公司在港注册日（实务可用 incorporationDate 兜底）
     baseDateOffset: 365,

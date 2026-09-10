@@ -11,9 +11,49 @@ const PRESET_RULES = require('./presetRules');
 const PRESET_DEFINITION_FIELDS = [
   'ruleName', 'description', 'category', 'legalReference',
   'jurisdiction', 'isListedOnly', 'listingLocation',
+  // companyScope：NAR1/NN3 互斥的结构化表达（见 ruleApplicability）。
+  // 必须在表里，否则 initPresetRules 的 upsert 不会把它写进既有库记录。
+  'companyScope',
   'baseDateType', 'baseDateOffset', 'dueDateOffset', 'anchorPayload', 'condition',
   'reminderDays', 'priority', 'penaltyNote', 'specialNote', 'isPreset',
 ];
+
+/**
+ * 判断一条规则是否适用于一家公司。
+ * 返回 null = 适用；否则返回不适用原因（会作为 blockedByReason 的 key 回传前端）。
+ *
+ * 关键语义（v6.x）：
+ *  1) **并行适用**：注册地非香港、但标记为「在港注册的非香港公司」
+ *     （Company.nonHongKongCompany=true）的公司，除适用其自身注册地规则外，
+ *     同时**并行**适用香港规则（rule.jurisdiction === 'HK'）。
+ *     典型场景：开曼/BVI 公司在港上市并在港注册 → 既守开曼规则，也守香港规则。
+ *  2) **NAR1 / NN3 互斥**：周年申报表二者只能其一——
+ *       companyScope='HK_LOCAL'  → 仅香港本地公司，排除 nonHongKongCompany=true（NAR1）
+ *       companyScope='HK_NON_HK' → 仅 nonHongKongCompany=true 的公司（NN3）
+ *     该约束不能靠 condition 文本表达：引擎不解析 condition，它只是给人看的说明。
+ *  3) companyScope 缺省（存量老规则为 undefined）时按 'ANY' 处理，行为与改动前一致，向后兼容。
+ */
+function ruleApplicability(rule, company) {
+  const isNonHkReg = !!company.nonHongKongCompany;
+
+  // 1) 注册地匹配（含在港注册非香港公司对 HK 规则的并行适用）
+  const jurisdictionMatch =
+    rule.jurisdiction === 'ALL' ||
+    rule.jurisdiction === company.jurisdiction ||
+    (isNonHkReg && rule.jurisdiction === 'HK');
+  if (!jurisdictionMatch) return 'jurisdiction_mismatch';
+
+  // 2) 主体范围（NAR1 / NN3 互斥）
+  if (rule.companyScope === 'HK_LOCAL' && isNonHkReg) return 'hk_local_only';
+  if (rule.companyScope === 'HK_NON_HK' && !isNonHkReg) return 'requires_non_hk_registration';
+
+  // 3) 上市相关
+  if (rule.isListedOnly && !company.isListed) return 'not_listed';
+  if (rule.listingLocation && company.listingLocation !== rule.listingLocation) {
+    return 'listing_location_mismatch';
+  }
+  return null;
+}
 
 async function initPresetRules() {
   let added = 0, updated = 0, skipped = 0;
@@ -249,16 +289,10 @@ async function generateBatch(ruleIds, companyIds) {
   for (const rule of rules) {
     for (const company of companies) {
       // 检查规则适用性（记录不适用原因，避免静默跳过）
-      if (rule.jurisdiction !== 'ALL' && rule.jurisdiction !== company.jurisdiction) {
-        recordBlock('jurisdiction_mismatch', rule, company);
-        continue;
-      }
-      if (rule.isListedOnly && !company.isListed) {
-        recordBlock('not_listed', rule, company);
-        continue;
-      }
-      if (rule.listingLocation && company.listingLocation !== rule.listingLocation) {
-        recordBlock('listing_location_mismatch', rule, company);
+      // 统一走 ruleApplicability：注册地匹配 + 在港注册非香港公司的 HK 规则并行适用 + NAR1/NN3 互斥
+      const notApplicable = ruleApplicability(rule, company);
+      if (notApplicable) {
+        recordBlock(notApplicable, rule, company);
         continue;
       }
 
@@ -321,8 +355,10 @@ async function ensureCompanyReminders(companyId, ruleIds = []) {
   let created = 0, skipped = 0, blocked = 0;
   const reasons = [];
   for (const rule of rules) {
-    if (rule.jurisdiction !== 'ALL' && rule.jurisdiction !== company.jurisdiction) {
-      reasons.push({ ruleId: rule.ruleId, reason: 'jurisdiction_mismatch' });
+    // 与 generateBatch 共用同一套适用性判定（并行适用 + NAR1/NN3 互斥），避免两条链路结果不一致
+    const notApplicable = ruleApplicability(rule, company);
+    if (notApplicable) {
+      reasons.push({ ruleId: rule.ruleId, reason: notApplicable });
       continue;
     }
     const r = await generateRemindersForRule(rule, company);
@@ -367,4 +403,4 @@ async function bulkUpdateStatus({ ids, jurisdiction, status } = {}) {
   return { matched: result.matchedCount || 0, modified: result.modifiedCount || 0, scope, rules }
 }
 
-module.exports = { initPresetRules, generateRemindersForRule, generateBatch, generateForRule, ensureCompanyReminders, bulkUpdateStatus, calcDueDate, diagnoseCompanies };
+module.exports = { initPresetRules, generateRemindersForRule, generateBatch, generateForRule, ensureCompanyReminders, bulkUpdateStatus, calcDueDate, diagnoseCompanies, ruleApplicability };

@@ -72,23 +72,38 @@ export default function CompanyInfoTab({ ctx }) {
                 </FormField>
               )}
             </div>
-            {/* HK 专属：标记「在港注册的非香港公司」，勾选后年度申报表由 NAR1 切换为 NN3 */}
-            {infoForm.jurisdiction === 'HK' && (
-              <label className="flex items-start gap-2.5 p-3 rounded-xl bg-info/5 border border-info/20 cursor-pointer hover:bg-info/10 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={!!infoForm.nonHongKongCompany}
-                  onChange={e => setInfoForm(f => ({ ...f, nonHongKongCompany: e.target.checked }))}
-                  className="mt-0.5 w-4 h-4 accent-primary-600"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink-1">在港注册的非香港公司</p>
-                  <p className="text-xs text-ink-3 mt-0.5 leading-relaxed">
-                    适用对象：根据《公司条例》注册的海外公司（如 BVI/Cayman 公司在港设有注册办事处）。勾选后年度申报表将由 <span className="font-medium text-primary-700">NAR1</span> 切换为 <span className="font-medium text-primary-700">NN3</span>。
-                  </p>
-                </div>
-              </label>
-            )}
+            {/* 「在港注册的非香港公司」标记（两种语义，按注册地自适应）：
+                · 注册地 = HK    ：勾选后周年申报表由 NAR1 切换为 NN3
+                · 注册地 ≠ HK（BVI/Cayman/SG/OTHER）：勾选表示该公司虽在境外成立、但在港注册，
+                  除继续适用注册地本地规则外，**并行**适用香港规则（NN3 + 商业登记续期）。
+                  旧实现只在此处对 jurisdiction==='HK' 渲染，导致真正的适用主体（开曼/BVI 公司）看不到该选项。 */}
+            <label className="flex items-start gap-2.5 p-3 rounded-xl bg-info/5 border border-info/20 cursor-pointer hover:bg-info/10 transition-colors">
+              <input
+                type="checkbox"
+                checked={!!infoForm.nonHongKongCompany}
+                onChange={e => setInfoForm(f => ({ ...f, nonHongKongCompany: e.target.checked }))}
+                className="mt-0.5 w-4 h-4 accent-primary-600"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ink-1">
+                  {infoForm.jurisdiction === 'HK' ? '在港注册的非香港公司' : '是否为注册非香港公司（在港注册）'}
+                </p>
+                <p className="text-xs text-ink-3 mt-0.5 leading-relaxed">
+                  {infoForm.jurisdiction === 'HK' ? (
+                    <>
+                      适用对象：根据《公司条例》注册的海外公司（如 BVI/Cayman 公司在港设有注册办事处）。勾选后年度申报表将由 <span className="font-medium text-primary-700">NAR1</span> 切换为 <span className="font-medium text-primary-700">NN3</span>。
+                    </>
+                  ) : (
+                    <>
+                      适用对象：在 {jurisdictionLabel(infoForm.jurisdiction)} 成立、但在港注册的公司（如开曼公司在港上市并注册）。
+                      勾选后除继续适用 {jurisdictionLabel(infoForm.jurisdiction)} 本地规则外，将
+                      <span className="font-medium text-primary-700">并行适用香港规则</span>：周年申报表为
+                      <span className="font-medium text-primary-700"> NN3</span>（而非 NAR1）、商业登记证续期等。
+                    </>
+                  )}
+                </p>
+              </div>
+            </label>
             <div className="grid grid-cols-3 gap-3">
               <FormField label="已发行股份"><input type="number" className={inputClass} value={infoForm.issuedShares} onChange={e => setInfoForm(f => ({ ...f, issuedShares: e.target.value }))} /></FormField>
               <FormField label="已缴股本"><input type="number" className={inputClass} value={infoForm.paidUpCapital} onChange={e => setInfoForm(f => ({ ...f, paidUpCapital: e.target.value }))} /></FormField>
@@ -126,12 +141,20 @@ export default function CompanyInfoTab({ ctx }) {
                 <div className="flex justify-between"><span className="text-ink-2">已缴股本</span><span>{company.shareCapital.paidUp?.toLocaleString()} {company.shareCapital.currency}</span></div>
               </>
             )}
-            {/* 申报类型：HK 本地公司 NAR1 vs 在港注册非香港公司 NN3（BR 通用） */}
-            {company.jurisdiction === 'HK' && company.nonHongKongCompany && (
-              <div className="flex justify-between items-center pt-2 border-t border-hairline">
-                <span className="text-ink-2">年度申报表</span>
-                <span className="inline-flex items-center gap-1 text-xs font-medium bg-info/10 text-primary-700 px-2 py-1 rounded-full">
-                  NN3 · 在港注册非香港公司
+            {/* 申报类型：HK 本地公司 NAR1 vs 在港注册非香港公司 NN3（BR 通用）
+                注册地非 HK 时同样要展示——那才是「注册非香港公司」的主体场景（开曼/BVI 在港注册） */}
+            {company.nonHongKongCompany && (
+              <div className="flex justify-between items-start gap-3 pt-2 border-t border-hairline">
+                <span className="text-ink-2 shrink-0">年度申报表</span>
+                <span className="text-right">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium bg-info/10 text-primary-700 px-2 py-1 rounded-full">
+                    NN3 · 在港注册非香港公司
+                  </span>
+                  {company.jurisdiction !== 'HK' && (
+                    <span className="block text-xs text-ink-3 mt-1">
+                      并行适用：香港规则 + {jurisdictionLabel(company.jurisdiction)} 本地规则
+                    </span>
+                  )}
                 </span>
               </div>
             )}
