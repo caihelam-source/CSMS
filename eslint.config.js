@@ -36,6 +36,10 @@ module.exports = [
     rules: {
       ...js.configs.recommended.rules,
       'react/jsx-uses-vars': 'error',
+      // 拦截未 import 的 JSX 组件（如 <Power/> 漏 import → 运行时 ReferenceError）。
+      // 核心 no-undef 对 JSX 标识符不生效，必须靠这条；vite build 同样不检测。
+      // 2026-09-10 上线事故（ComplianceRules 'Power is not defined'）后补上，全量 fallout = 0。
+      'react/jsx-no-undef': 'error',
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-undef': 'error',
       'no-console': 'off',
