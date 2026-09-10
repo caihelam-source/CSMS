@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import toast from 'react-hot-toast'
 import {
   ShieldCheck, Plus, RefreshCw, Zap, Download, AlertTriangle,
@@ -108,20 +108,97 @@ const RuleForm = ({ initial = {}, onSave, onCancel, loading }) => {
 
 const GenerateModal = ({ rule, companies, onConfirm, onCancel, loading }) => {
   const [selected, setSelected] = useState([])
+  const [jurisdictionFilter, setJurisdictionFilter] = useState('')
+  const selectAllRef = useRef(null)
+
+  // 按注册地（国家）筛选，方便勾选
+  const filteredCompanies = jurisdictionFilter
+    ? companies.filter(c => c.jurisdiction === jurisdictionFilter)
+    : companies
+
   const toggle = (id) => setSelected(s => s.includes(id) ? s.filter(i => i !== id) : [...s, id])
+
+  // 当前筛选结果是否全部已选 / 部分已选
+  const allVisibleSelected = filteredCompanies.length > 0 && filteredCompanies.every(c => selected.includes(c._id))
+  const someVisibleSelected = filteredCompanies.some(c => selected.includes(c._id))
+
+  // 表头复选框：勾选/取消当前筛选结果（含 indeterminate 态）
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someVisibleSelected && !allVisibleSelected
+    }
+  }, [someVisibleSelected, allVisibleSelected, filteredCompanies])
+
+  const toggleAllVisible = () => {
+    if (allVisibleSelected) {
+      setSelected(prev => prev.filter(id => !filteredCompanies.some(c => c._id === id)))
+    } else {
+      setSelected(prev => Array.from(new Set([...prev, ...filteredCompanies.map(c => c._id)])))
+    }
+  }
+
+  const handleClearAll = () => setSelected([])
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-ink-2">为 <strong>{rule?.ruleName}</strong> 选择要生成提醒的公司：</p>
+
+      {/* 工具栏：按国家筛选 + 已选计数 + 全选/清空 */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <select
+          value={jurisdictionFilter}
+          onChange={e => setJurisdictionFilter(e.target.value)}
+          className="flex-1 sm:flex-none sm:w-44 px-3 py-2 border border-hairline rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+        >
+          <option value="">全部注册地</option>
+          {JURISDICTION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <div className="flex items-center gap-2 text-xs text-ink-3 sm:ml-auto">
+          <span>已选 <strong className="text-ink-2">{selected.length}</strong> / 共 {companies.length} 家</span>
+          <button
+            type="button"
+            onClick={handleClearAll}
+            disabled={selected.length === 0}
+            className="px-2.5 py-1 rounded-lg border border-hairline text-ink-2 hover:bg-canvas disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            清空
+          </button>
+        </div>
+      </div>
+
       <div className="max-h-64 overflow-y-auto border border-hairline rounded-lg divide-y divide-gray-100">
         {companies.length === 0 ? (
           <p className="text-center py-6 text-ink-3 text-sm">暂无公司数据</p>
-        ) : companies.map(c => (
-          <label key={c._id} className="flex items-center gap-3 px-4 py-3 hover:bg-canvas cursor-pointer">
-            <input type="checkbox" checked={selected.includes(c._id)} onChange={() => toggle(c._id)} className="w-4 h-4 rounded text-primary-600" />
-            <span className="text-sm text-ink">{c.name}</span>
-            {c.nameChinese && <span className="text-xs text-ink-3">{c.nameChinese}</span>}
-          </label>
-        ))}
+        ) : filteredCompanies.length === 0 ? (
+          <p className="text-center py-6 text-ink-3 text-sm">该注册地下暂无公司</p>
+        ) : (
+          <>
+            <label className="flex items-center gap-3 px-4 py-2.5 bg-canvas/60 hover:bg-canvas cursor-pointer sticky top-0">
+              <input
+                ref={selectAllRef}
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={toggleAllVisible}
+                className="w-4 h-4 rounded text-primary-600"
+              />
+              <span className="text-xs font-medium text-ink-2">
+                全选当前{jurisdictionFilter ? `（${jurisdictionLabel(jurisdictionFilter)}）` : '结果'}（{filteredCompanies.length} 家）
+              </span>
+            </label>
+            {filteredCompanies.map(c => (
+              <label key={c._id} className="flex items-center gap-3 px-4 py-3 hover:bg-canvas cursor-pointer">
+                <input type="checkbox" checked={selected.includes(c._id)} onChange={() => toggle(c._id)} className="w-4 h-4 rounded text-primary-600" />
+                <span className="text-sm text-ink flex-1 min-w-0">
+                  <span className="block truncate">{c.name}</span>
+                  {c.nameChinese && <span className="block text-xs text-ink-3 truncate">{c.nameChinese}</span>}
+                </span>
+                <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${jurisdictionColor(c.jurisdiction)}`}>
+                  {jurisdictionLabel(c.jurisdiction) || '—'}
+                </span>
+              </label>
+            ))}
+          </>
+        )}
       </div>
       <div className="flex justify-end gap-3">
         <button onClick={onCancel} className="px-4 py-2 text-sm border border-hairline rounded-lg text-ink hover:bg-canvas">取消</button>
