@@ -210,6 +210,89 @@ const GenerateModal = ({ rule, companies, onConfirm, onCancel, loading }) => {
   )
 }
 
+// 缺口页里的就地补字段模态框：只展示该公司当前缺失的字段（diagnosis.missingFields），
+// 输入完成后用 companyService.update(id, payload) 走 PUT /api/companies/:id
+//（findByIdAndUpdate 的 $set 语义，只动传入字段），保存后由父组件重跑 diagnosis。
+const GapsEditModal = ({ company, onSave, onCancel, saving }) => {
+  const [form, setForm] = useState({ incorporationDate: '', brExpiryDate: '', fyeMonth: '', fyeDay: '' })
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  if (!company) return null
+  const missing = Array.isArray(company.missingFields) ? company.missingFields : []
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const payload = {}
+    if (missing.includes('incorporationDate') && form.incorporationDate) {
+      payload.incorporationDate = form.incorporationDate
+    }
+    if (missing.includes('brExpiryDate') && form.brExpiryDate) {
+      payload.brExpiryDate = form.brExpiryDate
+    }
+    if (missing.includes('financialYearEnd')) {
+      const m = parseInt(form.fyeMonth, 10)
+      const d = parseInt(form.fyeDay, 10)
+      if (!m || !d) { toast.error('请填写完整的财政年度结算日（月份 + 日期）'); return }
+      if (m < 1 || m > 12) { toast.error('月份须为 1-12'); return }
+      if (d < 1 || d > 31) { toast.error('日期须为 1-31'); return }
+      payload.financialYearEnd = { month: m, day: d }
+    }
+    if (Object.keys(payload).length === 0) {
+      toast.error('请至少填写一个字段')
+      return
+    }
+    onSave(payload)
+  }
+
+  if (missing.length === 0) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-ink-2">该公司无缺失字段。</p>
+        <div className="flex justify-end">
+          <button onClick={onCancel} className="px-4 py-2 text-sm border border-hairline rounded-lg hover:bg-canvas">关闭</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-ink-2">
+        为 <strong>{company.name}</strong>{company.nameChinese ? ` (${company.nameChinese})` : ''} 补充以下缺失的合规字段：
+      </p>
+      <div className="space-y-3">
+        {missing.includes('incorporationDate') && (
+          <div>
+            <label className={labelClass}>注册成立日期 <span className="text-ink-3 font-normal">(incorporationDate)</span></label>
+            <input type="date" className={inputClass} value={form.incorporationDate} onChange={e => set('incorporationDate', e.target.value)} />
+          </div>
+        )}
+        {missing.includes('brExpiryDate') && (
+          <div>
+            <label className={labelClass}>商业登记到期日 <span className="text-ink-3 font-normal">(brExpiryDate)</span></label>
+            <input type="date" className={inputClass} value={form.brExpiryDate} onChange={e => set('brExpiryDate', e.target.value)} />
+          </div>
+        )}
+        {missing.includes('financialYearEnd') && (
+          <div>
+            <label className={labelClass}>财政年度结算日 <span className="text-ink-3 font-normal">(financialYearEnd — month + day)</span></label>
+            <div className="flex gap-2">
+              <input type="number" min="1" max="12" className={inputClass} value={form.fyeMonth} onChange={e => set('fyeMonth', e.target.value)} placeholder="月 (1-12)" />
+              <input type="number" min="1" max="31" className={inputClass} value={form.fyeDay} onChange={e => set('fyeDay', e.target.value)} placeholder="日 (1-31)" />
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-ink border border-hairline rounded-lg hover:bg-canvas">取消</button>
+        <button type="submit" disabled={saving} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
+          {saving ? '保存中...' : '保存并同步到中心数据库'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
 const FIELD_LABELS = {
   incorporationDate: '注册成立日期',
   financialYearEnd: '财政年度结算日',
@@ -241,7 +324,7 @@ const exportGapsCSV = (diagnosis) => {
   URL.revokeObjectURL(url)
 }
 
-const GapsView = ({ diagnosis, loading, onExport }) => {
+const GapsView = ({ diagnosis, loading, onExport, onEditCompany }) => {
   if (loading) return <LoadingSpinner />
   // 防御性解构：诊断对象可能为空，或来自 normalize 第 3 条兜底被错误当成数组的 payload
   const safe = diagnosis && typeof diagnosis === 'object' && !Array.isArray(diagnosis) ? diagnosis : null
@@ -281,6 +364,7 @@ const GapsView = ({ diagnosis, loading, onExport }) => {
               <th className="text-left px-4 py-3 text-ink-2 font-medium hidden md:table-cell">注册地</th>
               <th className="text-left px-4 py-3 text-ink-2 font-medium hidden md:table-cell">上市</th>
               <th className="text-left px-4 py-3 text-ink-2 font-medium">缺失字段</th>
+              <th className="text-right px-4 py-3 text-ink-2 font-medium">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -300,6 +384,17 @@ const GapsView = ({ diagnosis, loading, onExport }) => {
                       <span key={f} className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-xs font-medium">{FIELD_LABELS[f] || f}</span>
                     ))}
                   </div>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {onEditCompany && (
+                    <button
+                      onClick={() => onEditCompany(c)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-hairline text-ink-2 hover:bg-canvas hover:text-primary-700 text-xs font-medium transition-colors"
+                      title={`为「${c.name}」补充 ${c.missingFields.length} 个缺失字段`}
+                    >
+                      <Pencil size={12} /> 补充
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -334,6 +429,8 @@ const ComplianceRules = () => {
   const [diagnosis, setDiagnosis] = useState(null)
   const [diagLoading, setDiagLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('')  // '' = 全部
+  const [gapEditTarget, setGapEditTarget] = useState(null)  // 缺口页里点击「补充」时锁定的公司
+  const [gapSaving, setGapSaving] = useState(false)
 
   const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
     rules,
@@ -494,6 +591,28 @@ const ComplianceRules = () => {
       toast.error(e.response?.data?.message || '删除失败')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // 缺口页就地补字段：PUT /api/companies/:id（$set 语义），保存后重跑 diagnosis
+  // 让该公司从缺口表里消失或缺失字段变少
+  const handleSaveGapEdit = async (payload) => {
+    if (!gapEditTarget) return
+    setGapSaving(true)
+    try {
+      const { data: res } = await companyService.update(gapEditTarget._id, payload)
+      // companyService.update 走统一 normalize，res 形状 = { data: { success, company } } 或直接 company
+      const updated = res?.company || res?.data?.company || res?.data || res
+      const filled = Object.keys(payload).length
+      toast.success(`「${gapEditTarget.name}」已补充 ${filled} 个字段并同步到中心数据库`)
+      // 乐观更新本地的 companies 列表，避免下一次 fetchAll 又把旧值带回来
+      setCompanies(cs => cs.map(c => c._id === gapEditTarget._id ? { ...c, ...updated } : c))
+      setGapEditTarget(null)
+      fetchDiagnosis()
+    } catch (e) {
+      toast.error(e.response?.data?.message || e.message || '保存失败')
+    } finally {
+      setGapSaving(false)
     }
   }
 
@@ -792,7 +911,7 @@ const ComplianceRules = () => {
       </>)}
 
       {view === 'gaps' && (
-        <GapsView diagnosis={diagnosis} loading={diagLoading} onExport={() => exportGapsCSV(diagnosis)} />
+        <GapsView diagnosis={diagnosis} loading={diagLoading} onExport={() => exportGapsCSV(diagnosis)} onEditCompany={setGapEditTarget} />
       )}
 
       {/* 新增/编辑 Modal */}
@@ -833,6 +952,17 @@ const ComplianceRules = () => {
         onCancel={() => setModal(null)}
         loading={saving}
       />
+
+      {/* 缺口页就地补字段 Modal（与「删除确认」互斥：modal 状态下不应同时打开） */}
+      <Modal isOpen={!!gapEditTarget} onClose={() => !gapSaving && setGapEditTarget(null)}
+        title="补充合规字段" size="md">
+        <GapsEditModal
+          company={gapEditTarget}
+          onSave={handleSaveGapEdit}
+          onCancel={() => setGapEditTarget(null)}
+          saving={gapSaving}
+        />
+      </Modal>
 
       {/* Confirm Dialog */}
       {ConfirmDialogComponent}
