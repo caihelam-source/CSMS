@@ -40,6 +40,13 @@ module.exports = [
       // 核心 no-undef 对 JSX 标识符不生效，必须靠这条；vite build 同样不检测。
       // 2026-09-10 上线事故（ComplianceRules 'Power is not defined'）后补上，全量 fallout = 0。
       'react/jsx-no-undef': 'error',
+      // 抓真 bug 的 react 规则（2026-09-10 无损评估，全量 fallout 皆为 0）：
+      'react/jsx-key': 'error',                 // 列表渲染缺 key → 复用/重排错乱
+      'react/no-unknown-property': 'error',     // DOM 属性拼写错（class/onclick 等）
+      'react/jsx-no-duplicate-props': 'error',  // 重复 prop 后者静默覆盖前者
+      'react/jsx-no-comment-textnodes': 'error', // JSX 内 // 注释被当文本渲染出来
+      // 未启用 react/no-unescaped-entities：纯风格规则（JSX 文本里的引号），
+      // 全量 8 处且非 bug，开了只会给日常写文案添堵。
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-undef': 'error',
       'no-console': 'off',
