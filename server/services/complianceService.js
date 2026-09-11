@@ -245,6 +245,13 @@ async function generateRemindersForRule(rule, company) {
       company: company._id,
       rule: rule._id,
       ruleId: rule.ruleId,
+      // 关键修复：填充 sourceRuleId（与模型设计语义「生成提醒去重用」一致）。
+      // 此前未填，所有提醒落到稀疏唯一索引 (company, sourceRuleId, year) 的
+      // (company, null, null) 桶，导致同一公司第 2 条及之后的提醒全部撞 E11000
+      // （被 generateRemindersForRule 的 catch 静默计为 skipped，无法生成）。
+      sourceRuleId: rule.ruleId,
+      // year：按到期日所在年填充，使年度循环类提醒在该稀疏索引下按年去重、互不冲突。
+      year: dueDate ? dueDate.getUTCFullYear() : undefined,
       title: `${rule.ruleName} - ${company.name}`,
       description: rule.description,
       category: rule.category,
