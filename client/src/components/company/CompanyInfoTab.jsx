@@ -70,8 +70,24 @@ export default function CompanyInfoTab({ ctx }) {
               <FormField label="属地"><input className={inputClass} value={infoForm.jurisdiction} onChange={e => setInfoForm(f => ({ ...f, jurisdiction: e.target.value }))} /></FormField>
               <FormField label="成立日期"><input type="date" className={inputClass} value={infoForm.incorporationDate} onChange={e => setInfoForm(f => ({ ...f, incorporationDate: e.target.value }))} /></FormField>
             </div>
+            {/* 财年结束日：HKEX 年报/中期报/季报/禁售期/董事会通知等 8 条规则以 financialYearEnd 为基准日；
+                此前无 UI 录入入口，只能靠脚本回填（默认 12-31 未必准确），现在可在此直接修正。 */}
             <div className="grid grid-cols-2 gap-3">
-              {infoForm.jurisdiction === 'HK' && (
+              <FormField label="财年结束月">
+                <select className={inputClass} value={infoForm.financialYearEnd?.month || ''} onChange={e => setInfoForm(f => ({ ...f, financialYearEnd: { ...f.financialYearEnd, month: Number(e.target.value) || undefined } }))}>
+                  <option value="">—</option>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (<option key={m} value={m}>{m} 月</option>))}
+                </select>
+              </FormField>
+              <FormField label="财年结束日">
+                <select className={inputClass} value={infoForm.financialYearEnd?.day || ''} onChange={e => setInfoForm(f => ({ ...f, financialYearEnd: { ...f.financialYearEnd, day: Number(e.target.value) || undefined } }))}>
+                  <option value="">—</option>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (<option key={d} value={d}>{d} 日</option>))}
+                </select>
+              </FormField>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {(infoForm.jurisdiction === 'HK' || infoForm.nonHongKongCompany) && (
                 <FormField label="商业登记证到期日">
                   <input type="date" className={inputClass} value={infoForm.brExpiryDate} onChange={e => setInfoForm(f => ({ ...f, brExpiryDate: e.target.value }))} />
                 </FormField>
@@ -170,6 +186,9 @@ export default function CompanyInfoTab({ ctx }) {
             <div className="flex justify-between"><span className="text-ink-2">类型</span><span className="capitalize">{company.type?.replace(/_/g, ' ') || '-'}</span></div>
             <div className="flex justify-between"><span className="text-ink-2">属地</span><span>{jurisdictionLabel(company.jurisdiction) || company.registeredAddress?.country || '-'}</span></div>
             <div className="flex justify-between"><span className="text-ink-2">成立日期</span><span>{formatDate(company.incorporationDate)}</span></div>
+            {company.financialYearEnd?.month != null && company.financialYearEnd?.day != null && (
+              <div className="flex justify-between"><span className="text-ink-2">财年结束日</span><span>{`${company.financialYearEnd.month} 月 ${company.financialYearEnd.day} 日`}</span></div>
+            )}
             {company.brExpiryDate && (() => {
               const days = Math.floor((new Date(company.brExpiryDate) - new Date()) / (1000 * 60 * 60 * 24));
               const dayColor = days <= 30 ? 'text-danger' : days <= 90 ? 'text-warning' : 'text-success';
