@@ -429,6 +429,17 @@ export default function CompanyDetail() {
       city: company?.registeredAddress?.city || '',
       state: company?.registeredAddress?.state || '',
       addressCountry: company?.registeredAddress?.country || '中国香港',
+      // 财年结束日：HKEX 8 条规则（年报/中期报/季报/月报表/内幕消息/董事权益披露等）的基准日。
+      // 必须从 company 原样初始化（兼容 {month,day} 对象与旧 "MM-DD" 字符串），否则编辑时永远空白、保存被吞。
+      financialYearEnd: (() => {
+        const f = company?.financialYearEnd
+        if (!f) return undefined
+        if (typeof f === 'string') {
+          const [m, d] = f.split('-').map(Number)
+          return { month: m, day: d }
+        }
+        return { month: f.month, day: f.day }
+      })(),
     })
     setEditingInfo(true)
   }, [company])
@@ -457,6 +468,10 @@ export default function CompanyDetail() {
           country: infoForm.addressCountry,
         },
         brExpiryDate: infoForm.brExpiryDate || undefined,
+        // 财年结束日：仅当月、日都已填时才下发；缺失则置 undefined（删除旧值）
+        financialYearEnd: (infoForm.financialYearEnd?.month && infoForm.financialYearEnd?.day)
+          ? { month: Number(infoForm.financialYearEnd.month), day: Number(infoForm.financialYearEnd.day) }
+          : undefined,
         bviRelevantActivity: infoForm.bviRelevantActivity || undefined,
         nonHongKongCompany: nextNonHK,
         isListed: !!infoForm.isListed,
