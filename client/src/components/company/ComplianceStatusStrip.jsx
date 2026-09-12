@@ -208,7 +208,9 @@ function BrChip({ company, reminder, onUpdate, onView, onGenerate }) {
 }
 
 export default function ComplianceStatusStrip({ company, reminders, onUpdateNar1, onUpdateBr, onViewReminders, onGenerate }) {
-  if (!company || company.jurisdiction !== 'HK') return null
+  // 香港本地公司 或 在港注册的非香港公司（开曼/BVI 在港上市/注册）才展示香港合规卡位
+  // 纯开曼/BVI（nonHongKongCompany=false）不展示，因为不适用香港规则
+  if (!company || (company.jurisdiction !== 'HK' && !company.nonHongKongCompany)) return null
   const isNonHK = !!company.nonHongKongCompany
   const annualRule = isNonHK ? NN3_RULE : NAR1_RULE
   const annualReminder = reminders.find((r) => r.ruleId === annualRule)
