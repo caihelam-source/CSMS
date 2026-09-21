@@ -1,5 +1,8 @@
 /**
- * 28 条预设合规规则定义（v5.0：jurisdiction 统一为英文 HK/BVI/Cayman/SG/OTHER/ALL）
+ * 27 条预设合规规则定义（v5.0：jurisdiction 统一为英文 HK/BVI/Cayman/SG/OTHER/ALL）
+ * 注：HKEX_CAY_NN3 已于 2026-09-21 移除——在港注册非香港公司的 NN3 周年申报由
+ *     HK_NN3_AR（jurisdiction='ALL' + companyScope='HK_NON_HK'）统一覆盖，含开曼上市公司。
+ *     HKEX_CAY_NN3 与 HK_NN3_AR 对同一家开曼在港注册公司会双发 NN3，故删除冗余规则。
  *
  * baseDateType:
  *   incorporationDate  → 以成立日期为基准，每年循环
@@ -553,27 +556,6 @@ const PRESET_RULES = [
     status: '启用',
   },
 
-  // ── 特殊（1条）──────────────────────────────────────────
-  {
-    ruleId: 'HKEX_CAY_NN3',
-    ruleName: '提交周年申报表（表格NN3，在港上市开曼公司）',
-    description: '在港上市的开曼公司须向香港公司注册处提交NN3表格，截止日期 = 成立周年日 + 42天。',
-    category: '公司注册处（香港）',
-    legalReference: '《公司条例》',
-    jurisdiction: 'Cayman',
-    isListedOnly: true,
-    listingLocation: 'HK',
-    baseDateType: 'incorporationDate',
-    baseDateOffset: 365,
-    dueDateOffset: 42,
-    anchorPayload: null,
-    condition: null,
-    reminderDays: [30, 7, 1],
-    priority: '高',
-    specialNote: '独立于开曼本地年检的香港法定义务',
-    isPreset: true,
-    status: '启用',
-  },
 ];
 
 module.exports = PRESET_RULES;
