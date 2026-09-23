@@ -1,5 +1,5 @@
 /**
- * 28 条预设合规规则定义（v5.0：jurisdiction 统一为英文 HK/BVI/Cayman/SG/OTHER/ALL）
+ * 29 条预设合规规则定义（v5.0：jurisdiction 统一为英文 HK/BVI/Cayman/SG/OTHER/ALL）
  * 注：HKEX_CAY_NN3 已于 2026-09-21 移除——在港注册非香港公司的 NN3 周年申报由
  *     HK_NN3_AR（jurisdiction='ALL' + companyScope='HK_NON_HK'）统一覆盖，含开曼上市公司。
  *     HKEX_CAY_NN3 与 HK_NN3_AR 对同一家开曼在港注册公司会双发 NN3，故删除冗余规则。
@@ -25,7 +25,7 @@
  *     未采用早期草稿的 title / dueDaysBefore 命名。
  */
 const PRESET_RULES = [
-  // ── 香港非上市（6条 + 新增 AGM）────────────────────────────
+  // ── 香港非上市（8条：NAR1 / NN3 / 利得税 / BR / SCR / 变更 / 董事册 / AGM）────
   {
     ruleId: 'HK_AR_42',
     ruleName: '提交周年申报表 (NAR1)',
@@ -69,17 +69,18 @@ const PRESET_RULES = [
   {
     ruleId: 'HK_TAX_1M_3M',
     ruleName: '提交利得税报税表',
-    description: '新公司：税表发出日 + 1个月；其他公司：税表发出日 + 3个月。',
+    description: '利得税报税表（BIR51）一般于每年 4 月 1 日左右发出，默认发出后 1 个月提交；若委任税务代表，可按年结日享 N/D/M 整批延期（常见延后截止日为 4 月 30 日）。本规则以「每年 4 月 30 日」作为常见延后截止的规划提醒锚点（实际截止日以税表及税务代表安排为准）。',
     category: '税务局',
-    legalReference: '《税务条例》',
+    legalReference: '《税务条例》第51条（利得税报税表 BIR51）',
     jurisdiction: 'HK',
     isListedOnly: false,
-    baseDateType: 'financialYearEnd',
+    baseDateType: 'fixed',
+    anchorPayload: { m: 4, d: 30 },
     baseDateOffset: 0,
-    dueDateOffset: 90,   // 简化：财年结束后约3个月
-    anchorPayload: null,
+    dueDateOffset: 0,   // fixed 锚点 4/30，提前 0 天 = 到期日即 4/30（规划提醒）
     condition: null,
     reminderDays: [14, 3],
+    specialNote: '真实规则：BIR51 约 4/1 发出，默认 +1 个月；有税务代表按年结日整批延至 4/30。此处以 4/30 为年度规划提醒锚点，非精确法定截止日。',
     priority: '高',
     isPreset: true,
     status: '启用',
@@ -161,9 +162,9 @@ const PRESET_RULES = [
   {
     ruleId: 'HK_AGM',
     ruleName: '周年股东大会 (AGM)',
-    description: '公司成立后将尽快（不迟于成立后18个月）举行首届AGM，其后每年举行一次。基准 = 成立周年日 + 30天（简化）。',
+    description: '《公司条例》第610条：公司须于成立后18个月内举行首届周年股东大会，其后每年举行一次（每历年内举行，且前后两次 AGM 相隔不超过15个月）。本规则以「成立周年日 + 30天」作为每年一度 AGM 的规划提醒（简化，未区分首届/后续）。',
     category: '公司治理',
-    legalReference: '《公司条例》',
+    legalReference: '《公司条例》第610条',
     jurisdiction: 'HK',
     isListedOnly: false,
     baseDateType: 'incorporationDate',
@@ -293,18 +294,18 @@ const PRESET_RULES = [
     status: '启用',
   },
 
-  // ── 开曼非上市（4条，已对齐 spec）─────────────────────────
+  // ── 开曼非上市（5条）─────────────────────────
   {
     ruleId: 'CAY_ESR',
     ruleName: '提交经济实质报告（开曼）',
-    description: '财政年度结束日 + 约9个月（270天）。',
+    description: '财政年度结束日 + 12个月（365天）。开曼经济实质申报须于相关财年结束后 12 个月内完成。',
     category: '经济实质申报',
     legalReference: 'Cayman Islands Economic Substance Act',
     jurisdiction: 'Cayman',
     isListedOnly: false,
     baseDateType: 'financialYearEnd',
     baseDateOffset: 0,
-    dueDateOffset: 270,
+    dueDateOffset: 365,
     anchorPayload: null,
     condition: null,
     reminderDays: [270, 120, 30],
@@ -473,7 +474,7 @@ const PRESET_RULES = [
   {
     ruleId: 'HKEX_MONTHLY_RETURN',
     ruleName: '提交证券变动月报表',
-    description: '每月结束后第5个营业日上午8:30前向联交所提交。',
+    description: '每月结束后第5个营业日上午8:30前向联交所提交（此处以次月第5个日历日近似）。',
     category: '持续责任披露',
     legalReference: '《上市规则》',
     jurisdiction: 'HK',
@@ -481,10 +482,10 @@ const PRESET_RULES = [
     baseDateType: 'fixed',   // 每月循环，后端特殊处理
     anchorPayload: { day: 5 },
     baseDateOffset: 0,
-    dueDateOffset: 5,
+    dueDateOffset: 0,   // 次月第5日（特殊分支已锚定 day:5，offset 归零避免推到10日）
     reminderDays: [3, 1],
     priority: '高',
-    specialNote: '每月提交，第5个营业日截止',
+    specialNote: '每月提交，第5个营业日截止（此处以次月第5个日历日近似）',
     isPreset: true,
     status: '启用',
   },
