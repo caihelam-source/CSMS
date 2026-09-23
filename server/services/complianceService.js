@@ -14,7 +14,7 @@ const PRESET_DEFINITION_FIELDS = [
   // companyScope：NAR1/NN3 互斥的结构化表达（见 ruleApplicability）。
   // 必须在表里，否则 initPresetRules 的 upsert 不会把它写进既有库记录。
   'companyScope',
-  'baseDateType', 'baseDateOffset', 'dueDateOffset', 'anchorPayload', 'condition',
+  'baseDateType', 'baseDateUnit', 'baseDateOffset', 'dueDateOffset', 'anchorPayload', 'condition',
   'reminderDays', 'priority', 'penaltyNote', 'specialNote', 'isPreset',
 ];
 
@@ -120,7 +120,12 @@ function calcDueDate(rule, company) {
     if (!mm || !dd) return null;
     baseDate = new Date(year, mm - 1, dd); // month 需减 1（JS Date 月份从 0 起）
     if (baseDate < today) baseDate.setFullYear(year + 1);
-    baseDate = addDays(baseDate, rule.baseDateOffset || 0);
+    if (rule.baseDateUnit === 'months') {
+      // 按日历月偏移，用于 HKEX 中期/年报、禁售期等「N 个月」语义
+      baseDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + (rule.baseDateOffset || 0), baseDate.getDate());
+    } else {
+      baseDate = addDays(baseDate, rule.baseDateOffset || 0);
+    }
   } else if (rule.baseDateType === 'fixed') {
     if (ap && ap.reference === 'brExpiryDate') {
       // BR 续期：以公司 brExpiryDate 为基准，不滚动到次年
