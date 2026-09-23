@@ -42,7 +42,8 @@ const complianceRuleSchema = new mongoose.Schema({
     enum: ['incorporationDate', 'financialYearEnd', 'fixed', 'trigger'],
     default: 'incorporationDate'
   },
-  baseDateOffset: { type: Number, default: 0 },             // 基准日偏移天数（年为单位用365）
+  baseDateUnit: { type: String, enum: ['days', 'months'], default: 'days' }, // 基准日偏移单位；'months' 用于 HKEX 中期/年报等日历月语义
+  baseDateOffset: { type: Number, default: 0 },             // 基准日偏移量（days 或 months，由 baseDateUnit 决定）
   dueDateOffset: { type: Number, default: 0 },              // 在周年日/财年结束日基础上再加N天
   anchorPayload: { type: mongoose.Schema.Types.Mixed, default: null }, // fixed 基准：{month,day} 或 {reference:'brExpiryDate'}（BR 续期）
   condition: { type: String },                              // 补充条件说明（如BVI年费按注册月份分两档截止）
