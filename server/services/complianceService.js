@@ -122,7 +122,7 @@ function calcDueDate(rule, company) {
     if (baseDate < today) baseDate.setFullYear(year + 1);
     if (rule.baseDateUnit === 'months') {
       // 按日历月偏移，用于 HKEX 中期/年报、禁售期等「N 个月」语义
-      baseDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + (rule.baseDateOffset || 0), baseDate.getDate());
+      baseDate = addMonthsClamped(baseDate, rule.baseDateOffset || 0);
     } else {
       baseDate = addDays(baseDate, rule.baseDateOffset || 0);
     }
@@ -156,6 +156,19 @@ function addDays(date, days) {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
   return d;
+}
+
+// 按日历月加减，并把「日」clamp 到目标月的合法最后一天，避免 31→30 月溢出到下月
+// （例如 12-31 + 4 个月应为 4-30，而非 "4-31" 滚成 5-1；12-31 - 3 个月应为 9-30，而非 "9-31" 滚成 10-1）
+function addMonthsClamped(date, months) {
+  if (!months) return new Date(date);
+  const d = new Date(date);
+  const targetMonth = d.getMonth() + months;
+  const targetYear = d.getFullYear() + Math.floor(targetMonth / 12);
+  const normMonth = ((targetMonth % 12) + 12) % 12;
+  const lastDay = new Date(targetYear, normMonth + 1, 0).getDate(); // 0 = 该月最后一天
+  const day = Math.min(d.getDate(), lastDay);
+  return new Date(targetYear, normMonth, day);
 }
 
 /**
