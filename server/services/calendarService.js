@@ -409,18 +409,11 @@ async function deleteEvent(id, user) {
   return { id }
 }
 
-// 从 Company 抽取绝对申报日期；财年终点按年循环推算 next occurrence
+// 从 Company 抽取绝对申报日期；财年终点按年循环推算 next occurrence。
+// 注意：AGM / 年审 / 税务 / BR 续期已由 ComplianceReminder 覆盖（合规提醒源），
+//       此处不再重复输出，避免日历面板出现「同一事项两条」的视觉重复。
 function extractFilingDates(c, from, _to) {
   const out = []
-  const push = (date, label, priority) => {
-    if (date) out.push({ date: new Date(date), kind: label, label, priority })
-  }
-  if (c.compliance) {
-    push(c.compliance.agmDueDate, 'AGM 到期', 'high')
-    push(c.compliance.arDueDate, '年审到期', 'high')
-    push(c.compliance.taxFilingDue, '税务申报', 'medium')
-  }
-  push(c.brExpiryDate, '商业登记证到期', 'high')
   // 财年终点（day/month）→ 推算 from 之后最近一次发生日
   if (c.financialYearEnd && c.financialYearEnd.month) {
     const next = nextAnnualDate(c.financialYearEnd.month, c.financialYearEnd.day || 31, from)
