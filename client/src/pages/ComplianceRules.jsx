@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import toast from 'react-hot-toast'
 import {
-  ShieldCheck, Plus, RefreshCw, Zap, Download, AlertTriangle,
+  ShieldCheck, Plus, RefreshCw, Zap, Download, Upload, AlertTriangle,
   Pencil, Trash2, Sparkles, Power, PowerOff
 } from 'lucide-react'
 import { complianceRuleService, companyService, complianceReminderService } from '../services/index.js'
@@ -324,7 +324,141 @@ const exportGapsCSV = (diagnosis) => {
   URL.revokeObjectURL(url)
 }
 
-const GapsView = ({ diagnosis, loading, onExport, onEditCompany }) => {
+// 本地日期 → YYYY-MM-DD（避免 toISOString 的 UTC 偏移导致差一天）
+const fmtDate = (v) => {
+  if (!v) return ''
+  const d = new Date(v)
+  if (isNaN(d.getTime())) return ''
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+// 导出「可编辑回填模板」：含 _id/公司名称/注册地/注册号 + 三个缺失常填字段（已有值预填，缺失留空）。
+// 用户填好后由导入闭环回灌 bulk-update（只更新传入字段，绝不误删已有值）。
+const exportGapsTemplate = async (diagnosis) => {
+  if (!diagnosis) return
+  const companies = (diagnosis.companies || []).filter((c) => c.missingFields && c.missingFields.length)
+  if (companies.length === 0) {
+    toast('当前没有数据缺口，无需导出模板')
+    return
+  }
+  try {
+    const XLSX = await import('xlsx')
+    const header = ['_id', '公司名称', '注册地', '注册号', '成立日期', '商业登记到期日', '财政年度结算日(月)', '财政年度结算日(日)']
+    const rows = companies.map((c) => {
+      const fye = c.financialYearEnd && typeof c.financialYearEnd === 'object' ? c.financialYearEnd : {}
+      return [
+        c._id || '',
+        c.name || '',
+        c.jurisdiction || '',
+        c.registrationNumber || '',
+        c.missingFields.includes('incorporationDate') ? '' : fmtDate(c.incorporationDate),
+        c.missingFields.includes('brExpiryDate') ? '' : fmtDate(c.brExpiryDate),
+        c.missingFields.includes('financialYearEnd') ? '' : (fye.month ?? ''),
+        c.missingFields.includes('financialYearEnd') ? '' : (fye.day ?? ''),
+      ]
+    })
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
+    // 列宽友好一点
+    ws['!cols'] = [{ wch: 26 }, { wch: 32 }, { wch: 10 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '缺口回填模板')
+    XLSX.writeFile(wb, `合规缺口回填_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  } catch (e) {
+    toast.error('导出模板失败：' + (e.message || e))
+  }
+}
+
+// 导入回填模板：解析 Excel → 构造 updates → 调 companyService.bulkUpdate（只更新传入字段）
+const ImportGapsModal = ({ onImport, onCancel, importing }) => {
+  const [file, setFile] = useState(null)
+  const [result, setResult] = useState(null)
+  const fileRef = useRef(null)
+
+  const handleFile = (e) => {
+    const f = e.target.files[0]
+    if (f) { setFile(f); setResult(null) }
+    e.target.value = ''
+  }
+
+  const handleImport = async () => {
+    if (!file) { toast.error('请先选择填好的 Excel 文件'); return }
+    try {
+      const XLSX = await import('xlsx')
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array' })
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+      const updates = []
+      for (const row of rows) {
+        const _id = (row['_id'] || row.id || '').toString().trim()
+        const name = (row['公司名称'] || row['name'] || '').toString().trim()
+        if (!_id && !name) continue // 跳过空行
+        const upd = {}
+        if (_id) upd._id = _id
+        upd.name = name
+        upd.jurisdiction = (row['注册地'] || row['jurisdiction'] || '').toString().trim()
+        upd.registrationNumber = (row['注册号'] || row['registrationNumber'] || '').toString().trim()
+        // 只回传有值的字段：空单元格不传 → 后端不会用空值覆盖已有数据
+        const brRaw = (row['商业登记到期日'] || row['brExpiryDate'] || '').toString().trim()
+        if (brRaw) upd.brExpiryDate = brRaw
+        const incRaw = (row['成立日期'] || row['incorporationDate'] || '').toString().trim()
+        if (incRaw) upd.incorporationDate = incRaw
+        const mRaw = (row['财政年度结算日(月)'] || row['financialYearEndMonth'] || '').toString().trim()
+        const dRaw = (row['财政年度结算日(日)'] || row['financialYearEndDay'] || '').toString().trim()
+        if (mRaw && dRaw) { upd.financialYearEndMonth = mRaw; upd.financialYearEndDay = dRaw }
+        updates.push(upd)
+      }
+      if (updates.length === 0) { toast.error('文件中没有可解析的行'); return }
+      const res = await onImport(updates)
+      setResult(res)
+    } catch (e) {
+      toast.error('解析失败：' + (e.message || e))
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-ink-2">
+        选择从「数据缺口」页导出的回填模板（已填好日期），系统将按 <strong>_id → 公司名称+注册地 → 公司名称+注册号 → 公司名称</strong> 匹配并<strong>只更新你填写的字段</strong>，不会删除任何已有数据。
+      </p>
+      <div className="flex items-center gap-3">
+        <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="px-3 py-2 border border-hairline rounded-lg text-sm hover:bg-canvas"
+        >
+          选择 Excel 文件
+        </button>
+        <span className="text-sm text-ink-3 truncate">{file ? file.name : '未选择文件'}</span>
+      </div>
+      {result && (
+        <div className={`p-4 rounded-lg text-sm ${result.success === false ? 'bg-danger/10 border border-danger/20 text-danger' : 'bg-success/10 border border-success/20 text-success'}`}>
+          <p className="font-medium">✓ 批量更新完成</p>
+          <p>匹配 {result.matched || 0} 家，更新 {result.modified || 0} 家{result.errors?.length ? `，${result.errors.length} 条失败` : ''}。</p>
+          {result.errors?.length > 0 && (
+            <ul className="mt-2 pt-2 border-t border-current/20 space-y-1 max-h-32 overflow-y-auto">
+              {result.errors.slice(0, 12).map((er, i) => (
+                <li key={i}>• {er.name || ('第' + er.row + '行')}：{er.error}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onCancel} disabled={importing} className="px-4 py-2 text-sm text-ink border border-hairline rounded-lg hover:bg-canvas">关闭</button>
+        <button type="button" onClick={handleImport} disabled={importing || !file || !!result} className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
+          {importing ? '导入中...' : '导入并更新'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const GapsView = ({ diagnosis, loading, onExport, onTemplate, onImport, onEditCompany }) => {
   if (loading) return <LoadingSpinner />
   // 防御性解构：诊断对象可能为空，或来自 normalize 第 3 条兜底被错误当成数组的 payload
   const safe = diagnosis && typeof diagnosis === 'object' && !Array.isArray(diagnosis) ? diagnosis : null
@@ -346,9 +480,21 @@ const GapsView = ({ diagnosis, loading, onExport, onEditCompany }) => {
             <p className="text-2xl font-semibold text-ink mt-1">{companiesWithGaps} <span className="text-base font-normal text-ink-3">/ {totalCompanies} 家公司</span></p>
             <p className="text-sm text-ink-3 mt-1">共 <strong className="text-warning">{summary.totalMissing}</strong> 处字段缺失，导致对应合规提醒无法生成</p>
           </div>
-          <button onClick={onExport} className="flex items-center gap-1.5 px-3 py-2 border border-hairline rounded-lg text-sm font-medium hover:bg-canvas">
-            <Download size={15} /> 导出 CSV
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={onExport} className="flex items-center gap-1.5 px-3 py-2 border border-hairline rounded-lg text-sm font-medium hover:bg-canvas">
+              <Download size={15} /> 导出 CSV 清单
+            </button>
+            {onTemplate && (
+              <button onClick={onTemplate} className="flex items-center gap-1.5 px-3 py-2 border border-hairline rounded-lg text-sm font-medium hover:bg-canvas" title="导出可编辑的 Excel 回填模板（含 _id 与已有值，填好后可「导入更新」一次补齐）">
+                <Download size={15} /> 导出回填模板
+              </button>
+            )}
+            {onImport && (
+              <button onClick={onImport} className="flex items-center gap-1.5 px-3 py-2 border border-info/30 bg-info/5 text-primary-700 rounded-lg text-sm font-medium hover:bg-info/10">
+                <Upload size={15} /> 导入更新
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap gap-2 pt-1">
           {Object.entries(summary.byField).map(([f, n]) => (
@@ -431,6 +577,8 @@ const ComplianceRules = () => {
   const [activeTab, setActiveTab] = useState('')  // '' = 全部
   const [gapEditTarget, setGapEditTarget] = useState(null)  // 缺口页里点击「补充」时锁定的公司
   const [gapSaving, setGapSaving] = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)  // 缺口页「导入更新」回填模板
+  const [gapImporting, setGapImporting] = useState(false)
 
   const { search, setSearch, filters, setFilter, filtered } = useSearchFilter(
     rules,
@@ -616,7 +764,30 @@ const ComplianceRules = () => {
     }
   }
 
-  // 行内就地切换 status（optimistic + 失败回滚）
+  // 缺口页「导入更新」：批量回填模板 → 只更新传入字段，成功后重算缺口 + 刷新公司列表
+  const handleImportGaps = async (updates) => {
+    setGapImporting(true)
+    try {
+      const { data } = await companyService.bulkUpdate({ updates })
+      // normalize：后端 { success, matched, modified, errors, total } 走 D 复合型 →
+      // { data: { data: { matched, modified, errors, total } } }
+      const r = data?.data?.data ?? data?.data ?? data ?? {}
+      if (r.success === false) throw new Error(r.message || '批量更新失败')
+      toast.success(
+        `批量回填完成 — 匹配 ${r.matched || 0} 家、更新 ${r.modified || 0} 家${r.errors?.length ? `，${r.errors.length} 条失败` : ''}`,
+      )
+      if (r.errors?.length) console.warn('[bulkUpdate] 部分失败:', r.errors)
+      // 重算缺口（让已补齐的公司从表里消失）+ 同步刷新 companies（详情页实时反映新值）
+      fetchDiagnosis()
+      fetchAll()
+      return r
+    } catch (e) {
+      toast.error(e.response?.data?.message || e.message || '导入失败')
+      throw e
+    } finally {
+      setGapImporting(false)
+    }
+  }
   const handleToggleRuleStatus = async (rule) => {
     const current = rule.status === '启用' ? '启用' : '停用'
     const next = rule.status === '启用' ? '停用' : '启用'
@@ -911,7 +1082,14 @@ const ComplianceRules = () => {
       </>)}
 
       {view === 'gaps' && (
-        <GapsView diagnosis={diagnosis} loading={diagLoading} onExport={() => exportGapsCSV(diagnosis)} onEditCompany={setGapEditTarget} />
+        <GapsView
+          diagnosis={diagnosis}
+          loading={diagLoading}
+          onExport={() => exportGapsCSV(diagnosis)}
+          onTemplate={() => exportGapsTemplate(diagnosis)}
+          onImport={() => setImportModalOpen(true)}
+          onEditCompany={setGapEditTarget}
+        />
       )}
 
       {/* 新增/编辑 Modal */}
@@ -961,6 +1139,16 @@ const ComplianceRules = () => {
           onSave={handleSaveGapEdit}
           onCancel={() => setGapEditTarget(null)}
           saving={gapSaving}
+        />
+      </Modal>
+
+      {/* 缺口页「导入更新」：导出模板 → 填好 → 一次性批量回填 */}
+      <Modal isOpen={importModalOpen} onClose={() => !gapImporting && setImportModalOpen(false)}
+        title="批量回填合规缺口" size="md">
+        <ImportGapsModal
+          onImport={handleImportGaps}
+          onCancel={() => setImportModalOpen(false)}
+          importing={gapImporting}
         />
       </Modal>
 

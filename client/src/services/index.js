@@ -211,6 +211,11 @@ export const companyService = {
     () => api.post(`/api/companies/former-names/normalize-all`),
     mockCompanies.normalizeAllFormerNames,
   ),
+  // 合规缺口页批量回填：按 _id/name+jurisdiction/name+registrationNumber 更新已有公司字段（不创建新公司）
+  bulkUpdate: wrap(
+    (payload) => api.post('/api/companies/bulk-update', payload),
+    () => Promise.resolve({ data: { success: true, matched: 0, modified: 0, errors: [], total: 0 } }),
+  ),
 }
 
 // ====== Personnel Service ======

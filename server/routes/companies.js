@@ -305,6 +305,9 @@ router.post('/import/excel', auth, upload.single('file'), async (req, res) => {
       if (stockCode) company = await Company.findOne({ stockCode });
       if (!company && registrationNumber) company = await Company.findOne({ registrationNumber });
 
+      const brExpiryDateRaw = row['商业登记到期日'];
+      const brExpiryDate = brExpiryDateRaw ? new Date(brExpiryDateRaw) : null;
+
       const data = {
         name,
         nameChinese: String(row['公司中文名'] || '').trim(),
@@ -322,6 +325,7 @@ router.post('/import/excel', auth, upload.single('file'), async (req, res) => {
           const m = String(row['财务年度结束'] || '').match(/(\d{1,2})[-/](\d{1,2})/);
           return m ? { month: parseInt(m[1], 10), day: parseInt(m[2], 10) } : undefined;
         })(),
+        brExpiryDate: brExpiryDate && !isNaN(brExpiryDate) ? brExpiryDate : undefined,
         companySecretary: String(row['公司秘书'] || '').trim(),
         status: String(row['状态'] || '活跃').trim(),
         notes: String(row['备注'] || '').trim(),
@@ -362,8 +366,8 @@ router.post('/import/excel', auth, upload.single('file'), async (req, res) => {
 
 // GET /api/companies/template/excel — 下载公司 Excel 模板
 router.get('/template/excel', auth, (req, res) => {
-  const headers = ['公司名称', '公司中文名', '股票代码', '注册号', '成立日期', '注册地址', '营业地址', '地区', '业务性质', '行业', '电话', '邮箱', '财务年度结束', '公司秘书', '状态', '备注'];
-  const example = ['ABC Limited', 'ABC有限公司', '00001', '12345678', '2020-01-15', '香港中环...', '', '香港', '贸易', '金融', '+852 1234 5678', 'info@abc.com', '12-31', 'John Doe', '活跃', ''];
+  const headers = ['公司名称', '公司中文名', '股票代码', '注册号', '成立日期', '注册地址', '营业地址', '地区', '业务性质', '行业', '电话', '邮箱', '财务年度结束', '商业登记到期日', '公司秘书', '状态', '备注'];
+  const example = ['ABC Limited', 'ABC有限公司', '00001', '12345678', '2020-01-15', '香港中环...', '', '香港', '贸易', '金融', '+852 1234 5678', 'info@abc.com', '12-31', '2026-03-31', 'John Doe', '活跃', ''];
   const ws = XLSX.utils.aoa_to_sheet([headers, example]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Companies');
@@ -371,6 +375,101 @@ router.get('/template/excel', auth, (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename=companies_template.xlsx');
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
+});
+
+// POST /api/companies/bulk-update — 批量更新已有公司字段（只更新，不创建；用于合规缺口页回填）
+// 支持字段：brExpiryDate、incorporationDate、financialYearEnd；匹配优先级：_id > name+jurisdiction > name+registrationNumber > name
+router.post('/bulk-update', auth, async (req, res) => {
+  try {
+    const updates = Array.isArray(req.body.updates) ? req.body.updates : [];
+    if (updates.length === 0) return res.status(400).json({ message: 'updates 不能为空数组' });
+
+    const ALLOWED_FIELDS = new Set(['brExpiryDate', 'incorporationDate', 'financialYearEnd']);
+
+    const parseDate = (v, field) => {
+      if (v == null || v === '') return { value: undefined };
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return { error: `${field} 日期格式错误` };
+      return { value: d };
+    };
+
+    let matched = 0, modified = 0;
+    const errors = [];
+
+    for (let i = 0; i < updates.length; i++) {
+      const row = updates[i];
+      const rowNum = i + 1;
+
+      // 1. 匹配公司
+      let company = null;
+      let matchBy = '';
+      const _id = row._id || row.id;
+      const name = String(row.name || '').trim();
+      const jurisdiction = String(row.jurisdiction || '').trim() || undefined;
+      const registrationNumber = String(row.registrationNumber || '').trim() || undefined;
+
+      if (mongoose.Types.ObjectId.isValid(_id)) {
+        company = await Company.findById(_id).lean();
+        if (company) matchBy = '_id';
+      }
+      if (!company && name && jurisdiction) {
+        company = await Company.findOne({ name, jurisdiction }).lean();
+        if (company) matchBy = 'name+jurisdiction';
+      }
+      if (!company && name && registrationNumber) {
+        company = await Company.findOne({ name, registrationNumber }).lean();
+        if (company) matchBy = 'name+registrationNumber';
+      }
+      if (!company && name) {
+        company = await Company.findOne({ name }).lean();
+        if (company) matchBy = 'name';
+      }
+      if (!company) {
+        errors.push({ row: rowNum, name, error: '未找到匹配公司' });
+        continue;
+      }
+      matched++;
+
+      // 2. 校验并构造 payload
+      const payload = {};
+      if (row.brExpiryDate !== undefined) {
+        const r = parseDate(row.brExpiryDate, '商业登记到期日');
+        if (r.error) { errors.push({ row: rowNum, name: company.name, error: r.error }); continue; }
+        payload.brExpiryDate = r.value;
+      }
+      if (row.incorporationDate !== undefined) {
+        const r = parseDate(row.incorporationDate, '成立日期');
+        if (r.error) { errors.push({ row: rowNum, name: company.name, error: r.error }); continue; }
+        payload.incorporationDate = r.value;
+      }
+      if (row.financialYearEnd !== undefined || row.financialYearEndMonth !== undefined || row.financialYearEndDay !== undefined) {
+        const m = row.financialYearEndMonth != null ? parseInt(row.financialYearEndMonth, 10) : (row.financialYearEnd?.month != null ? parseInt(row.financialYearEnd.month, 10) : NaN);
+        const d = row.financialYearEndDay != null ? parseInt(row.financialYearEndDay, 10) : (row.financialYearEnd?.day != null ? parseInt(row.financialYearEnd.day, 10) : NaN);
+        if (isNaN(m) || isNaN(d) || m < 1 || m > 12 || d < 1 || d > 31) {
+          errors.push({ row: rowNum, name: company.name, error: '财务年度结束日期无效（月 1-12，日 1-31）' });
+          continue;
+        }
+        payload.financialYearEnd = { month: m, day: d };
+      }
+
+      if (Object.keys(payload).length === 0) {
+        errors.push({ row: rowNum, name: company.name, error: '没有可更新字段' });
+        continue;
+      }
+
+      // 3. 只更新匹配到的公司
+      try {
+        await Company.updateOne({ _id: company._id }, { $set: payload });
+        modified++;
+      } catch (err) {
+        errors.push({ row: rowNum, name: company.name, error: err.message });
+      }
+    }
+
+    res.json({ success: true, matched, modified, errors, total: updates.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // ====== v5.0: 统一关联 CRUD（读时聚合：Company.links 为唯一事实源，不物化 Personnel）======
