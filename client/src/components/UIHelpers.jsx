@@ -266,6 +266,18 @@ const JURISDICTION_LABELS = {
 export const jurisdictionLabel = (j) => JURISDICTION_LABELS[j] || j || '—'
 
 /**
+ * needsBusinessRegistration — 公司是否需要香港商业登记证（BR）。
+ * 与后端 ruleApplicability 对 HK_BR_RENEW 的判定完全一致：
+ *   适用 = 香港本地公司（jurisdiction==='HK'） 或 在港注册的非香港公司（nonHongKongCompany===true）。
+ * 纯 BVI / Cayman / SG / OTHER 公司（未在港注册）没有香港 BR，
+ * 既不能展示「商业登记证到期日」，也不应生成 BR 续期提醒。
+ * 用法：所有 BR 相关 UI（信息卡、合规日期、状态位、BR 弹窗）都应以本函数作为显隐开关，
+ *       与编辑态 CompanyInfoTab 既有的 `jurisdiction==='HK' || nonHongKongCompany` 判定保持一致。
+ */
+export const needsBusinessRegistration = (company) =>
+  !!company && (company.jurisdiction === 'HK' || !!company.nonHongKongCompany)
+
+/**
  * InfoCard — simple info card with title and children content
  * Usage: <InfoCard title="基本信息"><dl>...</dl></InfoCard>
  */

@@ -3,7 +3,7 @@
 import { Link } from 'react-router-dom'
 import { Edit3, Calendar, CheckSquare, History, Plus, X, GitMerge, Sparkles } from 'lucide-react'
 import { formatDate } from '../../utils/helpers'
-import { FormField, inputClass, jurisdictionLabel, taskPriorityColor } from '../../components/UIHelpers'
+import { FormField, inputClass, jurisdictionLabel, taskPriorityColor, needsBusinessRegistration } from '../../components/UIHelpers'
 
 export default function CompanyInfoTab({ ctx }) {
   const {
@@ -189,7 +189,7 @@ export default function CompanyInfoTab({ ctx }) {
             {company.financialYearEnd?.month != null && company.financialYearEnd?.day != null && (
               <div className="flex justify-between"><span className="text-ink-2">财年结束日</span><span>{`${company.financialYearEnd.month} 月 ${company.financialYearEnd.day} 日`}</span></div>
             )}
-            {company.brExpiryDate && (() => {
+            {needsBusinessRegistration(company) && company.brExpiryDate && (() => {
               const days = Math.floor((new Date(company.brExpiryDate) - new Date()) / (1000 * 60 * 60 * 24));
               const dayColor = days <= 30 ? 'text-danger' : days <= 90 ? 'text-warning' : 'text-success';
               return (
@@ -306,7 +306,7 @@ export default function CompanyInfoTab({ ctx }) {
             const brTask = tasks.find(t => t.status === 'completed' && (
               t.title?.includes('商业登记') || t.title?.includes('BR')
             ))
-            return company.brExpiryDate ? (
+            return (needsBusinessRegistration(company) && company.brExpiryDate) ? (
               <div className="flex justify-between items-center">
                 <span className="text-ink-2">商业登记证到期</span>
                 <div className="text-right">
