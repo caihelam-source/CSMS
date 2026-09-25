@@ -422,7 +422,7 @@ const ImportGapsModal = ({ onImport, onCancel, importing }) => {
   return (
     <div className="space-y-4">
       <p className="text-sm text-ink-2">
-        选择从「数据缺口」页导出的回填模板（已填好日期），系统将按 <strong>_id → 公司名称+注册地 → 公司名称+注册号 → 公司名称</strong> 匹配并<strong>只更新你填写的字段</strong>，不会删除任何已有数据。
+        选择从「数据缺口」页导出的回填模板（已填好日期），系统将按 <strong>_id → 公司名称+注册地 → 公司名称+注册号 → 公司名称</strong> 匹配并<strong>只更新你填写的字段</strong>，不会删除任何已有数据。导入成功后系统会<strong>自动重算</strong>相关合规提醒（BR 续期 / 周年申报 / NN3），无需再手动点 admin 按钮。
       </p>
       <div className="flex items-center gap-3">
         <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} />
@@ -777,6 +777,19 @@ const ComplianceRules = () => {
         `批量回填完成 — 匹配 ${r.matched || 0} 家、更新 ${r.modified || 0} 家${r.errors?.length ? `，${r.errors.length} 条失败` : ''}`,
       )
       if (r.errors?.length) console.warn('[bulkUpdate] 部分失败:', r.errors)
+      // 自动重算提醒：刚填好 BR 到期日 / 成立日期的公司，对应的 HK_BR_RENEW / NAR1 续期提醒
+      // 应按新数据重生（ensure 幂等，只生成缺失的，不会重复）。等价于 admin 手动点「全员 ensure」。
+      if ((r.modified || 0) > 0) {
+        try {
+          const ens = await complianceReminderService.ensureAllHk()
+          const ed = ens?.data?.data ?? ens?.data ?? ens ?? {}
+          toast.success(`已自动重算合规提醒 — 处理 ${ed.processed || 0} 家、新增 ${ed.created || 0} 条`)
+        } catch (e2) {
+          // ensure 失败不应掩盖主流程成功；降级提示手动操作
+          console.warn('[ensureAllHk] 自动重算失败:', e2)
+          toast.error('回填成功，但自动重算提醒失败，请到「合规提醒」页手动点「全员 ensure」')
+        }
+      }
       // 重算缺口（让已补齐的公司从表里消失）+ 同步刷新 companies（详情页实时反映新值）
       fetchDiagnosis()
       fetchAll()
