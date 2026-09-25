@@ -1,0 +1,19 @@
+{
+  "name": "claw-mini",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Claw 香港公司秘书合规管理小程序（uni-app，复用 claw-api，数据同源）",
+  "scripts": {
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "build:mp-weixin": "uni build -p mp-weixin"
+  },
+  "dependencies": {
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/uni-app": "3.0.0-alpha-5020720260921001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-5020720260921001",
+    "@dcloudio/vite-plugin-uni": "3.0.0-5020620260917001",
+    "vite": "^5.2.0"
+  }
+}

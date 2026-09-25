@@ -1,0 +1,18 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/login",
+      "style": { "navigationBarTitleText": "登录 Claw" }
+    },
+    {
+      "path": "pages/gaps/gaps",
+      "style": { "navigationBarTitleText": "合规数据缺口" }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarBackgroundColor": "#2563EB",
+    "navigationBarTitleText": "Claw",
+    "backgroundColor": "#F5F7FA"
+  }
+}

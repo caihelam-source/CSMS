@@ -1,0 +1,17 @@
+{
+  "name": "Claw秘书",
+  "appid": "__UNI__CLAWMINI",
+  "description": "香港公司秘书合规管理小程序",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "touristappid",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "minified": true
+    },
+    "permission": {}
+  }
+}
