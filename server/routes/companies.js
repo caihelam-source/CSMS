@@ -384,8 +384,6 @@ router.post('/bulk-update', auth, async (req, res) => {
     const updates = Array.isArray(req.body.updates) ? req.body.updates : [];
     if (updates.length === 0) return res.status(400).json({ message: 'updates 不能为空数组' });
 
-    const ALLOWED_FIELDS = new Set(['brExpiryDate', 'incorporationDate', 'financialYearEnd']);
-
     const parseDate = (v, field) => {
       if (v == null || v === '') return { value: undefined };
       const d = new Date(v);
@@ -402,7 +400,6 @@ router.post('/bulk-update', auth, async (req, res) => {
 
       // 1. 匹配公司
       let company = null;
-      let matchBy = '';
       const _id = row._id || row.id;
       const name = String(row.name || '').trim();
       const jurisdiction = String(row.jurisdiction || '').trim() || undefined;
@@ -410,19 +407,15 @@ router.post('/bulk-update', auth, async (req, res) => {
 
       if (mongoose.Types.ObjectId.isValid(_id)) {
         company = await Company.findById(_id).lean();
-        if (company) matchBy = '_id';
       }
       if (!company && name && jurisdiction) {
         company = await Company.findOne({ name, jurisdiction }).lean();
-        if (company) matchBy = 'name+jurisdiction';
       }
       if (!company && name && registrationNumber) {
         company = await Company.findOne({ name, registrationNumber }).lean();
-        if (company) matchBy = 'name+registrationNumber';
       }
       if (!company && name) {
         company = await Company.findOne({ name }).lean();
-        if (company) matchBy = 'name';
       }
       if (!company) {
         errors.push({ row: rowNum, name, error: '未找到匹配公司' });

@@ -37,6 +37,44 @@ const SUFFIX_PATTERNS = [
   /（开曼）/g,
 ]
 
+// CJK Unified Ideographs + Extension A：用于从混合英文名中拆出中文（避免英文 fuzzy 被中文尾缀稀释）
+const CJK_REGEX = /[\u4e00-\u9fa5\u3400-\u4dbf]+/g
+
+/**
+ * 从字符串中提取连续 CJK 字符（如 "Easy Rich Ltd (顺富兴业)" → "顺富兴业"）
+ */
+function extractChinese(s) {
+  if (!s) return ''
+  return (s.match(CJK_REGEX) || []).join('')
+}
+
+/**
+ * 去掉 CJK 字符，仅保留非中文部分用于英文 fuzzy 比对
+ */
+function stripChinese(s) {
+  if (!s) return ''
+  return s.replace(CJK_REGEX, ' ')
+}
+
+/**
+ * 对单个原始名字生成全部可比候选：
+ *   1) 原样归一
+ *   2) 去 CJK 后的英文归一
+ *   3) 仅保留 CJK 后的中文归一
+ * 用于 mixed "English (中文)" 或 "中文 (English)" 的同名识别。
+ */
+function normalizedNameCandidates(raw) {
+  if (!raw) return new Set()
+  const set = new Set()
+  const plain = normalizeCompanyName(raw)
+  if (plain) set.add(plain)
+  const eng = normalizeCompanyName(stripChinese(raw))
+  if (eng) set.add(eng)
+  const chn = normalizeCompanyName(extractChinese(raw))
+  if (chn) set.add(chn)
+  return set
+}
+
 /**
  * 归一化公司名用于 fuzzy 比对：
  *   - 小写
@@ -139,8 +177,18 @@ function jaroWinkler(s1, s2, prefixScale = 0.1) {
  * @returns {{score: number, nameA: string, nameB: string}|null}
  */
 function fuzzyMatch(a, b, threshold = DEFAULT_FUZZY_THRESHOLD) {
-  const namesA = [a.name, a.nameChinese].filter(Boolean).map(normalizeCompanyName).filter(Boolean)
-  const namesB = [b.name, b.nameChinese].filter(Boolean).map(normalizeCompanyName).filter(Boolean)
+  // 把每个名字字段拆成「英文部分」和「中文部分」两路候选，避免中文尾缀稀释英文 fuzzy 分。
+  // 例：name="Easy Rich Corporation Ltd (顺富兴业)" 会同时产生
+  //   英文候选 "easy rich"（去后缀+去中文） 和 中文候选 "顺富兴业"。
+  const buildCandidates = (obj) => {
+    const set = new Set()
+    ;[obj.name, obj.nameChinese].filter(Boolean).forEach((raw) => {
+      normalizedNameCandidates(raw).forEach((c) => set.add(c))
+    })
+    return Array.from(set)
+  }
+  const namesA = buildCandidates(a)
+  const namesB = buildCandidates(b)
   if (!namesA.length || !namesB.length) return null
   let best = 0
   let nameA = ''
@@ -164,17 +212,25 @@ function fuzzyMatch(a, b, threshold = DEFAULT_FUZZY_THRESHOLD) {
  * @returns {{fromA: object, fromB: object}|null}
  */
 function aliasMatch(a, b) {
-  const aHas = (a.formerNames || []).find((fn) =>
-    [b.name, b.nameChinese].filter(Boolean).some(
-      (n) => normalizeCompanyName(fn.name) === normalizeCompanyName(n),
-    ),
-  )
+  const targetCandidates = (obj) => {
+    const set = new Set()
+    ;[obj.name, obj.nameChinese].filter(Boolean).forEach((raw) => {
+      normalizedNameCandidates(raw).forEach((c) => set.add(c))
+    })
+    return set
+  }
+  const bCandidates = targetCandidates(b)
+  const aHas = (a.formerNames || []).find((fn) => {
+    const fnCandidates = normalizedNameCandidates(fn.name)
+    return Array.from(fnCandidates).some((c) => bCandidates.has(c))
+  })
   if (aHas) return { fromA: aHas, fromB: null }
-  const bHas = (b.formerNames || []).find((fn) =>
-    [a.name, a.nameChinese].filter(Boolean).some(
-      (n) => normalizeCompanyName(fn.name) === normalizeCompanyName(n),
-    ),
-  )
+
+  const aCandidates = targetCandidates(a)
+  const bHas = (b.formerNames || []).find((fn) => {
+    const fnCandidates = normalizedNameCandidates(fn.name)
+    return Array.from(fnCandidates).some((c) => aCandidates.has(c))
+  })
   if (bHas) return { fromA: null, fromB: bHas }
   return null
 }

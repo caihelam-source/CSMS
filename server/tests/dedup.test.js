@@ -107,6 +107,17 @@ test('fuzzyMatch: 完全不相似 → null', () => {
   assert.strictEqual(fuzzyMatch(a, b), null)
 })
 
+test('fuzzyMatch: 英文 name 夹中文括号（Ltd vs Limited）仍命中', () => {
+  // 用户截图：Easy Rich Corporation Ltd (顺富兴业) vs EASY RICH CORPORATION LIMITED
+  // 中文尾缀不应稀释英文 fuzzy 分
+  const a = { name: 'Easy Rich Corporation Ltd (顺富兴业)' }
+  const b = { name: 'EASY RICH CORPORATION LIMITED' }
+  const m = fuzzyMatch(a, b)
+  assert.ok(m, '应命中 fuzzy')
+  assert.ok(m.score >= DEFAULT_FUZZY_THRESHOLD, `score ${m.score} 应 ≥ ${DEFAULT_FUZZY_THRESHOLD}`)
+  assert.ok(m.nameA === 'easy rich' && m.nameB === 'easy rich', `归一后应均为 easy rich，got ${m.nameA} / ${m.nameB}`)
+})
+
 test('fuzzyMatch: 中英混合 + 前缀差', () => {
   // Pannix Industrial (Hong Kong) Limited vs Pannix Industrial (Hong Kong) Ltd （同 Ltd 后缀差）
   const a = { name: 'Pannix Industrial (Hong Kong) Limited' }
