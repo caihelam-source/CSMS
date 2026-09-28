@@ -335,7 +335,23 @@ const fmtDate = (v) => {
   return `${y}-${m}-${day}`
 }
 
-// 导出「可编辑回填模板」：含 _id/公司名称/注册地/注册号 + 三个缺失常填字段（已有值预填，缺失留空）。
+// 把数据库里常见的「英文 + (中文)」或「中文 + (英文)」混合格式拆分为纯英文/中文，
+// 用于导出模板时 English Name / Chinese Name 分列显示，便于标准化回填。
+const splitName = (raw) => {
+  if (!raw) return { english: '', chinese: '' }
+  const s = String(raw).trim()
+  const m = s.match(/^(.*?)\s*\(([^()]*)\)\s*$/)
+  if (m) {
+    const left = m[1].trim()
+    const inner = m[2].trim()
+    const hasCJK = (v) => /[\u4e00-\u9fa5\u3400-\u4dbf]/.test(v)
+    if (hasCJK(left) && !hasCJK(inner)) return { english: inner, chinese: left }
+    if (!hasCJK(left) && hasCJK(inner)) return { english: left, chinese: inner }
+  }
+  return { english: s, chinese: '' }
+}
+
+// 导出「可编辑回填模板」：含 _id + English/Chinese 名称分列 + 注册地/注册号 + 三个缺失常填字段（已有值预填，缺失留空）。
 // 用户填好后由导入闭环回灌 bulk-update（只更新传入字段，绝不误删已有值）。
 const exportGapsTemplate = async (diagnosis) => {
   if (!diagnosis) return
@@ -346,12 +362,27 @@ const exportGapsTemplate = async (diagnosis) => {
   }
   try {
     const XLSX = await import('xlsx')
-    const header = ['_id', '公司名称', '注册地', '注册号', '成立日期', '商业登记到期日', '财政年度结算日(月)', '财政年度结算日(日)']
+    const header = [
+      '_id',
+      'English Name',
+      'Chinese Name (繁)',
+      'Chinese Name (简)',
+      'Jurisdiction',
+      'Registration Number',
+      'Incorporation Date',
+      'BR Expiry Date',
+      'Financial Year End (Month)',
+      'Financial Year End (Day)',
+    ]
     const rows = companies.map((c) => {
       const fye = c.financialYearEnd && typeof c.financialYearEnd === 'object' ? c.financialYearEnd : {}
+      const { english, chinese } = splitName(c.name)
+      const chineseName = chinese || c.nameChinese || ''
       return [
         c._id || '',
-        c.name || '',
+        english || c.name || '',
+        chineseName,
+        chineseName,
         c.jurisdiction || '',
         c.registrationNumber || '',
         c.missingFields.includes('incorporationDate') ? '' : fmtDate(c.incorporationDate),
@@ -362,7 +393,18 @@ const exportGapsTemplate = async (diagnosis) => {
     })
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
     // 列宽友好一点
-    ws['!cols'] = [{ wch: 26 }, { wch: 32 }, { wch: 10 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
+    ws['!cols'] = [
+      { wch: 26 }, // _id
+      { wch: 36 }, // English Name
+      { wch: 24 }, // Chinese Name (繁)
+      { wch: 24 }, // Chinese Name (简)
+      { wch: 12 }, // Jurisdiction
+      { wch: 18 }, // Registration Number
+      { wch: 16 }, // Incorporation Date
+      { wch: 16 }, // BR Expiry Date
+      { wch: 20 }, // Financial Year End (Month)
+      { wch: 20 }, // Financial Year End (Day)
+    ]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '缺口回填模板')
     XLSX.writeFile(wb, `合规缺口回填_${new Date().toISOString().slice(0, 10)}.xlsx`)
@@ -394,20 +436,21 @@ const ImportGapsModal = ({ onImport, onCancel, importing }) => {
       const updates = []
       for (const row of rows) {
         const _id = (row['_id'] || row.id || '').toString().trim()
-        const name = (row['公司名称'] || row['name'] || '').toString().trim()
+        // 新模板用英文列 English Name；兼容旧模板「公司名称」/「name」
+        const name = (row['English Name'] || row['公司名称'] || row['name'] || '').toString().trim()
         if (!_id && !name) continue // 跳过空行
         const upd = {}
         if (_id) upd._id = _id
         upd.name = name
-        upd.jurisdiction = (row['注册地'] || row['jurisdiction'] || '').toString().trim()
-        upd.registrationNumber = (row['注册号'] || row['registrationNumber'] || '').toString().trim()
+        upd.jurisdiction = (row['Jurisdiction'] || row['注册地'] || row['jurisdiction'] || '').toString().trim()
+        upd.registrationNumber = (row['Registration Number'] || row['注册号'] || row['registrationNumber'] || '').toString().trim()
         // 只回传有值的字段：空单元格不传 → 后端不会用空值覆盖已有数据
-        const brRaw = (row['商业登记到期日'] || row['brExpiryDate'] || '').toString().trim()
+        const brRaw = (row['BR Expiry Date'] || row['商业登记到期日'] || row['brExpiryDate'] || '').toString().trim()
         if (brRaw) upd.brExpiryDate = brRaw
-        const incRaw = (row['成立日期'] || row['incorporationDate'] || '').toString().trim()
+        const incRaw = (row['Incorporation Date'] || row['成立日期'] || row['incorporationDate'] || '').toString().trim()
         if (incRaw) upd.incorporationDate = incRaw
-        const mRaw = (row['财政年度结算日(月)'] || row['financialYearEndMonth'] || '').toString().trim()
-        const dRaw = (row['财政年度结算日(日)'] || row['financialYearEndDay'] || '').toString().trim()
+        const mRaw = (row['Financial Year End (Month)'] || row['财政年度结算日(月)'] || row['financialYearEndMonth'] || '').toString().trim()
+        const dRaw = (row['Financial Year End (Day)'] || row['财政年度结算日(日)'] || row['financialYearEndDay'] || '').toString().trim()
         if (mRaw && dRaw) { upd.financialYearEndMonth = mRaw; upd.financialYearEndDay = dRaw }
         updates.push(upd)
       }
@@ -422,7 +465,7 @@ const ImportGapsModal = ({ onImport, onCancel, importing }) => {
   return (
     <div className="space-y-4">
       <p className="text-sm text-ink-2">
-        选择从「数据缺口」页导出的回填模板（已填好日期），系统将按 <strong>_id → 公司名称+注册地 → 公司名称+注册号 → 公司名称</strong> 匹配并<strong>只更新你填写的字段</strong>，不会删除任何已有数据。导入成功后系统会<strong>自动重算</strong>相关合规提醒（BR 续期 / 周年申报 / NN3），无需再手动点 admin 按钮。
+        选择从「数据缺口」页导出的回填模板（已填好日期），系统将按 <strong>_id → English Name+Jurisdiction → English Name+Registration Number → English Name</strong> 匹配并<strong>只更新你填写的字段</strong>，不会删除任何已有数据。导入成功后系统会<strong>自动重算</strong>相关合规提醒（BR 续期 / 周年申报 / NN3），无需再手动点 admin 按钮。
       </p>
       <div className="flex items-center gap-3">
         <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} />
