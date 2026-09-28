@@ -207,7 +207,8 @@ function companyMissingFields(company) {
 }
 
 async function diagnoseCompanies() {
-  const companies = await Company.find({}).lean();
+  // 已合并（status='merged'）的源公司不应再出现在「数据缺口」 actionable 清单里
+  const companies = await Company.find({ status: { $ne: 'merged' } }).lean();
   const byField = {};
   const list = companies.map((c) => {
     const missing = companyMissingFields(c);
