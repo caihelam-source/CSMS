@@ -1,52 +1,94 @@
 <template>
   <view class="page">
-    <!-- 品牌区：模板⑩ 单栏顶部 Logo 居中 -->
-    <view class="brand">
-      <view class="logo-badge">
-        <text class="logo-mark">C</text>
+    <!-- 顶部品牌区：对齐网页端左右分屏的深蓝品牌区（移动端堆叠为置顶） -->
+    <view class="brand-zone">
+      <view class="logo-row">
+        <view class="logo-circle">
+          <text class="logo-mark">C</text>
+        </view>
+        <view class="logo-text">
+          <text class="brand-name">CSMS</text>
+          <text class="brand-sub">Claw · 香港公司秘书与合规管理系统</text>
+        </view>
       </view>
-      <text class="appname">Claw 公司秘书</text>
-      <text class="tagline">香港公司合规管理 · 一站式掌控</text>
+
+      <text class="slogan">香港公司秘书与合规，一站式掌控</text>
+
+      <view class="points">
+        <view class="point">
+          <text class="point-check">✓</text>
+          <text class="point-text">NAR1 / BR 申报自动排期，期限自动提醒</text>
+        </view>
+        <view class="point">
+          <text class="point-check">✓</text>
+          <text class="point-text">全流程台账中枢：董事 / 股东 / 文件统一档案</text>
+        </view>
+        <view class="point">
+          <text class="point-check">✓</text>
+          <text class="point-text">合规规则引擎驱动提醒、任务、文档闭环</text>
+        </view>
+      </view>
     </view>
 
-    <!-- 表单区 -->
-    <view class="form">
+    <!-- 白色表单卡：负 margin 上浮，对齐网页端右侧卡片 -->
+    <view class="card">
+      <text class="card-title">欢迎回来</text>
+      <text class="card-sub">登录 Claw 继续管理公司档案和合规工作</text>
+
       <view class="field">
-        <text class="field-label">账号</text>
+        <text class="field-label">账号 / 邮箱</text>
         <input
           class="input"
           v-model="email"
-          placeholder="邮箱 / 手机号"
+          placeholder="you@firm.com.hk"
           placeholder-class="ph"
-          :adjust-position="true"
         />
       </view>
+
       <view class="field">
         <text class="field-label">密码</text>
         <input
           class="input"
           v-model="password"
-          placeholder="请输入密码"
+          placeholder="••••••••"
           placeholder-class="ph"
           password
         />
       </view>
 
+      <view class="options-row">
+        <view class="remember" @tap="remember = !remember">
+          <view class="checkbox" :class="{ checked: remember }">
+            <text v-if="remember" class="check-mark">✓</text>
+          </view>
+          <text class="remember-text">记住我</text>
+        </view>
+        <text class="forgot" @tap="onForgot">忘记密码？</text>
+      </view>
+
       <button
         class="login-btn"
-        :class="{ 'is-loading': loading }"
         :disabled="loading"
         @tap="login"
       >
-        {{ loading ? '登录中…' : '登录' }}
+        {{ loading ? '登录中…' : '登录 →' }}
       </button>
 
-      <view class="meta">
-        <text class="hint">使用你的 Claw 网页端账号登录</text>
-        <text class="hint-sub">同一套数据，移动端与网页端实时同步</text>
+      <view class="divider">
+        <view class="divider-line"></view>
+        <text class="divider-text">或使用企业服务</text>
+        <view class="divider-line"></view>
+      </view>
+
+      <button class="sso-btn" @tap="onSso">企业 SSO 登录</button>
+
+      <view class="register-row">
+        <text class="register-text">还没有账号？</text>
+        <text class="register-link" @tap="onApply">申请开通</text>
       </view>
     </view>
 
+    <text class="copyright">© 2026 Claw CSMS · 香港企业秘书与合规系统</text>
     <view class="footer-safe"></view>
   </view>
 </template>
@@ -57,7 +99,7 @@ import { setToken, setUser, getToken } from '../../utils/auth.js'
 
 export default {
   data() {
-    return { email: '', password: '', loading: false }
+    return { email: '', password: '', remember: false, loading: false }
   },
   onLoad() {
     if (getToken()) {
@@ -65,6 +107,15 @@ export default {
     }
   },
   methods: {
+    onForgot() {
+      uni.showToast({ title: '请联系管理员重置密码', icon: 'none' })
+    },
+    onSso() {
+      uni.showToast({ title: '企业 SSO 即将开放', icon: 'none' })
+    },
+    onApply() {
+      uni.showToast({ title: '请联系管理员开通账号', icon: 'none' })
+    },
     async login() {
       if (!this.email || !this.password) {
         uni.showToast({ title: '请输入账号和密码', icon: 'none' })
@@ -80,7 +131,7 @@ export default {
         if (!body.token) throw new Error(body.message || '登录失败')
         setToken(body.token)
         setUser(body.user || {})
-        uni.showToast({ title: '登录成功', icon: 'success' })
+        uni.showToast({ title: '欢迎回来', icon: 'success' })
         setTimeout(() => uni.reLaunch({ url: '/pages/gaps/gaps' }), 600)
       } catch (e) {
         uni.showToast({ title: e.message || '登录失败', icon: 'none' })
@@ -93,63 +144,115 @@ export default {
 </script>
 
 <style scoped>
-/* Claw 品牌变量（claw-login-templates 模板⑩ 移动端优先） */
 .page {
   min-height: 100vh;
   box-sizing: border-box;
-  background: linear-gradient(180deg, #f1f5fb 0%, #eaf1fb 100%);
-  padding: 140rpx 48rpx 0;
+  background: #f1f5fb;
   display: flex;
   flex-direction: column;
 }
 
-/* 品牌区 */
-.brand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 88rpx;
+/* 品牌区：深蓝渐变，对齐网页端左侧品牌区 */
+.brand-zone {
+  background: linear-gradient(150deg, #0f2a5e 0%, #1d4ed8 100%);
+  padding: 110rpx 56rpx 150rpx;
 }
-.logo-badge {
-  width: 132rpx;
-  height: 132rpx;
-  border-radius: 32rpx;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow: 0 16rpx 32rpx rgba(37, 99, 235, 0.28);
+.logo-row {
+  display: flex;
+  align-items: center;
+}
+.logo-circle {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2rpx solid rgba(255, 255, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .logo-mark {
   color: #ffffff;
-  font-size: 72rpx;
+  font-size: 52rpx;
   font-weight: 800;
   line-height: 1;
 }
-.appname {
-  margin-top: 32rpx;
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #0f2a5e;
-  letter-spacing: 2rpx;
-}
-.tagline {
-  margin-top: 12rpx;
-  font-size: 26rpx;
-  color: #475569;
-}
-
-/* 表单区 */
-.form {
+.logo-text {
+  margin-left: 24rpx;
   display: flex;
   flex-direction: column;
 }
+.brand-name {
+  color: #ffffff;
+  font-size: 44rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+  line-height: 1.1;
+}
+.brand-sub {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 20rpx;
+  margin-top: 8rpx;
+}
+.slogan {
+  display: block;
+  color: #ffffff;
+  font-size: 38rpx;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-top: 56rpx;
+}
+.points {
+  margin-top: 32rpx;
+  display: flex;
+  flex-direction: column;
+}
+.point {
+  display: flex;
+  align-items: center;
+  margin-top: 14rpx;
+}
+.point-check {
+  color: #7ea6ff;
+  font-size: 24rpx;
+  font-weight: 700;
+  margin-right: 14rpx;
+}
+.point-text {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+/* 表单卡：上浮覆盖品牌区底部 */
+.card {
+  margin: -100rpx 40rpx 0;
+  background: #ffffff;
+  border-radius: 32rpx;
+  border: 1rpx solid #e2e8f0;
+  box-shadow: 0 24rpx 48rpx rgba(15, 42, 94, 0.10);
+  padding: 56rpx 44rpx 48rpx;
+}
+.card-title {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #0f2a5e;
+}
+.card-sub {
+  display: block;
+  font-size: 24rpx;
+  color: #64748b;
+  margin-top: 12rpx;
+  margin-bottom: 40rpx;
+}
+
 .field {
   margin-bottom: 28rpx;
 }
 .field-label {
   display: block;
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 600;
   color: #16213a;
   margin-bottom: 12rpx;
@@ -157,36 +260,73 @@ export default {
 .input {
   width: 100%;
   box-sizing: border-box;
-  height: 96rpx; /* 触控目标 ≥48px */
-  background: #ffffff;
+  height: 92rpx;
+  background: #f8fafc;
   border: 2rpx solid #e2e8f0;
-  border-radius: 20rpx; /* 单圆角体系：输入框 10px */
-  padding: 0 28rpx;
-  font-size: 30rpx;
+  border-radius: 16rpx;
+  padding: 0 26rpx;
+  font-size: 28rpx;
   color: #16213a;
-  transition: border-color 0.2s ease;
 }
 .ph {
   color: #94a3b8;
 }
 
-/* 登录按钮：uni button 默认宽度会塌陷，必须显式全宽 */
+.options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32rpx;
+}
+.remember {
+  display: flex;
+  align-items: center;
+}
+.checkbox {
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid #cbd5e1;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.checkbox.checked {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+.check-mark {
+  color: #ffffff;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+.remember-text {
+  font-size: 24rpx;
+  color: #475569;
+  margin-left: 12rpx;
+}
+.forgot {
+  font-size: 24rpx;
+  color: #2563eb;
+}
+
+/* 登录按钮 */
 .login-btn {
   width: 100% !important;
   box-sizing: border-box;
-  height: 96rpx;
-  line-height: 96rpx;
-  margin-top: 16rpx;
+  height: 92rpx;
+  line-height: 92rpx;
   padding: 0;
   background: #2563eb;
   color: #ffffff;
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 600;
   border: none;
-  border-radius: 20rpx; /* 单圆角体系：按钮 10px */
+  border-radius: 16rpx;
   text-align: center;
 }
-/* 清除 uni button H5 默认 ::after 描边 */
 .login-btn::after {
   border: none;
 }
@@ -196,20 +336,66 @@ export default {
   background: #2563eb;
 }
 
-.meta {
-  margin-top: 40rpx;
+/* 分割线 */
+.divider {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  margin: 40rpx 0 32rpx;
 }
-.hint {
-  font-size: 26rpx;
-  color: #475569;
+.divider-line {
+  flex: 1;
+  height: 1rpx;
+  background: #e2e8f0;
 }
-.hint-sub {
-  margin-top: 8rpx;
+.divider-text {
   font-size: 22rpx;
   color: #94a3b8;
+  padding: 0 20rpx;
+}
+
+/* SSO 描边按钮 */
+.sso-btn {
+  width: 100% !important;
+  box-sizing: border-box;
+  height: 88rpx;
+  line-height: 84rpx;
+  padding: 0;
+  background: #ffffff;
+  color: #16213a;
+  font-size: 28rpx;
+  font-weight: 500;
+  border: 2rpx solid #cbd5e1;
+  border-radius: 16rpx;
+  text-align: center;
+}
+.sso-btn::after {
+  border: none;
+}
+
+.register-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 36rpx;
+}
+.register-text {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+.register-link {
+  font-size: 22rpx;
+  color: #2563eb;
+  font-weight: 600;
+  margin-left: 8rpx;
+}
+
+.copyright {
+  display: block;
+  text-align: center;
+  font-size: 20rpx;
+  color: #94a3b8;
+  margin-top: auto;
+  padding: 48rpx 0 24rpx;
 }
 .footer-safe {
   height: env(safe-area-inset-bottom);
