@@ -51,7 +51,20 @@ const MONGO_URI = safeMongoUri(process.env.MONGODB_URI || process.env.MONGO_URI 
 });
 
 // ── Middleware ──────────────────────────────────────────────
-app.use(cors({ origin: CLIENT_URL, credentials: true }));
+// CORS：放行 CLIENT_URL（支持逗号分隔多来源，便于 claw-web 多环境），
+// 并放行所有 localhost / 127.0.0.1 本地开发来源（claw-web 本地 dev、
+// claw-mini H5 本地预览 http://localhost:8080 等）。受保护路由仍需 JWT，
+// 放开本地来源不会暴露任何未授权数据。
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // 非浏览器上下文（curl / 小程序原生请求）放行
+  const allowed = (process.env.CLIENT_URL || 'http://localhost:5173')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (allowed.includes(origin)) return true;
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+};
+app.use(cors({ origin: isAllowedOrigin, credentials: true }));
 app.use(compression());   // 生产：对 JSON/HTML 响应启用 gzip 压缩，降低传输体积
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

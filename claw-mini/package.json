@@ -5,10 +5,17 @@
   "description": "Claw 香港公司秘书合规管理小程序（uni-app，复用 claw-api，数据同源）",
   "scripts": {
     "dev:mp-weixin": "uni -p mp-weixin",
-    "build:mp-weixin": "uni build -p mp-weixin"
+    "build:mp-weixin": "uni build -p mp-weixin",
+    "dev:h5": "uni -p h5",
+    "build:h5": "uni build -p h5"
   },
   "dependencies": {
-    "vue": "^3.4.21"
+    "@vue/compiler-core": "^3.5.13",
+    "@vue/compiler-dom": "^3.5.13",
+    "@vue/compiler-sfc": "^3.5.13",
+    "@vue/shared": "^3.5.13",
+    "promise-polyfill": "^8.3.0",
+    "vue": "^3.5.13"
   },
   "devDependencies": {
     "@dcloudio/uni-app": "3.0.0-alpha-5020720260921001",
