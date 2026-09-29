@@ -1,11 +1,9 @@
 <template>
   <view class="page">
-    <!-- 顶部品牌区：对齐网页端左右分屏的深蓝品牌区（移动端堆叠为置顶） -->
+    <!-- 顶部品牌区：对齐网页端，深蓝渐变 + 真 Claw 印章 logo -->
     <view class="brand-zone">
       <view class="logo-row">
-        <view class="logo-circle">
-          <text class="logo-mark">C</text>
-        </view>
+        <image class="logo-img" src="/static/logo-icon.png" mode="aspectFit" />
         <view class="logo-text">
           <text class="brand-name">CSMS</text>
           <text class="brand-sub">Claw · 香港公司秘书与合规管理系统</text>
@@ -13,21 +11,6 @@
       </view>
 
       <text class="slogan">香港公司秘书与合规，一站式掌控</text>
-
-      <view class="points">
-        <view class="point">
-          <text class="point-check">✓</text>
-          <text class="point-text">NAR1 / BR 申报自动排期，期限自动提醒</text>
-        </view>
-        <view class="point">
-          <text class="point-check">✓</text>
-          <text class="point-text">全流程台账中枢：董事 / 股东 / 文件统一档案</text>
-        </view>
-        <view class="point">
-          <text class="point-check">✓</text>
-          <text class="point-text">合规规则引擎驱动提醒、任务、文档闭环</text>
-        </view>
-      </view>
     </view>
 
     <!-- 白色表单卡：负 margin 上浮，对齐网页端右侧卡片 -->
@@ -155,30 +138,19 @@ export default {
 /* 品牌区：深蓝渐变，对齐网页端左侧品牌区 */
 .brand-zone {
   background: linear-gradient(150deg, #0f2a5e 0%, #1d4ed8 100%);
-  padding: 110rpx 56rpx 150rpx;
+  padding: 96rpx 56rpx 140rpx;
 }
 .logo-row {
   display: flex;
   align-items: center;
 }
-.logo-circle {
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  border: 2rpx solid rgba(255, 255, 255, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.logo-mark {
-  color: #ffffff;
-  font-size: 52rpx;
-  font-weight: 800;
-  line-height: 1;
+.logo-img {
+  width: 108rpx;
+  height: 108rpx;
+  border-radius: 24rpx;
 }
 .logo-text {
-  margin-left: 24rpx;
+  margin-left: 26rpx;
   display: flex;
   flex-direction: column;
 }
@@ -197,31 +169,10 @@ export default {
 .slogan {
   display: block;
   color: #ffffff;
-  font-size: 38rpx;
+  font-size: 36rpx;
   font-weight: 700;
   line-height: 1.4;
-  margin-top: 56rpx;
-}
-.points {
-  margin-top: 32rpx;
-  display: flex;
-  flex-direction: column;
-}
-.point {
-  display: flex;
-  align-items: center;
-  margin-top: 14rpx;
-}
-.point-check {
-  color: #7ea6ff;
-  font-size: 24rpx;
-  font-weight: 700;
-  margin-right: 14rpx;
-}
-.point-text {
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 24rpx;
-  line-height: 1.5;
+  margin-top: 48rpx;
 }
 
 /* 表单卡：上浮覆盖品牌区底部 */
