@@ -16,7 +16,7 @@
     <!-- 白色表单卡：负 margin 上浮，对齐网页端右侧卡片 -->
     <view class="card">
       <text class="card-title">欢迎回来</text>
-      <text class="card-sub">登录 Claw 继续管理公司档案和合规工作</text>
+      <text class="card-sub">登录 CSMS 继续管理公司档案和合规工作</text>
 
       <view class="field">
         <text class="field-label">账号 / 邮箱</text>

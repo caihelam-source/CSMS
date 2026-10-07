@@ -4,7 +4,7 @@
       "path": "pages/login/login",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": "登录 Claw"
+        "navigationBarTitleText": "登录 CSMS"
       }
     },
     {
@@ -15,7 +15,7 @@
   "globalStyle": {
     "navigationBarTextStyle": "white",
     "navigationBarBackgroundColor": "#2563EB",
-    "navigationBarTitleText": "Claw",
+    "navigationBarTitleText": "CSMS",
     "backgroundColor": "#F5F7FA"
   }
 }
