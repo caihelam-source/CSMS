@@ -124,6 +124,51 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// @route   PUT /api/auth/me
+// @desc    更新当前用户自己的资料（仅 name / phone；不可改 email / role / company）
+// @access  Private
+router.put('/me', auth, async (req, res) => {
+  try {
+    const { name, phone } = req.body || {};
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+    if (name !== undefined && name) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+    await user.save();
+    const refreshed = await User.findById(req.user._id).lean().populate('company', 'name registrationNumber');
+    res.json({ success: true, user: refreshed });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @route   POST /api/auth/change-password
+// @desc    当前用户修改自己的密码
+// @access  Private
+router.post('/change-password', auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: '当前密码与新密码均为必填' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: '新密码至少 6 位' });
+    }
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) return res.status(404).json({ success: false, message: '用户不存在' });
+    if (!user.password) {
+      return res.status(400).json({ success: false, message: '该账号未设置密码（微信注册），无法修改' });
+    }
+    const ok = await user.comparePassword(currentPassword);
+    if (!ok) return res.status(401).json({ success: false, message: '当前密码错误' });
+    user.password = newPassword;
+    await user.save();
+    res.json({ success: true, message: '密码已更新' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // @route   POST /api/auth/wechat-login
 // @desc    微信小程序一键登录：wx.login code -> code2Session -> openid -> 建/查 User -> JWT
 // @access  Public

@@ -35,6 +35,11 @@ export default {
         { label: '文书模板', icon: '📄', bg: '#f0fdfa', url: '/pages/templates/templates' },
         { label: '日历', icon: '🗓️', bg: '#fff7ed', url: '/pages/calendar/calendar' },
         { label: '数据缺口补全', icon: '🔧', bg: '#f1f5f9', url: '/pages/gaps/gaps' },
+        { label: '全局搜索', icon: '🔎', bg: '#eef2ff', url: '/pages/search/search' },
+        { label: '业绩排期', icon: '📈', bg: '#f0fdfa', url: '/pages/results-timetable/results-timetable' },
+        { label: 'NAR1 导入', icon: '📑', bg: '#fef9c3', url: '/pages/nar1-import/nar1-import' },
+        { label: '管理后台', icon: '🛠️', bg: '#fae8ff', url: '/pages/admin-panel/admin-panel' },
+        { label: '设置', icon: '⚙️', bg: '#f1f5f9', url: '/pages/settings/settings' },
       ],
     }
   },

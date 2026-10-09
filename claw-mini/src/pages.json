@@ -8,6 +8,10 @@
       }
     },
     {
+      "path": "pages/register/register",
+      "style": { "navigationBarTitleText": "注册 CSMS" }
+    },
+    {
       "path": "pages/companies/companies",
       "style": { "navigationBarTitleText": "公司" }
     },
@@ -126,6 +130,26 @@
     {
       "path": "pages/gaps/gaps",
       "style": { "navigationBarTitleText": "数据缺口补全" }
+    },
+    {
+      "path": "pages/search/search",
+      "style": { "navigationBarTitleText": "全局搜索" }
+    },
+    {
+      "path": "pages/settings/settings",
+      "style": { "navigationBarTitleText": "设置" }
+    },
+    {
+      "path": "pages/admin-panel/admin-panel",
+      "style": { "navigationBarTitleText": "管理后台" }
+    },
+    {
+      "path": "pages/results-timetable/results-timetable",
+      "style": { "navigationBarTitleText": "业绩排期" }
+    },
+    {
+      "path": "pages/nar1-import/nar1-import",
+      "style": { "navigationBarTitleText": "NAR1 导入" }
     }
   ],
   "globalStyle": {

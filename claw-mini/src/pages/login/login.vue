@@ -135,7 +135,7 @@ export default {
       uni.showToast({ title: '企业 SSO 即将开放', icon: 'none' })
     },
     onApply() {
-      uni.showToast({ title: '请联系管理员开通账号', icon: 'none' })
+      uni.navigateTo({ url: '/pages/register/register' })
     },
     async login() {
       if (!this.email || !this.password) {
