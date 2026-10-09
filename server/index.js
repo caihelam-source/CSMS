@@ -92,7 +92,17 @@ app.use('/api/announcements', announcementRoutes);   // 首页公告（前台读
 app.use('/api/companies/:id', companyEntriesRoutes);   // shareholder-entries / director-entries
 app.use('/api/companies/:id', companyRegisterRoutes);  // rom / rod PDF
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '3.0' }));
+// 真实健康检查：必须能连上 MongoDB 才算健康，避免「假活」骗过 Render 探针
+// （旧实现只回 {status:'ok'}，DB 挂了仍 200，导致 07-21 以来状态难判断）。
+app.get('/api/health', (req, res) => {
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({
+    status: connected ? 'ok' : 'degraded',
+    version: '5.2.0',
+    db: connected ? 'connected' : 'disconnected',
+    ts: Date.now(),
+  });
+});
 
 app.use(errorHandler);
 

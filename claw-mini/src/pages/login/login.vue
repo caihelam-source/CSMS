@@ -57,6 +57,15 @@
         {{ loading ? '登录中…' : '登录 →' }}
       </button>
 
+      <button
+        v-if="showWechat"
+        class="wx-btn"
+        :disabled="loading"
+        @tap="onWechatLogin"
+      >
+        <text class="wx-ico">微</text>{{ loading ? '登录中…' : '微信一键登录' }}
+      </button>
+
       <view class="divider">
         <view class="divider-line"></view>
         <text class="divider-text">或使用企业服务</text>
@@ -82,11 +91,17 @@ import { setToken, setUser, getToken } from '../../utils/auth.js'
 
 export default {
   data() {
-    return { email: '', password: '', remember: false, loading: false }
+    return {
+      email: '',
+      password: '',
+      remember: false,
+      loading: false,
+      showWechat: process.env.UNI_PLATFORM === 'mp-weixin'
+    }
   },
   onLoad() {
     if (getToken()) {
-      uni.reLaunch({ url: '/pages/gaps/gaps' })
+      uni.switchTab({ url: '/pages/companies/companies' })
     }
   },
   methods: {
@@ -115,12 +130,43 @@ export default {
         setToken(body.token)
         setUser(body.user || {})
         uni.showToast({ title: '欢迎回来', icon: 'success' })
-        setTimeout(() => uni.reLaunch({ url: '/pages/gaps/gaps' }), 600)
+        setTimeout(() => uni.switchTab({ url: '/pages/companies/companies' }), 600)
       } catch (e) {
         uni.showToast({ title: e.message || '登录失败', icon: 'none' })
       } finally {
         this.loading = false
       }
+    },
+    async onWechatLogin() {
+      uni.login({
+        provider: 'weixin',
+        success: async (res) => {
+          if (!res.code) {
+            uni.showToast({ title: '微信登录失败：未获取到 code', icon: 'none' })
+            return
+          }
+          this.loading = true
+          try {
+            const body = await request('/api/auth/wechat-login', {
+              method: 'POST',
+              data: { code: res.code },
+              auth: false,
+            })
+            if (!body.token) throw new Error(body.message || '微信登录失败')
+            setToken(body.token)
+            setUser(body.user || {})
+            uni.showToast({ title: body.isNew ? '已创建微信账号' : '微信登录成功', icon: 'success' })
+            setTimeout(() => uni.switchTab({ url: '/pages/companies/companies' }), 600)
+          } catch (e) {
+            uni.showToast({ title: e.message || '微信登录失败', icon: 'none' })
+          } finally {
+            this.loading = false
+          }
+        },
+        fail: () => {
+          uni.showToast({ title: '微信登录已取消或不可用', icon: 'none' })
+        },
+      })
     },
   },
 }
@@ -285,6 +331,33 @@ export default {
   opacity: 0.55;
   color: #ffffff;
   background: #2563eb;
+}
+
+/* 微信一键登录按钮 */
+.wx-btn {
+  width: 100% !important;
+  box-sizing: border-box;
+  height: 92rpx;
+  line-height: 92rpx;
+  padding: 0;
+  margin-top: 24rpx;
+  background: #07c160;
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 600;
+  border: none;
+  border-radius: 16rpx;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wx-btn::after {
+  border: none;
+}
+.wx-ico {
+  font-weight: 700;
+  margin-right: 12rpx;
 }
 
 /* 分割线 */

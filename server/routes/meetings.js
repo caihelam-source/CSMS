@@ -89,17 +89,18 @@ router.get('/:id', auth, scopeMiddleware, async (req, res) => {
 // @access  Private
 router.post('/', auth, async (req, res) => {
   try {
-    const { company, title, type, date, time, location, agenda, attendees } = req.body;
+    const payload = { ...req.body };
+
+    // 兼容旧客户端：date/time 字符串 -> scheduledAt (Date)
+    if (!payload.scheduledAt && (payload.date || payload.time)) {
+      const t = payload.time || '09:00';
+      payload.scheduledAt = new Date(`${payload.date}T${t}`);
+    }
+    delete payload.date;
+    delete payload.time;
 
     const meeting = await Meeting.create({
-      company,
-      title,
-      type,
-      date,
-      time,
-      location,
-      agenda,
-      attendees,
+      ...payload,
       createdBy: req.user._id
     });
 
@@ -121,9 +122,19 @@ router.post('/', auth, async (req, res) => {
 // @access  Private
 router.put('/:id', auth, async (req, res) => {
   try {
+    const update = { ...req.body };
+    // 兼容旧客户端：date/time 字符串 -> scheduledAt (Date)
+    if (!update.scheduledAt && (update.date || update.time)) {
+      const t = update.time || '09:00';
+      update.scheduledAt = new Date(`${update.date}T${t}`);
+    }
+    delete update.date;
+    delete update.time;
+    delete update.createdBy; // 不允许改创建人
+
     const meeting = await Meeting.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      update,
       { new: true, runValidators: true }
     ).populate('company', 'name');
 

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claw · 网页端 ↔ 小程序端 功能差距报告</title>
+<style>
+  :root{
+    --primary:#2563EB; --primary-soft:#eff4ff; --ink:#0f172a; --muted:#64748b;
+    --bg:#f5f7fa; --card:#ffffff; --line:#e2e8f0; --ok:#16a34a; --warn:#d97706; --bad:#dc2626;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.6;padding:32px 16px;}
+  .wrap{max-width:1040px;margin:0 auto;}
+  header{background:linear-gradient(135deg,#2563EB,#1e40af);color:#fff;border-radius:16px;padding:28px 32px;margin-bottom:24px;}
+  header h1{font-size:24px;font-weight:700;letter-spacing:.5px;}
+  header p{opacity:.9;margin-top:6px;font-size:14px;}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center;}
+  .stat .n{font-size:30px;font-weight:800;color:var(--primary);}
+  .stat .l{font-size:13px;color:var(--muted);margin-top:4px;}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:20px;}
+  section h2{font-size:17px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  section h2 .dot{width:10px;height:10px;border-radius:50%;background:var(--primary);}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.4px;}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;}
+  .p-ok{background:#dcfce7;color:var(--ok);}
+  .p-part{background:#fef3c7;color:var(--warn);}
+  .p-no{background:#fee2e2;color:var(--bad);}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .box{border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .box h3{font-size:14px;margin-bottom:10px;color:var(--primary);}
+  .box ul{list-style:none;}
+  .box li{padding:5px 0 5px 18px;position:relative;font-size:13.5px;}
+  .box li:before{content:"▸";position:absolute;left:0;color:var(--muted);}
+  .bar{height:10px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:6px;}
+  .bar > i{display:block;height:100%;background:var(--primary);}
+  .rec{font-size:14px;}
+  .rec li{margin:8px 0;padding-left:18px;position:relative;}
+  .rec li:before{content:"①";position:absolute;left:0;color:var(--primary);font-weight:700;}
+  .rec li.t2:before{content:"②";}
+  .rec li.t3:before{content:"③";}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Claw · 网页端 ↔ 小程序端 功能差距报告</h1>
+    <p>生成于 2026-10-09 · 数据来源：client/src/App.jsx（网页 19 模块）· claw-mini/src/pages.json（小程序 30 页/5 tab）· 进度：Companies/Personnel/Tasks/Reminders/Meetings/SignTasks/Documents/ComplianceRules 写能力已补齐；Calendar 点日期/FAB 直接建会议·提醒；后端 meeting date→scheduledAt 契约 bug 已修</p>
+  </header>
+
+  <div class="grid">
+    <div class="stat"><div class="n">19</div><div class="l">网页端模块</div></div>
+    <div class="stat"><div class="n">30</div><div class="l">小程序页面</div></div>
+    <div class="stat"><div class="n">10</div><div class="l">已对齐核心模块</div></div>
+    <div class="stat"><div class="n">6</div><div class="l">完全缺失页面</div></div>
+  </div>
+
+  <section>
+    <h2><span class="dot"></span>覆盖率</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div>
+        <strong>页面覆盖</strong>（是否有对应页）— 约 68%
+        <div class="bar"><i style="width:68%"></i></div>
+        <p style="font-size:12.5px;color:var(--muted);margin-top:6px;">小程序已为 13/19 网页模块提供页面（含自身独有的「数据缺口补全」页），实际 30 页。</p>
+      </div>
+      <div>
+        <strong>功能覆盖</strong>（只读 + 写能力）— 约 70%
+        <div class="bar"><i style="width:70%"></i></div>
+        <p style="font-size:12.5px;color:var(--muted);margin-top:6px;">8 个核心模块具备完整读+写；Calendar 现已支持点日期/悬浮按钮直接建会议或提醒（复用表单）。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>逐模块差距明细</h2>
+    <table>
+      <thead><tr><th>网页模块</th><th>网页能力</th><th>小程序现状</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr><td>Login 登录</td><td>邮箱+密码登录</td><td>有</td><td><span class="pill p-ok">对齐</span></td></tr>
+        <tr><td>Register 注册</td><td>邀请码注册</td><td>无页面</td><td><span class="pill p-no">缺页</span></td></tr>
+        <tr><td>Dashboard 仪表盘</td><td>指标卡 + 快捷入口</td><td>有（简化）</td><td><span class="pill p-part">简化</span></td></tr>
+        <tr><td>Calendar 日历</td><td>月/周/日/议程 + 事件新建编辑</td><td>只读月历 + 点日期/悬浮按钮建会议·提醒（已补齐）</td><td><span class="pill p-ok">已对齐</span></td></tr>
+        <tr><td>Companies 公司</td><td>列表 + 新建/编辑</td><td>列表 + 新建/编辑（已补齐）</td><td><span class="pill p-ok">已对齐</span></td></tr>
+        <tr><td>CompanyDetail 公司详情</td><td>People/Equity/Registers/Docs/Tasks/Meetings</td><td>links/docs/reminders/tasks/meetings；无股权/登记册</td><td><span class="pill p-part">缺 Tab</span></td></tr>
+        <tr><td>Meetings 会议</td><td>列表 + 新建/编辑</td><td>列表 + 新建/编辑（已补齐）</td><td><span class="pill p-ok">已对齐</span></td></tr>
+        <tr><td>Documents 文档</td><td>列表 + 上传 + 预览</td><td>列表 + 上传/预览/下载（已补齐）</td><td><span class="pill p-ok">已对齐</span></td></tr>
+        <tr><td>Personnel 人员</td><td>列表 + 新建/编辑</td><td>列表 + 新建/编辑（已补齐）</td><td><span class="pill p-ok">已对齐</span></td></tr>
+        <tr><td>Tasks 任务</td><td>列表 + TaskForm 新建/编辑</td><td>列表 + 新建/编辑 + 完成/备注（已补齐）</td><td><span class="pill p-ok">已对齐</span></td></tr>
+        <tr><td>ComplianceReminders 合规提醒</td><td>列表 + 新建/编辑 + 完成</td><td>列表 + 新建/编辑 + 完成（已补齐）</td><td><span class="pill p-ok">已对齐</span></td></tr>
+        <tr><td>ComplianceRules 合规规则</td><td>规则库 新建/编辑/启用</td><td>列表 + 新建/编辑（已补齐）</td><td><span class="pill p-ok">已对齐</span></td></tr>
+        <tr><td>Templates 文书模板</td><td>TemplateBuilder 完整编辑器</td><td>只读列表 + 详情</td><td><span class="pill p-part">缺编辑</span></td></tr>
+        <tr><td>SignTasks 签署任务</td><td>列表 + SignTaskForm 新建</td><td>列表 + 新建/编辑（已补齐）</td><td><span class="pill p-ok">已对齐</span></td></tr>
+        <tr><td>Nar1Import NAR1 导入</td><td>批量导入</td><td>无</td><td><span class="pill p-no">缺页</span></td></tr>
+        <tr><td>ResultsTimetable 业绩时间表</td><td>时间表管理</td><td>无</td><td><span class="pill p-no">缺页</span></td></tr>
+        <tr><td>AdminPanel 管理后台</td><td>用户/权限/审计/系统</td><td>无</td><td><span class="pill p-no">缺页</span></td></tr>
+        <tr><td>Settings 设置</td><td>个人/系统设置</td><td>仅退出登录</td><td><span class="pill p-no">缺页</span></td></tr>
+        <tr><td>Search 全局搜索</td><td>顶栏搜索 + 命令面板</td><td>无</td><td><span class="pill p-no">缺页+能力</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>差距分组</h2>
+    <div class="cols">
+      <div class="box">
+        <h3>① 完全缺页（6 个）</h3>
+        <ul>
+          <li>Register 注册页</li>
+          <li>Nar1Import NAR1 导入</li>
+          <li>ResultsTimetable 业绩时间表</li>
+          <li>AdminPanel 管理后台</li>
+          <li>Settings 设置</li>
+          <li>Search / GlobalSearch 全局搜索</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>② 仍有缺口（2 项写能力）</h3>
+        <ul>
+          <li>Templates → 缺编辑（仅只读，Schema 驱动引擎，富文本编辑器较复杂）</li>
+          <li>CompanyDetail → 缺 Equity 股权图 / Registers 登记册 Tab</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>建议优先级</h2>
+    <ol class="rec">
+      <li><strong>剩余写能力</strong>：Documents 上传 + ComplianceRules/Templates 编辑 + Calendar 事件 CRUD + CompanyDetail Equity/Registers Tab。当前 6 个核心模块已可写。</li>
+      <li class="t2"><strong>Settings + 全局搜索</strong>——体验补齐，搜索对 59 家公司/19 人员尤为必要。</li>
+      <li class="t3"><strong>Nar1Import / ResultsTimetable / AdminPanel</strong>——低频管理功能，可后做。</li>
+    </ol>
+  </section>
+
+  <footer>Claw CSMS · 差距报告仅统计页面与功能覆盖，未计入视觉/交互细节差异。写接口契约均已在 claw-api 路由中存在。</footer>
+</div>
+</body>
+</html>

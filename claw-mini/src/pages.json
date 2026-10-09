@@ -8,8 +8,120 @@
       }
     },
     {
+      "path": "pages/companies/companies",
+      "style": { "navigationBarTitleText": "公司" }
+    },
+    {
+      "path": "pages/personnel/personnel",
+      "style": { "navigationBarTitleText": "人员" }
+    },
+    {
+      "path": "pages/documents/documents",
+      "style": { "navigationBarTitleText": "文档" }
+    },
+    {
+      "path": "pages/reminders/reminders",
+      "style": { "navigationBarTitleText": "提醒" }
+    },
+    {
+      "path": "pages/more/more",
+      "style": { "navigationBarTitleText": "更多" }
+    },
+    {
+      "path": "pages/company-detail/company-detail",
+      "style": { "navigationBarTitleText": "公司详情" }
+    },
+    {
+      "path": "pages/company-form/company-form",
+      "style": { "navigationBarTitleText": "公司资料" }
+    },
+    {
+      "path": "pages/personnel-detail/personnel-detail",
+      "style": { "navigationBarTitleText": "人员详情" }
+    },
+    {
+      "path": "pages/personnel-form/personnel-form",
+      "style": { "navigationBarTitleText": "人员资料" }
+    },
+    {
+      "path": "pages/document-detail/document-detail",
+      "style": { "navigationBarTitleText": "文档详情" }
+    },
+    {
+      "path": "pages/document-upload/document-upload",
+      "style": { "navigationBarTitleText": "上传文档" }
+    },
+    {
+      "path": "pages/reminder-detail/reminder-detail",
+      "style": { "navigationBarTitleText": "提醒详情" }
+    },
+    {
+      "path": "pages/reminder-form/reminder-form",
+      "style": { "navigationBarTitleText": "提醒资料" }
+    },
+    {
+      "path": "pages/tasks/tasks",
+      "style": { "navigationBarTitleText": "任务" }
+    },
+    {
+      "path": "pages/task-detail/task-detail",
+      "style": { "navigationBarTitleText": "任务详情" }
+    },
+    {
+      "path": "pages/task-form/task-form",
+      "style": { "navigationBarTitleText": "任务资料" }
+    },
+    {
+      "path": "pages/meetings/meetings",
+      "style": { "navigationBarTitleText": "会议" }
+    },
+    {
+      "path": "pages/meeting-detail/meeting-detail",
+      "style": { "navigationBarTitleText": "会议详情" }
+    },
+    {
+      "path": "pages/meeting-form/meeting-form",
+      "style": { "navigationBarTitleText": "会议资料" }
+    },
+    {
+      "path": "pages/rules/rules",
+      "style": { "navigationBarTitleText": "合规规则" }
+    },
+    {
+      "path": "pages/rule-detail/rule-detail",
+      "style": { "navigationBarTitleText": "规则详情" }
+    },
+    {
+      "path": "pages/rule-form/rule-form",
+      "style": { "navigationBarTitleText": "规则资料" }
+    },
+    {
+      "path": "pages/sign-tasks/sign-tasks",
+      "style": { "navigationBarTitleText": "签署任务" }
+    },
+    {
+      "path": "pages/sign-task-detail/sign-task-detail",
+      "style": { "navigationBarTitleText": "签署详情" }
+    },
+    {
+      "path": "pages/sign-task-form/sign-task-form",
+      "style": { "navigationBarTitleText": "签署任务资料" }
+    },
+    {
+      "path": "pages/templates/templates",
+      "style": { "navigationBarTitleText": "文书模板" }
+    },
+    {
+      "path": "pages/calendar/calendar",
+      "style": { "navigationBarTitleText": "日历" }
+    },
+    {
+      "path": "pages/dashboard/dashboard",
+      "style": { "navigationBarTitleText": "仪表盘" }
+    },
+    {
       "path": "pages/gaps/gaps",
-      "style": { "navigationBarTitleText": "合规数据缺口" }
+      "style": { "navigationBarTitleText": "数据缺口补全" }
     }
   ],
   "globalStyle": {
@@ -17,5 +129,18 @@
     "navigationBarBackgroundColor": "#2563EB",
     "navigationBarTitleText": "CSMS",
     "backgroundColor": "#F5F7FA"
+  },
+  "tabBar": {
+    "color": "#94a3b8",
+    "selectedColor": "#2563EB",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/companies/companies", "text": "公司" },
+      { "pagePath": "pages/personnel/personnel", "text": "人员" },
+      { "pagePath": "pages/documents/documents", "text": "文档" },
+      { "pagePath": "pages/reminders/reminders", "text": "提醒" },
+      { "pagePath": "pages/more/more", "text": "更多" }
+    ]
   }
 }

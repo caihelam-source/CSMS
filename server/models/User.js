@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Please provide a password'],
+    required: false,
     minlength: 6,
     select: false
   },
@@ -43,6 +43,17 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  // 微信登录：小程序 wx.login 换得的 openid 绑定到同一 User，实现「微信 / 邮箱同源同数据」
+  wechatOpenid: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  wechatUnionid: {
+    type: String,
+    unique: true,
+    sparse: true
   }
 }, {
   timestamps: true
@@ -50,7 +61,7 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
+  if (!this.isModified('password') || !this.password) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);

@@ -124,4 +124,113 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// @route   POST /api/auth/wechat-login
+// @desc    微信小程序一键登录：wx.login code -> code2Session -> openid -> 建/查 User -> JWT
+// @access  Public
+router.post('/wechat-login', async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: '缺少 wx.login 返回的 code' });
+
+    const appid = process.env.WECHAT_APPID;
+    const secret = process.env.WECHAT_APPSECRET;
+    if (!appid || !secret) {
+      return res.status(500).json({ message: '服务端未配置 WECHAT_APPID / WECHAT_APPSECRET' });
+    }
+
+    const wxUrl = `https://api.weixin.qq.com/sns/jscode2session?appid=${appid}&secret=${secret}&js_code=${code}&grant_type=authorization_code`;
+    const wxRes = await fetch(wxUrl);
+    const wxData = await wxRes.json();
+
+    if (wxData.errcode) {
+      return res.status(401).json({ message: `微信登录失败：${wxData.errmsg || wxData.errcode}` });
+    }
+    const { openid, unionid } = wxData;
+    if (!openid) return res.status(401).json({ message: '微信未返回 openid' });
+
+    let user = await User.findOne({ wechatOpenid: openid });
+    let isNew = false;
+    if (!user) {
+      isNew = true;
+      user = await User.create({
+        name: '微信用户',
+        email: `wx_${openid}@claw.local`,
+        wechatOpenid: openid,
+        wechatUnionid: unionid || undefined,
+        role: 'viewer'
+      });
+    }
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.json({
+      success: true,
+      token,
+      isNew,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        company: user.company,
+        accessibleCompanies: user.accessibleCompanies || []
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   POST /api/auth/wechat-bind
+// @desc    将微信 openid 绑定到已有邮箱账号（校验邮箱+密码后写入 wechatOpenid）
+// @access  Public
+router.post('/wechat-bind', async (req, res) => {
+  try {
+    const { email, password, code } = req.body;
+    if (!email || !password || !code) {
+      return res.status(400).json({ message: '缺少 email / password / code' });
+    }
+    const appid = process.env.WECHAT_APPID;
+    const secret = process.env.WECHAT_APPSECRET;
+    if (!appid || !secret) {
+      return res.status(500).json({ message: '服务端未配置 WECHAT_APPID / WECHAT_APPSECRET' });
+    }
+
+    const wxRes = await fetch(`https://api.weixin.qq.com/sns/jscode2session?appid=${appid}&secret=${secret}&js_code=${code}&grant_type=authorization_code`);
+    const wxData = await wxRes.json();
+    if (wxData.errcode || !wxData.openid) {
+      return res.status(401).json({ message: `微信校验失败：${wxData.errmsg || wxData.errcode}` });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    if (!user) return res.status(401).json({ message: '账号不存在' });
+    if (!user.password) return res.status(401).json({ message: '该账号未设置密码，无法绑定' });
+    const ok = await user.comparePassword(password);
+    if (!ok) return res.status(401).json({ message: '邮箱或密码错误' });
+
+    const conflict = await User.findOne({ wechatOpenid: wxData.openid });
+    if (conflict && String(conflict._id) !== String(user._id)) {
+      return res.status(409).json({ message: '该微信已绑定其他账号' });
+    }
+    user.wechatOpenid = wxData.openid;
+    if (wxData.unionid) user.wechatUnionid = wxData.unionid;
+    await user.save();
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        company: user.company,
+        accessibleCompanies: user.accessibleCompanies || []
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
