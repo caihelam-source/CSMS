@@ -22,9 +22,12 @@
         <view class="sheet-row"><text class="k">类型</text><text class="v">{{ active.isPreset ? '内置模板' : '自定义模板' }}</text></view>
         <view class="sheet-row"><text class="k">版本</text><text class="v">{{ active.version || 1 }}</text></view>
         <view v-if="active.description" class="sheet-desc">{{ active.description }}</view>
+        <button class="edit" @tap="goEdit">编辑模板</button>
         <button class="close" @tap="close">关闭</button>
       </view>
     </view>
+
+    <view class="fab" @tap="goCreate">＋</view>
   </view>
 </template>
 
@@ -52,6 +55,8 @@ export default {
     },
     open(t) { this.active = t },
     close() { this.active = null },
+    goCreate() { uni.navigateTo({ url: '/pages/template-form/template-form' }) },
+    goEdit() { if (this.active) uni.navigateTo({ url: '/pages/template-form/template-form?id=' + this.active._id }) },
   },
 }
 </script>
@@ -76,4 +81,7 @@ export default {
 .sheet-desc { font-size: 26rpx; color: #334155; line-height: 1.6; margin: 20rpx 0; }
 .close { width: 100%; height: 88rpx; line-height: 88rpx; background: #f1f5f9; color: #334155; font-size: 28rpx; border-radius: 16rpx; border: none; margin-top: 12rpx; }
 .close::after { border: none; }
+.edit { width: 100%; height: 88rpx; line-height: 88rpx; background: #2563eb; color: #fff; font-size: 28rpx; border-radius: 16rpx; border: none; margin-top: 12rpx; }
+.edit::after { border: none; }
+.fab { position: fixed; right: 40rpx; bottom: 60rpx; width: 96rpx; height: 96rpx; border-radius: 50%; background: #2563EB; color: #fff; font-size: 56rpx; display: flex; align-items: center; justify-content: center; box-shadow: 0 8rpx 24rpx rgba(37,99,235,0.35); z-index: 50; }
 </style>

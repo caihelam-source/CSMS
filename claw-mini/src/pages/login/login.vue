@@ -82,6 +82,23 @@
 
     <text class="copyright">© 2026 Claw CSMS · 香港企业秘书与合规系统</text>
     <view class="footer-safe"></view>
+
+    <view v-if="bindMode" class="bind-mask">
+      <view class="bind-card" @tap.stop>
+        <text class="bind-title">绑定已有账号</text>
+        <text class="bind-tip">首次使用微信登录。绑定你的邮箱账号即可同步公司、人员等全部数据；也可跳过，直接创建新的微信账号。</text>
+        <view class="field">
+          <text class="field-label">邮箱</text>
+          <input class="input" v-model="bindEmail" placeholder="you@firm.com.hk" placeholder-class="ph" />
+        </view>
+        <view class="field">
+          <text class="field-label">密码</text>
+          <input class="input" v-model="bindPassword" password placeholder="••••••••" placeholder-class="ph" />
+        </view>
+        <button class="login-btn" :disabled="loading" @tap="onBind">绑定并登录</button>
+        <text class="bind-skip" @tap="onSkipBind">跳过，创建新微信账号</text>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -96,7 +113,13 @@ export default {
       password: '',
       remember: false,
       loading: false,
-      showWechat: process.env.UNI_PLATFORM === 'mp-weixin'
+      showWechat: process.env.UNI_PLATFORM === 'mp-weixin',
+      bindMode: false,
+      bindEmail: '',
+      bindPassword: '',
+      pendingWechatCode: '',
+      bindToken: '',
+      bindUser: {}
     }
   },
   onLoad() {
@@ -153,9 +176,17 @@ export default {
               auth: false,
             })
             if (!body.token) throw new Error(body.message || '微信登录失败')
+            if (body.isNew) {
+              this.pendingWechatCode = res.code
+              this.bindToken = body.token
+              this.bindUser = body.user || {}
+              this.bindMode = true
+              this.loading = false
+              return
+            }
             setToken(body.token)
             setUser(body.user || {})
-            uni.showToast({ title: body.isNew ? '已创建微信账号' : '微信登录成功', icon: 'success' })
+            uni.showToast({ title: '微信登录成功', icon: 'success' })
             setTimeout(() => uni.switchTab({ url: '/pages/companies/companies' }), 600)
           } catch (e) {
             uni.showToast({ title: e.message || '微信登录失败', icon: 'none' })
@@ -168,6 +199,37 @@ export default {
         },
       })
     },
+    async onBind() {
+      if (!this.bindEmail || !this.bindPassword) {
+        uni.showToast({ title: '请输入邮箱和密码', icon: 'none' })
+        return
+      }
+      this.loading = true
+      try {
+        const body = await request('/api/auth/wechat-bind', {
+          method: 'POST',
+          data: { email: this.bindEmail, password: this.bindPassword, code: this.pendingWechatCode },
+          auth: false,
+        })
+        if (!body.token) throw new Error(body.message || '绑定失败')
+        setToken(body.token)
+        setUser(body.user || {})
+        uni.showToast({ title: '已绑定并登录', icon: 'success' })
+        setTimeout(() => uni.switchTab({ url: '/pages/companies/companies' }), 600)
+      } catch (e) {
+        uni.showToast({ title: e.message || '绑定失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    },
+    onSkipBind() {
+      if (!this.bindToken) return
+      setToken(this.bindToken)
+      setUser(this.bindUser || {})
+      uni.showToast({ title: '已创建微信账号', icon: 'success' })
+      setTimeout(() => uni.switchTab({ url: '/pages/companies/companies' }), 600)
+    },
+    noop() {},
   },
 }
 </script>
@@ -424,4 +486,11 @@ export default {
 .footer-safe {
   height: env(safe-area-inset-bottom);
 }
+
+/* 微信绑定弹层 */
+.bind-mask { position: fixed; inset: 0; background: rgba(15,23,42,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 40rpx; }
+.bind-card { width: 100%; background: #fff; border-radius: 28rpx; padding: 40rpx 36rpx; box-sizing: border-box; }
+.bind-title { font-size: 34rpx; font-weight: 700; color: #0f2a5e; display: block; }
+.bind-tip { font-size: 24rpx; color: #64748b; line-height: 1.6; margin: 14rpx 0 26rpx; display: block; }
+.bind-skip { display: block; text-align: center; font-size: 26rpx; color: #2563eb; margin-top: 22rpx; }
 </style>

@@ -90,6 +90,49 @@
       </view>
       <view v-if="!meetings.length" class="empty">暂无会议</view>
     </view>
+
+    <!-- 股权 / 股本 -->
+    <view v-else-if="active === 'equity'" class="section">
+      <view class="sub-h">股本 (Share Capital)</view>
+      <view class="grid">
+        <view class="cell"><text class="k">已发行</text><text class="v">{{ sc('issued') }}</text></view>
+        <view class="cell"><text class="k">实缴</text><text class="v">{{ sc('paidUp') }}</text></view>
+        <view class="cell"><text class="k">币种</text><text class="v">{{ (c.shareCapital && c.shareCapital.currency) || 'HKD' }}</text></view>
+      </view>
+      <view class="sub-h">股东 ({{ shareholders.length }})</view>
+      <view v-for="s in shareholders" :key="s.link._id" class="row" @tap="goPerson(s.link._id)">
+        <text class="row-name">{{ s.link.name }}</text>
+        <text class="row-sub">{{ (s.shareType ? s.shareType + ' · ' : '') }}{{ s.shares != null ? s.shares + ' 股' : '持股' }}</text>
+        <text class="chev">›</text>
+      </view>
+      <view v-if="!shareholders.length" class="empty">暂无股东登记</view>
+    </view>
+
+    <!-- 登记册 -->
+    <view v-else-if="active === 'registers'" class="section">
+      <view class="sub-h">董事登记册 (ROD)</view>
+      <view v-for="d in directors" :key="d.link._id" class="row" @tap="goPerson(d.link._id)">
+        <text class="row-name">{{ d.link.name }}</text>
+        <text class="row-sub">{{ fmtDate(d.appointmentDate) }}{{ d.cessationDate ? ' · 退任 ' + fmtDate(d.cessationDate) : '' }}</text>
+        <text class="chev">›</text>
+      </view>
+      <view v-if="!directors.length" class="empty">暂无董事登记</view>
+
+      <view class="sub-h">秘书登记册</view>
+      <view v-for="s in secretaries" :key="s.link._id" class="row" @tap="goPerson(s.link._id)">
+        <text class="row-name">{{ s.link.name }}</text>
+        <text class="chev">›</text>
+      </view>
+      <view v-if="!secretaries.length" class="empty">暂无秘书登记</view>
+
+      <view class="sub-h">成员登记册 (ROM)</view>
+      <view v-for="m in shareholders" :key="m.link._id" class="row" @tap="goPerson(m.link._id)">
+        <text class="row-name">{{ m.link.name }}</text>
+        <text class="row-sub">{{ (m.shareType ? m.shareType + ' · ' : '') }}{{ m.shares != null ? m.shares + ' 股' : '持股' }}</text>
+        <text class="chev">›</text>
+      </view>
+      <view v-if="!shareholders.length" class="empty">暂无成员登记</view>
+    </view>
   </view>
 </template>
 
@@ -110,6 +153,8 @@ export default {
         { key: 'reminders', label: '提醒' },
         { key: 'tasks', label: '任务' },
         { key: 'meetings', label: '会议' },
+        { key: 'equity', label: '股权' },
+        { key: 'registers', label: '登记册' },
       ],
       counts: {},
       people: [], related: [], documents: [], reminders: [], tasks: [], meetings: [],
@@ -118,6 +163,17 @@ export default {
   onLoad(opt) {
     this.id = opt.id
     this.loadCompany()
+  },
+  computed: {
+    shareholders() {
+      return (this.c.links || []).filter(l => l.roles && l.roles.includes('shareholder'))
+    },
+    directors() {
+      return (this.c.links || []).filter(l => l.roles && (l.roles.includes('director') || l.roles.includes('alternate_director')))
+    },
+    secretaries() {
+      return (this.c.links || []).filter(l => l.roles && l.roles.includes('secretary'))
+    },
   },
   methods: {
     fmtDate, isOverdue, jurLabel, companyStatusLabel, docTypeLabel, priorityLabel,
@@ -132,6 +188,10 @@ export default {
       const m = c.financialYearEnd.month, d = c.financialYearEnd.day
       if (!m) return '—'
       return `${m}月${d || ''}日`
+    },
+    sc(f) {
+      const v = this.c.shareCapital && this.c.shareCapital[f]
+      return (v === 0 || v) ? v : '—'
     },
     async loadCompany() {
       try {
@@ -151,6 +211,8 @@ export default {
       this.related = links.filter(l => l.linkModel === 'Company').map(l => ({
         id: l.link._id, name: l.link.name, roles: l.roles || [],
       }))
+      this.counts.equity = this.shareholders.length
+      this.counts.registers = this.directors.length + this.secretaries.length + this.shareholders.length
     },
     async loadCounts() {
       try {
@@ -160,12 +222,10 @@ export default {
           request('/api/tasks?companyId=' + this.id),
           request('/api/meetings?companyId=' + this.id),
         ])
-        this.counts = {
-          documents: (d.documents || []).length,
-          reminders: (r.reminders || []).length,
-          tasks: (t.tasks || []).length,
-          meetings: (m.meetings || []).length,
-        }
+        this.counts.documents = (d.documents || []).length
+        this.counts.reminders = (r.reminders || []).length
+        this.counts.tasks = (t.tasks || []).length
+        this.counts.meetings = (m.meetings || []).length
       } catch (e) { /* 静默 */ }
     },
     async switchTab(key) {

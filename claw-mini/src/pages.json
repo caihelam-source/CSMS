@@ -112,6 +112,10 @@
       "style": { "navigationBarTitleText": "文书模板" }
     },
     {
+      "path": "pages/template-form/template-form",
+      "style": { "navigationBarTitleText": "模板编辑" }
+    },
+    {
       "path": "pages/calendar/calendar",
       "style": { "navigationBarTitleText": "日历" }
     },
