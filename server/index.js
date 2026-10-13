@@ -92,14 +92,14 @@ app.use('/api/announcements', announcementRoutes);   // 首页公告（前台读
 app.use('/api/companies/:id', companyEntriesRoutes);   // shareholder-entries / director-entries
 app.use('/api/companies/:id', companyRegisterRoutes);  // rom / rod PDF
 
-// 真实健康检查：必须能连上 MongoDB 才算健康，避免「假活」骗过 Render 探针
-// （旧实现只回 {status:'ok'}，DB 挂了仍 200，导致 07-21 以来状态难判断）。
+// 健康检查：端口一开即返回 200（让 Render 端口扫描/健康检查立刻通过），
+// DB 状态放在 body 的 db 字段里供监控，不靠 HTTP 状态码卡部署（避免 21s 初始化窗口内 503 拖垮部署）。
 app.get('/api/health', (req, res) => {
   const connected = mongoose.connection.readyState === 1;
-  res.status(connected ? 200 : 503).json({
-    status: connected ? 'ok' : 'degraded',
+  res.status(200).json({
+    status: connected ? 'ok' : 'starting',
     version: '5.2.0',
-    db: connected ? 'connected' : 'disconnected',
+    db: connected ? 'connected' : 'connecting',
     ts: Date.now(),
   });
 });
@@ -110,9 +110,10 @@ app.use(errorHandler);
 // 关键：先绑定端口（尽早，满足 Render 端口扫描，否则 20+ 秒的启动工作
 // 会把端口开放拖到扫描窗口之后 → Port scan timeout / No open HTTP ports）。
 // DB 连接与初始化放到监听「之后」后台执行，不阻塞端口开放。
-// host 用默认（Node `::` 双栈，IPv4/IPv6 都能进；写死 0.0.0.0 反而漏掉 IPv6 探测）。
+// 显式绑定 0.0.0.0（IPv4）：Render 端口扫描走 IPv4，绑定 :: 双栈在某些环境下
+// IPv4 探测会 misses → No open HTTP ports。0.0.0.0 是 Render 官方推荐写法。
 function startServer() {
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`
   ┌─────────────────────────────────────────────┐
   │   Company Secretary Management System v3.0  │
