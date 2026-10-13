@@ -140,7 +140,7 @@ async function start() {
       }
     } catch { /* silent */ }
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`
   ┌─────────────────────────────────────────────┐
   │   Company Secretary Management System v3.0  │
