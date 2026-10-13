@@ -107,7 +107,37 @@ app.get('/api/health', (req, res) => {
 app.use(errorHandler);
 
 // ── MongoDB + Start ─────────────────────────────────────────
-async function start() {
+// 关键：先绑定端口（尽早，满足 Render 端口扫描，否则 20+ 秒的启动工作
+// 会把端口开放拖到扫描窗口之后 → Port scan timeout / No open HTTP ports）。
+// DB 连接与初始化放到监听「之后」后台执行，不阻塞端口开放。
+// host 用默认（Node `::` 双栈，IPv4/IPv6 都能进；写死 0.0.0.0 反而漏掉 IPv6 探测）。
+function startServer() {
+  app.listen(PORT, () => {
+    console.log(`
+  ┌─────────────────────────────────────────────┐
+  │   Company Secretary Management System v3.0  │
+  └─────────────────────────────────────────────┘
+
+  ✓ Server running on port ${PORT}
+  ✓ Environment: ${process.env.NODE_ENV || 'development'}
+  ✓ Frontend URL: ${CLIENT_URL}
+
+  Routes:
+    /api/companies            公司管理 + Excel导入 + 统一关联links
+    /api/documents            文档管理 + 自动编号
+    /api/compliance-rules     合规规则管理（17条预设）
+    /api/compliance-reminders 合规提醒管理
+    /api/templates            文书模板（Schema 引擎）+ 预填解析
+    /api/sign-tasks           电子签署流程
+    /api/personnel             人员库（董事/股东/职员）
+    /api/companies/:id/...     股东条目/董事条目/ROM/ROD
+      `);
+    // 端口已开放，异步做 DB 连接与初始化（不阻塞监听）
+    startBackend().catch((err) => console.error('❌ 后台初始化失败:', err.message));
+  });
+}
+
+async function startBackend() {
   try {
     await mongoose.connect(MONGO_URI, {
       maxPoolSize: 10,
@@ -131,44 +161,17 @@ async function start() {
 
     // 初始化预设模板
     try {
-      // 通过 HTTP 调用或直接调用服务层（这里直接用 mongoose）
       const DocumentTemplate = require('./models/DocumentTemplate');
       const count = await DocumentTemplate.countDocuments({ isPreset: true });
-      if (count === 0) {
-        // 触发一次 /api/templates/initialize 的逻辑
-        console.log('🔧 预设模板初始化中...');
-      }
+      if (count === 0) console.log('🔧 预设模板初始化中...');
     } catch { /* silent */ }
-
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`
-  ┌─────────────────────────────────────────────┐
-  │   Company Secretary Management System v3.0  │
-  └─────────────────────────────────────────────┘
-
-  ✓ Server running on port ${PORT}
-  ✓ MongoDB: connected
-  ✓ Environment: ${process.env.NODE_ENV || 'development'}
-  ✓ Frontend URL: ${CLIENT_URL}
-
-  Routes:
-    /api/companies            公司管理 + Excel导入 + 统一关联links
-    /api/documents            文档管理 + 自动编号
-    /api/compliance-rules     合规规则管理（17条预设）
-    /api/compliance-reminders 合规提醒管理
-    /api/templates            文书模板（Schema 引擎）+ 预填解析
-    /api/sign-tasks           电子签署流程
-    /api/personnel             人员库（董事/股东/职员）
-    /api/companies/:id/...     股东条目/董事条目/ROM/ROD
-      `);
-    });
   } catch (err) {
     console.error('❌ 启动失败:', err.message);
     process.exit(1);
   }
 }
 
-start();
+startServer();
 
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Rejection:', err);
