@@ -116,7 +116,7 @@ function startServer() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`
   ┌─────────────────────────────────────────────┐
-  │   Company Secretary Management System v3.0  │
+  │   Company Secretary Management System v5.2.0  │
   └─────────────────────────────────────────────┘
 
   ✓ Server running on port ${PORT}
