@@ -59,14 +59,21 @@ const MONGO_URI = safeMongoUri(process.env.MONGODB_URI || process.env.MONGO_URI 
 // 并放行所有 localhost / 127.0.0.1 本地开发来源（claw-web 本地 dev、
 // claw-mini H5 本地预览 http://localhost:8080 等）。受保护路由仍需 JWT，
 // 放开本地来源不会暴露任何未授权数据。
-const isAllowedOrigin = (origin) => {
-  if (!origin) return true; // 非浏览器上下文（curl / 小程序原生请求）放行
+//
+// ⚠️ 致命坑（2026-10-13 ~ 10-20 线上全线部署失败根因）：
+// cors 包在 origin 为「函数」时会调用 origin(请求Origin, callback) 并**等待回调**；
+// 若只 return true/false 而不调用 callback，中间件永远不会 next()，
+// 每个 HTTP 请求（含 Render 端口探针）都会永久挂起 →
+// 现象就是 "No open HTTP ports detected on 0.0.0.0" + 端口扫描超时。
+// 必须显式 callback(null, 布尔值)。
+const isAllowedOrigin = (origin, callback) => {
+  if (!origin) return callback(null, true); // 非浏览器上下文（curl / 小程序原生请求）放行
   const allowed = (process.env.CLIENT_URL || 'http://localhost:5173')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  if (allowed.includes(origin)) return true;
-  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  if (allowed.includes(origin)) return callback(null, true);
+  return callback(null, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
 };
 app.use(cors({ origin: isAllowedOrigin, credentials: true }));
 app.use(compression());   // 生产：对 JSON/HTML 响应启用 gzip 压缩，降低传输体积
