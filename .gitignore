@@ -162,3 +162,6 @@ client/vitest.config.js.timestamp-*.mjs
 # 仅 git 忽略；物理删除留待本机 `git clean -fdX`
 scripts/start-mongo-memory.js
 attachments/
+
+# 数据补录用的待填表含客户公司名/注册号，不入库
+deliverables/*.csv
