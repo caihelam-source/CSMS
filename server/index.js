@@ -111,6 +111,30 @@ app.use(errorHandler);
 // 服务启动时刻：用于 /api/health 暴露，便于远程验证「是否刚部署了新镜像」
 const SERVER_STARTED_AT = Date.now();
 
+// 部署心跳：把启动阶段写入 Atlas 的 deployheartbeats 集合，
+// 这样即使看不到 Render 构建日志，也能通过直连 Atlas 判断构建走到了哪一步。
+// （build 失败=无心跳；listen 有但 db_connected 无=DB 连接/初始化失败；都有=启动成功）
+async function writeHeartbeat(phase, info = {}) {
+  let conn;
+  try {
+    conn = mongoose.createConnection(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
+    await conn.asPromise();
+    const coll = conn.collection('deployheartbeats');
+    await coll.insertOne({
+      commit: process.env.RENDER_GIT_COMMIT || 'local',
+      version: '5.2.0',
+      phase,
+      startedAt: SERVER_STARTED_AT,
+      info,
+      ts: new Date(),
+    });
+  } catch (_) {
+    /* best-effort，绝不影响启动 */
+  } finally {
+    if (conn) { try { await conn.close(); } catch (_) {} }
+  }
+}
+
 // ── MongoDB + Start ─────────────────────────────────────────
 // 关键：先绑定端口（尽早，满足 Render 端口扫描，否则 20+ 秒的启动工作
 // 会把端口开放拖到扫描窗口之后 → Port scan timeout / No open HTTP ports）。
@@ -139,6 +163,7 @@ function startServer() {
     /api/companies/:id/...     股东条目/董事条目/ROM/ROD
       `);
     // 端口已开放，异步做 DB 连接与初始化（不阻塞监听）
+    writeHeartbeat('listen');
     startBackend().catch((err) => console.error('❌ 后台初始化失败:', err.message));
   });
 }
@@ -152,6 +177,7 @@ async function startBackend() {
       serverSelectionTimeoutMS: 5000,
     });
     console.log('✅ MongoDB 连接成功');
+    writeHeartbeat('db_connected');
 
     // 初始化预设规则
     const { initPresetRules } = require('./services/complianceService');
@@ -173,7 +199,7 @@ async function startBackend() {
     } catch { /* silent */ }
   } catch (err) {
     console.error('❌ 启动失败:', err.message);
-    process.exit(1);
+    writeHeartbeat('db_failed', { error: err.message }).finally(() => process.exit(1));
   }
 }
 
