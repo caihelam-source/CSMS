@@ -40,7 +40,9 @@ require('./models/Counter');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+// PORT 强制转数字（Render 注入的是字符串 "10000"；部分 Node 版本对字符串端口处理不一致），
+// 默认值用 10000（Render 默认端口），不要退回 5000。
+const PORT = Number(process.env.PORT) || 10000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const MONGO_URI = safeMongoUri(process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/company-secretary');
 
@@ -149,7 +151,9 @@ async function writeHeartbeat(phase, info = {}) {
 // 显式绑定 0.0.0.0（IPv4）：Render 端口扫描走 IPv4，绑定 :: 双栈在某些环境下
 // IPv4 探测会 misses → No open HTTP ports。0.0.0.0 是 Render 官方推荐写法。
 function startServer() {
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    // 关键诊断：打印真实绑定地址，确认在 Render 上是 0.0.0.0 而非 :: / 127.0.0.1
+    try { console.log('BIND_ADDRESS ' + JSON.stringify(server.address())); } catch (_) {}
     console.log(`
   ┌─────────────────────────────────────────────┐
   │   Company Secretary Management System v5.2.0  │
