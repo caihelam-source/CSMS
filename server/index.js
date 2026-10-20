@@ -40,9 +40,11 @@ require('./models/Counter');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
-// PORT 强制转数字（Render 注入的是字符串 "10000"；部分 Node 版本对字符串端口处理不一致），
-// 默认值用 10000（Render 默认端口），不要退回 5000。
-const PORT = Number(process.env.PORT) || 10000;
+// 注意：本服务在 Render 上并没有注入 PORT 环境变量（env-vars 里没有 PORT）。
+// 历史唯一成功部署 5d2c4ee 用的就是 `process.env.PORT || 5000`，即实际监听 5000。
+// 之前改成 10000 后 Render 端口自动探测始终失败（No open HTTP ports / Port scan timeout），
+// 因此这里恢复为 5000，与已验证成功的部署保持一致。
+const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const MONGO_URI = safeMongoUri(process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/company-secretary');
 
