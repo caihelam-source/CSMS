@@ -99,12 +99,17 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: connected ? 'ok' : 'starting',
     version: '5.2.0',
+    commit: process.env.RENDER_GIT_COMMIT || 'local',
+    startedAt: SERVER_STARTED_AT,
     db: connected ? 'connected' : 'connecting',
     ts: Date.now(),
   });
 });
 
 app.use(errorHandler);
+
+// 服务启动时刻：用于 /api/health 暴露，便于远程验证「是否刚部署了新镜像」
+const SERVER_STARTED_AT = Date.now();
 
 // ── MongoDB + Start ─────────────────────────────────────────
 // 关键：先绑定端口（尽早，满足 Render 端口扫描，否则 20+ 秒的启动工作
