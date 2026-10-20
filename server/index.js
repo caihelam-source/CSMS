@@ -72,6 +72,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// 诊断用：记录前 30 个进来的 HTTP 请求，确认 Render 端口扫描是否真的连到了本进程
+let __reqLogged = 0;
+app.use((req, res, next) => {
+  if (__reqLogged < 30) { __reqLogged++; console.log('REQ ' + req.method + ' ' + req.url); }
+  next();
+});
+
 // ── API Routes ─────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
@@ -150,36 +157,7 @@ async function writeHeartbeat(phase, info = {}) {
 // DB 连接与初始化放到监听「之后」后台执行，不阻塞端口开放。
 // 显式绑定 0.0.0.0（IPv4）：Render 端口扫描走 IPv4，绑定 :: 双栈在某些环境下
 // IPv4 探测会 misses → No open HTTP ports。0.0.0.0 是 Render 官方推荐写法。
-function startServer() {
-  const server = app.listen(PORT, '0.0.0.0', () => {
-    // 关键诊断：打印真实绑定地址，确认在 Render 上是 0.0.0.0 而非 :: / 127.0.0.1
-    try { console.log('BIND_ADDRESS ' + JSON.stringify(server.address())); } catch (_) {}
-    console.log(`
-  ┌─────────────────────────────────────────────┐
-  │   Company Secretary Management System v5.2.0  │
-  └─────────────────────────────────────────────┘
-
-  ✓ Server running on port ${PORT}
-  ✓ Environment: ${process.env.NODE_ENV || 'development'}
-  ✓ Frontend URL: ${CLIENT_URL}
-
-  Routes:
-    /api/companies            公司管理 + Excel导入 + 统一关联links
-    /api/documents            文档管理 + 自动编号
-    /api/compliance-rules     合规规则管理（17条预设）
-    /api/compliance-reminders 合规提醒管理
-    /api/templates            文书模板（Schema 引擎）+ 预填解析
-    /api/sign-tasks           电子签署流程
-    /api/personnel             人员库（董事/股东/职员）
-    /api/companies/:id/...     股东条目/董事条目/ROM/ROD
-      `);
-    // 端口已开放，异步做 DB 连接与初始化（不阻塞监听）
-    writeHeartbeat('listen');
-    startBackend().catch((err) => console.error('❌ 后台初始化失败:', err.message));
-  });
-}
-
-async function startBackend() {
+async function start() {
   try {
     await mongoose.connect(MONGO_URI, {
       maxPoolSize: 10,
@@ -208,13 +186,39 @@ async function startBackend() {
       const count = await DocumentTemplate.countDocuments({ isPreset: true });
       if (count === 0) console.log('🔧 预设模板初始化中...');
     } catch { /* silent */ }
+
+    // 与 2026-09-28 成功部署 5d2c4ee 一致：不指定 host → :: 双栈。
+    // 实证：listen-first 会稳定触发 Render 的 Port scan timeout，listen-after-connect 不会。
+    const server = app.listen(PORT, () => {
+      try { console.log('BIND_ADDRESS ' + JSON.stringify(server.address())); } catch (_) {}
+      console.log(`
+  ┌─────────────────────────────────────────────┐
+  │   Company Secretary Management System v5.2.0  │
+  └─────────────────────────────────────────────┘
+
+  ✓ Server running on port ${PORT}
+  ✓ Environment: ${process.env.NODE_ENV || 'development'}
+  ✓ Frontend URL: ${CLIENT_URL}
+
+  Routes:
+    /api/companies            公司管理 + Excel导入 + 统一关联links
+    /api/documents            文档管理 + 自动编号
+    /api/compliance-rules     合规规则管理（17条预设）
+    /api/compliance-reminders 合规提醒管理
+    /api/templates            文书模板（Schema 引擎）+ 预填解析
+    /api/sign-tasks           电子签署流程
+    /api/personnel             人员库（董事/股东/职员）
+    /api/companies/:id/...     股东条目/董事条目/ROM/ROD
+      `);
+      writeHeartbeat('listen');
+    });
   } catch (err) {
     console.error('❌ 启动失败:', err.message);
     writeHeartbeat('db_failed', { error: err.message }).finally(() => process.exit(1));
   }
 }
 
-startServer();
+start();
 
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Rejection:', err);
